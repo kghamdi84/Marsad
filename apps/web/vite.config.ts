@@ -8,7 +8,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      // No update prompt exists, so a waiting worker would keep serving a stale build.
+      registerType: 'autoUpdate',
       injectRegister: 'script-defer',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -29,6 +30,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         // Never cache API traffic: stale market data must not look live.
         navigateFallbackDenylist: [/^\/api\//],

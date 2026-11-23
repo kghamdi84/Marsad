@@ -37,7 +37,7 @@ Because the project is linked to this repository, Supabase can apply database mi
    - Repository: `kghamdi84/Marsad`
    - Working directory: `.` (a single dot; the `supabase` folder sits at the top of the repository)
    - Production branch: `main`
-   - **Deploy to production**: on
+   - **Deploy to production**: on (it was found off on 2026-11-23, which is why the first migration did not run). Then set **Production branch name** to `main` and save.
    - **Automatic branching**: off (preview branches need the Pro plan)
 3. **Tell Claude:** "GitHub integration checked."
 
