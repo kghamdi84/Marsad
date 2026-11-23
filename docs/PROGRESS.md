@@ -18,8 +18,8 @@ Last updated 2026-11-23.
 ### Blocked on Khaled (see docs/SETUP.md)
 
 1. Done by Khaled: Supabase org **Personal Projects** (Free) and project `hwdwivilqdydmxhycapy` (Tokyo), linked to this repository.
-2. Reconnect the Supabase connector and grant **Personal Projects** (it still sees only the work org).
-3. Step 1b: confirm the GitHub integration settings (working directory `.`, branch `main`, Deploy to production on).
+2. Done by Khaled: Supabase connector reconnected with **Personal Projects**. Connectors load at session start, so the session that started Phase 0 still could not see the project (`get_project` returned a permission error). Verify access first thing in the next session with `list_projects`.
+3. Done by Khaled: GitHub integration settings checked (working directory `.`, branch `main`, Deploy to production on).
 4. Step 2: Auth settings (sign-ups off, TOTP on, code email template) and the owner user.
 5. Step 3: is Netlify team "GIG" (`khaled-alghamdi-84`) personal?
 

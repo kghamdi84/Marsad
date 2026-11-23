@@ -106,8 +106,8 @@
         {
           "id": "0.16",
           "title": "Personal Supabase organization and project created and confirmed",
-          "status": "in_progress",
-          "evidence": "Khaled created org \"Personal Projects\" (Free) and project hwdwivilqdydmxhycapy (Tokyo, ap-northeast-1), linked to GitHub. Connector still sees only Gulf Insulation Group: reconnect pending (SETUP step 1)."
+          "status": "done",
+          "evidence": "Org \"Personal Projects\" (Free), project hwdwivilqdydmxhycapy (Tokyo), linked to GitHub with Deploy to production. Connector reconnected by Khaled; takes effect in a new session."
         },
         {
           "id": "0.17",
