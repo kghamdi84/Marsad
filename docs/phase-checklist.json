@@ -113,19 +113,19 @@
           "id": "0.17",
           "title": "Supabase Auth configured (sign-ups off, TOTP on, OTP email template) and owner user created",
           "status": "in_progress",
-          "evidence": "Khaled reported Auth set up; five settings not individually confirmed yet."
+          "evidence": "Live /auth/v1/settings shows disable_signup false (sign-ups still on). Other settings unconfirmed."
         },
         {
           "id": "0.18",
           "title": "Baseline migration deployed by the Supabase GitHub integration on merge to main; owner added to private.app_owners; advisors checked",
           "status": "blocked",
-          "evidence": "PR #1 merged (c75df75); GitHub integration should have applied the baseline migration. Verify with the connector in the next session (list_migrations, list_tables, get_advisors)."
+          "evidence": "PR #1 merged but tables absent (REST 404). Added supabase/config.toml (PR #2); Khaled to check the integration deploy log."
         },
         {
           "id": "0.19",
           "title": "Netlify team confirmed and site created from GitHub with env vars",
           "status": "in_progress",
-          "evidence": "Site marsad-k84 linked to GitHub main; production deploy of c75df75 live at https://marsad-k84.netlify.app with headers. Pending: VITE_SUPABASE_PUBLISHABLE_KEY."
+          "evidence": "Site live; VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY set (key validated, HTTP 200). Next deploy picks up the key."
         },
         {
           "id": "0.20",

@@ -45,6 +45,8 @@ The first database migration is applied when pull request #1 is merged into `mai
 
 ## Step 2. Configure Supabase Auth (Claude cannot do this through the connector)
 
+Status 2026-11-23: the live project still reports sign-ups as **on** (`disable_signup: false`). Do item 1 below first.
+
 In the Supabase project (`hwdwivilqdydmxhycapy`):
 
 1. Tap **Authentication** in the left menu, then **Sign In / Providers** (on some layouts: **Providers**).
