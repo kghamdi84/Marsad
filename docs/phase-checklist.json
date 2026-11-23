@@ -155,19 +155,19 @@
           "id": "1.1",
           "title": "Massive adapter with token bucket, caching, backoff, entitlement detection and fixtures",
           "status": "in_progress",
-          "evidence": "core/http.ts: token bucket (5/min free tier), TTL cache, retry/backoff, Retry-After, entitlement classification (13 tests). Entitlement error body shape is from the API lineage docs, not yet captured from a live REST call. Endpoint adapters not yet written."
+          "evidence": "Adapters in core/adapters/massive.ts for holidays, daily bars, splits: tested on recorded fixtures (provenance, Authorization header, bad-bar rejection, entitlement shown as requires plan). Code complete; live envelope, base URL and entitlement body still to confirm with MASSIVE_API_KEY. Not deployed."
         },
         {
           "id": "1.2",
           "title": "FRED adapter and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/adapters/fred.ts: 12 series, key redacted from provenance, \".\" to null. Tested on a SYNTHETIC documented-shape body; needs FRED_API_KEY to record a real one. Not deployed."
         },
         {
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/adapters/sec.ts: submissions parser, refuses to run without a declared contact in SEC_USER_AGENT, 8-K items parsed. Tested on a SYNTHETIC documented-shape body; real recording waits for Khaled to choose the contact string. Not deployed."
         },
         {
           "id": "1.4",
@@ -208,8 +208,8 @@
         {
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/reconcile.ts: VIX vs FRED, 10y vs FRED, VWAP, filings completeness, missing side = failure, report and critical alerts (8 tests). The nightly job and live data are not yet wired."
         },
         {
           "id": "1.11",

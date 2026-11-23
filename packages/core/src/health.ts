@@ -45,7 +45,7 @@ export function evaluateSourceHealth(
 export interface SystemAlert {
   kind: 'system';
   priority: 'critical';
-  event: 'stale' | 'recovered';
+  event: 'stale' | 'recovered' | 'mismatch';
   source: string;
   /** Up to 90 characters, factual. */
   headline: string;
