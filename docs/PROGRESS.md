@@ -22,7 +22,7 @@ Last updated 2026-11-23.
 3. Done by Khaled: GitHub integration settings checked (working directory `.`, branch `main`, Deploy to production on).
 4. Step 2: Auth settings (sign-ups off, TOTP on, code email template) and the owner user.
 5. Done: Khaled confirmed Netlify team "GIG" (`khaled-alghamdi-84`) is personal. Claude created site `marsad-k84` (id `c8eb3a9d-8c02-4bba-818e-1970923ca7ea`, `https://marsad-k84.netlify.app`) and set `VITE_SUPABASE_URL`. Note: the same team also hosts Gulf Insulation sites (giginsulation.app); Khaled decided it is personal.
-6. Khaled links the Netlify site to GitHub (SETUP step 3); the connector cannot.
+6. Done: Khaled linked the Netlify site to GitHub `main` (build `pnpm --filter @marsad/web build`, publish `apps/web/dist`). The first deploy of `main@f70e132` (README only) failed as expected.
 7. Next session: read the publishable key with the Supabase connector (`get_publishable_keys`) and set `VITE_SUPABASE_PUBLISHABLE_KEY` on the Netlify site.
 
 ### Next steps after unblock

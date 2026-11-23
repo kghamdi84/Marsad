@@ -66,18 +66,13 @@ In the Supabase project (`hwdwivilqdydmxhycapy`):
 
 Note: the built-in Supabase email sender is rate limited (a few emails per hour) and meant for testing. It is enough for one person signing in. A custom SMTP sender is set up in Phase 5 along with email digests.
 
-## Step 3. Link the Netlify site to GitHub
+## Step 3. Link the Netlify site to GitHub (done)
 
-Claude created the site `marsad-k84` in team **GIG** on 2026-11-23 and set `VITE_SUPABASE_URL`. The connector cannot link a repository, so this part is yours:
+Claude created the site `marsad-k84` in team **GIG** and set `VITE_SUPABASE_URL`. Khaled linked it to `kghamdi84/Marsad`, branch `main`, on 2026-11-23, with build command `pnpm --filter @marsad/web build` and publish directory `apps/web/dist` (the same values as `netlify.toml`).
 
-1. Open `https://app.netlify.com/projects/marsad-k84`.
-2. Tap **Project configuration**, then **Build & deploy**, then **Continuous deployment**, then **Link repository** (on some layouts: **Link to Git provider**).
-3. Choose **GitHub**, authorize Netlify for `kghamdi84/Marsad` if asked, and select the repository.
-4. Branch to deploy: `main`. Leave the build command and publish directory as detected from `netlify.toml` (`pnpm --filter @marsad/web build` and `apps/web/dist`). Tap **Save** or **Link**.
-5. Turn on **Deploy Previews** for pull requests if it is not already on.
-6. **Tell Claude:** "Netlify linked."
+Tap path in Netlify's current layout, for reference: **Projects**, **marsad-k84**, **Deploys** (in the project's own sidebar), **Deploy settings**, **Link repository**.
 
-The first deploy runs when `main` changes (after pull request #1 is merged). Until `VITE_SUPABASE_PUBLISHABLE_KEY` is set (step 4), the site shows "Configuration missing" instead of the sign-in screen.
+The first deploy (`main@f70e132`, README only) failed because `main` had no app yet. That is expected; merging pull request #1 triggers the first real build.
 
 ## Step 4. Netlify environment variables (browser-safe values only)
 
