@@ -23,6 +23,12 @@ export function useAuthGate(): { gate: Gate; email: string | null; refresh: () =
     if (!supabase) return;
     const { data } = await supabase.auth.getSession();
     const session = data.session;
+    // Remove the one-time ?code= from a sign-in link once it has been exchanged.
+    const url = new URL(window.location.href);
+    if (session && url.searchParams.has('code')) {
+      url.searchParams.delete('code');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
     if (!session) {
       setS({ loading: false, hasSession: false, email: null, currentLevel: null, nextLevel: null });
       return;

@@ -18,7 +18,7 @@ export function SignIn() {
     // shouldCreateUser false: sign-ups are closed; unknown emails get no account.
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/` },
     });
     setBusy(false);
     if (error) setError(error.message);
