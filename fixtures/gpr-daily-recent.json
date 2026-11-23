@@ -1,0 +1,171 @@
+{
+  "_recorded": {
+    "source": "gpr",
+    "endpoint": "https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls",
+    "recordedAt": "2026-11-23",
+    "via": "downloaded the .xls, read with pandas/xlrd, last 20 rows of Sheet1, selected columns, values rounded to 6 decimals",
+    "note": "The full file had 15302 daily rows through 2026-11-23."
+  },
+  "data": [
+    {
+      "date": "2026-11-04",
+      "GPRD": 188.049698,
+      "GPRD_ACT": 230.733368,
+      "GPRD_THREAT": 156.369217,
+      "GPRD_MA30": 155.917297,
+      "GPRD_MA7": 149.31778
+    },
+    {
+      "date": "2026-11-05",
+      "GPRD": 158.083496,
+      "GPRD_ACT": 186.250885,
+      "GPRD_THREAT": 179.251862,
+      "GPRD_MA30": 154.74379,
+      "GPRD_MA7": 134.647339
+    },
+    {
+      "date": "2026-11-06",
+      "GPRD": 141.67804,
+      "GPRD_ACT": 121.064529,
+      "GPRD_THREAT": 157.079651,
+      "GPRD_MA30": 155.132187,
+      "GPRD_MA7": 135.51532
+    },
+    {
+      "date": "2026-11-07",
+      "GPRD": 56.990414,
+      "GPRD_ACT": 28.407495,
+      "GPRD_THREAT": 71.083969,
+      "GPRD_MA30": 152.087738,
+      "GPRD_MA7": 121.579422
+    },
+    {
+      "date": "2026-11-08",
+      "GPRD": 102.981377,
+      "GPRD_ACT": 34.221462,
+      "GPRD_THREAT": 128.448364,
+      "GPRD_MA30": 150.338333,
+      "GPRD_MA7": 125.112534
+    },
+    {
+      "date": "2026-11-09",
+      "GPRD": 164.395416,
+      "GPRD_ACT": 114.722572,
+      "GPRD_THREAT": 177.709915,
+      "GPRD_MA30": 151.683945,
+      "GPRD_MA7": 138.242584
+    },
+    {
+      "date": "2026-11-10",
+      "GPRD": 139.406662,
+      "GPRD_ACT": 172.067444,
+      "GPRD_THREAT": 143.52124,
+      "GPRD_MA30": 152.797424,
+      "GPRD_MA7": 135.940735
+    },
+    {
+      "date": "2026-11-11",
+      "GPRD": 144.338455,
+      "GPRD_ACT": 201.451843,
+      "GPRD_THREAT": 84.015366,
+      "GPRD_MA30": 151.08606,
+      "GPRD_MA7": 129.696259
+    },
+    {
+      "date": "2026-11-12",
+      "GPRD": 186.018921,
+      "GPRD_ACT": 185.446335,
+      "GPRD_THREAT": 237.970093,
+      "GPRD_MA30": 148.102509,
+      "GPRD_MA7": 133.687042
+    },
+    {
+      "date": "2026-11-13",
+      "GPRD": 131.190796,
+      "GPRD_ACT": 156.944382,
+      "GPRD_THREAT": 185.451736,
+      "GPRD_MA30": 147.746231,
+      "GPRD_MA7": 132.188858
+    },
+    {
+      "date": "2026-11-14",
+      "GPRD": 160.934464,
+      "GPRD_ACT": 187.17894,
+      "GPRD_THREAT": 111.518372,
+      "GPRD_MA30": 146.18248,
+      "GPRD_MA7": 147.03801
+    },
+    {
+      "date": "2026-11-15",
+      "GPRD": 60.2285,
+      "GPRD_ACT": 102.931053,
+      "GPRD_THREAT": 71.545555,
+      "GPRD_MA30": 144.468109,
+      "GPRD_MA7": 140.930466
+    },
+    {
+      "date": "2026-11-16",
+      "GPRD": 189.289581,
+      "GPRD_ACT": 204.43251,
+      "GPRD_THREAT": 196.750275,
+      "GPRD_MA30": 147.894318,
+      "GPRD_MA7": 144.486771
+    },
+    {
+      "date": "2026-11-17",
+      "GPRD": 159.467163,
+      "GPRD_ACT": 101.166733,
+      "GPRD_THREAT": 192.875549,
+      "GPRD_MA30": 149.667038,
+      "GPRD_MA7": 147.352554
+    },
+    {
+      "date": "2026-11-18",
+      "GPRD": 198.891235,
+      "GPRD_ACT": 177.767395,
+      "GPRD_THREAT": 239.522079,
+      "GPRD_MA30": 149.546234,
+      "GPRD_MA7": 155.145813
+    },
+    {
+      "date": "2026-11-19",
+      "GPRD": 202.515045,
+      "GPRD_ACT": 173.050034,
+      "GPRD_THREAT": 276.653229,
+      "GPRD_MA30": 149.172943,
+      "GPRD_MA7": 157.502396
+    },
+    {
+      "date": "2026-11-20",
+      "GPRD": 174.345673,
+      "GPRD_ACT": 101.388596,
+      "GPRD_THREAT": 253.7043,
+      "GPRD_MA30": 147.914322,
+      "GPRD_MA7": 163.667374
+    },
+    {
+      "date": "2026-11-21",
+      "GPRD": 140.066284,
+      "GPRD_ACT": 97.744606,
+      "GPRD_THREAT": 186.351212,
+      "GPRD_MA30": 145.302826,
+      "GPRD_MA7": 160.686218
+    },
+    {
+      "date": "2026-11-22",
+      "GPRD": 110.988091,
+      "GPRD_ACT": 136.180252,
+      "GPRD_THREAT": 99.389305,
+      "GPRD_MA30": 143.852295,
+      "GPRD_MA7": 167.937576
+    },
+    {
+      "date": "2026-11-23",
+      "GPRD": 150.144714,
+      "GPRD_ACT": 187.103195,
+      "GPRD_THREAT": 124.850029,
+      "GPRD_MA30": 143.599075,
+      "GPRD_MA7": 162.345459
+    }
+  ]
+}

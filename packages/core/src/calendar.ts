@@ -107,10 +107,24 @@ function offsetMinutes(instant: Date): number {
 }
 
 /** The UTC instant of a US Eastern wall-clock time on a given ET date. */
-export function etWallToUtc(date: string, hour: number, minute: number): Date {
+export function etWallToUtc(
+  date: string,
+  hour: number,
+  minute: number,
+  second = 0,
+  millisecond = 0,
+): Date {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) throw new RangeError(`Bad date: ${date}`);
-  const guess = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hour, minute);
+  const guess = Date.UTC(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    hour,
+    minute,
+    second,
+    millisecond,
+  );
   let t = guess - offsetMinutes(new Date(guess)) * 60000;
   // Re-check once: the offset at the corrected instant can differ across a DST change.
   t = guess - offsetMinutes(new Date(t)) * 60000;
