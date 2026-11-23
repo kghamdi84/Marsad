@@ -202,8 +202,8 @@
         {
           "id": "1.9",
           "title": "Core indicator library (SMA, EMA, VWAP, MACD, RSI, ATR, RVOL) with known-answer tests",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "packages/core/src/indicators.ts: sma, ema, rsi (Wilder), trueRange, atr, macd, vwap, rvol. 22 tests: pandas golden values at 1e-9 over 120 seeded bars, hand-checked cases (RSI first value 100*3.34/4.74), edge cases, real SPY bars. Mutation check: breaking EMA alpha and RSI gains made 5 tests fail."
         },
         {
           "id": "1.10",
