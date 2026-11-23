@@ -1,0 +1,38 @@
+{
+  "_recorded": {
+    "source": "massive",
+    "endpoint": "/stocks/v1/splits?ticker=NVDA&limit=3",
+    "recordedAt": "2026-11-23",
+    "via": "Massive MCP call_api (table output, not the raw REST envelope)",
+    "note": "Entitled on the free plan (recorded 2026-11-23)."
+  },
+  "data": [
+    {
+      "id": "Ea86fa28faba275487714f7b3f199ee4a04d2c271b1471648fbd945397a6008ba",
+      "execution_date": "2024-06-10",
+      "split_from": 1.0,
+      "split_to": 10.0,
+      "ticker": "NVDA",
+      "adjustment_type": "forward_split",
+      "historical_adjustment_factor": 0.1
+    },
+    {
+      "id": "E9b6d16a5a1f1ab1f5c8db9ab357419b4d1efb7585ba090809310fafcd827678e",
+      "execution_date": "2021-07-20",
+      "split_from": 1.0,
+      "split_to": 4.0,
+      "ticker": "NVDA",
+      "adjustment_type": "stock_dividend",
+      "historical_adjustment_factor": 0.025
+    },
+    {
+      "id": "E3c64a7eadb9371ec1548f0d4349d5495586952e2c030ec9c794c6a81de20524a",
+      "execution_date": "2007-09-11",
+      "split_from": 2.0,
+      "split_to": 3.0,
+      "ticker": "NVDA",
+      "adjustment_type": "forward_split",
+      "historical_adjustment_factor": 0.016667
+    }
+  ]
+}

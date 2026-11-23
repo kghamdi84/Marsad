@@ -149,7 +149,7 @@
         "Status page shows each source with last update, latency and plan tier",
         "A simulated stale feed raises a system alert"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "1.1",
@@ -184,14 +184,14 @@
         {
           "id": "1.6",
           "title": "Provenance envelope type and freshness model (session-aware thresholds)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "packages/core/src/provenance.ts: Provenance/Sourced types, evaluateFreshness (session-aware, plan-tier aware), 14 tests incl. the brief 10:00 vs 22:00 ET example"
         },
         {
           "id": "1.7",
           "title": "Market calendar and time utilities (ms/ns conversion, holidays, early closes)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "timestamps.ts (s/ms/us/ns to UTC ms, 7 tests) and calendar.ts (holidays and early closes from recorded Massive /v1/marketstatus/upcoming, DST weeks, session state, 16 tests). Calendar rows come from fixtures/massive recorded via MCP; live envelope still to confirm with the API key."
         },
         {
           "id": "1.8",
