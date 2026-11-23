@@ -1,0 +1,31 @@
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import { Shell } from './components/Shell';
+import { Placeholder } from './routes/Placeholder';
+import { Status } from './routes/Status';
+import { t } from './strings';
+
+const root = createRootRoute({ component: Shell });
+
+const page = (path: string, title: string, phase: number) =>
+  createRoute({
+    getParentRoute: () => root,
+    path,
+    component: () => <Placeholder title={title} phase={phase} />,
+  });
+
+const routeTree = root.addChildren([
+  page('/', t.nav.watch, 3),
+  page('/study', t.nav.study, 2),
+  page('/regime', t.nav.regime, 3),
+  page('/alerts', t.nav.alerts, 5),
+  page('/journal', t.nav.journal, 7),
+  createRoute({ getParentRoute: () => root, path: '/status', component: Status }),
+]);
+
+export const router = createRouter({ routeTree });
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}

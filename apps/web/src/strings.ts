@@ -1,0 +1,71 @@
+/**
+ * Every user-visible string lives here, so an Arabic (right-to-left) option
+ * can be added later by swapping this module.
+ */
+export const t = {
+  appName: 'Marsad',
+  configMissing: {
+    title: 'Configuration missing',
+    body: 'This build has no Supabase address or publishable key. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Netlify, then redeploy.',
+  },
+  loading: 'Loading',
+  signIn: {
+    title: 'Sign in to Marsad',
+    emailLabel: 'Email',
+    sendCode: 'Send code',
+    sending: 'Sending',
+    codeSent: (email: string) => `We sent a 6-digit code to ${email}. It expires in 10 minutes.`,
+    codeLabel: 'Code from the email',
+    verify: 'Verify code',
+    verifying: 'Verifying',
+    useDifferentEmail: 'Use a different email',
+    noAccount: 'Sign-ups are closed. Only the existing account can sign in.',
+  },
+  mfa: {
+    enrollTitle: 'Set up two-factor authentication',
+    enrollBody:
+      'Marsad requires an authenticator app. Scan the QR code with your authenticator app (for example, iOS Passwords, 1Password or Google Authenticator), then enter the 6-digit code it shows.',
+    secretLabel: 'Or enter this setup key by hand',
+    qrAlt: 'QR code for your authenticator app',
+    verifyTitle: 'Two-factor check',
+    verifyBody: 'Enter the 6-digit code from your authenticator app.',
+    codeLabel: 'Authenticator code',
+    confirm: 'Confirm',
+    confirming: 'Checking',
+  },
+  nav: {
+    watch: 'Watch',
+    study: 'Study',
+    regime: 'Regime',
+    alerts: 'Alerts',
+    journal: 'Journal',
+    status: 'Status',
+    signOut: 'Sign out',
+    primary: 'Main sections',
+  },
+  clock: { et: 'ET', local: 'local' },
+  placeholder: (phase: number) =>
+    `This module is built in Phase ${phase}. No data is shown until then.`,
+  status: {
+    title: 'System status',
+    sources: 'Data sources',
+    jobs: 'Recent job runs',
+    colSource: 'Source',
+    colState: 'State',
+    colTier: 'Plan tier',
+    colLast: 'Last message',
+    colLatency: 'Latency',
+    colNote: 'Note',
+    colJob: 'Job',
+    colStarted: 'Started',
+    colStatus: 'Result',
+    colRows: 'Rows',
+    colError: 'Error',
+    never: 'Never',
+    none: 'None',
+    noJobs: 'No jobs have run yet. Ingestion starts in Phase 1.',
+    dbOk: (at: string) => `Database reachable, checked ${at}`,
+    dbError: (msg: string) => `Database unreachable: ${msg}`,
+  },
+  errors: { generic: 'Something went wrong.' },
+} as const;

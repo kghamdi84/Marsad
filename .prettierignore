@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist
+dev-dist
+coverage
+fixtures
+supabase/migrations
+docs/phase-checklist.json
+docs/BUILD_PROMPT.md
