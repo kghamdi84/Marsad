@@ -1,6 +1,6 @@
 # Progress
 
-## Current phase: 0, Foundations (in progress, blocked on account decisions)
+## Current phase: 0, Foundations (complete except two follow-ups below; next: Phase 1)
 
 Last updated 2026-11-23.
 
@@ -57,7 +57,18 @@ Last updated 2026-11-23.
 - Khaled signed in at `https://marsad-k84.netlify.app` on his iPad with the emailed link and TOTP enrollment, and reached the Watch tab (screenshot: clock 13:33 ET, 21:33 local). The shell renders only at aal2, so this proves email sign-in plus MFA end to end. Phase 0 done criterion 1 is met.
 - Supabase "Deploy to production" is now on (branch `main`), confirmed by Khaled's screenshot.
 
-### Next steps after unblock
+### Migration applied and owner added (2026-11-23 18:36 UTC)
+
+- With Deploy to production on, merging PR #3 (`c83df4b`) applied `20261123000000_baseline.sql` within about 30 seconds.
+- Live check with the publishable key (anon role): `job_runs`, `source_status`, `user_settings`, `watchlists` and `watchlist_items` all return 401 `permission denied` (42501). The tables exist and anon has no access, as designed.
+- Khaled added his user (`eb05aa71-5d03-498f-a557-3d9fe8c23330`) to `private.app_owners` in the SQL Editor (insert guarded by "exactly one user exists"; returned 1 row).
+
+### Phase 0 follow-ups for the next session (do these first)
+
+1. With the Supabase connector (connectors load at session start): confirm `list_projects` shows `hwdwivilqdydmxhycapy`; run `get_advisors` (security and performance) and fix anything open; `list_migrations` should show `20261123000000`; confirm Auth Hooks has nothing enabled.
+2. Ask Khaled for a screenshot of the Status page (five sources UNKNOWN, "No jobs have run yet"), the one end-to-end link not yet seen.
+
+### Earlier plan (kept for history)
 
 1. Khaled merges PR #1; the GitHub integration applies the baseline migration. Never also apply it through the connector (ADR 0004).
 2. Verify through the connector: tables, RLS, policies, migration history, advisors. With Khaled's approval, add his user id to `private.app_owners`.
