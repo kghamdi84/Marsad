@@ -14,7 +14,8 @@ export const t = {
     emailLabel: 'Email',
     sendCode: 'Send code',
     sending: 'Sending',
-    codeSent: (email: string) => `We sent a 6-digit code to ${email}. It expires in 10 minutes.`,
+    codeSent: (email: string) =>
+      `We sent a sign-in email to ${email}. Open its link on this device, in this browser. If the email shows a 6-digit code instead, enter it below.`,
     codeLabel: 'Code from the email',
     verify: 'Verify code',
     verifying: 'Verifying',

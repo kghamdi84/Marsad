@@ -7,6 +7,13 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const supabase: SupabaseClient | null =
   url && key
     ? createClient(url, key, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          // The default Supabase email (no custom SMTP yet) carries a sign-in link, not a code.
+          // PKCE: the link only completes in the browser that requested it.
+          flowType: 'pkce',
+          detectSessionInUrl: true,
+        },
       })
     : null;
