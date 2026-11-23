@@ -16,7 +16,7 @@ Marsad (مرصد) is a private market-intelligence terminal for one user, Khaled
 
 ## Accounts (billing and ownership)
 
-- Use only Khaled's personal Supabase organization and personal Netlify team named in `docs/SETUP.md`. The "Gulf Insulation Group" Supabase organization is work: never touch it. The Netlify team "GIG" is unconfirmed: do not use it until SETUP.md says it is approved.
+- Use only Khaled's personal Supabase organization and personal Netlify team named in `docs/SETUP.md`. The "Gulf Insulation Group" Supabase organization is work: never touch it. The Netlify team "GIG" (`khaled-alghamdi-84`) is confirmed personal; Marsad's site is `marsad-k84`.
 - Before creating anything in Supabase or Netlify, show the organization or team and wait for confirmation.
 
 ## Ask before (risky steps)

@@ -6,14 +6,14 @@ Never paste a secret key, password or token into the chat. Steps that involve se
 
 ## Accounts Marsad uses
 
-| Service               | Account                                                                           | Status                                          |
-| --------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Supabase organization | **Personal Projects** (Free), personal, may host other personal projects          | Created 2026-11-23                              |
-| Supabase project      | "kghamdi84's Project", ref `hwdwivilqdydmxhycapy`, Tokyo (`ap-northeast-1`), Nano | Created 2026-11-23; connector cannot see it yet |
-| Supabase GitHub link  | Linked to `kghamdi84/Marsad` when the project was created                         | Settings to confirm (step 1b)                   |
-| Netlify team          | To be confirmed by you (see step 3)                                               | Not confirmed                                   |
-| Netlify site          | `marsad-<something>.netlify.app`                                                  | Not created yet                                 |
-| GitHub                | This private repository                                                           | Exists                                          |
+| Service               | Account                                                                                           | Status                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Supabase organization | **Personal Projects** (Free), personal, may host other personal projects                          | Created 2026-11-23                                          |
+| Supabase project      | "kghamdi84's Project", ref `hwdwivilqdydmxhycapy`, Tokyo (`ap-northeast-1`), Nano                 | Created 2026-11-23; connector cannot see it yet             |
+| Supabase GitHub link  | Linked to `kghamdi84/Marsad` when the project was created                                         | Settings to confirm (step 1b)                               |
+| Netlify team          | **GIG** (`khaled-alghamdi-84`), confirmed personal by Khaled 2026-11-23                           | Confirmed                                                   |
+| Netlify site          | `marsad-k84` at `https://marsad-k84.netlify.app` (site id `c8eb3a9d-8c02-4bba-818e-1970923ca7ea`) | Created 2026-11-23; not linked to GitHub yet, no deploy yet |
+| GitHub                | This private repository                                                                           | Exists                                                      |
 
 Project URL: `https://hwdwivilqdydmxhycapy.supabase.co`. This address and the publishable key are public by design; the secret key and database password are not.
 
@@ -61,28 +61,27 @@ In the Supabase project (`hwdwivilqdydmxhycapy`):
    ```
 
 4. Tap **Authentication**, then **Users**, then **Add user**, then **Create new user**. Email: your personal email. Turn **Auto Confirm User** on. Leave the password empty if allowed; otherwise use a long random one you discard. Tap **Create user**.
-5. Tap **Authentication**, then **URL Configuration**. Set **Site URL** to the Netlify address from step 3 once it exists.
+5. Tap **Authentication**, then **URL Configuration**. Set **Site URL** to `https://marsad-k84.netlify.app`.
 6. **Tell Claude:** "Auth configured."
 
 Note: the built-in Supabase email sender is rate limited (a few emails per hour) and meant for testing. It is enough for one person signing in. A custom SMTP sender is set up in Phase 5 along with email digests.
 
-## Step 3. Choose the Netlify team and create the site
+## Step 3. Link the Netlify site to GitHub
 
-Decision needed: is the Netlify team **GIG** (`khaled-alghamdi-84`) yours personally, or does it belong to Gulf Insulation Group?
+Claude created the site `marsad-k84` in team **GIG** on 2026-11-23 and set `VITE_SUPABASE_URL`. The connector cannot link a repository, so this part is yours:
 
-- If it is personal: tell Claude "Use Netlify team GIG for Marsad."
-- If it is a work team: create a personal team first. In Safari, open `https://app.netlify.com`, tap your avatar, then **Create new team**, name it `Khaled Personal`, choose the **Free** plan. Then reconnect the Netlify connector in the Claude app (**Settings**, **Connectors**, **Netlify**, **Disconnect**, **Connect**) and grant the new team.
+1. Open `https://app.netlify.com/projects/marsad-k84`.
+2. Tap **Project configuration**, then **Build & deploy**, then **Continuous deployment**, then **Link repository** (on some layouts: **Link to Git provider**).
+3. Choose **GitHub**, authorize Netlify for `kghamdi84/Marsad` if asked, and select the repository.
+4. Branch to deploy: `main`. Leave the build command and publish directory as detected from `netlify.toml` (`pnpm --filter @marsad/web build` and `apps/web/dist`). Tap **Save** or **Link**.
+5. Turn on **Deploy Previews** for pull requests if it is not already on.
+6. **Tell Claude:** "Netlify linked."
 
-Then create the site from GitHub so every push to `main` deploys and every branch gets a preview:
-
-1. In `https://app.netlify.com`, switch to the chosen team.
-2. Tap **Add new project**, then **Import an existing project**, then **GitHub**. Authorize Netlify for the `kghamdi84/Marsad` repository only.
-3. Netlify reads `netlify.toml` from the repository, so leave the build settings as detected (build command `pnpm --filter @marsad/web build`, publish directory `apps/web/dist`).
-4. Before the first deploy, tap **Add environment variables** and add the two values from step 4 below.
-5. Tap **Deploy**. Under **Project configuration**, then **Change project name**, rename it to something like `marsad-k84` so the address is `marsad-k84.netlify.app`.
-6. **Tell Claude:** the `*.netlify.app` address.
+The first deploy runs when `main` changes (after pull request #1 is merged). Until `VITE_SUPABASE_PUBLISHABLE_KEY` is set (step 4), the site shows "Configuration missing" instead of the sign-in screen.
 
 ## Step 4. Netlify environment variables (browser-safe values only)
+
+Status: `VITE_SUPABASE_URL` set by Claude on 2026-11-23. `VITE_SUPABASE_PUBLISHABLE_KEY` is not set yet: the next Claude session reads it through the Supabase connector and sets it, or you can add it yourself in Netlify under **Project configuration**, **Environment variables**, **Add a variable**.
 
 Find these in Supabase: **Project Settings**, then **API Keys** and **Data API**.
 

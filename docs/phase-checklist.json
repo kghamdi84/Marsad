@@ -124,8 +124,8 @@
         {
           "id": "0.19",
           "title": "Netlify team confirmed and site created from GitHub with env vars",
-          "status": "blocked",
-          "evidence": "Team \"GIG\" ownership unconfirmed. Waiting for Khaled: SETUP.md step 3"
+          "status": "in_progress",
+          "evidence": "Team GIG confirmed personal by Khaled. Site marsad-k84 created (c8eb3a9d-8c02-4bba-818e-1970923ca7ea), VITE_SUPABASE_URL set. Pending: GitHub link (Khaled), publishable key (next session), first deploy."
         },
         {
           "id": "0.20",

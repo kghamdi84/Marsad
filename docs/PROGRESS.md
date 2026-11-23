@@ -21,13 +21,15 @@ Last updated 2026-11-23.
 2. Done by Khaled: Supabase connector reconnected with **Personal Projects**. Connectors load at session start, so the session that started Phase 0 still could not see the project (`get_project` returned a permission error). Verify access first thing in the next session with `list_projects`.
 3. Done by Khaled: GitHub integration settings checked (working directory `.`, branch `main`, Deploy to production on).
 4. Step 2: Auth settings (sign-ups off, TOTP on, code email template) and the owner user.
-5. Step 3: is Netlify team "GIG" (`khaled-alghamdi-84`) personal?
+5. Done: Khaled confirmed Netlify team "GIG" (`khaled-alghamdi-84`) is personal. Claude created site `marsad-k84` (id `c8eb3a9d-8c02-4bba-818e-1970923ca7ea`, `https://marsad-k84.netlify.app`) and set `VITE_SUPABASE_URL`. Note: the same team also hosts Gulf Insulation sites (giginsulation.app); Khaled decided it is personal.
+6. Khaled links the Netlify site to GitHub (SETUP step 3); the connector cannot.
+7. Next session: read the publishable key with the Supabase connector (`get_publishable_keys`) and set `VITE_SUPABASE_PUBLISHABLE_KEY` on the Netlify site.
 
 ### Next steps after unblock
 
 1. Khaled merges PR #1; the GitHub integration applies the baseline migration. Never also apply it through the connector (ADR 0004).
 2. Verify through the connector: tables, RLS, policies, migration history, advisors. With Khaled's approval, add his user id to `private.app_owners`.
-3. Create the Netlify site from GitHub with the two `VITE_` variables; confirm headers on the live URL. CSP `connect-src` is already pinned to `hwdwivilqdydmxhycapy.supabase.co`.
+3. Set `VITE_SUPABASE_PUBLISHABLE_KEY`, trigger a deploy, confirm headers on `https://marsad-k84.netlify.app` (CSP `connect-src` is pinned to `hwdwivilqdydmxhycapy.supabase.co`).
 4. Khaled signs in with email code and TOTP; mark Phase 0 done.
 
 ### Notes for the next session
