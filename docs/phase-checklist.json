@@ -100,8 +100,8 @@
         {
           "id": "0.15",
           "title": "CI green on GitHub",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "GitHub Actions run 45225834635 on PR #1: all steps passed (typecheck, lint, format, 27 tests, build, 5 Playwright tests)"
         },
         {
           "id": "0.16",

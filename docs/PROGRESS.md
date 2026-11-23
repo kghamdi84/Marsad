@@ -13,7 +13,7 @@ Last updated 2026-11-23.
 - RLS tests on PGlite (14 tests): another user cannot read, change, delete or insert the owner's rows; aal1 and anon read nothing; non-owners read no system rows; schema guards. A deliberate policy mutation made 5 tests fail, so the suite is not vacuous.
 - Web app: email code sign-in (`shouldCreateUser: false`), TOTP enrollment and challenge, aal2 gate, shell with bottom tab bar and ET/local clock, status page skeleton, PWA manifest and icons, strict CSP and noindex headers.
 - Playwright: 5 smoke tests (signed-out screen, no user creation, error text, aal1 sent to MFA, aal2 sees shell and status page).
-- CI workflow (typecheck, lint, format, tests, build, Playwright).
+- CI workflow (typecheck, lint, format, tests, build, Playwright): green on GitHub, run 45225834635.
 
 ### Blocked on Khaled (see docs/SETUP.md)
 
