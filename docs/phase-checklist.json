@@ -154,8 +154,8 @@
         {
           "id": "1.1",
           "title": "Massive adapter with token bucket, caching, backoff, entitlement detection and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/http.ts: token bucket (5/min free tier), TTL cache, retry/backoff, Retry-After, entitlement classification (13 tests). Entitlement error body shape is from the API lineage docs, not yet captured from a live REST call. Endpoint adapters not yet written."
         },
         {
           "id": "1.2",
@@ -172,14 +172,14 @@
         {
           "id": "1.4",
           "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Feed confirmed and parsed (core/halts.ts, fixture of 10 real items covering every reason code seen). Terms of use still to confirm with Khaled; polling job not yet written."
         },
         {
           "id": "1.5",
           "title": "GPR adapter (confirm format and cadence) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Format and cadence confirmed (xls, 15302 daily rows to 2026-11-23); core/gpr.ts validates rows (fixture of 20 real rows). Conversion job (ADR 0006) not yet written."
         },
         {
           "id": "1.6",
@@ -196,8 +196,8 @@
         {
           "id": "1.8",
           "title": "Instrument identity (CIK, FIGI) and corporate actions (splits, dividends, ticker events)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "core/corporate-actions.ts (CIK/FIGI identity, split factors, adjustBars, checkBigMove >25% guard; known-answer: our cumulative factor equals the vendor historical_adjustment_factor on all 3 recorded NVDA splits) plus migration 20261123120000 (instruments, instrument_tickers, splits; RLS tested). Ticker-change events endpoint not yet wired (adapter work)."
         },
         {
           "id": "1.9",
@@ -214,8 +214,8 @@
         {
           "id": "1.11",
           "title": "Job run records from every adapter and job",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/health.ts runJob wrapper always returns a job_runs-shaped record (ok, error, skipped; 3 tests). Not yet called from a deployed job or Edge Function."
         },
         {
           "id": "1.12",
@@ -226,8 +226,8 @@
         {
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/health.ts: per-source session-aware policies, transition-only alerts, paused rules. Test reproduces the brief example (3m 10s, 4 rules paused, one alert, one recovery). Not yet scheduled: needs the heartbeat job and the alert dispatcher (Phase 5 delivery)."
         },
         {
           "id": "1.14",
