@@ -6,42 +6,46 @@ Never paste a secret key, password or token into the chat. Steps that involve se
 
 ## Accounts Marsad uses
 
-| Service               | Account to use                                             | Status          |
-| --------------------- | ---------------------------------------------------------- | --------------- |
-| Supabase organization | Your **personal** organization (to be created, see step 1) | Not created yet |
-| Supabase project      | `marsad` inside that personal organization, Free plan      | Not created yet |
-| Netlify team          | To be confirmed by you (see step 3)                        | Not confirmed   |
-| Netlify site          | `marsad-<something>.netlify.app`                           | Not created yet |
-| GitHub                | This private repository                                    | Exists          |
+| Service               | Account                                                                           | Status                                          |
+| --------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Supabase organization | **Personal Projects** (Free), personal, may host other personal projects          | Created 2026-11-23                              |
+| Supabase project      | "kghamdi84's Project", ref `hwdwivilqdydmxhycapy`, Tokyo (`ap-northeast-1`), Nano | Created 2026-11-23; connector cannot see it yet |
+| Supabase GitHub link  | Linked to `kghamdi84/Marsad` when the project was created                         | Settings to confirm (step 1b)                   |
+| Netlify team          | To be confirmed by you (see step 3)                                               | Not confirmed                                   |
+| Netlify site          | `marsad-<something>.netlify.app`                                                  | Not created yet                                 |
+| GitHub                | This private repository                                                           | Exists                                          |
 
-Claude fills in this table as you confirm each item.
+Project URL: `https://hwdwivilqdydmxhycapy.supabase.co`. This address and the publishable key are public by design; the secret key and database password are not.
 
-### What the connectors can see today (checked 2026-11-23)
+Never use the **Gulf Insulation Group** Supabase organization for Marsad. It is a work organization.
 
-- Supabase connector: one organization, **Gulf Insulation Group**, with six existing projects (GIGAdvancePayments, sar-portfolio-tracker, OneGIG, gig-legal, gig-work-intake, gig-productivity-ledger). This is a work organization. Marsad will not use it.
-- Netlify connector: one team named **GIG**, slug `khaled-alghamdi-84`, Pro plan, one member (you, Owner). The name suggests work; the slug suggests personal. Claude needs your decision before using it (step 3).
+## Step 1. Personal Supabase organization and project (done)
 
-## Step 1. Create a personal Supabase organization and project
+You created the **Personal Projects** organization and the project on 2026-11-23. Two follow-ups:
 
-Cost: USD 0 (Free plan). You upgrade to Pro (USD 25 per month) before live alerts in Phase 5, not now.
+1. Reconnect the Supabase connector so Claude can see the new organization. In the Claude app, open **Settings**, then **Connectors**, then **Supabase**, tap **Disconnect**, then **Connect**. On Supabase's approval screen, select **Personal Projects**. (On 2026-11-23 after creation, the connector still saw only Gulf Insulation Group.)
+2. Optional: rename the project to `marsad` so it stands out among your future personal projects: **Project Settings**, **General**, **Project name**, **Save**. Nothing in Marsad depends on the name; the ref `hwdwivilqdydmxhycapy` never changes.
 
-1. In Safari, open `https://supabase.com/dashboard`.
-2. Tap the organization name at the top left (it shows **Gulf Insulation Group**), then tap **New organization**.
-3. Name: `Khaled Personal`. Type: **Personal**. Plan: **Free**. Tap **Create organization**.
-4. Inside the new organization, tap **New project**.
-   - Name: `marsad`
-   - Database password: tap **Generate a password**, then save it in your password manager. Claude never needs it in chat.
-   - Region: **Central EU (Frankfurt)** (`eu-central-1`). It is a reasonable middle point between Riyadh, where you read the app, and the US data vendors. Pick a US East region instead if you prefer lower latency to the data vendors; tell Claude which you chose.
-   - Tap **Create new project** and wait about two minutes.
-   - If Supabase says you have reached the free project limit, stop and tell Claude. The fix is a decision for you (pause another free project, or start on Pro).
-5. Reconnect the Supabase connector so it can see the new organization: in the Claude app, open **Settings**, then **Connectors**, then **Supabase**, tap **Disconnect**, then **Connect** again. On Supabase's approval screen, select **Khaled Personal** (you may leave Gulf Insulation Group unselected).
-6. **Tell Claude:** "Supabase personal org and project created, region X."
+About the region: the project is in Tokyo. That is fine for Marsad. Polling and alerts tolerate the extra round trip, and moving regions means recreating the project, so keep it.
 
-Claude then confirms, through the connector, that it sees `Khaled Personal` and `marsad`, shows you the organization name, and waits for your "yes" before applying any migration.
+## Step 1b. Supabase GitHub integration (deploys database changes)
+
+Because the project is linked to this repository, Supabase can apply database migrations itself whenever a change lands on `main`. Marsad uses this as its deployment path (ADR 0004), so Claude never needs your database password for it.
+
+1. In the project, tap **Project Settings** (gear icon at the bottom left), then **Integrations**.
+2. Under **GitHub Integration**, check these settings and tap **Save** or **Update** if you change anything:
+   - Repository: `kghamdi84/Marsad`
+   - Working directory: `.` (a single dot; the `supabase` folder sits at the top of the repository)
+   - Production branch: `main`
+   - **Deploy to production**: on
+   - **Automatic branching**: off (preview branches need the Pro plan)
+3. **Tell Claude:** "GitHub integration checked."
+
+The first database migration is applied when pull request #1 is merged into `main`. Claude then verifies it through the connector.
 
 ## Step 2. Configure Supabase Auth (Claude cannot do this through the connector)
 
-In the `marsad` project:
+In the Supabase project (`hwdwivilqdydmxhycapy`):
 
 1. Tap **Authentication** in the left menu, then **Sign In / Providers** (on some layouts: **Providers**).
    - Under **User Signups**, turn **Allow new users to sign up** **off**. This is what keeps Marsad single-user.
@@ -82,10 +86,10 @@ Then create the site from GitHub so every push to `main` deploys and every branc
 
 Find these in Supabase: **Project Settings**, then **API Keys** and **Data API**.
 
-| Netlify variable                | Value                                                   | Secret?                                   |
-| ------------------------------- | ------------------------------------------------------- | ----------------------------------------- |
-| `VITE_SUPABASE_URL`             | Project URL, like `https://abcd.supabase.co`            | No. It is public by design.               |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | The **publishable** key (starts with `sb_publishable_`) | No. Row-level security protects the data. |
+| Netlify variable                | Value                                                        | Secret?                                   |
+| ------------------------------- | ------------------------------------------------------------ | ----------------------------------------- |
+| `VITE_SUPABASE_URL`             | Project URL, like `https://hwdwivilqdydmxhycapy.supabase.co` | No. It is public by design.               |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | The **publishable** key (starts with `sb_publishable_`)      | No. Row-level security protects the data. |
 
 Never put the **secret** key (starts with `sb_secret_`) or the old `service_role` key into Netlify. Claude can also read these two public values through the Supabase connector and set them for you if you prefer.
 
@@ -127,17 +131,17 @@ Claude's cloud sessions reach the internet only through hosts you allow. Connect
 | `www.nasdaqtrader.com`                        | Trade halts RSS                            | 1     |
 | `www.matteoiacoviello.com`                    | Geopolitical Risk Index files              | 1     |
 | `www.federalreserve.gov`                      | FOMC calendar                              | 3     |
-| `<your-project-ref>.supabase.co`              | Live tests against your project            | 1     |
+| `hwdwivilqdydmxhycapy.supabase.co`            | Live tests against your project            | 1     |
 | `api.anthropic.com`                           | Prompt evaluation runs                     | 2     |
 
 Package registries (npm) are allowed by default.
 
 ## Costs so far
 
-| Item                                      | Monthly cost | Approved       |
-| ----------------------------------------- | ------------ | -------------- |
-| Supabase Free                             | USD 0        | Pending step 1 |
-| Netlify (personal Free, or existing team) | USD 0 extra  | Pending step 3 |
-| Massive free tier                         | USD 0        | In use         |
+| Item                                      | Monthly cost | Approved                  |
+| ----------------------------------------- | ------------ | ------------------------- |
+| Supabase Free (Personal Projects)         | USD 0        | Created by you 2026-11-23 |
+| Netlify (personal Free, or existing team) | USD 0 extra  | Pending step 3            |
+| Massive free tier                         | USD 0        | In use                    |
 
 Paid data plans and Supabase Pro are decided at Phase 5 and Phase 6. Claude asks before any of them.

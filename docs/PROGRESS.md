@@ -17,15 +17,18 @@ Last updated 2026-11-23.
 
 ### Blocked on Khaled (see docs/SETUP.md)
 
-1. Personal Supabase organization and `marsad` project (connector currently sees only Gulf Insulation Group, a work organization).
-2. Supabase Auth settings and the owner user.
-3. Netlify team decision: is team "GIG" (`khaled-alghamdi-84`) personal?
+1. Done by Khaled: Supabase org **Personal Projects** (Free) and project `hwdwivilqdydmxhycapy` (Tokyo), linked to this repository.
+2. Reconnect the Supabase connector and grant **Personal Projects** (it still sees only the work org).
+3. Step 1b: confirm the GitHub integration settings (working directory `.`, branch `main`, Deploy to production on).
+4. Step 2: Auth settings (sign-ups off, TOTP on, code email template) and the owner user.
+5. Step 3: is Netlify team "GIG" (`khaled-alghamdi-84`) personal?
 
 ### Next steps after unblock
 
-1. Confirm the org and project names back to Khaled; apply the baseline migration through the connector; add the owner to `private.app_owners`; run Supabase advisors; run a live RLS check through SQL.
-2. Create the Netlify site from GitHub with the two `VITE_` variables; confirm headers on the live URL.
-3. Khaled signs in with email code and TOTP; mark Phase 0 done.
+1. Khaled merges PR #1; the GitHub integration applies the baseline migration. Never also apply it through the connector (ADR 0004).
+2. Verify through the connector: tables, RLS, policies, migration history, advisors. With Khaled's approval, add his user id to `private.app_owners`.
+3. Create the Netlify site from GitHub with the two `VITE_` variables; confirm headers on the live URL. CSP `connect-src` is already pinned to `hwdwivilqdydmxhycapy.supabase.co`.
+4. Khaled signs in with email code and TOTP; mark Phase 0 done.
 
 ### Notes for the next session
 

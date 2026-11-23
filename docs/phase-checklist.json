@@ -106,8 +106,8 @@
         {
           "id": "0.16",
           "title": "Personal Supabase organization and project created and confirmed",
-          "status": "blocked",
-          "evidence": "Connector sees only Gulf Insulation Group (work). Waiting for Khaled: SETUP.md step 1"
+          "status": "in_progress",
+          "evidence": "Khaled created org \"Personal Projects\" (Free) and project hwdwivilqdydmxhycapy (Tokyo, ap-northeast-1), linked to GitHub. Connector still sees only Gulf Insulation Group: reconnect pending (SETUP step 1)."
         },
         {
           "id": "0.17",
@@ -117,9 +117,9 @@
         },
         {
           "id": "0.18",
-          "title": "Baseline migration applied to the personal project; owner added to private.app_owners; advisors checked",
+          "title": "Baseline migration deployed by the Supabase GitHub integration on merge to main; owner added to private.app_owners; advisors checked",
           "status": "blocked",
-          "evidence": "Depends on 0.16 and 0.17"
+          "evidence": "ADR 0004 revised: GitHub integration deploys migrations. Waiting for SETUP step 1b and merge of PR #1."
         },
         {
           "id": "0.19",
