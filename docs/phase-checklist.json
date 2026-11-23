@@ -95,7 +95,7 @@
           "id": "0.14",
           "title": "Security headers: CSP, noindex, Referrer-Policy, Permissions-Policy",
           "status": "done",
-          "evidence": "apps/web/public/_headers, robots.txt, meta robots"
+          "evidence": "apps/web/public/_headers, robots.txt, meta robots; verified live on deploy-preview-1--marsad-k84.netlify.app (all headers present, robots disallow, own build has zero CSP violations)"
         },
         {
           "id": "0.15",
