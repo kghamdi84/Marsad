@@ -220,8 +220,8 @@
         {
           "id": "1.12",
           "title": "Status page with per-source latency and plan tier",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "apps/web Status page: per-source state in words from core describeSourceHealth (limit, silence, quiet-is-normal, no-data-yet, calendar-not-loaded), last message, latency, plan tier; migration market_holidays; e2e covers it. Rows stay at no-data until jobs write source_status."
         },
         {
           "id": "1.13",

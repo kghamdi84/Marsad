@@ -120,6 +120,96 @@ export function pausedRules(
   return [...out].sort();
 }
 
+/** Starting policies for the sources Marsad reads. Tunable; limits are seconds of silence. */
+export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
+  {
+    source: 'massive',
+    label: 'Massive (market data)',
+    dependentRules: ['group:prices'],
+    maxSilenceSec: { 'pre-market': 600, regular: 120, 'after-hours': 600, closed: null },
+    required: false,
+  },
+  {
+    source: 'nasdaq_halts',
+    label: 'Nasdaq trade halts',
+    dependentRules: ['group:halts'],
+    maxSilenceSec: { 'pre-market': 300, regular: 120, 'after-hours': 300, closed: null },
+    required: false,
+  },
+  {
+    source: 'sec_edgar',
+    label: 'SEC EDGAR',
+    dependentRules: ['group:filings'],
+    maxSilenceSec: { 'pre-market': 900, regular: 600, 'after-hours': 900, closed: null },
+    required: false,
+  },
+  {
+    source: 'fred',
+    label: 'FRED (St. Louis Fed)',
+    dependentRules: ['group:macro'],
+    maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
+    required: false,
+  },
+  {
+    source: 'gpr',
+    label: 'Geopolitical Risk Index',
+    dependentRules: ['group:geopolitics'],
+    maxSilenceSec: { 'pre-market': 345600, regular: 345600, 'after-hours': 345600, closed: 345600 },
+    required: false,
+  },
+];
+
+export interface SourceStatusView {
+  state: HealthState | 'calendar-missing';
+  /** Text for the UI. State is always words, never color alone. */
+  label: string;
+  silenceSec: number | null;
+  limitSec: number | null;
+  session: SessionState;
+}
+
+/**
+ * What the status page shows for a source. If the policy depends on the session and the market
+ * calendar has not been loaded, it says so instead of guessing.
+ */
+export function describeSourceHealth(
+  policy: SourcePolicy,
+  lastMessageAt: Date | null,
+  now: Date,
+  calendar: MarketCalendar,
+): SourceStatusView {
+  const info = sessionInfo(now, calendar);
+  const limits = Object.values(policy.maxSilenceSec);
+  const sessionDependent = new Set(limits).size > 1;
+  if (sessionDependent && !info.calendarCovered) {
+    return {
+      state: 'calendar-missing',
+      label: 'Calendar not loaded, cannot judge',
+      silenceSec: null,
+      limitSec: null,
+      session: info.state,
+    };
+  }
+  const h = evaluateSourceHealth(policy, lastMessageAt, now, calendar);
+  const limitSec = policy.maxSilenceSec[h.session];
+  const limit = limitSec === null ? '' : ` (limit ${formatAge(limitSec)})`;
+  const silence = h.silenceSec === null ? '' : formatAge(h.silenceSec);
+  const labels: Record<HealthState, string> = {
+    ok: `OK, last message ${silence} ago${limit}`,
+    stale:
+      h.silenceSec === null ? 'STALE, no data received yet' : `STALE, silent ${silence}${limit}`,
+    'not-expected': `Quiet is normal (${h.session})`,
+    never: 'No data received yet',
+  };
+  return {
+    state: h.state,
+    label: labels[h.state],
+    silenceSec: h.silenceSec,
+    limitSec,
+    session: h.session,
+  };
+}
+
 export type JobStatus = 'ok' | 'error' | 'skipped';
 
 /** A row for `public.job_runs`. */

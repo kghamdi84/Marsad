@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { dualClock, DEFAULT_LOCAL_ZONE } from '@marsad/core';
+import {
+  DEFAULT_LOCAL_ZONE,
+  DEFAULT_SOURCE_POLICIES,
+  buildCalendar,
+  describeSourceHealth,
+  dualClock,
+  type UpcomingRow,
+} from '@marsad/core';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
 
@@ -29,17 +36,37 @@ function when(iso: string | null): string {
   return `${d.toISOString().slice(0, 10)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
 }
 
+interface HolidayRow {
+  date: string;
+  exchange: string;
+  name: string;
+  status: string;
+  open_at: string | null;
+  close_at: string | null;
+}
+
 async function load() {
   if (!supabase) throw new Error('not configured');
-  const [sources, jobs] = await Promise.all([
+  const [sources, jobs, holidays] = await Promise.all([
     supabase.from('source_status').select('*').order('source'),
     supabase.from('job_runs').select('*').order('started_at', { ascending: false }).limit(20),
+    supabase.from('market_holidays').select('*').eq('exchange', 'NYSE'),
   ]);
   if (sources.error) throw new Error(sources.error.message);
   if (jobs.error) throw new Error(jobs.error.message);
+  if (holidays.error) throw new Error(holidays.error.message);
+  const rows: UpcomingRow[] = (holidays.data as HolidayRow[]).map((h) => ({
+    date: h.date,
+    exchange: h.exchange,
+    name: h.name,
+    status: h.status,
+    ...(h.open_at ? { open: h.open_at } : {}),
+    ...(h.close_at ? { close: h.close_at } : {}),
+  }));
   return {
     sources: sources.data as SourceRow[],
     jobs: jobs.data as JobRow[],
+    calendar: buildCalendar(rows, 'NYSE'),
     checkedAt: new Date().toISOString(),
   };
 }
@@ -75,19 +102,30 @@ export function Status() {
             </tr>
           </thead>
           <tbody>
-            {q.data?.sources.map((s) => (
-              <tr key={s.source}>
-                <td className={td}>{s.display_name}</td>
-                {/* State is always spelled out; color is never the only signal. */}
-                <td className={`${td} uppercase`}>{s.state}</td>
-                <td className={td}>{s.plan_tier}</td>
-                <td className={td}>{when(s.last_message_at)}</td>
-                <td className={`${td} text-end`}>
-                  {s.last_latency_ms === null ? t.status.none : `${s.last_latency_ms} ms`}
-                </td>
-                <td className={`${td} text-muted`}>{s.note}</td>
-              </tr>
-            ))}
+            {q.data?.sources.map((s) => {
+              const policy = DEFAULT_SOURCE_POLICIES.find((p) => p.source === s.source);
+              const view = policy
+                ? describeSourceHealth(
+                    policy,
+                    s.last_message_at ? new Date(s.last_message_at) : null,
+                    new Date(q.data.checkedAt),
+                    q.data.calendar,
+                  )
+                : null;
+              return (
+                <tr key={s.source}>
+                  <td className={td}>{s.display_name}</td>
+                  {/* State is always spelled out; color is never the only signal. */}
+                  <td className={td}>{view ? view.label : s.state.toUpperCase()}</td>
+                  <td className={td}>{s.plan_tier}</td>
+                  <td className={td}>{when(s.last_message_at)}</td>
+                  <td className={`${td} text-end`}>
+                    {s.last_latency_ms === null ? t.status.none : `${s.last_latency_ms} ms`}
+                  </td>
+                  <td className={`${td} text-muted`}>{s.note}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

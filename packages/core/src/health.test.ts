@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import upcoming from '../../../fixtures/massive/market-status-upcoming.json';
 import { buildCalendar, type UpcomingRow } from './calendar.js';
 import {
+  DEFAULT_SOURCE_POLICIES,
+  describeSourceHealth,
   evaluateSourceHealth,
   healthTransitions,
   pausedRules,
@@ -141,5 +143,53 @@ describe('runJob: no silent failures', () => {
     const r = await runJob('filings', () => Promise.resolve({ skipped: 'market closed' }), clock());
     expect(r).toMatchObject({ status: 'skipped' });
     expect(r.details).toEqual({ skipped: 'market closed' });
+  });
+});
+
+describe('describeSourceHealth (the status page text)', () => {
+  const halts = DEFAULT_SOURCE_POLICIES.find((p) => p.source === 'nasdaq_halts') as SourcePolicy;
+  const gpr = DEFAULT_SOURCE_POLICIES.find((p) => p.source === 'gpr') as SourcePolicy;
+  const empty = buildCalendar([], 'NYSE');
+
+  it('says in words that a source is stale, with the silence and the limit', () => {
+    const v = describeSourceHealth(
+      halts,
+      D('2026-11-24T20:40:00Z'),
+      D('2026-11-24T20:46:00Z'),
+      cal,
+    );
+    expect(v).toMatchObject({
+      state: 'stale',
+      session: 'regular',
+      label: 'STALE, silent 6m 0s (limit 2m 0s)',
+    });
+  });
+  it('says quiet is normal outside the session', () => {
+    const v = describeSourceHealth(
+      halts,
+      D('2026-11-24T10:00:00Z'),
+      D('2026-11-25T03:00:00Z'),
+      cal,
+    );
+    expect(v.label).toBe('Quiet is normal (closed)');
+  });
+  it('says plainly when nothing has ever arrived', () => {
+    expect(
+      describeSourceHealth({ ...halts, required: false }, null, D('2026-11-24T16:00:00Z'), cal)
+        .label,
+    ).toBe('No data received yet');
+  });
+  it('refuses to judge a session-dependent source without a calendar, but still judges daily ones', () => {
+    expect(
+      describeSourceHealth(halts, D('2026-11-24T20:40:00Z'), D('2026-11-24T20:46:00Z'), empty)
+        .state,
+    ).toBe('calendar-missing');
+    // 2 days 20 hours of silence is inside the 4 day limit; 4 days 20 hours is not.
+    expect(
+      describeSourceHealth(gpr, D('2026-11-22T00:00:00Z'), D('2026-11-24T20:46:00Z'), empty).state,
+    ).toBe('ok');
+    expect(
+      describeSourceHealth(gpr, D('2026-11-20T00:00:00Z'), D('2026-11-24T20:46:00Z'), empty).state,
+    ).toBe('stale');
   });
 });
