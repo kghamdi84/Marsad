@@ -112,14 +112,14 @@
         {
           "id": "0.17",
           "title": "Supabase Auth configured (sign-ups off, TOTP on, OTP email template) and owner user created",
-          "status": "in_progress",
-          "evidence": "Live /auth/v1/settings shows disable_signup false (sign-ups still on). Other settings unconfirmed."
+          "status": "done",
+          "evidence": "Sign-ups off (live disable_signup true), confirm email on, TOTP enabled, Site URL and redirect set, owner user created; default link email works via PKCE."
         },
         {
           "id": "0.18",
           "title": "Baseline migration deployed by the Supabase GitHub integration on merge to main; owner added to private.app_owners; advisors checked",
           "status": "blocked",
-          "evidence": "PR #1 merged but tables absent (REST 404). Added supabase/config.toml (PR #2); Khaled to check the integration deploy log."
+          "evidence": "Deploy to production now on (branch main). Migration applies on the next merge to main (PR #3); then verify and add owner to private.app_owners."
         },
         {
           "id": "0.19",
@@ -130,8 +130,8 @@
         {
           "id": "0.20",
           "title": "Khaled signs in at the Netlify address with email code and TOTP",
-          "status": "blocked",
-          "evidence": "Depends on 0.18 and 0.19"
+          "status": "done",
+          "evidence": "Khaled signed in on iPad with emailed link + TOTP at https://marsad-k84.netlify.app, 2026-11-23 18:33 UTC."
         }
       ]
     },

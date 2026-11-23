@@ -47,6 +47,16 @@ Last updated 2026-11-23.
 - Khaled nearly created an Auth "Send Email hook" pointing at the Netlify site, which would have stopped all auth emails; he was told to cancel it. Next session: confirm Auth Hooks lists nothing enabled.
 - No user existed yet (dashboard Users list empty); Khaled is creating it.
 
+### Root causes found 2026-11-23 (after PR #2 merged)
+
+- Migration not applied: the Supabase GitHub integration had **Deploy to production switched off** (Khaled's screenshot of Project Settings, Integrations). Working directory `.` and repository were correct. Khaled is turning it on with production branch `main`. The next push to `main` should apply `20261123000000_baseline.sql`; verify with anon REST on `job_runs` (404 means missing, 401 or 403 means present).
+- "Configuration missing" on Khaled's iPad while the live site served the sign-in screen: the PWA service worker used `registerType: 'prompt'` with no prompt UI, so a waiting worker kept serving the first (keyless) build. Switched to `autoUpdate` with `skipWaiting`, `clientsClaim` and `cleanupOutdatedCaches`.
+
+### Sign-in verified (2026-11-23 18:33 UTC)
+
+- Khaled signed in at `https://marsad-k84.netlify.app` on his iPad with the emailed link and TOTP enrollment, and reached the Watch tab (screenshot: clock 13:33 ET, 21:33 local). The shell renders only at aal2, so this proves email sign-in plus MFA end to end. Phase 0 done criterion 1 is met.
+- Supabase "Deploy to production" is now on (branch `main`), confirmed by Khaled's screenshot.
+
 ### Next steps after unblock
 
 1. Khaled merges PR #1; the GitHub integration applies the baseline migration. Never also apply it through the connector (ADR 0004).
