@@ -1,10 +1,27 @@
 # Progress
 
-## Current phase: 0, Foundations (complete except two follow-ups below; next: Phase 1)
+## Current phase: 1, Data and trust layer (in progress). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-23.
+Last updated 2026-11-23 (Phase 1 session 1).
 
-### Done
+### Phase 1 session 1 (2026-11-23): what exists
+
+Pure core (`packages/core`, 138 tests): timestamps (s/ms/us/ns), market calendar and session state (recorded Massive holidays), provenance and session-aware freshness, indicators (pandas golden values at 1e-9, mutation-checked), Nasdaq halts and GPR parsers (recorded fixtures), HTTP layer (token bucket, cache, retry, entitlement classification), identity and splits (vendor adjustment factors reproduced), feed health with transition-only system alerts, job run wrapper, Massive/FRED/SEC adapters, cross-source reconciliation.
+
+Database (additive migrations, RLS tested, 16 tests): instruments, instrument_tickers, splits, market_holidays, gpr_daily.
+
+Jobs: `jobs/` runs the GPR job (download, convert with `xlrd`, validate, upsert, run record, source status). Dry-run on the real file: 15,302 days, none skipped, 0.5 s. Workflow `.github/workflows/gpr-daily.yml` needs the secrets `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (SETUP step 5). Not yet run against the live project.
+
+Web: Status page judges each source with the core policy and says why in words.
+
+### What is NOT done in Phase 1
+
+- Live recording of Massive, FRED and SEC responses: no keys and no SEC contact string yet. FRED and SEC tests use labelled synthetic bodies. The Massive entitlement error body and base URL are unconfirmed against the live REST API.
+- No deployed adapters, no Edge Functions, no scheduled halts polling, no nightly reconciliation job, no heartbeat job (item 1.14 untouched: Edge Function core bundling and a Supabase CLI deploy path remain unverified; this machine has no Docker or Deno).
+- Nasdaq halts terms of use are unconfirmed (Khaled to review).
+- The Phase 0 follow-ups (advisors, `list_migrations`, Auth Hooks empty, Status screenshot) need a session whose Supabase connector sees the project.
+
+### Done (Phase 0)
 
 - Docs: SETUP.md, ARCHITECTURE.md, DATA_SOURCES.md, IDEAS.md, ADRs 0001 to 0005, CLAUDE.md, BUILD_PROMPT.md (the brief, saved verbatim).
 - pnpm monorepo: `apps/web`, `packages/core`, `supabase`, `jobs`, `fixtures`.

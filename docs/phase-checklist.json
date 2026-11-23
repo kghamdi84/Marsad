@@ -179,7 +179,7 @@
           "id": "1.5",
           "title": "GPR adapter (confirm format and cadence) and fixtures",
           "status": "in_progress",
-          "evidence": "Format and cadence confirmed (xls, 15302 daily rows to 2026-11-23); core/gpr.ts validates rows (fixture of 20 real rows). Conversion job (ADR 0006) not yet written."
+          "evidence": "Format and cadence confirmed; core/gpr.ts validates rows; jobs/src/gpr-job.ts + scripts/xls_to_json.py + workflow gpr-daily.yml. Dry run on the real file: 15,302 days to 2026-11-23, 0 skipped, 0.5 s; job tests (5) cover failure, truncated file, tiny download. Needs SUPABASE_URL and SUPABASE_SECRET_KEY secrets, then Run workflow, to prove it live."
         },
         {
           "id": "1.6",
@@ -215,7 +215,7 @@
           "id": "1.11",
           "title": "Job run records from every adapter and job",
           "status": "in_progress",
-          "evidence": "core/health.ts runJob wrapper always returns a job_runs-shaped record (ok, error, skipped; 3 tests). Not yet called from a deployed job or Edge Function."
+          "evidence": "core/health.ts runJob (3 tests) is used by the GPR job, which writes a job_runs row on success and failure (5 tests). Other adapters and Edge Functions not yet deployed."
         },
         {
           "id": "1.12",
