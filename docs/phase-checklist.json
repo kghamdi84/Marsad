@@ -112,20 +112,20 @@
         {
           "id": "0.17",
           "title": "Supabase Auth configured (sign-ups off, TOTP on, OTP email template) and owner user created",
-          "status": "blocked",
-          "evidence": "Waiting for Khaled: SETUP.md step 2"
+          "status": "in_progress",
+          "evidence": "Khaled reported Auth set up; five settings not individually confirmed yet."
         },
         {
           "id": "0.18",
           "title": "Baseline migration deployed by the Supabase GitHub integration on merge to main; owner added to private.app_owners; advisors checked",
           "status": "blocked",
-          "evidence": "ADR 0004 revised: GitHub integration deploys migrations. Waiting for SETUP step 1b and merge of PR #1."
+          "evidence": "PR #1 merged (c75df75); GitHub integration should have applied the baseline migration. Verify with the connector in the next session (list_migrations, list_tables, get_advisors)."
         },
         {
           "id": "0.19",
           "title": "Netlify team confirmed and site created from GitHub with env vars",
           "status": "in_progress",
-          "evidence": "Team GIG confirmed personal. Site marsad-k84 (c8eb3a9d-8c02-4bba-818e-1970923ca7ea) created, VITE_SUPABASE_URL set, linked to GitHub main by Khaled. Pending: publishable key (next session) and first real deploy after PR #1 merges."
+          "evidence": "Site marsad-k84 linked to GitHub main; production deploy of c75df75 live at https://marsad-k84.netlify.app with headers. Pending: VITE_SUPABASE_PUBLISHABLE_KEY."
         },
         {
           "id": "0.20",
