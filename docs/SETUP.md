@@ -6,14 +6,14 @@ Never paste a secret key, password or token into the chat. Steps that involve se
 
 ## Accounts Marsad uses
 
-| Service               | Account                                                                                           | Status                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Supabase organization | **Personal Projects** (Free), personal, may host other personal projects                          | Created 2026-11-23                                          |
-| Supabase project      | "kghamdi84's Project", ref `hwdwivilqdydmxhycapy`, Tokyo (`ap-northeast-1`), Nano                 | Created 2026-11-23; connector cannot see it yet             |
-| Supabase GitHub link  | Linked to `kghamdi84/Marsad` when the project was created                                         | Settings to confirm (step 1b)                               |
-| Netlify team          | **GIG** (`khaled-alghamdi-84`), confirmed personal by Khaled 2026-11-23                           | Confirmed                                                   |
-| Netlify site          | `marsad-k84` at `https://marsad-k84.netlify.app` (site id `c8eb3a9d-8c02-4bba-818e-1970923ca7ea`) | Created 2026-11-23; not linked to GitHub yet, no deploy yet |
-| GitHub                | This private repository                                                                           | Exists                                                      |
+| Service               | Account                                                                                           | Status                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Supabase organization | **Personal Projects** (Free), personal, may host other personal projects                          | Created 2026-11-23                                                                   |
+| Supabase project      | "kghamdi84's Project", ref `hwdwivilqdydmxhycapy`, Tokyo (`ap-northeast-1`), Nano                 | Created 2026-11-23; connector cannot see it yet                                      |
+| Supabase GitHub link  | Linked to `kghamdi84/Marsad` when the project was created                                         | Settings to confirm (step 1b)                                                        |
+| Netlify team          | **GIG** (`khaled-alghamdi-84`), confirmed personal by Khaled 2026-11-23                           | Confirmed                                                                            |
+| Netlify site          | `marsad-k84` at `https://marsad-k84.netlify.app` (site id `c8eb3a9d-8c02-4bba-818e-1970923ca7ea`) | Created and linked to GitHub `main` 2026-11-23; first real deploy after PR #1 merges |
+| GitHub                | This private repository                                                                           | Exists                                                                               |
 
 Project URL: `https://hwdwivilqdydmxhycapy.supabase.co`. This address and the publishable key are public by design; the secret key and database password are not.
 
