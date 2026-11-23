@@ -1,0 +1,9 @@
+{
+  "name": "@marsad/jobs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "echo 'no jobs yet (Phase 1)'"
+  }
+}

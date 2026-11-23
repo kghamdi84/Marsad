@@ -1,0 +1,775 @@
+{
+  "updated": "2026-11-23",
+  "phases": [
+    {
+      "phase": 0,
+      "title": "Foundations",
+      "model": "Claude Opus 5.5",
+      "effort": "high",
+      "done_when": [
+        "Khaled can sign in at the Netlify address with MFA",
+        "A test proves another user cannot read his rows",
+        "CI is green"
+      ],
+      "status": "in_progress",
+      "items": [
+        {
+          "id": "0.1",
+          "title": "docs/SETUP.md with iPad steps for accounts, secrets, Telegram and network allow list",
+          "status": "done",
+          "evidence": "docs/SETUP.md"
+        },
+        {
+          "id": "0.2",
+          "title": "ADRs: stack, hosting, ingestion, deployment, auth and RLS",
+          "status": "done",
+          "evidence": "docs/adr/0001 to 0005"
+        },
+        {
+          "id": "0.3",
+          "title": "docs/ARCHITECTURE.md with Mermaid diagram",
+          "status": "done",
+          "evidence": "docs/ARCHITECTURE.md"
+        },
+        {
+          "id": "0.4",
+          "title": "CLAUDE.md standing rules",
+          "status": "done",
+          "evidence": "CLAUDE.md"
+        },
+        {
+          "id": "0.5",
+          "title": "docs/PROGRESS.md and docs/phase-checklist.json",
+          "status": "done",
+          "evidence": "this file"
+        },
+        {
+          "id": "0.6",
+          "title": "docs/DATA_SOURCES.md",
+          "status": "done",
+          "evidence": "docs/DATA_SOURCES.md"
+        },
+        {
+          "id": "0.7",
+          "title": "init.sh",
+          "status": "done",
+          "evidence": "./init.sh passes: install, typecheck, lint, 27 unit and database tests"
+        },
+        {
+          "id": "0.8",
+          "title": "Monorepo scaffold (apps/web, packages/core, supabase, jobs, fixtures, docs)",
+          "status": "done",
+          "evidence": "pnpm workspace; core tsconfig has no DOM/Node types"
+        },
+        {
+          "id": "0.9",
+          "title": "CI workflow",
+          "status": "done",
+          "evidence": ".github/workflows/ci.yml: typecheck, lint, format, tests, build, Playwright"
+        },
+        {
+          "id": "0.10",
+          "title": "Database baseline with RLS (offline-tested)",
+          "status": "done",
+          "evidence": "supabase/migrations/20261123000000_baseline.sql; supabase/tests/rls.test.ts 14 tests pass; mutation check (policy opened) made 5 tests fail"
+        },
+        {
+          "id": "0.11",
+          "title": "Auth UI: email one-time code, TOTP enrollment and challenge, aal2 gate",
+          "status": "done",
+          "evidence": "apps/web/src/auth; gate unit tests; e2e: create_user false, aal1 sent to MFA, aal2 sees shell"
+        },
+        {
+          "id": "0.12",
+          "title": "Authenticated app shell with bottom tab bar, ET and local clock, keyboard shortcuts",
+          "status": "done",
+          "evidence": "apps/web/src/components/Shell.tsx; e2e signed-in.spec.ts"
+        },
+        {
+          "id": "0.13",
+          "title": "Status page skeleton (sources and job runs)",
+          "status": "done",
+          "evidence": "apps/web/src/routes/Status.tsx; e2e"
+        },
+        {
+          "id": "0.14",
+          "title": "Security headers: CSP, noindex, Referrer-Policy, Permissions-Policy",
+          "status": "done",
+          "evidence": "apps/web/public/_headers, robots.txt, meta robots"
+        },
+        {
+          "id": "0.15",
+          "title": "CI green on GitHub",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "0.16",
+          "title": "Personal Supabase organization and project created and confirmed",
+          "status": "blocked",
+          "evidence": "Connector sees only Gulf Insulation Group (work). Waiting for Khaled: SETUP.md step 1"
+        },
+        {
+          "id": "0.17",
+          "title": "Supabase Auth configured (sign-ups off, TOTP on, OTP email template) and owner user created",
+          "status": "blocked",
+          "evidence": "Waiting for Khaled: SETUP.md step 2"
+        },
+        {
+          "id": "0.18",
+          "title": "Baseline migration applied to the personal project; owner added to private.app_owners; advisors checked",
+          "status": "blocked",
+          "evidence": "Depends on 0.16 and 0.17"
+        },
+        {
+          "id": "0.19",
+          "title": "Netlify team confirmed and site created from GitHub with env vars",
+          "status": "blocked",
+          "evidence": "Team \"GIG\" ownership unconfirmed. Waiting for Khaled: SETUP.md step 3"
+        },
+        {
+          "id": "0.20",
+          "title": "Khaled signs in at the Netlify address with email code and TOTP",
+          "status": "blocked",
+          "evidence": "Depends on 0.18 and 0.19"
+        }
+      ]
+    },
+    {
+      "phase": 1,
+      "title": "Data and trust layer",
+      "model": "Claude Sonnet 5.5",
+      "effort": "high",
+      "done_when": [
+        "Every indicator passes its fixtures within tolerance",
+        "Status page shows each source with last update, latency and plan tier",
+        "A simulated stale feed raises a system alert"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "1.1",
+          "title": "Massive adapter with token bucket, caching, backoff, entitlement detection and fixtures",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.2",
+          "title": "FRED adapter and fixtures",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.3",
+          "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.4",
+          "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.5",
+          "title": "GPR adapter (confirm format and cadence) and fixtures",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.6",
+          "title": "Provenance envelope type and freshness model (session-aware thresholds)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.7",
+          "title": "Market calendar and time utilities (ms/ns conversion, holidays, early closes)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.8",
+          "title": "Instrument identity (CIK, FIGI) and corporate actions (splits, dividends, ticker events)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.9",
+          "title": "Core indicator library (SMA, EMA, VWAP, MACD, RSI, ATR, RVOL) with known-answer tests",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.10",
+          "title": "Cross-source checks and nightly reconciliation job",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.11",
+          "title": "Job run records from every adapter and job",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.12",
+          "title": "Status page with per-source latency and plan tier",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.13",
+          "title": "Heartbeat and stale-feed system alerts",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "1.14",
+          "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "title": "Study module",
+      "model": "Claude Sonnet 5.5",
+      "effort": "medium (high for the AI verifier)",
+      "done_when": [
+        "NVDA page works on the free plan with clear \"requires plan\" placeholders",
+        "A planted wrong number is rejected by the verifier and the template is used"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "2.1",
+          "title": "Company page chart with indicators and event markers (Lightweight Charts, attribution kept)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.2",
+          "title": "Financial statements and ratios, point-in-time, valuation percentiles",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.3",
+          "title": "Filings timeline with 8-K item labels and materiality",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.4",
+          "title": "Form 4 with codes and 10b5-1 flag; Forms 3 and 5; 13F with lag label",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.5",
+          "title": "10-K and 10-Q sections and risk-factor diff",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.6",
+          "title": "Earnings history against estimates and implied move",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.7",
+          "title": "Short interest and short volume with definitions",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.8",
+          "title": "News with tiers and clustering",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.9",
+          "title": "Claude summaries with citations, number verifier and injection-safe wrapping",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.10",
+          "title": "Thesis card with required bear case",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "2.11",
+          "title": "Versioned prompts with evaluation fixtures",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "title": "Market overview and regime",
+      "model": "Claude Opus 5.5 for methodology and event studies; Claude Sonnet 5.5 for the screens",
+      "effort": "high",
+      "done_when": [
+        "Regime label reproducible from stored inputs",
+        "Every panel shows source and as-of time",
+        "Brief arrives on the iPad"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "3.1",
+          "title": "Watch dashboard (market strip, watchlist table, heatmap, movers, gap scanner, news, calendar)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.2",
+          "title": "Universe construction (top 1,000 by dollar volume, monthly, point-in-time)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.3",
+          "title": "Breadth",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.4",
+          "title": "VIX and term structure (or labeled VXX fallback)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.5",
+          "title": "Fear and Greed composite with visible components",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.6",
+          "title": "GPR and EPU",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.7",
+          "title": "Credit and the curve",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.8",
+          "title": "Recession filter",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.9",
+          "title": "Regime classifier with event-study statistics",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.10",
+          "title": "Capitulation watch",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.11",
+          "title": "Geopolitical panel",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.12",
+          "title": "Economic and earnings calendars",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "3.13",
+          "title": "Pre-market brief and close recap by email and push",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "title": "Rules engine, backtest lab and playbooks",
+      "model": "Claude Opus 5.5",
+      "effort": "high",
+      "done_when": [
+        "Known-answer backtests on synthetic data return expected results",
+        "Changing future data never changes past signals",
+        "Same seed gives identical output"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "4.1",
+          "title": "Rule DSL and evaluator in core",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.2",
+          "title": "Seeded playbook library with evidence ratings and sources",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.3",
+          "title": "Point-in-time backtester with costs",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.4",
+          "title": "Walk-forward and out-of-sample holdout",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.5",
+          "title": "Bootstrap intervals, trial counting, deflated Sharpe",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.6",
+          "title": "Benchmark and regime breakdowns, Monte Carlo drawdowns",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.7",
+          "title": "Rule lifecycle",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.8",
+          "title": "GitHub Actions runners",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "4.9",
+          "title": "Replay mode",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "title": "Live alerts and delivery",
+      "model": "Claude Sonnet 5.5",
+      "effort": "high",
+      "done_when": [
+        "Replaying a recorded session produces the expected alerts",
+        "End-to-end latency on the status page",
+        "Test push reaches the iPad Home Screen app"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "5.1",
+          "title": "Prerequisite: Khaled confirms Massive Stocks plan (and Indices if chosen) and upgrades Supabase to Pro",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.2",
+          "title": "Cron and tick fan-out",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.3",
+          "title": "Live ingestion",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.4",
+          "title": "Signal-to-alert pipeline (gates, dedupe, cooldowns, priorities, quiet hours, caps)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.5",
+          "title": "Alert card renderer",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.6",
+          "title": "Web Push through the PWA",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.7",
+          "title": "Telegram bot (optional)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.8",
+          "title": "Email digests and custom SMTP",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.9",
+          "title": "Feedback buttons",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.10",
+          "title": "Shadow mode",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.11",
+          "title": "Feed-down and recovery alerts",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.12",
+          "title": "Latency metrics",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.13",
+          "title": "Catalyst watch with confirmation rules and chase guards",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.14",
+          "title": "Halt alerts",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "title": "Options and earnings intelligence",
+      "model": "Claude Sonnet 5.5; Claude Opus 5.5 to review the volatility math",
+      "effort": "high",
+      "done_when": [
+        "Computed greeks and IV match vendor values within tolerance",
+        "Expected-move and payoff functions pass known-answer tests"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "6.1",
+          "title": "Daily ATM IV history",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.2",
+          "title": "IV rank and percentile",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.3",
+          "title": "Term structure and skew",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.4",
+          "title": "Expected move",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.5",
+          "title": "Implied versus realized earnings moves",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.6",
+          "title": "IV-crush guard",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.7",
+          "title": "Unusual-activity filters with stated limits",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.8",
+          "title": "Put/call ratios",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "6.9",
+          "title": "Strategy helper with computed payoffs and liquidity guard",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 7,
+      "title": "Portfolio, journal and discipline",
+      "model": "Claude Sonnet 5.5",
+      "effort": "medium",
+      "done_when": [
+        "Every scorecard figure recomputes from raw alert outcomes in a test",
+        "CSV import round-trips"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "7.1",
+          "title": "Holdings and options positions (manual and CSV)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.2",
+          "title": "Exposure, beta and stress views",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.3",
+          "title": "ETF overlap and stock-to-ETF rotation signal",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.4",
+          "title": "Pre-trade checklist, position sizer and Sahm order ticket",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.5",
+          "title": "Exit-discipline rules",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.6",
+          "title": "Journal with screenshots and Jimmy D adherence score",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.7",
+          "title": "Scorecard dashboards with calibration",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "7.8",
+          "title": "Weekly AI review",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 8,
+      "title": "Hardening and extras",
+      "model": "Claude Sonnet 5.5; Claude Opus 5.5 for the security review",
+      "effort": "medium (high for security)",
+      "done_when": [
+        "Supabase security advisors report no open issues",
+        "Export restores into a fresh project"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "8.1",
+          "title": "Ask (read-only tools with citations)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.2",
+          "title": "Optional Shariah screen",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.3",
+          "title": "Cost tracker with caps",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.4",
+          "title": "Weekly exports to Storage",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.5",
+          "title": "Security review (RLS audit, advisors, headers, dependency audit)",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.6",
+          "title": "Performance and accessibility passes",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "8.7",
+          "title": "README in Google style",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "phase": 9,
+      "title": "Optional streaming worker",
+      "model": "Claude Sonnet 5.5",
+      "effort": "high",
+      "done_when": [
+        "Only if Khaled asks"
+      ],
+      "status": "not_started",
+      "items": [
+        {
+          "id": "9.1",
+          "title": "WebSocket worker with heartbeats and failover to polling",
+          "status": "todo",
+          "evidence": ""
+        }
+      ]
+    }
+  ]
+}

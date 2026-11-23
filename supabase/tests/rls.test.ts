@@ -53,7 +53,9 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(readFileSync(join(here, 'harness.sql'), 'utf8'));
   const dir = join(here, '..', 'migrations');
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()) {
     await db.exec(readFileSync(join(dir, file), 'utf8'));
   }
   // Seed as the database owner (bypasses RLS), like the dashboard or a job would.
@@ -102,7 +104,9 @@ describe('personal tables', () => {
 
   it('another user cannot change or delete the owner rows', async () => {
     await as(other2, async (tx) => {
-      const upd = await tx.query(`update public.watchlists set name = 'pwned' where owner_id = '${OWNER}'`);
+      const upd = await tx.query(
+        `update public.watchlists set name = 'pwned' where owner_id = '${OWNER}'`,
+      );
       expect(upd.affectedRows).toBe(0);
       const del = await tx.query(`delete from public.watchlist_items where owner_id = '${OWNER}'`);
       expect(del.affectedRows).toBe(0);
@@ -151,7 +155,13 @@ describe('personal tables', () => {
   });
 
   it('the anon role has no access at all', async () => {
-    for (const table of ['user_settings', 'watchlists', 'watchlist_items', 'job_runs', 'source_status']) {
+    for (const table of [
+      'user_settings',
+      'watchlists',
+      'watchlist_items',
+      'job_runs',
+      'source_status',
+    ]) {
       await expect(as(anon, (tx) => count(tx, `public.${table}`))).rejects.toThrow(
         /permission denied/,
       );

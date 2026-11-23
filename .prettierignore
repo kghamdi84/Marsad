@@ -5,3 +5,4 @@ coverage
 fixtures
 supabase/migrations
 docs/phase-checklist.json
+docs/BUILD_PROMPT.md

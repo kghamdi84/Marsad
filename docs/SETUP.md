@@ -6,13 +6,13 @@ Never paste a secret key, password or token into the chat. Steps that involve se
 
 ## Accounts Marsad uses
 
-| Service | Account to use | Status |
-| --- | --- | --- |
+| Service               | Account to use                                             | Status          |
+| --------------------- | ---------------------------------------------------------- | --------------- |
 | Supabase organization | Your **personal** organization (to be created, see step 1) | Not created yet |
-| Supabase project | `marsad` inside that personal organization, Free plan | Not created yet |
-| Netlify team | To be confirmed by you (see step 3) | Not confirmed |
-| Netlify site | `marsad-<something>.netlify.app` | Not created yet |
-| GitHub | This private repository | Exists |
+| Supabase project      | `marsad` inside that personal organization, Free plan      | Not created yet |
+| Netlify team          | To be confirmed by you (see step 3)                        | Not confirmed   |
+| Netlify site          | `marsad-<something>.netlify.app`                           | Not created yet |
+| GitHub                | This private repository                                    | Exists          |
 
 Claude fills in this table as you confirm each item.
 
@@ -82,9 +82,9 @@ Then create the site from GitHub so every push to `main` deploys and every branc
 
 Find these in Supabase: **Project Settings**, then **API Keys** and **Data API**.
 
-| Netlify variable | Value | Secret? |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL` | Project URL, like `https://abcd.supabase.co` | No. It is public by design. |
+| Netlify variable                | Value                                                   | Secret?                                   |
+| ------------------------------- | ------------------------------------------------------- | ----------------------------------------- |
+| `VITE_SUPABASE_URL`             | Project URL, like `https://abcd.supabase.co`            | No. It is public by design.               |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | The **publishable** key (starts with `sb_publishable_`) | No. Row-level security protects the data. |
 
 Never put the **secret** key (starts with `sb_secret_`) or the old `service_role` key into Netlify. Claude can also read these two public values through the Supabase connector and set them for you if you prefer.
@@ -93,17 +93,17 @@ Never put the **secret** key (starts with `sb_secret_`) or the old `service_role
 
 CI for Phase 0 needs no secrets. From Phase 1, scheduled jobs and deployments need these. Add them in GitHub: open the repository, tap **Settings**, **Secrets and variables**, **Actions**, **New repository secret**.
 
-| Secret | Where to find it | Phase |
-| --- | --- | --- |
-| `SUPABASE_ACCESS_TOKEN` | supabase.com, avatar, **Account preferences**, **Access Tokens**, **Generate new token** | 1 |
-| `SUPABASE_PROJECT_REF` | The `abcd` part of the project URL | 1 |
-| `SUPABASE_DB_PASSWORD` | The password you saved in step 1 | 1 |
-| `SUPABASE_URL` | Project URL | 1 |
-| `SUPABASE_SECRET_KEY` | Supabase, **Project Settings**, **API Keys**, secret key | 1 |
-| `MASSIVE_API_KEY` | massive.com dashboard, **API Keys** | 1 |
-| `FRED_API_KEY` | `https://fredaccount.stlouisfed.org/apikeys` (free) | 1 |
-| `SEC_USER_AGENT` | Text like `Marsad your-email@example.com` (SEC requires a contact) | 1 |
-| `ANTHROPIC_API_KEY` | console.anthropic.com, **API Keys** | 2 |
+| Secret                  | Where to find it                                                                         | Phase |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ----- |
+| `SUPABASE_ACCESS_TOKEN` | supabase.com, avatar, **Account preferences**, **Access Tokens**, **Generate new token** | 1     |
+| `SUPABASE_PROJECT_REF`  | The `abcd` part of the project URL                                                       | 1     |
+| `SUPABASE_DB_PASSWORD`  | The password you saved in step 1                                                         | 1     |
+| `SUPABASE_URL`          | Project URL                                                                              | 1     |
+| `SUPABASE_SECRET_KEY`   | Supabase, **Project Settings**, **API Keys**, secret key                                 | 1     |
+| `MASSIVE_API_KEY`       | massive.com dashboard, **API Keys**                                                      | 1     |
+| `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)                                      | 1     |
+| `SEC_USER_AGENT`        | Text like `Marsad your-email@example.com` (SEC requires a contact)                       | 1     |
+| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                                                      | 2     |
 
 ## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
 
@@ -119,25 +119,25 @@ In Supabase: **Edge Functions**, then **Secrets**, then **Add new secret**. Same
 
 Claude's cloud sessions reach the internet only through hosts you allow. Connectors (Supabase, Netlify, Massive) do not need entries. In the Claude app, open the environment settings for this repository and allow these hosts as each phase needs them:
 
-| Host | Purpose | Phase |
-| --- | --- | --- |
-| `api.massive.com` | Massive REST API (confirm host in Phase 1) | 1 |
-| `api.stlouisfed.org` | FRED API | 1 |
-| `www.sec.gov`, `data.sec.gov`, `efts.sec.gov` | SEC EDGAR | 1 |
-| `www.nasdaqtrader.com` | Trade halts RSS | 1 |
-| `www.matteoiacoviello.com` | Geopolitical Risk Index files | 1 |
-| `www.federalreserve.gov` | FOMC calendar | 3 |
-| `<your-project-ref>.supabase.co` | Live tests against your project | 1 |
-| `api.anthropic.com` | Prompt evaluation runs | 2 |
+| Host                                          | Purpose                                    | Phase |
+| --------------------------------------------- | ------------------------------------------ | ----- |
+| `api.massive.com`                             | Massive REST API (confirm host in Phase 1) | 1     |
+| `api.stlouisfed.org`                          | FRED API                                   | 1     |
+| `www.sec.gov`, `data.sec.gov`, `efts.sec.gov` | SEC EDGAR                                  | 1     |
+| `www.nasdaqtrader.com`                        | Trade halts RSS                            | 1     |
+| `www.matteoiacoviello.com`                    | Geopolitical Risk Index files              | 1     |
+| `www.federalreserve.gov`                      | FOMC calendar                              | 3     |
+| `<your-project-ref>.supabase.co`              | Live tests against your project            | 1     |
+| `api.anthropic.com`                           | Prompt evaluation runs                     | 2     |
 
 Package registries (npm) are allowed by default.
 
 ## Costs so far
 
-| Item | Monthly cost | Approved |
-| --- | --- | --- |
-| Supabase Free | USD 0 | Pending step 1 |
-| Netlify (personal Free, or existing team) | USD 0 extra | Pending step 3 |
-| Massive free tier | USD 0 | In use |
+| Item                                      | Monthly cost | Approved       |
+| ----------------------------------------- | ------------ | -------------- |
+| Supabase Free                             | USD 0        | Pending step 1 |
+| Netlify (personal Free, or existing team) | USD 0 extra  | Pending step 3 |
+| Massive free tier                         | USD 0        | In use         |
 
 Paid data plans and Supabase Pro are decided at Phase 5 and Phase 6. Claude asks before any of them.

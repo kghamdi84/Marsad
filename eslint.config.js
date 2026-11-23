@@ -5,7 +5,14 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/dev-dist/**', '**/coverage/**', 'supabase/functions/**', '**/test-results/**', '**/playwright-report/**'],
+    ignores: [
+      '**/dist/**',
+      '**/dev-dist/**',
+      '**/coverage/**',
+      'supabase/functions/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strict,
@@ -18,5 +25,9 @@ export default tseslint.config(
   {
     files: ['**/*.config.{js,ts}', 'scripts/**', 'jobs/**', 'supabase/tests/**', 'apps/web/e2e/**'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['**/*.test.ts'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
 );
