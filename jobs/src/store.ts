@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { GprDay, JobRunRecord } from '@marsad/core';
+import type { FredObservation, GprDay, JobRunRecord } from '@marsad/core';
 
 export interface SourceStatusUpdate {
   source: string;
@@ -13,6 +13,11 @@ export interface SourceStatusUpdate {
 /** The writes jobs need. Implemented over Supabase here and by fakes in tests. */
 export interface Store {
   upsertGprDays(days: readonly GprDay[], fetchedAt: Date): Promise<number>;
+  upsertFredObservations(
+    series: string,
+    observations: readonly FredObservation[],
+    fetchedAt: Date,
+  ): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
 }
@@ -38,6 +43,23 @@ export function supabaseStore(url: string, secretKey: string): Store {
         }));
         const { error } = await db.from('gpr_daily').upsert(rows, { onConflict: 'date' });
         if (error) throw new Error(`gpr_daily upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      return written;
+    },
+    async upsertFredObservations(series, observations, fetchedAt) {
+      let written = 0;
+      for (let i = 0; i < observations.length; i += CHUNK) {
+        const rows = observations.slice(i, i + CHUNK).map((o) => ({
+          series_id: series,
+          date: o.date,
+          value: o.value,
+          fetched_at: fetchedAt.toISOString(),
+        }));
+        const { error } = await db
+          .from('fred_observations')
+          .upsert(rows, { onConflict: 'series_id,date' });
+        if (error) throw new Error(`fred_observations upsert failed: ${error.message}`);
         written += rows.length;
       }
       return written;

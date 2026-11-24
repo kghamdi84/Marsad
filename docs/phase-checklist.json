@@ -160,7 +160,7 @@
           "id": "1.2",
           "title": "FRED adapter and fixtures",
           "status": "in_progress",
-          "evidence": "core/adapters/fred.ts: 12 series, key redacted from provenance, \".\" to null. Tested on a SYNTHETIC documented-shape body; needs FRED_API_KEY to record a real one. Not deployed."
+          "evidence": "core/adapters/fred.ts + jobs/src/fred-job.ts + migration fred_observations + workflow fred-daily.yml; 4 job tests on SYNTHETIC bodies (partial failure marks error and leaves source not live). Needs merge, then a live run with FRED_API_KEY to confirm and record real values."
         },
         {
           "id": "1.3",
