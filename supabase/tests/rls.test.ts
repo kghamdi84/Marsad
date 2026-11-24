@@ -76,6 +76,8 @@ beforeAll(async () => {
       select id, 'NVDA', date '1999-01-22' from public.instruments;
     insert into public.splits (vendor_id, ticker, execution_date, split_from, split_to, adjustment_type)
       values ('E-test', 'NVDA', date '2024-06-10', 1, 10, 'forward_split');
+    insert into public.daily_bars (ticker, date, open, high, low, close, volume)
+      values ('NVDA', date '2026-11-20', 188.0, 190.0, 186.0, 189.0, 1000000);
     insert into public.system_alerts (event, source, headline, trigger, policy_version)
       values ('stale', 'nasdaq_halts', 'Nasdaq trade halts stale, silent for 40 min', 'test', 'test');
   `);
@@ -181,7 +183,7 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(6); // five seeded sources plus massive_reference
+      expect(await count(tx, 'public.source_status')).toBe(7); // five seeded sources plus massive_reference and massive_bars
     });
   });
 
@@ -205,7 +207,13 @@ describe('system tables', () => {
   });
 
   it('identity, split and alert tables follow the same rule: owner with MFA reads, everyone else nothing', async () => {
-    for (const table of ['instruments', 'instrument_tickers', 'splits', 'system_alerts']) {
+    for (const table of [
+      'instruments',
+      'instrument_tickers',
+      'splits',
+      'system_alerts',
+      'daily_bars',
+    ]) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
       await as(owner1, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));

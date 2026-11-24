@@ -1,5 +1,5 @@
 /**
- * Entry point for the Massive jobs (run by GitHub Actions): `reference` or `reconcile`.
+ * Entry point for the Massive jobs (run by GitHub Actions): `reference`, `reconcile` or `bars`.
  * Reads MASSIVE_API_KEY, SUPABASE_URL and SUPABASE_SECRET_KEY from the environment; never logs them.
  */
 import {
@@ -10,6 +10,7 @@ import {
   type FetchLike,
   type MassiveConfig,
 } from '@marsad/core';
+import { runBarsJob } from './bars-job.js';
 import { runMassiveReferenceJob } from './massive-reference-job.js';
 import { runReconcileJob } from './reconcile-job.js';
 import { supabaseStore } from './store.js';
@@ -21,8 +22,8 @@ function need(name: string): string {
 }
 
 const which = process.argv[2];
-if (which !== 'reference' && which !== 'reconcile')
-  throw new Error('usage: massive-main.ts reference|reconcile');
+if (which !== 'reference' && which !== 'reconcile' && which !== 'bars')
+  throw new Error('usage: massive-main.ts reference|reconcile|bars');
 
 const clock: Clock = {
   now: () => Date.now(),
@@ -51,7 +52,9 @@ const now = () => new Date();
 const run =
   which === 'reference'
     ? await runMassiveReferenceJob({ http, cfg, store, now })
-    : await runReconcileJob({ http, cfg, store, now });
+    : which === 'bars'
+      ? await runBarsJob({ http, cfg, store, now })
+      : await runReconcileJob({ http, cfg, store, now });
 console.log(
   `${run.job}: ${run.status}, rows ${run.rows_written ?? 0}, ${run.latency_ms} ms${run.error ? `, error: ${run.error}` : ''}${run.status === 'ok' ? ` details: ${JSON.stringify(run.details)}` : ''}`,
 );

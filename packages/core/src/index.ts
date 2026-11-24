@@ -11,6 +11,8 @@ export * from './health.js';
 export * from './reconcile.js';
 export * from './filings.js';
 export * from './news.js';
+export * from './tickers.js';
+export * from './study.js';
 export * from './ai/facts.js';
 export * from './ai/numbers.js';
 export * from './ai/verify.js';

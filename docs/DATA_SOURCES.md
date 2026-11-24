@@ -31,6 +31,16 @@ Plan ladder listed in the brief (Nov 2026, **to confirm** on massive.com/pricing
 
 The typical-price error grows with the day's range (4.57% range on 2026-11-20 gave -0.41%). Minute bars cover only 93.0% to 96.8% of the daily volume, so they are not a full tape. Consequences: the nightly check rebuilds VWAP from the minute `vw` field, not from OHLC; any rule that uses VWAP from `packages/core` `vwap()` (typical price) must expect it to differ from the vendor VWAP by up to about 0.4% on volatile days; rules should prefer `volumeWeightedPrice` over bar `vw` when minute bars carry it. The minute-versus-daily check is the vendor against itself at two aggregation levels, so it detects missing or corrupt bars, not a shared error in both.
 
+**Free-plan entitlement for Study-module data, tested 2026-11-24 with real calls (via the Massive connector, same account as the key in GitHub; a Phase 2 job re-checks with the key itself):**
+
+| Data                                                          | Free plan                                                                                                                                          |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Daily and minute bars, news, splits, dividends                | Yes (dividends: `/stocks/v1/dividends`, with split-adjusted amounts)                                                                               |
+| Short interest (`/stocks/v1/short-interest`)                  | Yes: `settlement_date`, `short_interest`, `avg_daily_volume`, `days_to_cover`, from 2017 (twice a month, so it lags)                               |
+| Short volume (`/stocks/v1/short-volume`)                      | Yes: daily `short_volume`, `total_volume`, `short_volume_ratio`, per venue (daily short volume is not short interest)                              |
+| Income statements (`/stocks/financials/v1/income-statements`) | **Not entitled.** Financials come from SEC EDGAR XBRL company facts instead, which carry the filing date needed for point-in-time use              |
+| Benzinga earnings, analyst ratings and guidance               | **Not entitled.** The earnings page shows "requires plan" for estimates, surprise and analyst actions; reported EPS and revenue come from SEC XBRL |
+
 Endpoint groups (paths from the brief; parameters and fields **to confirm**; `vX` paths are experimental and sit behind adapters with contract tests):
 
 | Group                           | Paths                                                                                                                                    | Used for                              |
