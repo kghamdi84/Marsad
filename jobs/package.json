@@ -8,7 +8,8 @@
     "gpr": "tsx src/gpr-main.ts",
     "fred": "tsx src/fred-main.ts",
     "massive": "tsx src/massive-main.ts",
-    "sec": "tsx src/sec-main.ts"
+    "sec": "tsx src/sec-main.ts",
+    "halts": "tsx src/halts-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

@@ -43,11 +43,15 @@ Web: Status page judges each source with the core policy and says why in words.
 - `reconcile-nightly` (run 45443576867): ok, 15 checks over 2026-11-16 to 11-20 (Massive vs FRED 10-year yield and both spreads), all within tolerance, 0.9 s.
 - Sources now live: GPR, FRED, Massive reference data, SEC EDGAR. Not yet: Nasdaq halts (decision pending) and live Massive prices (Phase 5).
 
+### Halts job (2026-11-24, awaiting merge and first live run)
+
+Khaled approved polling the Nasdaq trade-halts feed (yes, 2026-11-24). `jobs/src/halts-job.ts` stores every halt in `halts` (new migration, RLS tested), keyed by symbol and halt time, counts active and news-related halts, and runs every 5 minutes around US trading hours (`halts.yml`). A page that is not the feed (even with HTTP 200) or unreadable items are errors, never "no halts". The `nasdaq_halts` status limit is loosened to 30 minutes until Phase 5's 30-second poller. Tests use the real recorded feed (6 tests); the first live run is the live check. Alerts on halts (T1 news-pending in particular) are Phase 5.
+
 ### What is NOT done in Phase 1
 
 - Unit-test fixtures for FRED and SEC are still synthetic bodies in the documented shapes (both services now confirmed working live); re-recording them is a small follow-up. The Massive entitlement error body has not been observed live.
 - No deployed adapters, no Edge Functions, no scheduled halts polling, no nightly reconciliation job, no heartbeat job (item 1.14 untouched: Edge Function core bundling and a Supabase CLI deploy path remain unverified; this machine has no Docker or Deno).
-- Nasdaq halts terms of use are unconfirmed (Khaled to review).
+- Nasdaq Trader terms of use not independently reviewed (Khaled approved polling).
 - The Phase 0 follow-ups (advisors, `list_migrations`, Auth Hooks empty, Status screenshot) need a session whose Supabase connector sees the project.
 
 ### Done (Phase 0)
