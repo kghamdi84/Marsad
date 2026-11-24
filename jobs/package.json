@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "echo 'no jobs yet (Phase 1)'"
+    "typecheck": "tsc -p tsconfig.json",
+    "gpr": "tsx src/gpr-main.ts"
+  },
+  "dependencies": {
+    "@marsad/core": "workspace:*",
+    "@supabase/supabase-js": "^2.119.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
   }
 }

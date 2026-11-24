@@ -74,10 +74,15 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await page.route('**/rest/v1/job_runs**', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
+  await page.route('**/rest/v1/market_holidays**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto('/status');
   await expect(page.getByRole('heading', { name: 'System status' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'FRED (St. Louis Fed)' })).toBeVisible();
+  // A source that has never reported says so in words, not by an empty cell.
+  await expect(page.getByRole('cell', { name: 'No data received yet' })).toBeVisible();
   await expect(page.getByText('No jobs have run yet')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main sections' })).toBeVisible();
   await expect(page.getByText(/ET/).first()).toBeVisible();

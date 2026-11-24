@@ -83,21 +83,27 @@ Find these in Supabase: **Project Settings**, then **API Keys** and **Data API**
 
 Never put the **secret** key (starts with `sb_secret_`) or the old `service_role` key into Netlify. Claude can also read these two public values through the Supabase connector and set them for you if you prefer.
 
-## Step 5. GitHub Actions secrets (Phase 1, not needed yet)
+## Step 5. GitHub Actions secrets
 
-CI for Phase 0 needs no secrets. From Phase 1, scheduled jobs and deployments need these. Add them in GitHub: open the repository, tap **Settings**, **Secrets and variables**, **Actions**, **New repository secret**.
+The first scheduled job (the Geopolitical Risk Index, which uses only public data) needs just two secrets. Add them first, run the job, and watch the Status page change.
 
-| Secret                  | Where to find it                                                                         | Phase |
-| ----------------------- | ---------------------------------------------------------------------------------------- | ----- |
-| `SUPABASE_ACCESS_TOKEN` | supabase.com, avatar, **Account preferences**, **Access Tokens**, **Generate new token** | 1     |
-| `SUPABASE_PROJECT_REF`  | The `abcd` part of the project URL                                                       | 1     |
-| `SUPABASE_DB_PASSWORD`  | The password you saved in step 1                                                         | 1     |
-| `SUPABASE_URL`          | Project URL                                                                              | 1     |
-| `SUPABASE_SECRET_KEY`   | Supabase, **Project Settings**, **API Keys**, secret key                                 | 1     |
-| `MASSIVE_API_KEY`       | massive.com dashboard, **API Keys**                                                      | 1     |
-| `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)                                      | 1     |
-| `SEC_USER_AGENT`        | Text like `Marsad your-email@example.com` (SEC requires a contact)                       | 1     |
-| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                                                      | 2     |
+**Do this now (2 secrets):**
+
+1. In GitHub, open the repository, tap **Settings**, then **Secrets and variables**, then **Actions**, then **New repository secret**.
+2. Add `SUPABASE_URL` with the value `https://hwdwivilqdydmxhycapy.supabase.co`.
+3. Add `SUPABASE_SECRET_KEY`. Find it in Supabase: **Project Settings**, **API Keys**, the **Secret keys** section (it starts with `sb_secret_`). Paste it only into GitHub's secret box, never into chat. This key bypasses the database security rules, which is why it lives only in GitHub and Supabase.
+4. In GitHub, tap **Actions**, then **GPR daily** in the left list, then **Run workflow**, then **Run workflow** again. It finishes in about a minute.
+5. In Marsad, tap **Status**. The **Geopolitical Risk Index** row should read "OK, last message ... ago", with plan tier `end-of-day`, a latency, and the note "Latest value" plus today's date. **Recent job runs** should list `gpr-daily` with 15,000 or more rows.
+
+**Later in Phase 1 (not needed yet):**
+
+| Secret                                                                  | Where to find it                                               | Used for                                                                                    |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `MASSIVE_API_KEY`                                                       | massive.com dashboard, **API Keys**                            | Market data adapters, holiday calendar                                                      |
+| `FRED_API_KEY`                                                          | `https://fredaccount.stlouisfed.org/apikeys` (free)            | Macro series, VIX and yield cross-checks                                                    |
+| `SEC_USER_AGENT`                                                        | Text you choose, like `Marsad research your-email@example.com` | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in) |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` | Only if Edge Functions are later deployed from GitHub Actions  | Not needed while the GitHub integration deploys the database                                |
+| `ANTHROPIC_API_KEY`                                                     | console.anthropic.com, **API Keys**                            | Phase 2                                                                                     |
 
 ## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
 

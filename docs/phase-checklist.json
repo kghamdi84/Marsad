@@ -149,85 +149,85 @@
         "Status page shows each source with last update, latency and plan tier",
         "A simulated stale feed raises a system alert"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "1.1",
           "title": "Massive adapter with token bucket, caching, backoff, entitlement detection and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Adapters in core/adapters/massive.ts for holidays, daily bars, splits: tested on recorded fixtures (provenance, Authorization header, bad-bar rejection, entitlement shown as requires plan). Code complete; live envelope, base URL and entitlement body still to confirm with MASSIVE_API_KEY. Not deployed."
         },
         {
           "id": "1.2",
           "title": "FRED adapter and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/adapters/fred.ts: 12 series, key redacted from provenance, \".\" to null. Tested on a SYNTHETIC documented-shape body; needs FRED_API_KEY to record a real one. Not deployed."
         },
         {
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/adapters/sec.ts: submissions parser, refuses to run without a declared contact in SEC_USER_AGENT, 8-K items parsed. Tested on a SYNTHETIC documented-shape body; real recording waits for Khaled to choose the contact string. Not deployed."
         },
         {
           "id": "1.4",
           "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Feed confirmed and parsed (core/halts.ts, fixture of 10 real items covering every reason code seen). Terms of use still to confirm with Khaled; polling job not yet written."
         },
         {
           "id": "1.5",
           "title": "GPR adapter (confirm format and cadence) and fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Format and cadence confirmed; core/gpr.ts validates rows; jobs/src/gpr-job.ts + scripts/xls_to_json.py + workflow gpr-daily.yml. Dry run on the real file: 15,302 days to 2026-11-23, 0 skipped, 0.5 s; job tests (5) cover failure, truncated file, tiny download. Needs SUPABASE_URL and SUPABASE_SECRET_KEY secrets, then Run workflow, to prove it live."
         },
         {
           "id": "1.6",
           "title": "Provenance envelope type and freshness model (session-aware thresholds)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "packages/core/src/provenance.ts: Provenance/Sourced types, evaluateFreshness (session-aware, plan-tier aware), 14 tests incl. the brief 10:00 vs 22:00 ET example"
         },
         {
           "id": "1.7",
           "title": "Market calendar and time utilities (ms/ns conversion, holidays, early closes)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "timestamps.ts (s/ms/us/ns to UTC ms, 7 tests) and calendar.ts (holidays and early closes from recorded Massive /v1/marketstatus/upcoming, DST weeks, session state, 16 tests). Calendar rows come from fixtures/massive recorded via MCP; live envelope still to confirm with the API key."
         },
         {
           "id": "1.8",
           "title": "Instrument identity (CIK, FIGI) and corporate actions (splits, dividends, ticker events)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "core/corporate-actions.ts (CIK/FIGI identity, split factors, adjustBars, checkBigMove >25% guard; known-answer: our cumulative factor equals the vendor historical_adjustment_factor on all 3 recorded NVDA splits) plus migration 20261123120000 (instruments, instrument_tickers, splits; RLS tested). Ticker-change events endpoint not yet wired (adapter work)."
         },
         {
           "id": "1.9",
           "title": "Core indicator library (SMA, EMA, VWAP, MACD, RSI, ATR, RVOL) with known-answer tests",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "packages/core/src/indicators.ts: sma, ema, rsi (Wilder), trueRange, atr, macd, vwap, rvol. 22 tests: pandas golden values at 1e-9 over 120 seeded bars, hand-checked cases (RSI first value 100*3.34/4.74), edge cases, real SPY bars. Mutation check: breaking EMA alpha and RSI gains made 5 tests fail."
         },
         {
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/reconcile.ts: VIX vs FRED, 10y vs FRED, VWAP, filings completeness, missing side = failure, report and critical alerts (8 tests). The nightly job and live data are not yet wired."
         },
         {
           "id": "1.11",
           "title": "Job run records from every adapter and job",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/health.ts runJob (3 tests) is used by the GPR job, which writes a job_runs row on success and failure (5 tests). Other adapters and Edge Functions not yet deployed."
         },
         {
           "id": "1.12",
           "title": "Status page with per-source latency and plan tier",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "apps/web Status page: per-source state in words from core describeSourceHealth (limit, silence, quiet-is-normal, no-data-yet, calendar-not-loaded), last message, latency, plan tier; migration market_holidays; e2e covers it. Rows stay at no-data until jobs write source_status."
         },
         {
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "core/health.ts: per-source session-aware policies, transition-only alerts, paused rules. Test reproduces the brief example (3m 10s, 4 rules paused, one alert, one recovery). Not yet scheduled: needs the heartbeat job and the alert dispatcher (Phase 5 delivery)."
         },
         {
           "id": "1.14",

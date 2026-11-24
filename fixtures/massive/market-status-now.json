@@ -1,0 +1,19 @@
+{
+  "_recorded": {
+    "source": "massive",
+    "endpoint": "/v1/marketstatus/now",
+    "recordedAt": "2026-11-23",
+    "via": "Massive MCP call_api (table output, not the raw REST envelope)",
+    "note": "Subset of columns recorded."
+  },
+  "data": {
+    "afterHours": false,
+    "earlyHours": false,
+    "market": "open",
+    "serverTime": "2026-11-23T14:27:36-05:00",
+    "exchanges": {
+      "nasdaq": "open",
+      "nyse": "open"
+    }
+  }
+}

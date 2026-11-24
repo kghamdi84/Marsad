@@ -70,6 +70,12 @@ beforeAll(async () => {
     insert into public.watchlist_items (owner_id, watchlist_id, ticker)
       select '${OTHER}', id, 'SOFI' from public.watchlists where owner_id = '${OTHER}';
     insert into public.job_runs (job, status) values ('baseline-seed', 'ok');
+    insert into public.instruments (figi, cik, ticker, name)
+      values ('BBG000BBJQV0', '0001045810', 'NVDA', 'NVIDIA Corp');
+    insert into public.instrument_tickers (instrument_id, ticker, valid_from)
+      select id, 'NVDA', date '1999-01-22' from public.instruments;
+    insert into public.splits (vendor_id, ticker, execution_date, split_from, split_to, adjustment_type)
+      values ('E-test', 'NVDA', date '2024-06-10', 1, 10, 'forward_split');
   `);
 });
 
@@ -194,6 +200,29 @@ describe('system tables', () => {
     await expect(
       as(owner2, (tx) => tx.query(`insert into public.job_runs (job) values ('forged')`)),
     ).rejects.toThrow(/permission denied/);
+  });
+
+  it('identity and split tables follow the same rule: owner with MFA reads, everyone else nothing', async () => {
+    for (const table of ['instruments', 'instrument_tickers', 'splits']) {
+      await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
+      await as(other2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
+      await as(owner1, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
+      await expect(as(anon, (tx) => count(tx, `public.${table}`))).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(as(owner2, (tx) => tx.query(`delete from public.${table}`))).rejects.toThrow(
+        /permission denied/,
+      );
+    }
+  });
+
+  it('rejects malformed identifiers at the database', async () => {
+    await expect(
+      db.query(`insert into public.instruments (figi, ticker) values ('nope', 'AAA')`),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(`insert into public.instruments (cik, ticker) values ('123', 'AAA')`),
+    ).rejects.toThrow(/check constraint/);
   });
 
   it('signed-in users cannot read the owner allow list', async () => {
