@@ -119,3 +119,71 @@ export async function fetchRecentFilings(
   };
   return { ok: true, data, latencyMs: res.latencyMs, fromCache: res.fromCache };
 }
+
+export interface CompanyRef {
+  ticker: string;
+  cik: string; // 10 digits
+  name: string;
+}
+
+/**
+ * Parses the SEC's ticker to CIK file (https://www.sec.gov/files/company_tickers.json): an object whose
+ * values are `{ cik_str, ticker, title }`. When a ticker appears twice the first entry wins. The SEC
+ * notes this file is updated periodically and its accuracy is not guaranteed.
+ */
+export function parseCompanyTickers(json: unknown): Map<string, CompanyRef> {
+  const out = new Map<string, CompanyRef>();
+  if (!json || typeof json !== 'object') return out;
+  for (const v of Object.values(json as Record<string, unknown>)) {
+    const r = v as Record<string, unknown>;
+    if (
+      typeof r['ticker'] !== 'string' ||
+      (typeof r['cik_str'] !== 'number' && typeof r['cik_str'] !== 'string')
+    )
+      continue;
+    const ticker = r['ticker'].toUpperCase();
+    if (out.has(ticker)) continue;
+    try {
+      out.set(ticker, {
+        ticker,
+        cik: normalizeCik(r['cik_str']),
+        name: typeof r['title'] === 'string' ? r['title'] : '',
+      });
+    } catch {
+      // A malformed CIK is skipped rather than guessed.
+    }
+  }
+  return out;
+}
+
+export async function fetchCompanyTickers(
+  http: HttpClient,
+  cfg: SecConfig,
+): Promise<AdapterResult<CompanyRef[]>> {
+  assertDeclaredUserAgent(cfg.userAgent);
+  const res = await http.get(`${cfg.baseUrl ?? 'https://www.sec.gov'}/files/company_tickers.json`, {
+    headers: { 'User-Agent': cfg.userAgent, Accept: 'application/json' },
+    cacheTtlMs: 6 * 3600_000,
+  });
+  if (!res.ok) return failure('SEC EDGAR', res.kind, res.message);
+  let json: unknown;
+  try {
+    json = JSON.parse(res.body);
+  } catch {
+    return failure('SEC EDGAR', 'invalid-response', 'response was not JSON');
+  }
+  const map = parseCompanyTickers(json);
+  if (map.size === 0)
+    return failure('SEC EDGAR', 'invalid-response', 'no companies in the ticker file');
+  const data: Sourced<CompanyRef[]> = {
+    value: [...map.values()],
+    provenance: {
+      source: 'sec_edgar',
+      endpoint: '/files/company_tickers.json',
+      asOf: cfg.now().toISOString(),
+      fetchedAt: cfg.now().toISOString(),
+      planTier: 'real-time',
+    },
+  };
+  return { ok: true, data, latencyMs: res.latencyMs, fromCache: res.fromCache };
+}

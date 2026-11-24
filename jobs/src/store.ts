@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-import type { FredObservation, GprDay, JobRunRecord, Split, UpcomingRow } from '@marsad/core';
+import type {
+  CompanyRef,
+  Filing,
+  FredObservation,
+  GprDay,
+  JobRunRecord,
+  Split,
+  UpcomingRow,
+} from '@marsad/core';
 
 export interface SourceStatusUpdate {
   source: string;
@@ -22,6 +30,8 @@ export interface Store {
   upsertSplits(splits: readonly Split[], fetchedAt: Date): Promise<number>;
   /** Stored FRED observations for a series between two dates, inclusive, oldest first. */
   getFredRange(series: string, from: string, to: string): Promise<FredObservation[]>;
+  upsertInstruments(companies: readonly CompanyRef[]): Promise<number>;
+  upsertFilings(cik: string, filings: readonly Filing[], fetchedAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
 }
@@ -115,6 +125,32 @@ export function supabaseStore(url: string, secretKey: string): Store {
         date: r.date as string,
         value: r.value === null ? null : Number(r.value),
       }));
+    },
+    async upsertInstruments(companies) {
+      if (companies.length === 0) return 0;
+      const rows = companies.map((c) => ({ cik: c.cik, ticker: c.ticker, name: c.name || null }));
+      const { error } = await db.from('instruments').upsert(rows, { onConflict: 'cik' });
+      if (error) throw new Error(`instruments upsert failed: ${error.message}`);
+      return rows.length;
+    },
+    async upsertFilings(cik, filings, fetchedAt) {
+      let written = 0;
+      for (let i = 0; i < filings.length; i += CHUNK) {
+        const rows = filings.slice(i, i + CHUNK).map((f) => ({
+          accession: f.accession,
+          cik,
+          form: f.form,
+          filing_date: f.filingDate,
+          accepted_at: f.acceptedAt,
+          primary_document: f.primaryDocument,
+          items: f.items,
+          fetched_at: fetchedAt.toISOString(),
+        }));
+        const { error } = await db.from('filings').upsert(rows, { onConflict: 'accession' });
+        if (error) throw new Error(`filings upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      return written;
     },
     async recordRun(run) {
       const { error } = await db.from('job_runs').insert(run);

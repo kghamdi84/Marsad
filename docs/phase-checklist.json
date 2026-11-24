@@ -166,7 +166,7 @@
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
           "status": "in_progress",
-          "evidence": "core/adapters/sec.ts: submissions parser, refuses to run without a declared contact in SEC_USER_AGENT, 8-K items parsed. Tested on a SYNTHETIC documented-shape body; real recording waits for Khaled to choose the contact string. Not deployed."
+          "evidence": "core/adapters/sec.ts (submissions parser, company tickers parser, refuses to run without a name and contact email per the SEC page reviewed 2026-11-20) + jobs/src/sec-job.ts + migration filings + workflow sec-filings.yml. 10 tests on SYNTHETIC bodies; awaiting merge and first live run (also confirms the SEC accepts the User-Agent)."
         },
         {
           "id": "1.4",
