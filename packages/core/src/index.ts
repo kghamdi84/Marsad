@@ -22,4 +22,5 @@ export * from './ai/verify.js';
 export * from './ai/grounded.js';
 export * from './ai/untrusted.js';
 export * from './ai/cost.js';
+export * from './ai/template.js';
 export * from './adapters/index.js';

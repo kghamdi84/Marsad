@@ -5,12 +5,26 @@
  */
 import type { Fact, Payload } from './facts.js';
 
+/**
+ * Fixed-decimal text that rounds a half up, the way a person rounds money. `Number.prototype.toFixed` works on
+ * the binary value, so it turns 81.615 into "81.61", 1.005 into "1.00" and 2.675 into "2.67". Shifting the
+ * decimal point in the text first keeps the exact decimal that was written.
+ */
+export function toFixedHalfUp(n: number, decimals: number): string {
+  const abs = Math.abs(n);
+  const written = String(abs);
+  if (written.includes('e')) return n.toFixed(decimals); // very large or very small: no safe text shift
+  const shifted = Math.round(Number(`${written}e${decimals}`));
+  const text = Number(`${shifted}e-${decimals}`).toFixed(decimals);
+  return n < 0 && Number(text) !== 0 ? `-${text}` : text;
+}
+
 function trimmed(n: number, decimals: number): string {
-  return n.toFixed(decimals).replace(/\.?0+$/, (m) => (m.startsWith('.') ? '' : m));
+  return toFixedHalfUp(n, decimals).replace(/\.?0+$/, (m) => (m.startsWith('.') ? '' : m));
 }
 
 function withCommas(n: number, decimals = 0): string {
-  const [whole, frac] = Math.abs(n).toFixed(decimals).split('.');
+  const [whole, frac] = toFixedHalfUp(Math.abs(n), decimals).split('.');
   const grouped = (whole ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `${n < 0 ? '-' : ''}${grouped}${frac ? `.${frac}` : ''}`;
 }

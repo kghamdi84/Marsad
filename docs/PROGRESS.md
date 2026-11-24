@@ -79,6 +79,10 @@ All four new jobs ran once by hand after the merge and succeeded: `sec-facts` 10
 
 The heartbeat raised two real alerts (`nasdaq_halts` and `sec_edgar` stale in the regular session). The run history shows why: in the whole repository exactly one `schedule` run has ever fired (GPR daily, 11.5 hours late); the 5-minute halts cron, the 30-minute SEC cron and the heartbeat's own 15-minute cron fired zero times in one to two hours. Every earlier verification was a manual run. Earlier reports that said these jobs "run every 5 or 30 minutes" were not verified and are withdrawn. Marked as checklist item 1.15 (todo) and proposed in ADR 0008: trigger the workflows from Supabase Cron through `pg_net`, which needs a fine-grained GitHub token that only Khaled can create.
 
+### Study page panels (2026-11-24, this batch)
+
+Financials (as filed, point-in-time date picker, derived quarters marked), insider transactions (explained codes, 10b5-1 box, totals, unreadable filings admitted), short interest and short volume (with definitions and lag), news (clustered, tiered, opinion-labelled) and dividends, each loading on its own so one failing table cannot blank the page. 19 e2e tests, every mocked row built from the real recordings. Found while looking at the rendered page: `toFixed` rounds a written half down (81.615 became "$81.61B"), fixed in core with `toFixedHalfUp` and tests; numeric table headers were left-aligned over right-aligned numbers because `text-start` and `text-end` conflict (also fixed on the Status page); a missing figure said "Not enough history" where the right words are "Not reported". Fiscal-year gaps in a screenshot come from the 16-newest-rows trim of the test fixture, not from the stored data.
+
 ### What is NOT done (carried forward, none blocks Phase 2)
 
 - 5.2b (new): Supabase platform bundling of a real Edge Function is unverified (needs an access token and a first function).
@@ -86,7 +90,7 @@ The heartbeat raised two real alerts (`nasdaq_halts` and `sec_edgar` stale in th
 - The VWAP check covers SPY only, over five sessions of evidence; the 0.1% margin (max seen 0.074%) is thin (IDEAS.md).
 - Nasdaq Trader terms of use not independently reviewed (Khaled approved polling).
 - The Phase 0 follow-ups (advisors, `list_migrations`, Auth Hooks empty) need a session whose Supabase connector sees the project; the connector still lists only the work organization.
-- Decision for Khaled: the repository is public (GitHub `private: false`) while the docs say private.
+- Decision for Khaled: scheduling (ADR 0008, item 1.15) and the repository is public (GitHub `private: false`) while the docs say private.
 
 ### Done (Phase 0)
 

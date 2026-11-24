@@ -149,10 +149,18 @@ export default function PriceChart({
       .filter((m) => barDates.has(m.date))
       .map((m) => ({
         time: m.date as Time,
-        position: 'aboveBar',
+        // Dividends sit below the bar so they never hide an 8-K or split marker above it.
+        position: m.kind === 'dividend' ? 'belowBar' : 'aboveBar',
         shape: m.kind === 'split' ? 'square' : m.kind === 'high-8k' ? 'arrowDown' : 'circle',
-        color: m.kind === 'high-8k' ? warn : m.kind === 'medium-8k' ? fg : up,
-        text: m.kind === 'split' ? 'Split' : '8-K',
+        color:
+          m.kind === 'high-8k'
+            ? warn
+            : m.kind === 'medium-8k'
+              ? fg
+              : m.kind === 'dividend'
+                ? text
+                : up,
+        text: m.kind === 'split' ? 'Split' : m.kind === 'dividend' ? 'Div' : '8-K',
       }));
     createSeriesMarkers(candles, placed);
 

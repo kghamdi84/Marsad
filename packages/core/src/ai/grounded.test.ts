@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MODEL_PRICES, costOfUsage, evaluateBudget } from './cost.js';
 import type { Payload } from './facts.js';
 import { groundedGenerate, type GenerateRequest, type GroundedFailure } from './grounded.js';
-import { factsTemplate, formatFactValue } from './template.js';
+import { factSentence, factsTemplate, formatFactValue, toFixedHalfUp } from './template.js';
 import { wrapUntrusted } from './untrusted.js';
 import { verifyText } from './verify.js';
 
@@ -253,5 +253,34 @@ describe('budget caps: warning at 80%, template fallback at the cap', () => {
   });
   it('allows spend that lands exactly on the cap', () => {
     expect(evaluateBudget({ dailyUsd: 0.9, monthlyUsd: 1 }, caps, 0.1).state).toBe('warn');
+  });
+});
+
+describe('money is rounded the way a person rounds it (a half goes up), not the way binary floating point does', () => {
+  it('toFixedHalfUp fixes the cases where toFixed rounds a written half down', () => {
+    // (81.615).toFixed(2) is "81.61", (1.005).toFixed(2) is "1.00" and (2.675).toFixed(2) is "2.67".
+    expect(toFixedHalfUp(81.615, 2)).toBe('81.62');
+    expect(toFixedHalfUp(1.005, 2)).toBe('1.01');
+    expect(toFixedHalfUp(2.675, 2)).toBe('2.68');
+    expect(toFixedHalfUp(-2.675, 2)).toBe('-2.68');
+    expect(toFixedHalfUp(0.5, 0)).toBe('1');
+  });
+  it('leaves ordinary values, zero, and tiny negatives alone', () => {
+    expect(toFixedHalfUp(188.4, 2)).toBe('188.40');
+    expect(toFixedHalfUp(0, 2)).toBe('0.00');
+    expect(toFixedHalfUp(-0.001, 2)).toBe('0.00'); // no "-0.00"
+    expect(toFixedHalfUp(1e21, 2)).toBe((1e21).toFixed(2)); // exponent notation falls back
+  });
+  it('formats the real Q1 FY2027 revenue of exactly $81.615 billion as $81.62B, and the verifier accepts it', () => {
+    const fact = { id: 'F1', label: 'Revenue', value: 81_615_000_000, unit: 'usd' as const };
+    expect(formatFactValue(fact)).toBe('$81.62B');
+    expect(verifyText(factSentence(fact), { facts: [fact], documents: [] }).ok).toBe(true);
+  });
+  it('rounds the other units the same way', () => {
+    expect(formatFactValue({ id: 'F', label: 'x', value: 2.25, unit: 'pct' })).toBe('2.3%');
+    expect(formatFactValue({ id: 'F', label: 'x', value: 1_005_000, unit: 'usd' })).toBe('$1.01M');
+    expect(formatFactValue({ id: 'F', label: 'x', value: 431474.2602, unit: 'usd' })).toBe(
+      '$431,474.26',
+    );
   });
 });

@@ -111,6 +111,27 @@ describe('snapToBar: a filing belongs to the bar nobody could trade before', () 
   });
 });
 
+describe('dividend markers', () => {
+  const dates = ['2026-11-19', '2026-11-20', '2026-11-23', '2026-11-24'];
+  it('puts a dividend on its ex-dividend date, or the next trading day when that day has no bar', () => {
+    const m = buildEventMarkers([], [], dates, [
+      { exDividendDate: '2026-11-20', cashAmount: 0.25, currency: 'USD' },
+      { exDividendDate: '2026-11-21', cashAmount: 0.04, currency: 'USD' }, // a Saturday
+    ]);
+    expect(m.map((x) => [x.date, x.kind, x.label])).toEqual([
+      ['2026-11-20', 'dividend', 'Dividend $0.25'],
+      ['2026-11-23', 'dividend', 'Dividend $0.04'],
+    ]);
+  });
+  it('leaves out a dividend whose ex-date is outside the bars shown (the declared December one)', () => {
+    expect(
+      buildEventMarkers([], [], dates, [
+        { exDividendDate: '2026-12-02', cashAmount: 0.25, currency: 'USD' },
+      ]),
+    ).toEqual([]);
+  });
+});
+
 describe('buildEventMarkers', () => {
   const dates = ['2026-11-19', '2026-11-20', '2026-11-23', '2026-11-24'];
   const f = (form: string, acceptedAt: string, items: string[]): FilingEvent => ({
