@@ -2,7 +2,19 @@ import { describe, expect, it } from 'vitest';
 import sales from '../../../fixtures/sec/form4-0001696841-26-000016.json';
 import giftA from '../../../fixtures/sec/form4-0001197647-26-000011.json';
 import giftB from '../../../fixtures/sec/form4-0001197647-26-000013.json';
-import { Form4ParseError, parseForm4, summarizeForm4 } from './form4.js';
+import form3Mixed from '../../../fixtures/sec/form3-0002164059-26-000002.json';
+import form3Rsu from '../../../fixtures/sec/form3-0002163374-26-000002.json';
+import form3None from '../../../fixtures/sec/form3-0001773751-26-000248.json';
+import form3Joint from '../../../fixtures/sec/form3A-0001209191-22-023889.json';
+import form5Grants from '../../../fixtures/sec/form5-0001193125-26-055644.json';
+import form5Amended from '../../../fixtures/sec/form5A-0001045810-25-000070.json';
+import {
+  Form4ParseError,
+  parseForm4,
+  summarizeForm4,
+  summarizeRecentOpenMarket,
+  type InsiderTradeLine,
+} from './form4.js';
 import { child, parseXml, text, XmlError } from './xml.js';
 
 describe('the real NVIDIA Form 4 with 12 open-market sales (filed 2026-11-21)', () => {
@@ -79,6 +91,178 @@ describe('the real NVIDIA director gifts under a 10b5-1 plan', () => {
   });
 });
 
+// Expected values below were read from the recorded documents with a separate Python script (ElementTree), not from
+// this parser. All six documents are real filings recorded on 2026-11-24.
+describe('real Form 3 documents (holdings, not trades)', () => {
+  it('reads an Oklo officer: common stock plus restricted stock units and two option grants', () => {
+    const d = parseForm4(form3Mixed.body);
+    expect(d).toMatchObject({
+      documentType: '3',
+      periodOfReport: '2026-11-04',
+      isAmendment: false,
+      noSecuritiesOwned: false,
+      dateOfOriginalSubmission: null,
+      issuer: { cik: '0001849056', symbol: 'OKLO' },
+    });
+    expect(d.owners[0]).toMatchObject({
+      name: 'Petit de Mange Edward',
+      isOfficer: true,
+      officerTitle: 'VP of Recycling',
+    });
+    expect(d.transactions).toEqual([]); // a Form 3 reports no trades
+    expect(d.holdings).toHaveLength(6);
+    expect(d.holdings[0]).toMatchObject({
+      table: 'non-derivative',
+      securityTitle: 'Class A Common Stock',
+      shares: 61985,
+      ownership: 'D',
+      natureOfOwnership: null,
+    });
+    // The restricted stock units give only footnotes for price and dates, so those are null rather than guessed.
+    expect(d.holdings[1]).toMatchObject({
+      table: 'derivative',
+      securityTitle: 'Restricted Stock Units',
+      shares: null,
+      exercisePrice: null,
+      exerciseDate: null,
+      expirationDate: null,
+      underlyingTitle: 'Class A Common Stock',
+      underlyingShares: 1938,
+    });
+    expect(d.holdings.slice(1, 4).map((h) => h.underlyingShares)).toEqual([1938, 2171, 1156]);
+    expect(d.holdings[4]).toMatchObject({
+      securityTitle: 'Stock Option',
+      exercisePrice: 3.18,
+      expirationDate: '2033-12-22',
+      underlyingShares: 109116,
+    });
+    expect(d.holdings[5]).toMatchObject({
+      exercisePrice: 0.41,
+      expirationDate: '2032-11-09',
+      underlyingShares: 155387,
+    });
+  });
+  it('reads a Form 3 with one block of restricted stock units and nothing else', () => {
+    const d = parseForm4(form3Rsu.body);
+    expect(d.holdings).toHaveLength(1);
+    expect(d.holdings[0]).toMatchObject({
+      table: 'derivative',
+      underlyingShares: 30000,
+      ownership: 'D',
+    });
+    expect(d.noSecuritiesOwned).toBe(false);
+  });
+  it('a Form 3 that says the person owns nothing is an explicit statement, not missing data', () => {
+    const d = parseForm4(form3None.body);
+    expect(d.noSecuritiesOwned).toBe(true);
+    expect(d.holdings).toEqual([]);
+    expect(d.owners[0]).toMatchObject({ name: 'Huberman Andrew D', isDirector: true });
+  });
+  it('a joint Form 3/A names all four reporting owners and marks itself an amendment', () => {
+    const d = parseForm4(form3Joint.body);
+    expect(d.documentType).toBe('3/A');
+    expect(d.isAmendment).toBe(true);
+    expect(d.dateOfOriginalSubmission).toBe('2021-10-04');
+    expect(d.owners.map((o) => o.name)).toEqual([
+      'GV 2019 GP, L.L.C.',
+      'GV 2019 GP, L.P.',
+      'GV 2019, L.P.',
+      'Alphabet Inc.',
+    ]);
+    expect(d.holdings).toHaveLength(1);
+    expect(d.holdings[0]).toMatchObject({
+      shares: 4556532,
+      ownership: 'I',
+      natureOfOwnership: 'By GV 2019 L.P.',
+    });
+    expect(d.holdings[0]?.footnotes.length).toBeGreaterThan(0);
+  });
+});
+
+describe('real Form 5 documents (trades reported after the fact)', () => {
+  it('reads restricted stock unit grants as derivative transactions at a zero price, and a false plan box', () => {
+    const d = parseForm4(form5Grants.body);
+    expect(d).toMatchObject({
+      documentType: '5',
+      periodOfReport: '2025-12-31',
+      plan10b5: false,
+      isAmendment: false,
+    });
+    expect(d.noSecuritiesOwned).toBeNull(); // only a Form 3 has the flag
+    expect(
+      d.transactions.map((t) => [
+        t.table,
+        t.date,
+        t.code,
+        t.shares,
+        t.pricePerShare,
+        t.acquiredDisposed,
+      ]),
+    ).toEqual([
+      ['derivative', '2025-12-22', 'A', 15574, 0, 'A'],
+      ['derivative', '2025-12-22', 'A', 71811, 0, 'A'],
+    ]);
+    expect(d.owners[0]?.name).toBe('Cochran Caroline');
+  });
+  it('an amended Form 5 reports two sales from 2023 and 2024, years before it was filed, and a holding', () => {
+    const d = parseForm4(form5Amended.body);
+    expect(d).toMatchObject({
+      documentType: '5/A',
+      isAmendment: true,
+      dateOfOriginalSubmission: '2025-03-12',
+      periodOfReport: '2025-01-26',
+    });
+    expect(
+      d.transactions.map((t) => [
+        t.date,
+        t.code,
+        t.shares,
+        t.pricePerShare,
+        t.sharesAfter,
+        t.ownership,
+      ]),
+    ).toEqual([
+      ['2023-12-13', 'S', 65000, 48.2582, 212740, 'I'],
+      ['2024-06-14', 'S', 34000, 131.7047, 178740, 'I'],
+    ]);
+    // 65,000 x 48.2582 = 3,136,783 and 34,000 x 131.7047 = 4,477,959.80 (worked out separately).
+    expect(d.transactions.map((t) => t.valueUsd)).toEqual(
+      [3_136_783, 4_477_959.8].map((v) => expect.closeTo(v, 4)),
+    );
+    expect(d.holdings).toEqual([
+      expect.objectContaining({
+        table: 'non-derivative',
+        securityTitle: 'Common Stock',
+        shares: 2088,
+        ownership: 'D',
+      }),
+    ]);
+  });
+  it('a Form 4 is not an amendment, has no Form 3 flag, and its holdings rows are read too', () => {
+    const d = parseForm4(sales.body);
+    expect([d.isAmendment, d.noSecuritiesOwned, d.dateOfOriginalSubmission]).toEqual([
+      false,
+      null,
+      null,
+    ]);
+    expect(d.holdings).toEqual([
+      expect.objectContaining({
+        table: 'non-derivative',
+        securityTitle: 'Common Stock',
+        shares: 268238,
+        ownership: 'D',
+      }),
+    ]);
+    // A director's Form 4 lists both a direct holding and an indirect one held through a plan trust.
+    expect(
+      parseForm4(giftB.body).holdings.map((h) => [h.shares, h.ownership, h.natureOfOwnership]),
+    ).toEqual([
+      [57378, 'D', null],
+      [4852480, 'I', 'By Profit Sharing Plan Trust'],
+    ]);
+  });
+});
+
 describe('documents the recordings do not cover (hand-built, labelled synthetic)', () => {
   const wrap = (body: string) =>
     `<?xml version="1.0"?><ownershipDocument><documentType>4</documentType><periodOfReport>2026-01-02</periodOfReport><issuer><issuerCik>0000000001</issuerCik><issuerName>TestCo</issuerName></issuer><reportingOwner><reportingOwnerId><rptOwnerCik>0000000002</rptOwnerCik><rptOwnerName>Doe Jane</rptOwnerName></reportingOwnerId><reportingOwnerRelationship><isOfficer>1</isOfficer><officerTitle>CEO</officerTitle></reportingOwnerRelationship></reportingOwner>${body}</ownershipDocument>`;
@@ -148,5 +332,75 @@ describe('the XML reader', () => {
   it('throws on unbalanced tags, trailing text and several roots', () => {
     for (const bad of ['<a><b></a>', '<a></a>junk', '<a></a><b></b>', '<a>', ''])
       expect(() => parseXml(bad), bad).toThrow(XmlError);
+  });
+});
+
+describe('recent open-market totals', () => {
+  const line = (over: Partial<InsiderTradeLine>): InsiderTradeLine => ({
+    table: 'non-derivative',
+    date: '2026-11-19',
+    code: 'S',
+    shares: 100,
+    valueUsd: 1000,
+    isAmendment: false,
+    ...over,
+  });
+  const since = '2026-08-27'; // 90 days before 2026-11-25
+  it('adds sales and purchases separately: 100 + 50 shares sold for $1,000 + $750, 20 bought for $300', () => {
+    const r = summarizeRecentOpenMarket(
+      [
+        line({}),
+        line({ shares: 50, valueUsd: 750 }),
+        line({ code: 'P', shares: 20, valueUsd: 300 }),
+      ],
+      since,
+    );
+    expect(r).toEqual({
+      soldShares: 150,
+      soldUsd: 1750,
+      boughtShares: 20,
+      boughtUsd: 300,
+      amendmentLines: 0,
+    });
+  });
+  it('leaves out a trade older than the window, including one a late Form 5 reports now', () => {
+    // The real 5/A in fixtures reports sales from 2023-12-13 and 2024-06-14: far outside any 90-day window.
+    const r = summarizeRecentOpenMarket(
+      [line({ date: '2026-08-26' }), line({ date: '2024-06-14' })],
+      since,
+    );
+    expect(r.soldShares).toBe(0);
+    expect(summarizeRecentOpenMarket([line({ date: '2026-08-27' })], since).soldShares).toBe(100); // the first day counts
+  });
+  it('does not add a line from an amendment, and counts how many it left out', () => {
+    const r = summarizeRecentOpenMarket(
+      [line({}), line({ isAmendment: true }), line({ isAmendment: true, code: 'P' })],
+      since,
+    );
+    expect(r).toMatchObject({ soldShares: 100, soldUsd: 1000, boughtShares: 0, amendmentLines: 2 });
+  });
+  it('ignores derivative rows, other codes (gifts, tax withholding) and lines with no share count', () => {
+    const r = summarizeRecentOpenMarket(
+      [
+        line({ table: 'derivative' }),
+        line({ code: 'G' }),
+        line({ code: 'F' }),
+        line({ shares: null }),
+      ],
+      since,
+    );
+    expect(r).toEqual({
+      soldShares: 0,
+      soldUsd: 0,
+      boughtShares: 0,
+      boughtUsd: 0,
+      amendmentLines: 0,
+    });
+  });
+  it('counts shares even when there is no price, adding nothing to the dollars', () => {
+    expect(summarizeRecentOpenMarket([line({ valueUsd: null })], since)).toMatchObject({
+      soldShares: 100,
+      soldUsd: 0,
+    });
   });
 });

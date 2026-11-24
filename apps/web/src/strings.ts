@@ -177,7 +177,7 @@ export const t = {
         `Source: Massive 10-K sections (plain text of Item 1A, free plan). Rules: ${version}.`,
     },
     insiders: {
-      title: 'Insider transactions (Form 4)',
+      title: 'Insider filings (Forms 3, 4 and 5)',
       note: "Insiders report within two business days of a trade, so recent trades may not be here yet. The 10b5-1 flag is the checkbox on the filing: a pre-arranged plan, so the trade date does not show the insider's view on that day.",
       none: 'No insider transactions stored for this company.',
       summary: (sold: string, soldN: string, bought: string, boughtN: string) =>
@@ -195,6 +195,41 @@ export const t = {
       planUnknown: 'Not stated',
       unreadable: (n: number) =>
         `${n} insider filing${n === 1 ? '' : 's'} could not be read and ${n === 1 ? 'is' : 'are'} not included.`,
+      colForm: 'Form',
+      colFiled: 'Filed (ET)',
+      form: (f: string) => `Form ${f}`,
+      amendment: 'amendment',
+      amendmentLines: (n: number) =>
+        `${n} open-market line${n === 1 ? '' : 's'} from amendments ${n === 1 ? 'is' : 'are'} listed but not added to these totals, because an amendment can repeat an earlier filing.`,
+      lagNote:
+        'The trade date is when the trade happened and the filed date is when the SEC accepted the report. A Form 5 can report trades made long before it was filed, so check both dates.',
+      holdings: {
+        title: 'Initial holdings (Form 3)',
+        note: 'A Form 3 lists what a person already holds when they become an insider (an officer, director or 10% owner). It reports holdings, not trades.',
+        none: 'No initial-holdings reports (Form 3) are stored for this company so far. The insiders job reads them a batch at a time.',
+        eventDate: (d: string) => `Became an insider ${d}`,
+        filed: (d: string, days: number | null) =>
+          days === null ? `filed ${d}` : `filed ${d}, ${days} day${days === 1 ? '' : 's'} later`,
+        coOwners: (n: number) => `and ${n} other reporting owner${n === 1 ? '' : 's'}`,
+        amends: (d: string | null) =>
+          d ? `Amendment of a report submitted ${d}` : 'Amendment of an earlier report',
+        noSecurities: 'The filing states that this person owns no securities.',
+        noRows: 'The filing lists no holdings.',
+        colSecurity: 'Security',
+        colAmount: 'Amount',
+        colOwnership: 'Ownership',
+        colPrice: 'Exercise price',
+        colExpires: 'Expires',
+        shares: (n: string) => `${n} shares`,
+        convertsInto: (n: string, title: string) => `converts into ${n} ${title}`,
+        direct: 'Direct',
+        indirect: (nature: string | null) => (nature ? `Indirect: ${nature}` : 'Indirect'),
+        priceNotStated: 'Not stated, see the filing notes',
+        noDate: 'Not stated',
+        derivative: 'derivative',
+        showAll: (n: number) => `Show all ${n}`,
+        showFewer: 'Show fewer',
+      },
       acquired: 'acquired',
       disposed: 'disposed',
       derivative: 'derivative',
@@ -287,8 +322,8 @@ export const t = {
       },
       {
         name: '13F holders',
-        state: 'Not loaded yet',
-        why: 'Holdings are reported up to 45 days after quarter end.',
+        state: 'Not built',
+        why: 'Funds report holdings up to 45 days after quarter end. The vendor serves 13F filings by the fund that filed them, not by the stock, so a list of holders of this company needs the SEC quarterly 13F data sets, which are not loaded.',
       },
     ],
   },

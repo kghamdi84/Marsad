@@ -130,7 +130,9 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       Promise.resolve((s.insiderCandidates ?? []).slice(0, limit)),
     saveInsiderFiling: (res: InsiderResult) => {
       log.insiders.push(res);
-      return Promise.resolve(res.status === 'ok' ? res.doc.transactions.length : 0);
+      return Promise.resolve(
+        res.status === 'ok' ? res.doc.transactions.length + res.doc.holdings.length : 0,
+      );
     },
     upsertNewsArticles: (a: readonly NewsArticle[]) => {
       log.news.push([...a]);

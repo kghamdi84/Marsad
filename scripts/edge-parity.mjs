@@ -91,6 +91,30 @@ const out = {
     const doc = core.parseForm4(f4.body);
     return { doc, summary: core.summarizeForm4(doc) };
   })(),
+  // Forms 3 and 5 (holdings, no-securities flag, amendments, joint owners) and the recent open-market totals.
+  holdings: (() => {
+    const names = [
+      'form3-0002164059-26-000002',
+      'form3-0001773751-26-000248',
+      'form3A-0001209191-22-023889',
+      'form5-0001193125-26-055644',
+      'form5A-0001045810-25-000070',
+    ];
+    const docs = names.map((n) =>
+      core.parseForm4(JSON.parse(readFileSync(join(root, `fixtures/sec/${n}.json`), 'utf8')).body),
+    );
+    const lines = docs.flatMap((d) =>
+      d.transactions.map((t) => ({
+        table: t.table,
+        date: t.date,
+        code: t.code,
+        shares: t.shares,
+        valueUsd: t.valueUsd,
+        isAmendment: d.isAmendment,
+      })),
+    );
+    return { docs, totals: core.summarizeRecentOpenMarket(lines, '2023-01-01') };
+  })(),
   financials: (() => {
     const cf = JSON.parse(
       readFileSync(join(root, 'fixtures/sec/companyfacts-NVDA-trimmed.json'), 'utf8'),

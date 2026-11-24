@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import factsFixture from '../../fixtures/sec/companyfacts-NVDA-trimmed.json';
 import form4Sales from '../../fixtures/sec/form4-0001696841-26-000016.json';
 import form4Gift from '../../fixtures/sec/form4-0001197647-26-000013.json';
+import form3Mixed from '../../fixtures/sec/form3-0002164059-26-000002.json';
+import form3None from '../../fixtures/sec/form3-0001773751-26-000248.json';
+import form3Joint from '../../fixtures/sec/form3A-0001209191-22-023889.json';
+import form5Amended from '../../fixtures/sec/form5A-0001045810-25-000070.json';
 import dividends from '../../fixtures/massive/dividends-NVDA.json';
 import news from '../../fixtures/massive/news-NVDA.json';
 import sections from '../../fixtures/massive/sections-NVDA-risk_factors.json';
@@ -106,7 +110,8 @@ describe('runInsidersJob on real Form 4 documents', () => {
     const { store, log } = fakeStore({ insiderCandidates: candidates });
     const { http, urls } = routedHttp(NOW, routes);
     const run = await runInsidersJob({ http, cfg: sec, store, now: () => NOW });
-    expect(run).toMatchObject({ status: 'ok', rows_written: 13 }); // 12 sales plus 1 gift
+    // 12 sales plus 1 gift, and the holdings rows these two Form 4s carry (1 direct, then 1 direct and 1 indirect)
+    expect(run).toMatchObject({ status: 'ok', rows_written: 16 });
     expect(urls[0]).toContain(
       '/Archives/edgar/data/1045810/000169684126000016/wk-form4_1795470863.xml',
     );
@@ -118,6 +123,37 @@ describe('runInsidersJob on real Form 4 documents', () => {
     if (first?.status !== 'ok') throw new Error('expected ok');
     expect(first.doc.plan10b5).toBe(true);
     expect(first.filedAt).toBe('2026-11-19T21:54:28.000Z');
+    expect(log.statuses[0]).toMatchObject({ source: 'sec_insiders', state: 'live' });
+  });
+  it('reads Forms 3 and 5 and their amendments too: holdings, the no-securities statement, late trades', async () => {
+    const mk = (accession: string, doc: string, at: string) => ({
+      accession,
+      cik: '0001849056',
+      primaryDocument: `xslF345X05/${doc}`,
+      acceptedAt: at,
+    });
+    const { store, log } = fakeStore({
+      insiderCandidates: [
+        mk('0002164059-26-000002', 'f3a.xml', '2026-11-12T21:00:00.000Z'),
+        mk('0001773751-26-000248', 'f3b.xml', '2026-11-12T20:00:00.000Z'),
+        mk('0001209191-22-023889', 'f3c.xml', '2022-04-08T20:00:00.000Z'),
+        mk('0001045810-25-000070', 'f5.xml', '2025-03-21T20:00:00.000Z'),
+      ],
+    });
+    const { http } = routedHttp(NOW, [
+      ['000216405926000002', { status: 200, body: form3Mixed.body }],
+      ['000177375126000248', { status: 200, body: form3None.body }],
+      ['000120919122023889', { status: 200, body: form3Joint.body }],
+      ['000104581025000070', { status: 200, body: form5Amended.body }],
+    ]);
+    const run = await runInsidersJob({ http, cfg: sec, store, now: () => NOW });
+    // 6 holdings + 0 (owns nothing) + 1 holding + (2 sales + 1 holding)
+    expect(run).toMatchObject({ status: 'ok', rows_written: 10 });
+    const docs = log.insiders.map((r) => (r.status === 'ok' ? r.doc : null));
+    expect(docs.map((d) => d?.documentType)).toEqual(['3', '3', '3/A', '5/A']);
+    expect(docs[1]).toMatchObject({ noSecuritiesOwned: true, holdings: [] });
+    expect(docs[2]?.owners).toHaveLength(4);
+    expect(docs[3]).toMatchObject({ isAmendment: true, dateOfOriginalSubmission: '2025-03-12' });
     expect(log.statuses[0]).toMatchObject({ source: 'sec_insiders', state: 'live' });
   });
   it('stores an error page served with HTTP 200 as an unreadable filing and fails the run, never as "no transactions"', async () => {
