@@ -208,7 +208,7 @@
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
           "status": "in_progress",
-          "evidence": "Live: reconcile-nightly run 45443576867 ok, 15 checks over 5 dates within tolerance (Massive vs FRED 10y and spreads). Scheduled 00:45 UTC daily. Not yet covered: VIX (needs Indices plan), filings completeness, VWAP (needs minute bars)."
+          "evidence": "Live nightly job reconcile-nightly (run 45443576867: 15 checks, Massive vs FRED 10y and both spreads). Added 2026-11-24: VWAP for SPY on the last 3 completed sessions, vendor daily vw vs the volume-weighted mean of minute vw, 0.1% tolerance; missing side or unavailable minute bars is a failure with the reason. A typical-price VWAP was rejected after measurement (up to 0.41% off, see DATA_SOURCES). 6 new job tests, mutation-checked. Needs merge and a live run to confirm. Deferred with reasons: VIX vs FRED needs the Massive Indices plan (Phase 3 or 5 purchase decision); filings completeness needs a second filings feed (Phase 2). Both listed in IDEAS.md."
         },
         {
           "id": "1.11",

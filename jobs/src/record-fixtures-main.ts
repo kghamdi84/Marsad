@@ -97,6 +97,23 @@ async function getJson(
   );
 }
 
+// Massive: SPY daily bars for a week and the full 1-minute day of 2026-11-18, untrimmed (the VWAP check).
+for (const [name, path] of [
+  [
+    'massive-aggs-SPY-1d-2026-11-16-to-20',
+    '/v2/aggs/ticker/SPY/range/1/day/2026-11-16/2026-11-20?adjusted=true&sort=asc',
+  ],
+  [
+    'massive-aggs-SPY-1m-2026-11-18',
+    '/v2/aggs/ticker/SPY/range/1/minute/2026-11-18/2026-11-18?adjusted=true&sort=asc&limit=50000',
+  ],
+] as const) {
+  const r = await getJson(`https://api.massive.com${path}`, {
+    Authorization: `Bearer ${massiveKey}`,
+  });
+  emit(name, { source: 'massive', endpoint: path, status: r.status }, r.body);
+}
+
 // Massive: a request the free plan is not entitled to, to record the real error body.
 for (const path of [
   '/v3/snapshot/options/AAPL',

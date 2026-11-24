@@ -70,6 +70,8 @@ export interface Bar {
   l: number;
   c: number;
   v: number;
+  /** The vendor's volume-weighted average price for the bar, when it supplies one. */
+  vw?: number;
 }
 
 /** Split-adjusts bars: prices are scaled by the factor, volume by its inverse. */

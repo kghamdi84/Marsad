@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import golden from '../../../fixtures/indicators/golden.json';
 import spy from '../../../fixtures/massive/aggs-SPY-1d-2026-10.json';
-import { atr, ema, macd, rsi, rvol, sma, trueRange, vwap, type Series } from './indicators.js';
+import {
+  atr,
+  ema,
+  macd,
+  rsi,
+  rvol,
+  sma,
+  trueRange,
+  volumeWeightedPrice,
+  vwap,
+  type Series,
+} from './indicators.js';
 
 const { o: _open, h, l, c, v } = golden.input;
 void _open;
@@ -126,6 +137,27 @@ describe('real SPY bars (recorded October 2026)', () => {
       const typical = (b.h + b.l + b.c) / 3;
       expect(Math.abs(b.vw - typical) / typical).toBeLessThan(0.005);
     });
+  });
+});
+
+describe('volumeWeightedPrice (hand-checked)', () => {
+  it('weights each price by its volume', () => {
+    // (10*1 + 20*3) / 4 = 17.5
+    expect(volumeWeightedPrice([10, 20], [1, 3])).toBe(17.5);
+  });
+  it('rebuilds a session VWAP from per-bar VWAPs exactly', () => {
+    // Bars trade 100 at 50 and 300 at 52: session VWAP = (5000 + 15600) / 400 = 51.5
+    expect(volumeWeightedPrice([50, 52], [100, 300])).toBeCloseTo(51.5, 12);
+  });
+  it('is null when nothing traded and rejects mismatched inputs', () => {
+    expect(volumeWeightedPrice([10, 20], [0, 0])).toBeNull();
+    expect(volumeWeightedPrice([], [])).toBeNull();
+    expect(() => volumeWeightedPrice([1, 2], [1])).toThrow(RangeError);
+  });
+  it('a typical-price VWAP only approximates it: a bar that trades near its high is mis-weighted', () => {
+    // One bar high 12, low 8, close 12, but all volume traded at 12 (vw = 12): typical price is 10.67.
+    expect(volumeWeightedPrice([12], [100])).toBe(12);
+    expect(vwap([12], [8], [12], [100])[0]).toBeCloseTo(32 / 3, 12);
   });
 });
 

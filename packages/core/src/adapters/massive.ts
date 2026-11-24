@@ -108,6 +108,28 @@ export function fetchMarketHolidays(
   );
 }
 
+function parseBars(items: unknown[], cfg: MassiveConfig): { value: Bar[]; asOf: Date } | null {
+  const bars: Bar[] = [];
+  for (const it of items) {
+    const r = it as Record<string, unknown>;
+    const t = num(r['t']);
+    const o = num(r['o']);
+    const h = num(r['h']);
+    const l = num(r['l']);
+    const c = num(r['c']);
+    const v = num(r['v']);
+    if (t === null || o === null || h === null || l === null || c === null || v === null)
+      return null;
+    if (h < l || c > h || c < l) return null; // an impossible bar is a bad print, not data
+    const bar: Bar = { t, o, h, l, c, v };
+    const vw = num(r['vw']);
+    if (vw !== null) bar.vw = vw;
+    bars.push(bar);
+  }
+  const last = bars.at(-1);
+  return last ? { value: bars, asOf: new Date(last.t) } : { value: bars, asOf: cfg.now() };
+}
+
 /** Daily bars, split-adjusted by the vendor (`adjusted=true`). `asOf` is the last bar's timestamp. */
 export function fetchDailyBars(
   http: HttpClient,
@@ -124,24 +146,32 @@ export function fetchDailyBars(
     path,
     '/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}',
     3600_000,
-    (items) => {
-      const bars: Bar[] = [];
-      for (const it of items) {
-        const r = it as Record<string, unknown>;
-        const t = num(r['t']);
-        const o = num(r['o']);
-        const h = num(r['h']);
-        const l = num(r['l']);
-        const c = num(r['c']);
-        const v = num(r['v']);
-        if (t === null || o === null || h === null || l === null || c === null || v === null)
-          return null;
-        if (h < l || c > h || c < l) return null; // an impossible bar is a bad print, not data
-        bars.push({ t, o, h, l, c, v });
-      }
-      const last = bars.at(-1);
-      return last ? { value: bars, asOf: new Date(last.t) } : { value: bars, asOf: cfg.now() };
-    },
+    (items) => parseBars(items, cfg),
+  );
+}
+
+/**
+ * One day of 1-minute bars, including pre-market and after-hours bars (about 950 for a full day), each
+ * with the vendor's own volume-weighted price. One request returns up to 50,000 bars, so a day never needs
+ * paging. Minute volume covers roughly 93 to 97 percent of the daily volume (observed for SPY, 2026-11-16 to
+ * 2026-11-20), so minute bars are not a full tape.
+ */
+export function fetchMinuteBars(
+  http: HttpClient,
+  cfg: MassiveConfig,
+  ticker: string,
+  date: string,
+): Promise<AdapterResult<Bar[]>> {
+  if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker)) throw new RangeError(`Bad ticker: ${ticker}`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new RangeError('date must be YYYY-MM-DD');
+  const path = `/v2/aggs/ticker/${ticker}/range/1/minute/${date}/${date}?adjusted=true&sort=asc&limit=50000`;
+  return call(
+    http,
+    cfg,
+    path,
+    '/v2/aggs/ticker/{ticker}/range/1/minute/{from}/{to}',
+    3600_000,
+    (items) => parseBars(items, cfg),
   );
 }
 
