@@ -135,8 +135,7 @@
         }
       ],
       "followups": [
-        "Run Supabase advisors and list_migrations with the connector",
-        "Screenshot of Status page from Khaled"
+        "Run Supabase advisors and list_migrations with the connector (needs a session whose connector sees the project)"
       ]
     },
     {
@@ -178,8 +177,8 @@
         {
           "id": "1.5",
           "title": "GPR adapter (confirm format and cadence) and fixtures",
-          "status": "in_progress",
-          "evidence": "Format and cadence confirmed; core/gpr.ts validates rows; jobs/src/gpr-job.ts + scripts/xls_to_json.py + workflow gpr-daily.yml. Dry run on the real file: 15,302 days to 2026-11-23, 0 skipped, 0.5 s; job tests (5) cover failure, truncated file, tiny download. Needs SUPABASE_URL and SUPABASE_SECRET_KEY secrets, then Run workflow, to prove it live."
+          "status": "done",
+          "evidence": "Live: workflow run 45434405467 succeeded, gpr-daily ok 15302 rows 22115 ms; Khaled screenshot of Status page shows GPR OK, end-of-day, latency, latest value 2026-11-23, and the job run row."
         },
         {
           "id": "1.6",
@@ -215,13 +214,13 @@
           "id": "1.11",
           "title": "Job run records from every adapter and job",
           "status": "in_progress",
-          "evidence": "core/health.ts runJob (3 tests) is used by the GPR job, which writes a job_runs row on success and failure (5 tests). Other adapters and Edge Functions not yet deployed."
+          "evidence": "core runJob used by the GPR job; live run record visible on the Status page (gpr-daily OK, 15302 rows, 22115 ms). Other jobs not yet deployed."
         },
         {
           "id": "1.12",
           "title": "Status page with per-source latency and plan tier",
           "status": "done",
-          "evidence": "apps/web Status page: per-source state in words from core describeSourceHealth (limit, silence, quiet-is-normal, no-data-yet, calendar-not-loaded), last message, latency, plan tier; migration market_holidays; e2e covers it. Rows stay at no-data until jobs write source_status."
+          "evidence": "Verified on Khaled iPad 2026-11-24: per-source words (OK with limit, No data received yet, Calendar not loaded), latency, plan tier, job runs table."
         },
         {
           "id": "1.13",

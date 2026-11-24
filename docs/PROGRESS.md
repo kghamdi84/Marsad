@@ -14,6 +14,13 @@ Jobs: `jobs/` runs the GPR job (download, convert with `xlrd`, validate, upsert,
 
 Web: Status page judges each source with the core policy and says why in words.
 
+### Verified live (2026-11-24)
+
+- PR #5 merged (`539b1ee`); the GitHub integration created `instruments`, `instrument_tickers`, `splits`, `market_holidays` and `gpr_daily` within about 30 seconds (anon REST returns 401 on each).
+- First two GPR runs failed for two reasons found from the job logs: `SUPABASE_SECRET_KEY` secret missing, then `SUPABASE_URL` secret not a valid URL (re-entered by Khaled). Third run succeeded: `gpr-daily: ok, rows 15302, 22115 ms`.
+- Khaled's Status page screenshot (2026-11-24 11:14 ET) shows: Geopolitical Risk Index "OK, last message 1m 6s ago (limit 4d 0h)", plan tier end-of-day, latency 21481 ms, note "Latest value 2026-11-23"; job run `gpr-daily` OK with 15302 rows. FRED shows "No data received yet"; Massive, Nasdaq halts and SEC show "Calendar not loaded, cannot judge", which is the intended behaviour until the calendar job fills `market_holidays` (needs the Massive key). This closes the Phase 0 follow-up "Status page screenshot".
+- Tooling note: Claude cannot read or set GitHub secrets (the proxy blocks that API, correctly); everything else on Actions, including starting workflows and reading logs, works from a session.
+
 ### What is NOT done in Phase 1
 
 - Live recording of Massive, FRED and SEC responses: no keys and no SEC contact string yet. FRED and SEC tests use labelled synthetic bodies. The Massive entitlement error body and base URL are unconfirmed against the live REST API.
@@ -83,7 +90,7 @@ Web: Status page judges each source with the core policy and says why in words.
 ### Phase 0 follow-ups for the next session (do these first)
 
 1. With the Supabase connector (connectors load at session start): confirm `list_projects` shows `hwdwivilqdydmxhycapy`; run `get_advisors` (security and performance) and fix anything open; `list_migrations` should show `20261123000000`; confirm Auth Hooks has nothing enabled.
-2. Ask Khaled for a screenshot of the Status page (five sources UNKNOWN, "No jobs have run yet"), the one end-to-end link not yet seen.
+2. Done 2026-11-24: Status page screenshot received (see Verified live).
 
 ### Earlier plan (kept for history)
 
