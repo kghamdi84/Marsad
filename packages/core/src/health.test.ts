@@ -154,14 +154,15 @@ describe('describeSourceHealth (the status page text)', () => {
   it('says in words that a source is stale, with the silence and the limit', () => {
     const v = describeSourceHealth(
       halts,
-      D('2026-11-24T20:40:00Z'),
+      D('2026-11-24T20:06:00Z'),
       D('2026-11-24T20:46:00Z'),
       cal,
     );
+    // The Phase 1 halts job runs every 5 minutes, so the limit is 30 minutes (Phase 5 tightens it).
     expect(v).toMatchObject({
       state: 'stale',
       session: 'regular',
-      label: 'STALE, silent 6m 0s (limit 2m 0s)',
+      label: 'STALE, silent 40m 0s (limit 30m 0s)',
     });
   });
   it('says quiet is normal outside the session', () => {

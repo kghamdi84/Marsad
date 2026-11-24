@@ -4,6 +4,7 @@ import type {
   Filing,
   FredObservation,
   GprDay,
+  Halt,
   JobRunRecord,
   Split,
   UpcomingRow,
@@ -17,6 +18,7 @@ export interface FakeLog {
   splits: Split[][];
   instruments: CompanyRef[][];
   filings: { cik: string; n: number }[];
+  halts: Halt[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
 }
@@ -32,6 +34,7 @@ export function fakeStore(fred: Record<string, FredObservation[]> = {}): {
     splits: [],
     instruments: [],
     filings: [],
+    halts: [],
     runs: [],
     statuses: [],
   };
@@ -61,6 +64,10 @@ export function fakeStore(fred: Record<string, FredObservation[]> = {}): {
     upsertFilings: (cik: string, filings: readonly Filing[]) => {
       log.filings.push({ cik, n: filings.length });
       return Promise.resolve(filings.length);
+    },
+    upsertHalts: (halts: readonly Halt[]) => {
+      log.halts.push([...halts]);
+      return Promise.resolve(halts.length);
     },
     recordRun: (run) => {
       log.runs.push(run);

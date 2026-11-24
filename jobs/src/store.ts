@@ -4,6 +4,7 @@ import type {
   Filing,
   FredObservation,
   GprDay,
+  Halt,
   JobRunRecord,
   Split,
   UpcomingRow,
@@ -32,6 +33,7 @@ export interface Store {
   getFredRange(series: string, from: string, to: string): Promise<FredObservation[]>;
   upsertInstruments(companies: readonly CompanyRef[]): Promise<number>;
   upsertFilings(cik: string, filings: readonly Filing[], fetchedAt: Date): Promise<number>;
+  upsertHalts(halts: readonly Halt[], seenAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
 }
@@ -151,6 +153,30 @@ export function supabaseStore(url: string, secretKey: string): Store {
         written += rows.length;
       }
       return written;
+    },
+    async upsertHalts(halts, seenAt) {
+      if (halts.length === 0) return 0;
+      const rows = halts.map((h) => ({
+        symbol: h.symbol,
+        halted_at: h.haltedAt.toISOString(),
+        name: h.name || null,
+        market: h.market || null,
+        reason_code: h.reasonCode,
+        reason_meaning: h.reasonMeaning,
+        news_related: h.newsRelated,
+        resumption_quote_at: h.resumptionQuoteAt?.toISOString() ?? null,
+        resumption_trade_at: h.resumptionTradeAt?.toISOString() ?? null,
+        pause_threshold_price: h.pauseThresholdPrice,
+        active: h.active,
+        last_seen_at: seenAt.toISOString(),
+      }));
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const { error } = await db
+          .from('halts')
+          .upsert(rows.slice(i, i + CHUNK), { onConflict: 'symbol,halted_at' });
+        if (error) throw new Error(`halts upsert failed: ${error.message}`);
+      }
+      return rows.length;
     },
     async recordRun(run) {
       const { error } = await db.from('job_runs').insert(run);

@@ -133,7 +133,8 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     source: 'nasdaq_halts',
     label: 'Nasdaq trade halts',
     dependentRules: ['group:halts'],
-    maxSilenceSec: { 'pre-market': 300, regular: 120, 'after-hours': 300, closed: null },
+    // The Phase 1 job runs every 5 minutes; Phase 5 replaces it with a 30 second poller and tightens this.
+    maxSilenceSec: { 'pre-market': 1800, regular: 1800, 'after-hours': 1800, closed: null },
     required: false,
   },
   {
