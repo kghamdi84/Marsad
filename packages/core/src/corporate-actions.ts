@@ -42,6 +42,9 @@ export interface Split {
   splitFrom: number;
   splitTo: number;
   adjustmentType: 'forward_split' | 'reverse_split' | 'stock_dividend' | string;
+  /** The vendor's identifier and cumulative factor, kept when the split came from the vendor feed. */
+  vendorId?: string;
+  historicalAdjustmentFactor?: number;
 }
 
 /** The factor that converts a price before this split to a price after it: from / to. */

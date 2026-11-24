@@ -25,6 +25,13 @@ Web: Status page judges each source with the core policy and says why in words.
 
 `jobs/src/fred-job.ts` fetches all 12 FRED series from 1990 and stores them in `fred_observations` (new migration), one run record per run, source status live only when every series succeeded. Workflow `.github/workflows/fred-daily.yml` (23:30 UTC daily) needs the secret `FRED_API_KEY` (Khaled added it; Claude cannot read secrets, so the first run proves it). Tests use synthetic FRED bodies; the first live run logs the newest three values of each series (public numbers) so real values can be checked and a real fixture recorded.
 
+### Massive jobs (2026-11-24, awaiting merge and first live runs)
+
+- `jobs/src/massive-reference-job.ts`: market holiday calendar (`market_holidays`) and split history (`splits`) for the 10 watchlist names and SPY, QQQ, IWM, DIA; run at 05:30 UTC by `massive-reference.yml`. Uses its own source row `massive_reference` (daily limit), so the Status page does not judge it by the live-price limit. A plan problem is reported as "Requires a higher Massive plan".
+- `jobs/src/reconcile-job.ts`: nightly check of Massive Treasury yields against FRED (10-year, 10y-3m and 10y-2y spreads) for every date both published; mismatch, or nothing to compare, fails the run (`reconcile-nightly.yml`, 00:45 UTC).
+- Adapter `fetchTreasuryYields` and a recorded fixture `fixtures/massive/treasury-yields.json`. Tests (jobs 14, core 141) use the recorded Massive rows.
+- Unconfirmed until the first live runs: Massive base URL (`https://api.massive.com`), the REST envelope, and the entitlement error body. The first run's log shows any of these failing, and `docs/DATA_SOURCES.md` gets updated from it.
+
 ### What is NOT done in Phase 1
 
 - Live recording of Massive, FRED and SEC responses: no keys and no SEC contact string yet. FRED and SEC tests use labelled synthetic bodies. The Massive entitlement error body and base URL are unconfirmed against the live REST API.

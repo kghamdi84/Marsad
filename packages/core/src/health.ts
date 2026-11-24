@@ -151,6 +151,13 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     required: false,
   },
   {
+    source: 'massive_reference',
+    label: 'Massive reference data',
+    dependentRules: ['group:calendar'],
+    maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
+    required: false,
+  },
+  {
     source: 'gpr',
     label: 'Geopolitical Risk Index',
     dependentRules: ['group:geopolitics'],

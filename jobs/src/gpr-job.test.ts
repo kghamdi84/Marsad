@@ -1,31 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { GprDay, JobRunRecord } from '@marsad/core';
 import { runGprJob } from './gpr-job.js';
-import type { SourceStatusUpdate, Store } from './store.js';
-
-function fakeStore() {
-  const log = {
-    upserts: [] as GprDay[][],
-    runs: [] as JobRunRecord[],
-    statuses: [] as SourceStatusUpdate[],
-  };
-  const store: Store = {
-    upsertGprDays: (days) => {
-      log.upserts.push([...days]);
-      return Promise.resolve(days.length);
-    },
-    upsertFredObservations: () => Promise.resolve(0),
-    recordRun: (run) => {
-      log.runs.push(run);
-      return Promise.resolve();
-    },
-    updateSourceStatus: (u) => {
-      log.statuses.push(u);
-      return Promise.resolve();
-    },
-  };
-  return { store, log };
-}
+import { fakeStore } from './fake-store.js';
 
 /** n daily rows ending 2026-11-23, in the converter's output shape. */
 function rows(n: number): Record<string, unknown>[] {
@@ -76,7 +51,7 @@ describe('runGprJob', () => {
     });
     expect(run).toMatchObject({ status: 'error', error: 'GPR download failed: HTTP 503' });
     expect(log.runs).toHaveLength(1);
-    expect(log.upserts).toEqual([]);
+    expect(log.gpr).toEqual([]);
     expect(log.statuses).toEqual([]);
   });
 
@@ -90,7 +65,7 @@ describe('runGprJob', () => {
     });
     expect(run.status).toBe('error');
     expect(run.error).toContain('only 40 valid rows');
-    expect(log.upserts).toEqual([]);
+    expect(log.gpr).toEqual([]);
   });
 
   it('refuses an empty or tiny download', async () => {
