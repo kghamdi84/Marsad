@@ -1,0 +1,33 @@
+name: SEC financial facts
+
+# Stores the XBRL financial-statement facts the Study page reads, for every company with a stored CIK. Weekdays 06:15 UTC, before the market opens; a new 10-Q or 10-K from the previous evening is picked up the next morning.
+on:
+  schedule:
+    - cron: '15 6 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sec-api
+  cancel-in-progress: false
+
+jobs:
+  facts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the job
+        run: pnpm --filter @marsad/jobs sec facts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}

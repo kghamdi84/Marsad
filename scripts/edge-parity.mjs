@@ -84,6 +84,20 @@ const out = {
       tickers: ['NVDA'],
     },
   ]),
+  form4: (() => {
+    const f4 = JSON.parse(
+      readFileSync(join(root, 'fixtures/sec/form4-0001696841-26-000016.json'), 'utf8'),
+    );
+    const doc = core.parseForm4(f4.body);
+    return { doc, summary: core.summarizeForm4(doc) };
+  })(),
+  financials: (() => {
+    const cf = JSON.parse(
+      readFileSync(join(root, 'fixtures/sec/companyfacts-NVDA-trimmed.json'), 'utf8'),
+    );
+    const parsed = core.parseCompanyFacts(cf.body);
+    return core.summarizeFinancials(parsed.facts, '2026-12-31');
+  })(),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
     outputTokens: 500,

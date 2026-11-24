@@ -1,0 +1,33 @@
+name: SEC insider filings
+
+# Reads the XML of Form 4 filings already listed in the filings table and stores the insider, the 10b5-1 flag and every transaction. Hourly on weekdays from 11:17 to 23:17 UTC. Shares the sec-api concurrency group with every other SEC workflow.
+on:
+  schedule:
+    - cron: '17 11-23 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sec-api
+  cancel-in-progress: false
+
+jobs:
+  insiders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the job
+        run: pnpm --filter @marsad/jobs sec insiders
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}

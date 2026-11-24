@@ -78,6 +78,16 @@ beforeAll(async () => {
       values ('E-test', 'NVDA', date '2024-06-10', 1, 10, 'forward_split');
     insert into public.daily_bars (ticker, date, open, high, low, close, volume)
       values ('NVDA', date '2026-11-20', 188.0, 190.0, 186.0, 189.0, 1000000);
+    insert into public.financial_facts (fact_key, cik, taxonomy, concept, unit, period_end, value, accession, form, filed)
+      values ('k1', '0001045810', 'us-gaap', 'Revenues', 'USD', date '2026-07-26', 96221000000, '0001045810-26-000100', '10-Q', date '2026-08-26');
+    insert into public.insider_filings (accession, issuer_cik, status) values ('0001696841-26-000016', '0001045810', 'ok');
+    insert into public.insider_transactions (accession, line, table_kind, trade_date, code, shares, price_per_share)
+      values ('0001696841-26-000016', 1, 'non-derivative', date '2026-11-19', 'S', 1434, 146.0298);
+    insert into public.news_articles (id, published_at, publisher, title, url)
+      values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
+    insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
+    insert into public.short_volume (ticker, date, total_volume, short_volume) values ('NVDA', date '2026-11-23', 310699598, 90419413);
+    insert into public.dividends (id, ticker, ex_dividend_date, cash_amount) values ('d1', 'NVDA', date '2026-12-02', 0.25);
     insert into public.system_alerts (event, source, headline, trigger, policy_version)
       values ('stale', 'nasdaq_halts', 'Nasdaq trade halts stale, silent for 40 min', 'test', 'test');
   `);
@@ -183,7 +193,7 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(7); // five seeded sources plus massive_reference and massive_bars
+      expect(await count(tx, 'public.source_status')).toBe(11); // five seeded sources plus massive_reference, massive_bars and the four Study sources
     });
   });
 

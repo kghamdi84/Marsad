@@ -245,3 +245,43 @@ describe('assessSources (what the heartbeat job decides)', () => {
     expect(SOURCE_POLICY_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}\.\d+$/);
   });
 });
+
+describe('the default policies fit the job schedules (a false alarm every morning would train Khaled to ignore alerts)', () => {
+  const policy = (source: string) =>
+    DEFAULT_SOURCE_POLICIES.find((p) => p.source === source) as SourcePolicy;
+  // Jobs run on weekdays from 11:07 UTC (SEC filings) or 11:17 UTC (insiders) to 23:37 UTC. US pre-market begins
+  // at 04:00 ET, which is 09:00 UTC in winter and 08:00 UTC in summer.
+  const mornings = [
+    ['a weekday morning', '2026-11-23T23:37:00Z', '2026-11-24T09:30:00Z'], // Monday evening to Tuesday 04:30 ET
+    ['a Monday morning after the weekend', '2026-11-20T23:37:00Z', '2026-11-23T09:30:00Z'], // Friday evening to Monday
+    [
+      'the day after Thanksgiving, which is a trading day',
+      '2026-11-25T23:37:00Z',
+      '2026-11-27T09:30:00Z',
+    ],
+  ] as const;
+  for (const source of ['sec_edgar', 'sec_insiders'])
+    for (const [label, last, now] of mornings)
+      it(`${source} is not stale on ${label} before the first run of the day`, () => {
+        const h = evaluateSourceHealth(policy(source), D(last), D(now), cal);
+        expect(h.session).toBe('pre-market');
+        expect(h.state).toBe('ok');
+      });
+  for (const source of ['sec_edgar', 'sec_insiders'])
+    it(`${source} is still caught in the regular session: 3 hours of silence at 10:00 ET is stale`, () => {
+      const h = evaluateSourceHealth(
+        policy(source),
+        D('2026-11-24T12:00:00Z'),
+        D('2026-11-24T15:00:00Z'),
+        cal,
+      );
+      expect(h).toMatchObject({ session: 'regular', state: 'stale' });
+    });
+  it('every Study-module source has a policy', () => {
+    for (const s of ['sec_facts', 'sec_insiders', 'massive_news', 'massive_study'])
+      expect(
+        DEFAULT_SOURCE_POLICIES.some((p) => p.source === s),
+        s,
+      ).toBe(true);
+  });
+});

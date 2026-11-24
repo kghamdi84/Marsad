@@ -2,25 +2,12 @@ import {
   fetchCompanyTickers,
   fetchRecentFilings,
   runJob,
+  STARTING_STOCKS,
   type HttpClient,
   type JobRunRecord,
   type SecConfig,
 } from '@marsad/core';
 import type { Store } from './store.js';
-
-/** Single stocks only: ETFs do not have an issuer CIK in the SEC ticker file. */
-export const WATCHLIST = [
-  'NVDA',
-  'RKLB',
-  'MARA',
-  'SOFI',
-  'HOOD',
-  'OKLO',
-  'IONQ',
-  'HIMS',
-  'RGTI',
-  'BBAI',
-] as const;
 
 export interface SecJobDeps {
   http: HttpClient;
@@ -41,7 +28,7 @@ export async function runSecJob(deps: SecJobDeps): Promise<JobRunRecord> {
     'sec-filings',
     async () => {
       const started = now().getTime();
-      const tickers = deps.tickers ?? WATCHLIST;
+      const tickers = deps.tickers ?? STARTING_STOCKS;
       const map = await fetchCompanyTickers(http, cfg);
       if (!map.ok) throw new Error(`SEC ticker file unavailable: ${map.display} (${map.kind})`);
       const byTicker = new Map((map.data.value ?? []).map((c) => [c.ticker, c]));

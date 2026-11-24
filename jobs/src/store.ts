@@ -3,6 +3,12 @@ import { etDate } from '@marsad/core';
 import type {
   Bar,
   CompanyRef,
+  DividendRow,
+  FinancialFact,
+  Form4Document,
+  NewsArticle,
+  ShortInterestRow,
+  ShortVolumeRow,
   Filing,
   FredObservation,
   GprDay,
@@ -40,6 +46,20 @@ export interface Store {
   upsertHalts(halts: readonly Halt[], seenAt: Date): Promise<number>;
   /** Daily bars keyed by ticker and ET date; `bars` carry the epoch ms of each ET midnight. */
   upsertDailyBars(ticker: string, bars: readonly Bar[], fetchedAt: Date): Promise<number>;
+  /** The instruments (issuer CIK and ticker) the SEC job has stored. */
+  getInstruments(): Promise<{ cik: string; ticker: string }[]>;
+  upsertFinancialFacts(
+    cik: string,
+    facts: readonly FinancialFact[],
+    fetchedAt: Date,
+  ): Promise<number>;
+  /** Form 4 filings already stored in `filings` that have not been read yet, newest first. */
+  getUnreadInsiderFilings(limit: number): Promise<InsiderCandidate[]>;
+  saveInsiderFiling(result: InsiderResult): Promise<number>;
+  upsertNewsArticles(articles: readonly NewsArticle[], fetchedAt: Date): Promise<number>;
+  upsertShortInterest(rows: readonly ShortInterestRow[], fetchedAt: Date): Promise<number>;
+  upsertShortVolume(rows: readonly ShortVolumeRow[], fetchedAt: Date): Promise<number>;
+  upsertDividends(rows: readonly DividendRow[], fetchedAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -54,6 +74,29 @@ export interface Store {
     snapshots: readonly Record<string, unknown>[],
   ): Promise<number>;
 }
+
+export interface InsiderCandidate {
+  accession: string;
+  cik: string;
+  primaryDocument: string;
+  acceptedAt: string | null;
+}
+
+export type InsiderResult =
+  | {
+      status: 'ok';
+      accession: string;
+      issuerCik: string;
+      filedAt: string | null;
+      doc: Form4Document;
+    }
+  | {
+      status: 'error';
+      accession: string;
+      issuerCik: string;
+      filedAt: string | null;
+      error: string;
+    };
 
 const CHUNK = 1000;
 
@@ -289,6 +332,201 @@ export function supabaseStore(url: string, secretKey: string): Store {
       const { error } = await db.from('system_alerts').insert(rows);
       if (error) throw new Error(`system_alerts insert failed: ${error.message}`);
       return rows.length;
+    },
+    async getInstruments() {
+      const { data, error } = await db
+        .from('instruments')
+        .select('cik, ticker')
+        .not('cik', 'is', null);
+      if (error) throw new Error(`instruments read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({ cik: r.cik as string, ticker: r.ticker as string }));
+    },
+    async upsertFinancialFacts(cik, facts, fetchedAt) {
+      let written = 0;
+      for (let i = 0; i < facts.length; i += CHUNK) {
+        const rows = facts.slice(i, i + CHUNK).map((f) => ({
+          fact_key: [cik, f.taxonomy, f.concept, f.unit, f.start ?? '', f.end, f.accession].join(
+            '|',
+          ),
+          cik,
+          taxonomy: f.taxonomy,
+          concept: f.concept,
+          unit: f.unit,
+          period_start: f.start,
+          period_end: f.end,
+          value: f.value,
+          accession: f.accession,
+          form: f.form,
+          fiscal_year: f.fy,
+          fiscal_period: f.fp,
+          filed: f.filed,
+          frame: f.frame,
+          fetched_at: fetchedAt.toISOString(),
+        }));
+        const { error } = await db.from('financial_facts').upsert(rows, { onConflict: 'fact_key' });
+        if (error) throw new Error(`financial_facts upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      return written;
+    },
+    async getUnreadInsiderFilings(limit) {
+      const { data, error } = await db
+        .from('filings')
+        .select('accession, cik, primary_document, accepted_at')
+        .in('form', ['4', '4/A'])
+        .not('primary_document', 'is', null)
+        .order('accepted_at', { ascending: false })
+        .limit(400);
+      if (error) throw new Error(`filings read failed: ${error.message}`);
+      const rows = data ?? [];
+      const seen = await db
+        .from('insider_filings')
+        .select('accession')
+        .in(
+          'accession',
+          rows.map((r) => r.accession as string),
+        );
+      if (seen.error) throw new Error(`insider_filings read failed: ${seen.error.message}`);
+      const done = new Set((seen.data ?? []).map((r) => r.accession as string));
+      return rows
+        .filter((r) => !done.has(r.accession as string))
+        .slice(0, limit)
+        .map((r) => ({
+          accession: r.accession as string,
+          cik: r.cik as string,
+          primaryDocument: r.primary_document as string,
+          acceptedAt: (r.accepted_at as string | null) ?? null,
+        }));
+    },
+    async saveInsiderFiling(res) {
+      if (res.status === 'error') {
+        const { error } = await db.from('insider_filings').upsert(
+          {
+            accession: res.accession,
+            issuer_cik: res.issuerCik,
+            status: 'error',
+            error: res.error.slice(0, 500),
+            filed_at: res.filedAt,
+            parsed_at: new Date().toISOString(),
+          },
+          { onConflict: 'accession' },
+        );
+        if (error) throw new Error(`insider_filings upsert failed: ${error.message}`);
+        return 0;
+      }
+      const owner = res.doc.owners[0];
+      const head = await db.from('insider_filings').upsert(
+        {
+          accession: res.accession,
+          issuer_cik: res.issuerCik,
+          status: 'ok',
+          error: null,
+          document_type: res.doc.documentType,
+          period_of_report: res.doc.periodOfReport,
+          owner_cik: owner?.cik ?? null,
+          owner_name: owner?.name ?? null,
+          is_director: owner?.isDirector ?? null,
+          is_officer: owner?.isOfficer ?? null,
+          officer_title: owner?.officerTitle ?? null,
+          is_ten_percent_owner: owner?.isTenPercentOwner ?? null,
+          plan_10b5: res.doc.plan10b5,
+          filed_at: res.filedAt,
+          parsed_at: new Date().toISOString(),
+        },
+        { onConflict: 'accession' },
+      );
+      if (head.error) throw new Error(`insider_filings upsert failed: ${head.error.message}`);
+      if (res.doc.transactions.length === 0) return 0;
+      const rows = res.doc.transactions.map((t, i) => ({
+        accession: res.accession,
+        line: i + 1,
+        table_kind: t.table,
+        security_title: t.securityTitle,
+        trade_date: t.date,
+        code: t.code,
+        shares: t.shares,
+        price_per_share: t.pricePerShare,
+        acquired_disposed: t.acquiredDisposed,
+        shares_after: t.sharesAfter,
+        ownership: t.ownership,
+        exercise_price: t.exercisePrice,
+        value_usd: t.valueUsd,
+        footnotes: t.footnotes,
+      }));
+      const { error } = await db
+        .from('insider_transactions')
+        .upsert(rows, { onConflict: 'accession,line' });
+      if (error) throw new Error(`insider_transactions upsert failed: ${error.message}`);
+      return rows.length;
+    },
+    async upsertNewsArticles(articles, fetchedAt) {
+      if (articles.length === 0) return 0;
+      const rows = articles.map((a) => ({
+        id: a.id,
+        published_at: a.publishedAt,
+        publisher: a.publisher,
+        title: a.title,
+        url: a.url,
+        author: a.author,
+        tickers: a.tickers,
+        description: a.description,
+        sentiment: a.sentiment,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db.from('news_articles').upsert(rows, { onConflict: 'id' });
+      if (error) throw new Error(`news_articles upsert failed: ${error.message}`);
+      return rows.length;
+    },
+    async upsertShortInterest(rows, fetchedAt) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        ticker: r.ticker,
+        settlement_date: r.settlementDate,
+        short_interest: r.shortInterest,
+        avg_daily_volume: r.avgDailyVolume,
+        days_to_cover: r.daysToCover,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db
+        .from('short_interest')
+        .upsert(out, { onConflict: 'ticker,settlement_date' });
+      if (error) throw new Error(`short_interest upsert failed: ${error.message}`);
+      return out.length;
+    },
+    async upsertShortVolume(rows, fetchedAt) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        ticker: r.ticker,
+        date: r.date,
+        total_volume: r.totalVolume,
+        short_volume: r.shortVolume,
+        short_volume_ratio: r.shortVolumeRatio,
+        exempt_volume: r.exemptVolume,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db.from('short_volume').upsert(out, { onConflict: 'ticker,date' });
+      if (error) throw new Error(`short_volume upsert failed: ${error.message}`);
+      return out.length;
+    },
+    async upsertDividends(rows, fetchedAt) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        id: r.id,
+        ticker: r.ticker,
+        ex_dividend_date: r.exDividendDate,
+        record_date: r.recordDate,
+        pay_date: r.payDate,
+        declaration_date: r.declarationDate,
+        cash_amount: r.cashAmount,
+        currency: r.currency,
+        frequency: r.frequency,
+        distribution_type: r.distributionType,
+        split_adjusted_cash_amount: r.splitAdjustedCashAmount,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db.from('dividends').upsert(out, { onConflict: 'id' });
+      if (error) throw new Error(`dividends upsert failed: ${error.message}`);
+      return out.length;
     },
   };
 }
