@@ -171,8 +171,8 @@
         {
           "id": "1.4",
           "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
-          "status": "in_progress",
-          "evidence": "Feed confirmed, parser on the real recorded feed, adapter fetchHalts, jobs/src/halts-job.ts (6 tests), migration halts, workflow halts.yml every 5 minutes. Khaled approved polling 2026-11-24. Awaiting merge and the first live run; terms of use not independently reviewed."
+          "status": "done",
+          "evidence": "Live: nasdaq-halts run 45445920963 ok, 57 halts stored (12 active), 1.5 s; scheduled every 5 minutes around US hours. Parser on the real recorded feed; job 6 tests. Khaled approved polling 2026-11-24; terms of use not independently reviewed."
         },
         {
           "id": "1.5",
