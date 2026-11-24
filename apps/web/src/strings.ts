@@ -321,6 +321,11 @@ export const t = {
         why: 'A 5-year price history is beyond the free plan, which allows 2 years of daily bars. Statements come from SEC filings instead.',
       },
       {
+        name: '10-Q sections and quarter-to-quarter risk changes',
+        state: 'Not built',
+        why: 'The annual-report comparison above uses the vendor’s 10-K sections. That feed covers 10-Ks only, so quarterly reports would need the filing documents themselves.',
+      },
+      {
         name: '13F holders',
         state: 'Not built',
         why: 'Funds report holdings up to 45 days after quarter end. The vendor serves 13F filings by the fund that filed them, not by the stock, so a list of holders of this company needs the SEC quarterly 13F data sets, which are not loaded.',
