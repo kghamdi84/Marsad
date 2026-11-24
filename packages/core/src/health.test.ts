@@ -278,7 +278,13 @@ describe('the default policies fit the job schedules (a false alarm every mornin
       expect(h).toMatchObject({ session: 'regular', state: 'stale' });
     });
   it('every Study-module source has a policy', () => {
-    for (const s of ['sec_facts', 'sec_insiders', 'massive_news', 'massive_study'])
+    for (const s of [
+      'sec_facts',
+      'sec_insiders',
+      'massive_news',
+      'massive_study',
+      'massive_sections',
+    ])
       expect(
         DEFAULT_SOURCE_POLICIES.some((p) => p.source === s),
         s,

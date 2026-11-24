@@ -144,6 +144,29 @@ const out = {
       splits: [],
     });
   })(),
+  // The year-over-year risk-factor comparison on the two real NVIDIA 10-Ks: sentence splitting uses a lookbehind and
+  // Unicode letter classes, so Node and Deno must agree on every sentence and score.
+  riskDiff: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/massive/sections-NVDA-risk_factors.json'), 'utf8'),
+    );
+    const [newer, older] = f.body.results;
+    const d = core.diffRiskFactors(older.text, newer.text);
+    return {
+      counts: [
+        d.oldSentences,
+        d.newSentences,
+        d.unchanged,
+        d.added.length,
+        d.removed.length,
+        d.changed.length,
+      ],
+      added: d.added.map((s) => s.text),
+      removed: d.removed.map((s) => s.text),
+      changed: d.changed.map((c) => [c.before.text, c.after.text, c.similarity]),
+      firstWords: d.changed[0]?.words,
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

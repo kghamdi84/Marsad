@@ -21,6 +21,7 @@ import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
 import { Insiders } from '../components/study/Insiders';
 import { NewsPanel } from '../components/study/NewsPanel';
+import { RiskFactors } from '../components/study/RiskFactors';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
 import { loadDividends, loadEarningsFilings } from '../lib/studyPanels';
@@ -323,6 +324,7 @@ export function StudyCompany() {
       )}
 
       {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
+      {q.data?.company && <RiskFactors cik={q.data.company.cik} />}
       {q.data?.company && (
         <Earnings cik={q.data.company.cik} bars={q.data.bars} splits={q.data.splits} />
       )}

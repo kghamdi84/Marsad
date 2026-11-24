@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { etDate } from '@marsad/core';
 import type {
+  AnnualSection,
   Bar,
   CompanyRef,
   DividendRow,
@@ -60,6 +61,7 @@ export interface Store {
   upsertShortInterest(rows: readonly ShortInterestRow[], fetchedAt: Date): Promise<number>;
   upsertShortVolume(rows: readonly ShortVolumeRow[], fetchedAt: Date): Promise<number>;
   upsertDividends(rows: readonly DividendRow[], fetchedAt: Date): Promise<number>;
+  upsertAnnualSections(rows: readonly AnnualSection[], fetchedAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -526,6 +528,24 @@ export function supabaseStore(url: string, secretKey: string): Store {
       }));
       const { error } = await db.from('dividends').upsert(out, { onConflict: 'id' });
       if (error) throw new Error(`dividends upsert failed: ${error.message}`);
+      return out.length;
+    },
+    async upsertAnnualSections(rows, fetchedAt) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        cik: r.cik,
+        ticker: r.ticker,
+        section: r.section,
+        period_end: r.periodEnd,
+        filing_date: r.filingDate,
+        filing_url: r.filingUrl,
+        text: r.text,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db
+        .from('annual_sections')
+        .upsert(out, { onConflict: 'cik,section,period_end' });
+      if (error) throw new Error(`annual_sections upsert failed: ${error.message}`);
       return out.length;
     },
   };

@@ -33,13 +33,14 @@ The typical-price error grows with the day's range (4.57% range on 2026-11-20 ga
 
 **Free-plan entitlement for Study-module data, tested 2026-11-24 with real calls (via the Massive connector, same account as the key in GitHub; a Phase 2 job re-checks with the key itself):**
 
-| Data                                                          | Free plan                                                                                                                                          |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Daily and minute bars, news, splits, dividends                | Yes (dividends: `/stocks/v1/dividends`, with split-adjusted amounts)                                                                               |
-| Short interest (`/stocks/v1/short-interest`)                  | Yes: `settlement_date`, `short_interest`, `avg_daily_volume`, `days_to_cover`, from 2017 (twice a month, so it lags)                               |
-| Short volume (`/stocks/v1/short-volume`)                      | Yes: daily `short_volume`, `total_volume`, `short_volume_ratio`, per venue (daily short volume is not short interest)                              |
-| Income statements (`/stocks/financials/v1/income-statements`) | **Not entitled.** Financials come from SEC EDGAR XBRL company facts instead, which carry the filing date needed for point-in-time use              |
-| Benzinga earnings, analyst ratings and guidance               | **Not entitled.** The earnings page shows "requires plan" for estimates, surprise and analyst actions; reported EPS and revenue come from SEC XBRL |
+| Data                                                          | Free plan                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Daily and minute bars, news, splits, dividends                | Yes (dividends: `/stocks/v1/dividends`, with split-adjusted amounts)                                                                                                                                                                         |
+| Short interest (`/stocks/v1/short-interest`)                  | Yes: `settlement_date`, `short_interest`, `avg_daily_volume`, `days_to_cover`, from 2017 (twice a month, so it lags)                                                                                                                         |
+| Short volume (`/stocks/v1/short-volume`)                      | Yes: daily `short_volume`, `total_volume`, `short_volume_ratio`, per venue (daily short volume is not short interest)                                                                                                                        |
+| Income statements (`/stocks/financials/v1/income-statements`) | **Not entitled.** Financials come from SEC EDGAR XBRL company facts instead, which carry the filing date needed for point-in-time use                                                                                                        |
+| Benzinga earnings, analyst ratings and guidance               | **Not entitled.** The earnings page shows "requires plan" for estimates, surprise and analyst actions; reported EPS and revenue come from SEC XBRL                                                                                           |
+| 10-K sections (`/stocks/filings/10-K/vX/sections`)            | **Yes, confirmed with the project's own key** (recorder run 2026-11-24, `fixtures/massive/sections-NVDA-risk_factors.json`). Plain text of `risk_factors` and `business`. Coverage has gaps: NVIDIA returned fiscal 2026, 2025 and then 2017 |
 
 Endpoint groups (paths from the brief; parameters and fields **to confirm**; `vX` paths are experimental and sit behind adapters with contract tests):
 
@@ -56,6 +57,16 @@ Endpoint groups (paths from the brief; parameters and fields **to confirm**; `vX
 | Macro                           | `/fed/v1/treasury-yields`, inflation, inflation expectations                                                                             | Regime                                |
 | Options                         | `/v3/snapshot/options/{underlying}`, `/options/v1/analytics`, `/options/v1/open-interest/underlying`                                     | Options module                        |
 | Indices                         | `/v3/snapshot/indices`                                                                                                                   | Market strip, regime                  |
+
+### Risk-factor comparison between two 10-Ks (checklist 2.5)
+
+Built on the vendor's section text so no filing HTML is parsed. Facts measured on the real NVIDIA pair (fiscal 2025 filed 2025-02-26, fiscal 2026 filed 2026-02-25), checked by an independent Python implementation written from the written rules:
+
+- Each section is about 110 KB and 260 to 275 lines, one paragraph per line. The text keeps page furniture: bare page numbers, "Table of Contents" lines, and **sentences cut in two by a page break at different places each year**. That is why the comparison works on sentences, after removing the furniture and rejoining a line that stops mid-sentence (no closing punctuation, next line starts in lowercase).
+- Result on the pair: 564 and 586 sentences; 449 unchanged, 71 new, 49 removed, 66 edited. Examples found: the new Groq licence risk, the dropped DGX Cloud risk, the rewritten China export-control text, the one-word edit "component" to "capacity" (Dice 26/28).
+- The cut-off for "edited" (Dice 0.6 on word pairs) is a Marsad default, not a standard. On the same pair the edited count is 69 at 0.5, 66 at 0.6, 58 at 0.7 and 44 at 0.8; the unchanged count (exact matches) never moves. The lowest-scoring pairs at 0.6 (0.63 to 0.67) read as the same sentence edited.
+- Known limits: the list at the top of Item 1A repeats each risk title, so a new risk can show twice; "U.S." before a capital letter splits a sentence the same way in both years, so it does not create false differences; a sentence cut by a page break at a full stop is still one sentence, but a risk rewritten into different sentences shows as removed plus new.
+- The vendor's history has holes, so the panel compares only two reports a fiscal year apart (350 to 380 days).
 
 ## SEC structured data (confirmed on real NVIDIA responses, 2026-11-24)
 

@@ -143,6 +143,39 @@ export const t = {
       missingImplied:
         'Move against the options-implied move: needs options data, which is built in a later phase.',
     },
+    risk: {
+      title: 'Risk factors, year over year (10-K)',
+      open: 'Show the comparison',
+      intro:
+        'Compares the wording of the Risk Factors section (Item 1A) of the two newest annual reports, sentence by sentence, by computer rules and not by a model. It shows what the text says, not whether a risk got worse or better.',
+      loading: 'Loading two annual reports',
+      none: 'No annual report text is stored for this company (ETFs file none).',
+      oneReport: 'Only one annual report is stored, so there is nothing to compare yet.',
+      gap: (newer: string, older: string) =>
+        `The two newest stored reports are for years ending ${newer} and ${older}, which are not a year apart, so a comparison would not be fair.`,
+      reports: (newer: string, newerFiled: string, older: string, olderFiled: string) =>
+        `Newer: year ended ${newer}, filed ${newerFiled}. Older: year ended ${older}, filed ${olderFiled}.`,
+      viewNewer: 'Newer 10-K on SEC',
+      viewOlder: 'Older 10-K on SEC',
+      counts: (added: number, removed: number, changed: number, unchanged: number) =>
+        `${added} new, ${removed} removed, ${changed} edited, ${unchanged} unchanged sentences.`,
+      summaryNote:
+        'The list at the top of the section repeats each risk title, so a new risk can appear there and again in the text.',
+      cutoff: (score: string) =>
+        `A sentence counts as edited when it shares enough word pairs with one from the other year (score ${score} or more of 1, a Marsad default). Moving that cut-off moves the edited count, not the unchanged one.`,
+      added: 'New in the newer report',
+      removed: 'In the older report only',
+      changed: 'Edited',
+      under: (heading: string) => `Under: ${heading}`,
+      showAll: (n: number) => `Show all ${n}`,
+      showFewer: 'Show fewer',
+      wordAdded: 'added',
+      wordRemoved: 'removed',
+      similarity: (score: string) => `Similarity ${score}`,
+      nothing: 'Nothing in this group.',
+      provenance: (version: string) =>
+        `Source: Massive 10-K sections (plain text of Item 1A, free plan). Rules: ${version}.`,
+    },
     insiders: {
       title: 'Insider transactions (Form 4)',
       note: "Insiders report within two business days of a trade, so recent trades may not be here yet. The 10b5-1 flag is the checkbox on the filing: a pre-arranged plan, so the trade date does not show the insider's view on that day.",

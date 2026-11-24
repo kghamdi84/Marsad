@@ -2,7 +2,7 @@
 
 ## Current phase: 1, Data and trust layer (complete, awaiting Khaled's sign-off). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-24 (Phase 2, earnings history).
+Last updated 2026-11-24 (Phase 2, risk-factor comparison).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -92,6 +92,14 @@ Verification: 26 core tests with hand-checked arithmetic and ET time edges (09:2
 Two design bugs were found by checking, not by the first tests. Same-day releases were ordered by accession number instead of acceptance time. A prior-year quarter repeated in a later filing carries that later "filed" date, which let it take the newest quarter's release (the real NVIDIA facts do this), so matching now uses the latest quarter that ended before the release, at most 95 days earlier. The panel also loads its own 8-Ks: the page's filings list keeps only the newest 200 rows, which for a company with many Form 4s can span a few weeks.
 
 Limit stated on the page: only 8-Ks the SEC job stored are used (the `filings.recent` list), so quarters older than about a year say "No results 8-K stored for this quarter" until older submission files are loaded (IDEAS.md).
+
+### Risk-factor comparison (2026-11-24, checklist 2.5 in progress)
+
+The company page has a "Risk factors, year over year (10-K)" panel that compares Item 1A of the two newest annual reports sentence by sentence, by code with no model. It loads the two reports (about 110 KB each) only when opened. Text comes from Massive's 10-K sections endpoint, which I confirmed works on the free plan with the project's own key (recorder run, real NVIDIA pair saved in `fixtures/massive/`). On that pair: 71 new, 49 removed, 66 edited, 449 unchanged sentences, including the new Groq licence risk, the dropped DGX Cloud risk and the rewritten China export-control text.
+
+Why sentences: the plain text breaks pages in the middle of sentences, in different places each year, so paragraph comparison would report unchanged text as changed. Verification: 33 core tests, mutation-checked; every added, removed and changed sentence matches an independent Python implementation (hashes equal); Node and Deno byte-identical; job and adapter tests on the real response; 2 e2e tests; screenshot reviewed. The 0.6 "edited" cut-off is a default, not a standard: the edited count moves from 69 to 44 between 0.5 and 0.8 (the unchanged count does not move), stated in DATA_SOURCES.md and on the page.
+
+Needs after merge: the new migration `20261127000000_annual_sections.sql` is applied by the Supabase integration (check with anon REST: 401 means the table exists), then the weekly job `massive-sections` has to run once by hand (Actions, Massive 10-K sections, Run workflow) before the panel has anything to show. Until then the panel says no annual report text is stored. Not done: 10-Q sections (the endpoint is 10-K only) and the Item 1 business text.
 
 ### What is NOT done (carried forward, none blocks Phase 2)
 

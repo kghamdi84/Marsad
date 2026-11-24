@@ -280,8 +280,8 @@
         {
           "id": "2.5",
           "title": "10-K and 10-Q sections and risk-factor diff",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Done: year-over-year risk-factor comparison of the two newest 10-Ks (Item 1A), by code with no model (core `riskfactors.ts`, rules riskdiff-1). Data from Massive's 10-K sections endpoint, confirmed entitled on the free plan with the project's own key (real NVIDIA pair recorded in fixtures/massive). New table annual_sections (RLS, owner read), weekly job massive-sections (stocks only; vendor gaps listed, not hidden), panel on the company page that loads the two reports only when opened. Sentence level because page breaks cut paragraphs differently each year; added, removed and edited sentences with the heading each sat under, word-level edits marked by underline and strikethrough (not colour alone), link to each filing. Verified: 33 core tests (hand-checked Dice values, threshold boundaries, page-break joins) mutation-checked; every added, removed and changed sentence of the real pair identical to an independent Python implementation (hash match, 71 new, 49 removed, 66 edited, 449 unchanged); Node and Deno byte-identical; 5 adapter tests and 4 job tests; 2 e2e tests with the real reports. Not done: 10-Q sections (the vendor endpoint offers business and risk_factors for 10-K only), showing the Item 1 business text, tuning the 0.6 cut-off beyond one company pair, and a live run of the job (needs the migration merged first)."
         },
         {
           "id": "2.6",
