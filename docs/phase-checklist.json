@@ -285,9 +285,9 @@
         },
         {
           "id": "2.6",
-          "title": "Earnings history against estimates and implied move",
-          "status": "todo",
-          "evidence": ""
+          "title": "Earnings history: reported results, release timing and post-earnings move (estimates, surprise, guidance and implied move need paid data)",
+          "status": "done",
+          "evidence": "packages/core/src/earnings.ts (formula version earnings-1): each reported quarter (SEC facts) is joined to its Item 2.02 8-K (the latest quarter that ended before the release, at most 95 days earlier; the filing date of a figure is not used because prior-year quarters are repeated in later filings), the release is labelled before the open, during the session or after the close in ET, and the move is the close of the first session that could trade on it against the close before (split-window guard, over-25% flag, bar-gap guard). Every gap is stated in words (no 8-K stored, before the first stored price, reacting session not yet priced, split in window). The summary gives the average size with n, up and down counts and a small-sample warning below 30 reports. Estimates, surprise, guidance and the implied move show 'requires a higher Massive plan' or 'needs options data'. 26 core tests with hand-checked arithmetic (-22.5, +10, +20, +5, -23.08), winter and summer time edges at 09:29:59, 09:30:00, 15:59:59 and 16:00:00 ET, mutation-checked (every mutation applied and caught; five survived the first tests and each got a test). Two design bugs found by checking, not by the first tests: same-day releases were ordered by accession instead of acceptance time, and a prior-year quarter with a later 'filed' date stole the release. Node and Deno output is byte-identical (parity script now covers it). 1 e2e test on the page; screenshot reviewed. Known limit: only 8-Ks the SEC job stored are used (its 'recent' list), so older quarters say 'No results 8-K stored for this quarter' until older submission files are loaded (docs/IDEAS.md)."
         },
         {
           "id": "2.7",

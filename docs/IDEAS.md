@@ -13,3 +13,5 @@ Captured during work so they are not built early.
 - Phase 3: widen the VWAP reconciliation beyond SPY (a handful of liquid tickers) and revisit the 0.1% tolerance once there are 30 or more sessions; the 5-session margin (max 0.074%) is thin.
 - Phase 5: VIX against FRED `VIXCLS` needs the Massive Indices plan (not entitled on free); decide with the plan purchase.
 - Phase 2: filings completeness (stored EDGAR filings against a second feed such as the EDGAR current-filings Atom feed) once the Study module defines which forms matter.
+- Phase 2: the SEC job stores only the `filings.recent` list, so quarters older than about a year have no results 8-K and the earnings history says so. Load the older `submissions` files (the `filings.files` entries) to fill them, which also lengthens the filings list.
+- Phase 2: show earnings releases as chart markers (the release is known; the marker would sit on the reacting bar).

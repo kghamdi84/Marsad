@@ -16,6 +16,7 @@ export * from './study.js';
 export * from './xml.js';
 export * from './form4.js';
 export * from './fundamentals.js';
+export * from './earnings.js';
 export * from './ai/facts.js';
 export * from './ai/numbers.js';
 export * from './ai/verify.js';

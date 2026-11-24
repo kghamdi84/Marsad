@@ -219,6 +219,67 @@ test('financials: as filed, with derived quarters marked, and a date picker that
     await page.screenshot({ path: `${process.env.SHOT_DIR}/panels.png`, fullPage: true });
 });
 
+test('earnings: each release matched to its quarter, the move in the session that could trade, gaps said out loud', async ({
+  page,
+}) => {
+  await setup(page);
+  // The 2026-11-17 8-K is the real recorded filing (accession 0001045810-26-000088). The August one is invented
+  // for this test: accepted 16:20 ET on Wed 2026-08-19, a week before the Q2 10-Q was filed on 2026-08-26.
+  await page.route('**/rest/v1/filings**', (r) =>
+    json(r, [
+      {
+        accession: '0001045810-26-000088',
+        form: '8-K',
+        filing_date: '2026-11-17',
+        accepted_at: '2026-11-17T21:20:51Z',
+        primary_document: 'nvda-20261117.htm',
+        items: ['2.02', '9.01'],
+      },
+      {
+        accession: '0001045810-26-000999',
+        form: '8-K',
+        filing_date: '2026-08-19',
+        accepted_at: '2026-08-19T20:20:00Z',
+        primary_document: 'x.htm',
+        items: ['2.02', '9.01'],
+      },
+    ]),
+  );
+  // The fixture bars rise 0.5 a day; make 2026-08-20 close at 239.40 so the August reaction is a clear drop.
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    json(
+      r,
+      bars().map((b) => (b['date'] === '2026-08-20' ? { ...b, close: 239.4 } : b)),
+    ),
+  );
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Earnings history' });
+  const table = panel.getByRole('table');
+  // Newest first. A release with no 10-Q yet: the reaction is 2026-11-18 (after the close on the 17th),
+  // from $297.50 to $298.00 = +0.168%.
+  const pending = table.getByRole('row', { name: /Results not yet in a filed 10-Q or 10-K/ });
+  await expect(pending).toContainText('2026-11-17, after the close');
+  await expect(pending).toContainText('+0.2% (2026-11-17 close $297.50, 2026-11-18 close $298.00)');
+  // Q2: reported $96.22B, then the August release: $265.50 to $239.40 = -9.83%.
+  const q2 = table.getByRole('row', { name: /^2026-07-26/ });
+  await expect(q2).toContainText('2026-08-19, after the close');
+  await expect(q2).toContainText('$96.22B');
+  await expect(q2).toContainText('-9.8% (2026-08-19 close $265.50, 2026-08-20 close $239.40)');
+  // A quarter whose results 8-K is not stored says so rather than guessing from the 10-Q date.
+  await expect(table.getByRole('row', { name: /^2026-04-26/ })).toContainText(
+    'No results 8-K stored for this quarter',
+  );
+  // (9.83 + 0.168) / 2 = 5.0 over two reports, one up and one down, with the small-sample warning in words.
+  await expect(
+    panel.getByText('Average size of the move over 2 reports: 5.0% (1 up, 1 down).'),
+  ).toBeVisible();
+  await expect(panel.getByText(/too few reports to say how often/)).toBeVisible();
+  await expect(panel.getByText(/requires a higher Massive plan \(Benzinga data\)/)).toBeVisible();
+  if (process.env.SHOT_DIR)
+    await panel.screenshot({ path: `${process.env.SHOT_DIR}/earnings.png` });
+});
+
 test('insiders: codes explained, the 10b5-1 box shown, totals computed, unreadable filings admitted', async ({
   page,
 }) => {

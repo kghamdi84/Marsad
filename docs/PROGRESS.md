@@ -2,7 +2,7 @@
 
 ## Current phase: 1, Data and trust layer (complete, awaiting Khaled's sign-off). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-24 (Phase 1 session 2).
+Last updated 2026-11-24 (Phase 2, earnings history).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -82,6 +82,16 @@ The heartbeat raised two real alerts (`nasdaq_halts` and `sec_edgar` stale in th
 ### Study page panels (2026-11-24, this batch)
 
 Financials (as filed, point-in-time date picker, derived quarters marked), insider transactions (explained codes, 10b5-1 box, totals, unreadable filings admitted), short interest and short volume (with definitions and lag), news (clustered, tiered, opinion-labelled) and dividends, each loading on its own so one failing table cannot blank the page. 19 e2e tests, every mocked row built from the real recordings. Found while looking at the rendered page: `toFixed` rounds a written half down (81.615 became "$81.61B"), fixed in core with `toFixedHalfUp` and tests; numeric table headers were left-aligned over right-aligned numbers because `text-start` and `text-end` conflict (also fixed on the Status page); a missing figure said "Not enough history" where the right words are "Not reported". Fiscal-year gaps in a screenshot come from the 16-newest-rows trim of the test fixture, not from the stored data.
+
+### Earnings history (2026-11-24, checklist 2.6 done)
+
+`packages/core/src/earnings.ts` and the "Earnings history" panel on the company page. Each reported quarter is joined to its results 8-K (Item 2.02) and the stock's move is measured in the first session that could trade on it, from the close before. Release time is the SEC acceptance time in ET (before the open, during the session, after the close), never the 10-Q date. A release with no 10-Q yet is listed on its own so the latest reaction is not hidden. Estimates, surprise, guidance and the implied move are shown as "requires a higher Massive plan" or "needs options data".
+
+Verification: 26 core tests with hand-checked arithmetic and ET time edges (09:29:59, 09:30:00, 15:59:59, 16:00:00, winter and summer), each branch mutation-checked, Node and Deno output byte-identical (strict `deno check` passes), one e2e test on the page with a screenshot reviewed. `./init.sh` exit 0 (413 tests), `pnpm e2e` 20 passed.
+
+Two design bugs were found by checking, not by the first tests. Same-day releases were ordered by accession number instead of acceptance time. A prior-year quarter repeated in a later filing carries that later "filed" date, which let it take the newest quarter's release (the real NVIDIA facts do this), so matching now uses the latest quarter that ended before the release, at most 95 days earlier. The panel also loads its own 8-Ks: the page's filings list keeps only the newest 200 rows, which for a company with many Form 4s can span a few weeks.
+
+Limit stated on the page: only 8-Ks the SEC job stored are used (the `filings.recent` list), so quarters older than about a year say "No results 8-K stored for this quarter" until older submission files are loaded (IDEAS.md).
 
 ### What is NOT done (carried forward, none blocks Phase 2)
 
