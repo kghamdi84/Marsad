@@ -1,0 +1,45 @@
+name: Deploy Edge Functions
+
+# Manual only, until the first Edge Function exists. Migrations are deployed by the Supabase GitHub
+# integration, not by this workflow (docs/adr/0004-deployment.md). Needs one repository secret,
+# SUPABASE_ACCESS_TOKEN (Supabase: Account, Access Tokens). The project reference is public.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false
+
+env:
+  PROJECT_REF: hwdwivilqdydmxhycapy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Find functions
+        id: find
+        run: |
+          count=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name '_*' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -eq 0 ]; then echo "::notice::No Edge Functions exist yet, nothing to deploy."; fi
+      - name: Copy the shared core into the functions folder
+        if: steps.find.outputs.count != '0'
+        run: node scripts/prepare-edge-core.mjs
+      - uses: supabase/setup-cli@v1
+        if: steps.find.outputs.count != '0'
+        with:
+          version: latest
+      - name: Deploy
+        if: steps.find.outputs.count != '0'
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

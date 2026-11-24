@@ -19,3 +19,14 @@ The web app must deploy on every push to `main` with previews for branches. Migr
 
 - No deployment path depends on a developer machine.
 - The copied core is generated and never edited by hand; CI checks that functions type-check against it.
+
+## Verification, 2026-11-24 (checklist item 1.14)
+
+What was checked by running it, with Deno 2.9.6:
+
+- The unchanged core fails under Deno: `Module not found ".../time.js"`. Core imports are written for Node and TypeScript (`./time.js` names the compiled file), and Deno resolves exact file names.
+- `scripts/prepare-edge-core.mjs` copies `packages/core/src` (tests left out) to `supabase/functions/_shared/core` and rewrites relative `.js` imports to `.ts` (18 files, 43 imports). The script fails if any `.js` import is left over.
+- `deno check` on the copy passes in strict mode, so core uses no Node-only API.
+- `scripts/edge-parity.mjs` runs indicators, session logic, source-health evaluation and ET conversion from the Node source and from the Deno copy: the output is byte-identical (9,295 bytes). CI runs this on every pull request (job `edge-core`).
+
+Not verified: bundling by Supabase's own deploy (CLI or connector) on the platform. That needs a Supabase access token and a first real function, and no Edge Function exists yet (ingestion runs in GitHub Actions, ADR 0006). The deploy workflow `deploy-functions.yml` is manual and does nothing until a function exists. The first deploy in Phase 5 is where this is confirmed, and this ADR will be updated then.

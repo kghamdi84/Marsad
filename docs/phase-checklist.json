@@ -231,8 +231,8 @@
         {
           "id": "1.14",
           "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Checked with Deno 2.9.6: unchanged core fails under Deno (./time.js not found); scripts/prepare-edge-core.mjs rewrites 43 imports in 18 files; deno check passes strict; scripts/edge-parity.mjs gives byte-identical Node and Deno output (9,295 bytes). CI job edge-core runs this on every PR; manual workflow deploy-functions.yml added (needs SUPABASE_ACCESS_TOKEN, does nothing until a function exists). NOT verified: Supabase platform bundling of a real function (no token, no function yet); confirmed at the first deploy in Phase 5. ADR 0004 updated."
         }
       ]
     },

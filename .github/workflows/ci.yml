@@ -32,3 +32,29 @@ jobs:
       - run: pnpm build
       - run: pnpm --filter @marsad/web exec playwright install --with-deps chromium
       - run: pnpm e2e
+
+  # The same core must run in Supabase Edge Functions (Deno). This builds the generated copy exactly as the
+  # deploy step does, type-checks it under Deno's strict mode and requires byte-identical results from Node
+  # and Deno (docs/adr/0004-deployment.md).
+  edge-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.6
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/prepare-edge-core.mjs
+      - run: deno check supabase/functions/_shared/core/index.ts
+      - name: Run the same calculations under Node and Deno
+        run: |
+          pnpm --filter @marsad/jobs exec tsx ../scripts/edge-parity.mjs ../packages/core/src/index.ts > "$RUNNER_TEMP/node.json"
+          deno run -A --no-lock scripts/edge-parity.mjs supabase/functions/_shared/core/index.ts > "$RUNNER_TEMP/deno.json"
+          test -s "$RUNNER_TEMP/node.json"
+          cmp "$RUNNER_TEMP/node.json" "$RUNNER_TEMP/deno.json"
