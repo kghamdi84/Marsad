@@ -2,7 +2,7 @@
 
 ## Current phase: 1, Data and trust layer (complete, awaiting Khaled's sign-off). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-24 (Phase 2, insider Forms 3 and 5).
+Last updated 2026-11-24 (Phase 2 report).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -117,6 +117,20 @@ Things the real data showed that I would not have guessed: a Form 3 can say outr
 Verification: six real documents checked against an independent Python reading of the XML, parser mutation-checked (all caught), the totals function moved into core and mutation-checked (one equivalent mutant, since `0 + null` is `0` in JavaScript), a per-table access test for every Study table, Node and Deno byte-identical, 4 e2e checks on the page (screenshot reviewed). One existing test changed: the Form 4 job test now expects 16 rows, because it also stores the 3 holdings rows those two filings carry.
 
 After merge: the Supabase integration applies `20261128000000_insider_holdings.sql` (additive). Form 3 history fills in as the hourly insiders job reads 80 filings a run, newest first. The job's candidate window grew from the newest 400 to the newest 600 filings and its "already read" check is now asked in chunks, because a few hundred accession numbers in one request would be too long. 13F holders stay a placeholder, now with the reason.
+
+### Live: insider Forms 3 and 5 (2026-11-24, PR #21 merged as `74e9965`)
+
+- The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
+- First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 2 report (2026-11-24): Study module, built without the AI pieces
+
+- **Live** at https://marsad-k84.netlify.app, Study, any starting stock: candlestick chart with SMA, EMA, RSI, volume and markers (8-Ks including earnings, splits, dividends); filings timeline with 8-K labels; financials as filed with a "known as of" date picker; earnings history with the move after each release; insider Forms 3, 4 and 5; short interest and short volume; clustered news with source tiers; dividends; a year-over-year risk-factor comparison of the two newest 10-Ks. ETFs show the chart, short data and news.
+- **Verified:** `./init.sh` exit 0 with 473 tests; `pnpm e2e` 23 pass; Node and Deno give byte-identical results; every number-producing part was checked against an independent Python reading of the same real data; every new rule was mutation-checked.
+- **Tap to test:** Study, NVDA. Move the "Known as of" date on Financials back to 2026-08-25 (the newest quarter should disappear). Open "Risk factors, year over year" and tap "Show the comparison". Look at Insider filings for the Filed date beside each trade date.
+- **Needs you:** (1) add `ANTHROPIC_API_KEY` yourself as a GitHub Actions secret and approve the caps in ADR 0007 (USD 1 a day, USD 10 a month, warning at 80%): this unblocks the summaries, the thesis card and the prompts (checklist 2.9 to 2.11); (2) the scheduling decision in ADR 0008: GitHub's scheduler has barely fired, so the 5-minute and 30-minute feeds go stale in market hours until it is fixed; (3) public or private repo.
+- **Honest gaps:** the AI items 2.9 to 2.11 are not built (the verifier and fallback are built and tested offline); 13F holders and 10-Q sections are labelled "Not built" with the reason; chart markers for insider buys and halts are not done; estimates, surprise, guidance, analyst actions and the 5-year valuation history show "Requires a higher Massive plan" as the brief allows; the 0.6 cut-off for an "edited" risk sentence is a default checked on one company pair.
+- **Next phase:** Phase 3 (market overview and regime): Claude Opus 5.5 at high effort for the methodology and event studies, Claude Sonnet 5.5 at high effort for the screens. If you want the AI pieces first, finish item 1 above and I will do those before Phase 3.
 
 ### What is NOT done (carried forward, none blocks Phase 2)
 
