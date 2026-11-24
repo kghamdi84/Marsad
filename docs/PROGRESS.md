@@ -41,11 +41,13 @@ Web: Status page judges each source with the core policy and says why in words.
 - `massive-reference` (run 45443118940): ok, 33 rows (24 calendar rows, 9 splits for 14 tickers), 121 s (the free plan's call spacing). Confirms live: base URL `https://api.massive.com`, `Authorization: Bearer` auth, the holiday and splits endpoints, and the bare-array / `results` envelope parsing. The entitlement error body was not exercised (nothing was denied).
 - `sec-filings` (run 45443124013): ok, 8,174 filings for the 10 watchlist companies (NVDA 1005, RKLB 654, MARA 1002, SOFI 985, HOOD 1005, OKLO 516, IONQ 636, HIMS 1001, RGTI 656, BBAI 704), 14.5 s. The SEC accepted the declared User-Agent.
 - `reconcile-nightly` (run 45443576867): ok, 15 checks over 2026-11-16 to 11-20 (Massive vs FRED 10-year yield and both spreads), all within tolerance, 0.9 s.
-- Sources now live: GPR, FRED, Massive reference data, SEC EDGAR. Not yet: Nasdaq halts (decision pending) and live Massive prices (Phase 5).
+- Sources now live: GPR, FRED, Massive reference data, SEC EDGAR, Nasdaq halts. Not yet: live Massive prices (Phase 5).
 
-### Halts job (2026-11-24, awaiting merge and first live run)
+### Halts job (2026-11-24, live)
 
 Khaled approved polling the Nasdaq trade-halts feed (yes, 2026-11-24). `jobs/src/halts-job.ts` stores every halt in `halts` (new migration, RLS tested), keyed by symbol and halt time, counts active and news-related halts, and runs every 5 minutes around US trading hours (`halts.yml`). A page that is not the feed (even with HTTP 200) or unreadable items are errors, never "no halts". The `nasdaq_halts` status limit is loosened to 30 minutes until Phase 5's 30-second poller. Tests use the real recorded feed (6 tests); the first live run is the live check. Alerts on halts (T1 news-pending in particular) are Phase 5.
+
+First live run after merging PR #10 (`bcaa7d5`): `nasdaq-halts` (run 45445920963) ok, 57 halts stored (12 active, 0 news-related active), 1.5 s. The Nasdaq feed parser and job work on the live feed; the schedule is every 5 minutes from GitHub Actions (which can run late) until the Phase 5 30-second poller.
 
 ### What is NOT done in Phase 1
 
