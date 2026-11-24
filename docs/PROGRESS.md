@@ -101,6 +101,13 @@ Why sentences: the plain text breaks pages in the middle of sentences, in differ
 
 Needs after merge: the new migration `20261127000000_annual_sections.sql` is applied by the Supabase integration (check with anon REST: 401 means the table exists), then the weekly job `massive-sections` has to run once by hand (Actions, Massive 10-K sections, Run workflow) before the panel has anything to show. Until then the panel says no annual report text is stored. Not done: 10-Q sections (the endpoint is 10-K only) and the Item 1 business text.
 
+### Live: risk-factor data (2026-11-24, PR #19 merged as `44c7b32`)
+
+- The Supabase integration created `annual_sections` (anon REST returns 401, the same as `job_runs`).
+- First live run of `massive-sections` **failed**: `Sections failed: OKLO: Massive rate limit reached (rate-limited)`, recorded as an error run as designed. Cause: the shared request bucket started with 5 tokens refilling at 5 a minute, which sends about 9 calls in the first minute against the free plan's about 5; earlier jobs had survived on retries. Fix: a bucket of 1, so every call is 12 seconds apart (applies to every Massive job; their calls take slightly longer, none exceed the limit).
+- Rerun after the fix: `massive-sections: ok, rows 19, 110074 ms`. NVDA 2026 and 2025; RKLB, MARA, SOFI, HOOD, OKLO, IONQ, HIMS and BBAI 2025 and 2024; **RGTI only 2025** (its panel will say there is nothing to compare). No company is missing from the vendor.
+- Not looked at live: the panel itself needs Khaled's signed-in session; the end-to-end test renders the same real reports.
+
 ### What is NOT done (carried forward, none blocks Phase 2)
 
 - 5.2b (new): Supabase platform bundling of a real Edge Function is unverified (needs an access token and a first function).
