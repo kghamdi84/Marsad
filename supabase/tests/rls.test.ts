@@ -179,7 +179,7 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(5);
+      expect(await count(tx, 'public.source_status')).toBe(6); // five seeded sources plus massive_reference
     });
   });
 
