@@ -5,6 +5,14 @@ name: Record fixtures
 # public, so only public data may be added here.
 on:
   workflow_dispatch:
+    inputs:
+      script:
+        description: Which recorder to run
+        type: choice
+        default: record-fixtures-main.ts
+        options:
+          - record-fixtures-main.ts
+          - record-study-main.ts
 
 permissions:
   contents: read
@@ -26,8 +34,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Record
-        run: pnpm --filter @marsad/jobs exec tsx src/record-fixtures-main.ts
+        run: pnpm --filter @marsad/jobs exec tsx "src/$RECORDER"
         env:
+          RECORDER: ${{ inputs.script }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
