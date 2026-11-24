@@ -19,6 +19,8 @@ Current plan: free tier (about 5 calls per minute). Entitlement test reported in
 
 Plan ladder listed in the brief (Nov 2026, **to confirm** on massive.com/pricing before quoting a price): Stocks Advanced USD 199; Options Developer USD 79 (15-minute delayed); Options Advanced USD 199; Indices Starter USD 49 (delayed); Indices Advanced USD 99 (real-time VIX, VIX3M, SPX, NDX); partner datasets USD 99 each. A Stocks plan includes VXX but not the VIX index.
 
+**Confirmed live 2026-11-24** (api.massive.com with `Authorization: Bearer <key>`): `/v1/marketstatus/upcoming`, `/stocks/v1/splits`, `/fed/v1/treasury-yields` on the free plan. Entitlement error body: not yet observed.
+
 Endpoint groups (paths from the brief; parameters and fields **to confirm**; `vX` paths are experimental and sit behind adapters with contract tests):
 
 | Group                           | Paths                                                                                                                                    | Used for                              |
