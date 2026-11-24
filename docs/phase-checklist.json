@@ -262,8 +262,8 @@
         {
           "id": "2.3",
           "title": "Filings timeline with 8-K item labels and materiality",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Core done: packages/core/src/filings.ts has all 33 8-K items with official SEC titles, plain labels and materiality (14 set by the brief, 19 marked marsad-default), Form 4 code explanations (codes not verified from an SEC source are shown as unexplained), disclosure lags. Real NVIDIA 8-K (items 5.02, 9.01) labels as high. 14 tests. Still to do: timeline UI."
         },
         {
           "id": "2.4",
@@ -292,14 +292,14 @@
         {
           "id": "2.8",
           "title": "News with tiers and clustering",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Core done: packages/core/src/news.ts publisher tiers (unknown publishers are tier 4), opinion label, story clustering with window, ticker and minimum-shared-words rules; 16 tests, rules mutation-checked. Real free-plan sample: Motley Fool, Zacks, GlobeNewswire only. Still to do: news job, table and UI."
         },
         {
           "id": "2.9",
           "title": "Claude summaries with citations, number verifier and injection-safe wrapping",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Core done (packages/core/src/ai/): verifier, generate-verify-retry-template orchestration, untrusted wrapper, template builder, cost and budget math. 43 tests including the finish criterion (planted wrong number rejected twice leads to the template); three verifier mutations and the gate bypass are caught. Known limits recorded in tests. Still to do: Anthropic client job, ai_outputs table, UI. Blocked on Khaled: ANTHROPIC_API_KEY and cost caps (ADR 0007)."
         },
         {
           "id": "2.10",
