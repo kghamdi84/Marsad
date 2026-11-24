@@ -61,7 +61,7 @@ flowchart LR
 - Supabase Auth with email one-time codes (sign-ups disabled) and mandatory TOTP. The app routes any session below AAL2 to the MFA screen.
 - Every RLS policy also requires an AAL2 token, so an email code alone reads nothing.
 - Personal tables are keyed by `owner_id = auth.uid()`. System tables (job runs, source status, market data) are written only with the secret key and readable only by users in `private.app_owners`.
-- The browser holds only the publishable key. Netlify serves a strict CSP, `X-Robots-Tag: noindex` and a deny-all `robots.txt`.
+- The browser holds only the publishable key. Netlify serves a strict CSP (the only inline allowance is one hash-pinned style, see ADR 0002), `X-Robots-Tag: noindex` and a deny-all `robots.txt`.
 
 ## Data flow and freshness
 

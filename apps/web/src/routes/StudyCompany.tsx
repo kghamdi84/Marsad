@@ -1,0 +1,322 @@
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { Link, useParams } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import {
+  DEFAULT_LOCAL_ZONE,
+  buildEventMarkers,
+  describeEightK,
+  disclosureLag,
+  dualClock,
+  etDate,
+  formLabel,
+  normalizeTicker,
+  summarizeBars,
+  type BarSummary,
+  type Materiality,
+} from '@marsad/core';
+import type { ChartToggles } from '../components/PriceChart';
+import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
+import { t } from '../strings';
+
+const PriceChart = lazy(() => import('../components/PriceChart'));
+
+const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
+const td = 'border-b border-line px-2 py-2 align-top';
+const money = (n: number) =>
+  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function Summary({ data, s }: { data: StudyData; s: BarSummary }) {
+  const staleLine =
+    data.lastCompletedDay && s.asOf < data.lastCompletedDay
+      ? t.study.stale(s.asOf, data.lastCompletedDay)
+      : t.study.current;
+  const change = s.changePct;
+  const arrow = change === null ? '' : change > 0 ? '▲' : change < 0 ? '▼' : '';
+  return (
+    <section aria-labelledby="summary" className="flex flex-col gap-2">
+      <h2 id="summary" className="font-semibold">
+        {t.study.summary}
+      </h2>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+        <div>
+          <dt className="text-muted">{t.study.lastClose}</dt>
+          <dd className="text-lg font-medium">${money(s.lastClose)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.change}</dt>
+          <dd
+            className={`text-lg font-medium ${change !== null && change < 0 ? 'text-down' : 'text-up'}`}
+          >
+            {change === null
+              ? t.study.unavailable
+              : `${arrow} ${change > 0 ? '+' : ''}${change.toFixed(2)}%`}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.range(s.rangeSessions)}</dt>
+          <dd className="text-lg font-medium">
+            ${money(s.low52w)} to ${money(s.high52w)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.trend}</dt>
+          <dd>{t.study.trendLabels[s.trend]}</dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.rsi}</dt>
+          <dd>{s.rsi14 === null ? t.study.unavailable : s.rsi14.toFixed(1)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.sma50}</dt>
+          <dd>{s.sma50 === null ? t.study.unavailable : `$${money(s.sma50)}`}</dd>
+        </div>
+        <div>
+          <dt className="text-muted">{t.study.sma200}</dt>
+          <dd>{s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}</dd>
+        </div>
+      </dl>
+      <p
+        className={staleLine === t.study.current ? 'text-sm text-muted' : 'text-sm text-down'}
+        role="status"
+      >
+        {staleLine}
+      </p>
+      <p className="text-sm text-muted">
+        {t.study.provenance(s.asOf, s.sessions, s.formulaVersion)}
+      </p>
+    </section>
+  );
+}
+
+function Materiality({ level, defaulted }: { level: Materiality | 'unknown'; defaulted: boolean }) {
+  return (
+    <span
+      className="whitespace-nowrap rounded-sm border border-line px-1.5 py-0.5 text-xs"
+      title={defaulted ? t.study.marsadDefault : undefined}
+    >
+      {t.study.materiality[level]}
+    </span>
+  );
+}
+
+function FilingWhat({ f }: { f: FilingRow }) {
+  if (f.form === '8-K' || f.form === '8-K/A') {
+    const d = describeEightK(f.items);
+    return (
+      <div className="flex flex-col gap-1">
+        <Materiality
+          level={d.materiality}
+          defaulted={d.items.some((i) => i.basis === 'marsad-default')}
+        />
+        <ul className="list-none">
+          {d.items.map((i) => (
+            <li key={i.item} title={i.officialTitle}>
+              Item {i.item}: {i.plain}
+            </li>
+          ))}
+          {d.unknown.map((n) => (
+            <li key={n}>Item {n}: not in the table</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  return <span>{formLabel(f.form)}</span>;
+}
+
+function FilingsTable({ data }: { data: StudyData }) {
+  if (data.filings.length === 0) return <p className="text-muted">{t.study.noFilings}</p>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            <th className={th}>{t.study.colWhen}</th>
+            <th className={th}>{t.study.colForm}</th>
+            <th className={th}>{t.study.colWhat}</th>
+            <th className={th}>{t.study.colLag}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.filings.slice(0, 60).map((f) => {
+            const lag = disclosureLag(f.form);
+            const link = data.company ? secUrl(data.company.cik, f) : null;
+            const when = f.acceptedAt
+              ? `${etDate(new Date(f.acceptedAt))} ${dualClock(new Date(f.acceptedAt), DEFAULT_LOCAL_ZONE).label}`
+              : f.filingDate;
+            return (
+              <tr key={f.accession}>
+                <td className={td}>{when}</td>
+                <td className={td}>
+                  {link ? (
+                    <a
+                      className="underline underline-offset-4"
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {f.form} <span className="sr-only">{t.study.viewOnSec}</span>
+                    </a>
+                  ) : (
+                    f.form
+                  )}
+                </td>
+                <td className={td}>
+                  <FilingWhat f={f} />
+                </td>
+                <td className={`${td} text-muted`}>{lag?.label ?? ''}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const defaultToggles: ChartToggles = {
+  sma50: true,
+  sma200: true,
+  ema20: false,
+  rsi: false,
+  volume: true,
+};
+
+export function StudyCompany() {
+  const { ticker: raw } = useParams({ from: '/study/$ticker' });
+  const ticker = normalizeTicker(raw);
+  const [toggles, setToggles] = useState<ChartToggles>(defaultToggles);
+  const q = useQuery({
+    queryKey: ['study', ticker],
+    queryFn: () => loadStudy(ticker as string),
+    enabled: ticker !== null,
+  });
+  const summary = useMemo(() => (q.data ? summarizeBars(q.data.bars) : null), [q.data]);
+  const markers = useMemo(
+    () =>
+      q.data
+        ? buildEventMarkers(
+            filingEvents(q.data.filings),
+            q.data.splits,
+            q.data.bars.map((b) => b.date),
+          )
+        : [],
+    [q.data],
+  );
+
+  if (ticker === null)
+    return (
+      <p role="alert" className="text-down">
+        {t.study.badTicker(raw)}
+      </p>
+    );
+
+  const toggle = (k: keyof ChartToggles, label: string) => (
+    <label key={k} className="flex min-h-11 items-center gap-2">
+      <input
+        type="checkbox"
+        className="size-5"
+        checked={toggles[k]}
+        onChange={(e) => setToggles({ ...toggles, [k]: e.target.checked })}
+      />
+      {label}
+    </label>
+  );
+
+  return (
+    <section className="mx-auto flex max-w-5xl flex-col gap-6">
+      <div>
+        <Link to="/study" className="text-sm text-muted underline underline-offset-4">
+          {t.study.back}
+        </Link>
+        <h1 className="text-xl font-semibold">
+          {ticker}
+          {q.data?.company?.name ? (
+            <span className="ms-2 font-normal text-muted">{q.data.company.name}</span>
+          ) : null}
+        </h1>
+      </div>
+
+      {q.isPending && <p className="text-muted">{t.loading}</p>}
+      {q.isError && (
+        <p role="alert" className="text-down">
+          {q.error.message}
+        </p>
+      )}
+
+      {q.data && !q.data.company && <p className="text-sm text-muted">{t.study.noCompany}</p>}
+      {q.data && q.data.bars.length === 0 && <p className="text-muted">{t.study.noBars}</p>}
+
+      {q.data && summary && (
+        <>
+          <Summary data={q.data} s={summary} />
+          <section aria-labelledby="chart" className="flex flex-col gap-2">
+            <h2 id="chart" className="font-semibold">
+              {t.study.chart}
+            </h2>
+            <fieldset className="flex flex-wrap gap-x-4">
+              <legend className="text-sm text-muted">{t.study.indicators}</legend>
+              {toggle('sma50', t.study.sma50)}
+              {toggle('sma200', t.study.sma200)}
+              {toggle('ema20', t.study.ema20)}
+              {toggle('rsi', t.study.rsi)}
+              {toggle('volume', t.study.volume)}
+            </fieldset>
+            <div
+              role="img"
+              aria-label={t.study.chartLabel(ticker, summary.asOf)}
+              className="rounded-sm border border-line"
+            >
+              <Suspense fallback={<p className="p-4 text-muted">{t.loading}</p>}>
+                <PriceChart bars={q.data.bars} markers={markers} toggles={toggles} />
+              </Suspense>
+            </div>
+            <h3 className="text-sm text-muted">{t.study.markers}</h3>
+            <p className="text-sm text-muted">{t.study.markersNote}</p>
+            {markers.length === 0 ? (
+              <p className="text-sm text-muted">{t.study.noMarkers}</p>
+            ) : (
+              <ul className="text-sm">
+                {markers.map((m) => (
+                  <li key={`${m.date}-${m.label}`}>
+                    {m.date}: {m.label}
+                    {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+
+      {q.data && (
+        <section aria-labelledby="filings" className="flex flex-col gap-2">
+          <h2 id="filings" className="font-semibold">
+            {t.study.filings}
+          </h2>
+          <p className="text-sm text-muted">{t.study.filingsNote}</p>
+          <FilingsTable data={q.data} />
+        </section>
+      )}
+
+      {q.data && (
+        <section aria-labelledby="more" className="flex flex-col gap-2">
+          <h2 id="more" className="font-semibold">
+            {t.study.placeholdersTitle}
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {t.study.placeholders.map((p) => (
+              <li key={p.name} className="rounded-sm border border-line p-3">
+                <p className="font-medium">{p.name}</p>
+                <p className="text-sm">
+                  <span className="font-medium">{p.state}.</span>{' '}
+                  <span className="text-muted">{p.why}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </section>
+  );
+}

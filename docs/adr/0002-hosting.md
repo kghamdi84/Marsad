@@ -14,6 +14,7 @@ The brief fixes the providers: Netlify for the web app, Supabase for Postgres, A
 - Only a personal Supabase organization and a personal Netlify team are used. On 2026-11-23 the Supabase connector could see only the "Gulf Insulation Group" organization and the Netlify connector only a team named "GIG". Neither is used until Khaled confirms in writing which resources are personal (see docs/SETUP.md).
 - Start on Supabase Free. Upgrade to Pro before live alerts (Phase 5) because Free pauses after a week of low activity and has no backups.
 - Security headers (CSP, `X-Robots-Tag: noindex`, Referrer-Policy, Permissions-Policy) are served from `apps/web/public/_headers`. SPA routing uses `_redirects`.
+- Revision 2026-11-24: `style-src` allows one inline style by SHA-256 hash. TradingView Lightweight Charts injects a fixed `<style>` element for its attribution logo (position and colours); with it blocked the logo can turn black on the dark background, which would hide the attribution its licence requires. The hash pins that exact text, so nothing else inline is allowed. The e2e test "the chart draws under the production Content Security Policy" loads the page under the real `_headers` policy and fails on any violation, so a library upgrade that changes the text fails loudly.
 
 ## Consequences
 

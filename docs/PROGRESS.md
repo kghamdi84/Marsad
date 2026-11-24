@@ -62,6 +62,15 @@ Live runs after the merge (all from this session, with exit codes read from the 
 
 What changed in this session: 1.13 heartbeat and `system_alerts` (every 15 minutes in trading hours, every 3 hours otherwise; a calendar that does not cover today fails the run loudly); 1.14 Deno verification (the unchanged core fails under Deno, the generated copy passes `deno check` strict and gives byte-identical output, CI job `edge-core` green); 1.10 VWAP reconciliation (a typical-price VWAP was measured up to 0.41% off on five real sessions, so minute `vw` is used); real fixtures replace the synthetic bodies. A mistake of mine, caught by CI: I changed the Status page and did not run the Playwright suite, so the e2e test failed on GitHub; fixed, and I now run `pnpm e2e` before pushing UI changes.
 
+### Phase 2 session 1 (2026-11-24)
+
+- PR #14 merged (`ed8cdaf`): filings knowledge (all 33 8-K items from the SEC form), news tiers and clustering, the AI number verifier and orchestration (planted wrong number: rejected twice, then the template), cost caps, ADR 0007, the `daily_bars` table and job, one shared `massive-api` concurrency group for every Massive workflow.
+- Live: `massive-bars` run 45454512012 ok, 14 tickers, 7,000 rows in 146 s. The free plan returns two years of daily bars (500 for NVDA).
+- Free-plan entitlement tested with real calls: short interest, short volume and dividends work; income statements and Benzinga earnings are not entitled (DATA_SOURCES.md).
+- Study page (this batch): `/study` and `/study/$ticker` with summary, chart, event markers, filings timeline and "requires plan" placeholders. 13 e2e tests, one of which loads the page under the real production CSP.
+- Finding: TradingView Lightweight Charts injects an inline `<style>` for its attribution logo, which the strict CSP blocks. `vite preview` does not apply `_headers`, so no existing test would have caught it. Fixed with a hash-pinned `style-src` entry and a permanent test (ADR 0002).
+- Blocked on Khaled for the AI features: `ANTHROPIC_API_KEY` and approval of the proposed caps (ADR 0007).
+
 ### What is NOT done (carried forward, none blocks Phase 2)
 
 - 5.2b (new): Supabase platform bundling of a real Edge Function is unverified (needs an access token and a first function).
