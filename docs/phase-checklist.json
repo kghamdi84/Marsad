@@ -166,13 +166,13 @@
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
           "status": "done",
-          "evidence": "Live: sec-filings run 45443124013 ok, 8,174 filings for 10 companies in 14.5 s; SEC accepted the declared User-Agent. Unit tests still use synthetic bodies."
+          "evidence": "Live: sec-filings run 45443124013 ok, 8,174 filings for 10 companies in 14.5 s; SEC accepted the declared User-Agent. Unit tests still use synthetic bodies. CAVEAT 2026-11-24: verified by manual runs only; GitHub's scheduler has not fired the 30-minute cron (ADR 0008)."
         },
         {
           "id": "1.4",
           "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
           "status": "done",
-          "evidence": "Live: nasdaq-halts run 45445920963 ok, 57 halts stored (12 active), 1.5 s; scheduled every 5 minutes around US hours. Parser on the real recorded feed; job 6 tests. Khaled approved polling 2026-11-24; terms of use not independently reviewed."
+          "evidence": "Live: nasdaq-halts run 45445920963 ok, 57 halts stored (12 active), 1.5 s; scheduled every 5 minutes around US hours. Parser on the real recorded feed; job 6 tests. Khaled approved polling 2026-11-24; terms of use not independently reviewed. CAVEAT 2026-11-24: verified by manual runs only; GitHub's scheduler has not fired the 5-minute cron (ADR 0008)."
         },
         {
           "id": "1.5",
@@ -226,13 +226,19 @@
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
           "status": "done",
-          "evidence": "Live: health-check run 45450173518 ok (5 sources ok, 1 never reported: massive live feed not built yet, 0 alerts). Migration system_alerts applied by the Supabase integration (anon REST 401). Core assessSources + job + health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page alerts and heartbeat age. Mutation-checked; simulated stale feed reproduces the brief example. Delivery (push, Telegram, email) is Phase 5 (5.11)."
+          "evidence": "Live: health-check run 45450173518 ok (5 sources ok, 1 never reported: massive live feed not built yet, 0 alerts). Migration system_alerts applied by the Supabase integration (anon REST 401). Core assessSources + job + health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page alerts and heartbeat age. Mutation-checked; simulated stale feed reproduces the brief example. Delivery (push, Telegram, email) is Phase 5 (5.11). CAVEAT 2026-11-24: the heartbeat's own schedule has not fired either (ADR 0008); it raised 2 real stale alerts (halts, SEC filings) when started by hand."
         },
         {
           "id": "1.14",
           "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
           "status": "done",
           "evidence": "Verified with Deno 2.9.6 and in CI (job edge-core green on GitHub): unchanged core fails under Deno, scripts/prepare-edge-core.mjs fixes it (18 files, 43 imports), deno check strict passes, Node and Deno output byte-identical. Manual deploy-functions.yml added. Supabase platform bundling of a real function cannot be verified until a function and an access token exist: tracked as 5.2b."
+        },
+        {
+          "id": "1.15",
+          "title": "Reliable scheduling for the polling jobs (ADR 0008): GitHub's scheduler has fired 1 scheduled run in a day",
+          "status": "todo",
+          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Evidence and options in docs/adr/0008-scheduling.md. Needs Khaled's decision and a fine-grained GitHub token (Actions: read and write, this repository only) stored in Supabase Vault."
         }
       ]
     },
