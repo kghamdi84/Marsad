@@ -15,7 +15,13 @@ import {
   type Materiality,
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
+import { Dividends } from '../components/study/Dividends';
+import { Financials } from '../components/study/Financials';
+import { Insiders } from '../components/study/Insiders';
+import { NewsPanel } from '../components/study/NewsPanel';
+import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
+import { loadDividends } from '../lib/studyPanels';
 import { t } from '../strings';
 
 const PriceChart = lazy(() => import('../components/PriceChart'));
@@ -192,6 +198,12 @@ export function StudyCompany() {
     enabled: ticker !== null,
   });
   const summary = useMemo(() => (q.data ? summarizeBars(q.data.bars) : null), [q.data]);
+  // Dividends load on their own: if they fail the chart still shows, just without their markers.
+  const dividends = useQuery({
+    queryKey: ['dividends', ticker],
+    queryFn: () => loadDividends(ticker as string),
+    enabled: ticker !== null,
+  });
   const markers = useMemo(
     () =>
       q.data
@@ -199,9 +211,10 @@ export function StudyCompany() {
             filingEvents(q.data.filings),
             q.data.splits,
             q.data.bars.map((b) => b.date),
+            dividends.data ?? [],
           )
         : [],
-    [q.data],
+    [q.data, dividends.data],
   );
 
   if (ticker === null)
@@ -298,6 +311,12 @@ export function StudyCompany() {
           <FilingsTable data={q.data} />
         </section>
       )}
+
+      {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
+      {q.data?.company && <Insiders cik={q.data.company.cik} />}
+      {q.data && <ShortData ticker={q.data.ticker} />}
+      {q.data && <NewsPanel ticker={q.data.ticker} />}
+      {q.data && <Dividends rows={dividends.data ?? []} />}
 
       {q.data && (
         <section aria-labelledby="more" className="flex flex-col gap-2">

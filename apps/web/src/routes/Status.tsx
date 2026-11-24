@@ -105,6 +105,8 @@ function heartbeatText(at: string | null, checkedAt: string): { text: string; wa
 }
 
 const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
+// A header over right-aligned numbers: text-start on `th` would fight text-end, so this has no text-start.
+const thEnd = 'border-b border-line px-2 py-2 text-end font-medium text-muted';
 const td = 'border-b border-line px-2 py-2 align-top';
 
 export function Status() {
@@ -130,7 +132,7 @@ export function Status() {
               <th className={th}>{t.status.colState}</th>
               <th className={th}>{t.status.colTier}</th>
               <th className={th}>{t.status.colLast}</th>
-              <th className={`${th} text-end`}>{t.status.colLatency}</th>
+              <th className={thEnd}>{t.status.colLatency}</th>
               <th className={th}>{t.status.colNote}</th>
             </tr>
           </thead>
@@ -213,8 +215,8 @@ export function Status() {
                 <th className={th}>{t.status.colJob}</th>
                 <th className={th}>{t.status.colStarted}</th>
                 <th className={th}>{t.status.colStatus}</th>
-                <th className={`${th} text-end`}>{t.status.colRows}</th>
-                <th className={`${th} text-end`}>{t.status.colLatency}</th>
+                <th className={thEnd}>{t.status.colRows}</th>
+                <th className={thEnd}>{t.status.colLatency}</th>
                 <th className={th}>{t.status.colError}</th>
               </tr>
             </thead>

@@ -1,0 +1,295 @@
+import { expect, test, type Page, type Route } from '@playwright/test';
+import dividends from '../../../fixtures/massive/dividends-NVDA.json' with { type: 'json' };
+import news from '../../../fixtures/massive/news-NVDA.json' with { type: 'json' };
+import shortInterest from '../../../fixtures/massive/short-interest-NVDA.json' with { type: 'json' };
+import shortVolume from '../../../fixtures/massive/short-volume-NVDA.json' with { type: 'json' };
+import factsFixture from '../../../fixtures/sec/companyfacts-NVDA-trimmed.json' with { type: 'json' };
+import { seedSession } from './helpers';
+
+// Every row below is built from the responses recorded from the live services on 2026-11-24 (fixtures/), reshaped
+// into the columns the database tables use. Nothing is invented except the price bars, which only need to end at 300.
+
+type Json = Record<string, unknown>;
+
+function json(route: Route, body: unknown) {
+  const wantsObject = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
+  const payload = wantsObject && Array.isArray(body) ? (body[0] ?? null) : body;
+  return route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(payload),
+  });
+}
+
+function bars(): Json[] {
+  const out: Json[] = [];
+  const d = new Date('2026-11-24T00:00:00Z');
+  while (out.length < 260) {
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) {
+      const k = out.length;
+      const close = 300 - k * 0.5;
+      out.unshift({
+        date: d.toISOString().slice(0, 10),
+        open: close - 1,
+        high: close + 2,
+        low: close - 2,
+        close,
+        volume: 1_000_000,
+        vwap: close,
+      });
+    }
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return out;
+}
+
+/** The recorded company facts as `financial_facts` rows. */
+function factRows(): Json[] {
+  const rows: Json[] = [];
+  for (const [taxonomy, concepts] of Object.entries(
+    factsFixture.body.facts as Record<string, Record<string, { units: Record<string, Json[]> }>>,
+  ))
+    for (const [concept, c] of Object.entries(concepts))
+      for (const [unit, list] of Object.entries(c.units))
+        for (const r of list)
+          rows.push({
+            taxonomy,
+            concept,
+            unit,
+            period_start: r['start'] ?? null,
+            period_end: r['end'],
+            value: r['val'],
+            accession: r['accn'],
+            form: r['form'],
+            fiscal_year: r['fy'],
+            fiscal_period: r['fp'],
+            filed: r['filed'],
+            frame: r['frame'] ?? null,
+          });
+  return rows;
+}
+
+async function setup(page: Page) {
+  await seedSession(page, 'aal2');
+  await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
+  const empty = (r: Route) => json(r, []);
+  await page.route('**/rest/v1/market_holidays**', empty);
+  await page.route('**/rest/v1/splits**', empty);
+  await page.route('**/rest/v1/daily_bars**', (r) => json(r, bars()));
+  await page.route('**/rest/v1/instruments**', (r) =>
+    json(r, [{ cik: '0001045810', name: 'NVIDIA CORP' }]),
+  );
+  await page.route('**/rest/v1/filings**', empty);
+  await page.route('**/rest/v1/financial_facts**', (r) => json(r, factRows()));
+  await page.route('**/rest/v1/insider_filings**', (r) =>
+    json(r, [
+      {
+        accession: '0001696841-26-000016',
+        status: 'ok',
+        owner_name: 'Teter Timothy S.',
+        is_director: false,
+        is_officer: true,
+        officer_title: 'EVP, General Counsel and Sec',
+        is_ten_percent_owner: false,
+        plan_10b5: true,
+        filed_at: '2026-11-19T21:54:28Z',
+        period_of_report: '2026-11-19',
+      },
+      {
+        accession: '0000000000-26-000001',
+        status: 'error',
+        owner_name: null,
+        period_of_report: null,
+      },
+    ]),
+  );
+  await page.route('**/rest/v1/insider_transactions**', (r) =>
+    json(r, [
+      // The first and last of the 12 sales in the recorded filing, exactly as recorded (the full filing totals
+      // 30,000 shares and $4,542,781.49; these two rows alone total 2,844 shares and $431,474.26).
+      {
+        accession: '0001696841-26-000016',
+        line: 1,
+        table_kind: 'non-derivative',
+        trade_date: '2026-11-19',
+        code: 'S',
+        shares: 1434,
+        price_per_share: 146.0298,
+        acquired_disposed: 'D',
+        shares_after: 2686226,
+        value_usd: 1434 * 146.0298,
+      },
+      {
+        accession: '0001696841-26-000016',
+        line: 12,
+        table_kind: 'non-derivative',
+        trade_date: '2026-11-19',
+        code: 'S',
+        shares: 1410,
+        price_per_share: 157.4947,
+        acquired_disposed: 'D',
+        shares_after: 2657660,
+        value_usd: 1410 * 157.4947,
+      },
+    ]),
+  );
+  await page.route('**/rest/v1/short_interest**', (r) =>
+    json(
+      r,
+      [...(shortInterest.body.results as Json[])]
+        .reverse()
+        .slice(0, 8)
+        .map((x) => ({
+          settlement_date: x['settlement_date'],
+          short_interest: x['short_interest'],
+          avg_daily_volume: x['avg_daily_volume'],
+          days_to_cover: x['days_to_cover'],
+        })),
+    ),
+  );
+  await page.route('**/rest/v1/short_volume**', (r) =>
+    json(
+      r,
+      [...(shortVolume.body.results as Json[])]
+        .reverse()
+        .slice(0, 10)
+        .map((x) => ({
+          date: x['date'],
+          total_volume: x['total_volume'],
+          short_volume: x['short_volume'],
+          short_volume_ratio: x['short_volume_ratio'],
+        })),
+    ),
+  );
+  await page.route('**/rest/v1/dividends**', (r) =>
+    json(
+      r,
+      [...(dividends.body.results as Json[])].reverse().map((x) => ({
+        ex_dividend_date: x['ex_dividend_date'],
+        pay_date: x['pay_date'],
+        declaration_date: x['declaration_date'],
+        cash_amount: x['cash_amount'],
+        currency: x['currency'],
+      })),
+    ),
+  );
+  await page.route('**/rest/v1/news_articles**', (r) =>
+    json(
+      r,
+      (news.body.results as (Json & { publisher: { name: string } })[]).map((x) => ({
+        id: x['id'],
+        published_at: x['published_utc'],
+        publisher: x.publisher.name,
+        title: x['title'],
+        url: x['article_url'],
+        tickers: x['tickers'],
+      })),
+    ),
+  );
+}
+
+test('financials: as filed, with derived quarters marked, and a date picker that hides what was not yet public', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Financials, as filed' });
+  await expect(panel.getByText('Latest filing used: 2026-08-26')).toBeVisible();
+  // The newest quarter (reported directly), its revenue and growth over the same quarter a year earlier.
+  const quarters = panel.getByRole('table').first(); // the quarterly table; fiscal years are a second table
+  const q2 = quarters.getByRole('row', { name: /^2026-07-26/ });
+  await expect(q2).toContainText('$96.22B');
+  await expect(q2).toContainText('+105.9%');
+  await expect(q2).toContainText('75.0%'); // gross margin 72.142 / 96.221
+  // The fourth quarter of the previous fiscal year is not reported by a 10-Q, so it is derived and says so.
+  await expect(quarters.getByRole('row', { name: /^2026-01-25/ })).toContainText('derived');
+  await expect(quarters.getByRole('row', { name: /^2026-01-25/ })).toContainText('$68.13B');
+  // Trailing four quarters, and price to earnings: last close $300.00 over trailing EPS of $7.91.
+  await expect(panel.getByText('$302.97B').first()).toBeVisible();
+  await expect(panel.getByText('37.9x')).toBeVisible();
+  await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
+  await expect(panel.getByText('$320.27B')).toBeVisible();
+  // Point in time: the day before the Q2 10-Q was filed, that quarter is not there yet.
+  await panel.getByLabel('Known as of').fill('2026-08-25');
+  await expect(panel.getByText('Latest filing used: 2026-05-20')).toBeVisible();
+  await expect(quarters.getByRole('row', { name: /^2026-07-26/ })).toHaveCount(0);
+  await expect(quarters.getByRole('row', { name: /^2026-04-26/ })).toContainText('$81.62B');
+  if (process.env.SHOT_DIR)
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/panels.png`, fullPage: true });
+});
+
+test('insiders: codes explained, the 10b5-1 box shown, totals computed, unreadable filings admitted', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Insider transactions (Form 4)' });
+  await expect(panel.getByText('Teter Timothy S.').first()).toBeVisible();
+  await expect(panel.getByText('Officer, EVP, General Counsel and Sec').first()).toBeVisible();
+  await expect(panel.getByText(/Open-market or private sale of securities/).first()).toBeVisible();
+  await expect(panel.getByText('Plan box checked').first()).toBeVisible();
+  await expect(panel.getByText(/Filed within two business days after the trade/)).toBeVisible();
+  // 1,434 + 1,410 = 2,844 shares; 1,434 x 146.0298 + 1,410 x 157.4947 = $431,474.26 (computed separately in Python).
+  await expect(panel.getByText(/sold 2,844 shares \(\$431,474\.26\)/)).toBeVisible();
+  await expect(
+    panel.getByText('1 insider filing could not be read and is not included.'),
+  ).toBeVisible();
+});
+
+test('short data: both definitions, the lag, and the real rows', async ({ page }) => {
+  await setup(page);
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Short interest and short volume' });
+  await expect(
+    panel.getByText(/Short interest: shares sold short and not yet covered/),
+  ).toBeVisible();
+  await expect(panel.getByText(/It is not short interest/)).toBeVisible();
+  await expect(panel.getByRole('row', { name: /^2026-10-30/ })).toContainText('279,579,505');
+  await expect(panel.getByRole('row', { name: /^2026-10-30/ })).toContainText('2.8');
+  await expect(panel.getByRole('row', { name: /^2026-11-23/ })).toContainText('29.1%');
+});
+
+test('news: tiers and opinion labelled, one story once, links open the publisher in a new tab', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'News' });
+  const first = panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' });
+  await expect(first).toHaveAttribute('target', '_blank');
+  await expect(first).toHaveAttribute('rel', /noopener/);
+  await expect(panel.getByText('Tier 3').first()).toBeVisible();
+  await expect(panel.getByText('Analysis or opinion').first()).toBeVisible();
+  // The real wire item is tier 2 reporting, not opinion.
+  await expect(panel.getByText('Tier 2').first()).toBeVisible();
+  await expect(panel.getByText('Reporting').first()).toBeVisible();
+});
+
+test('dividends: the declared December dividend is listed as upcoming', async ({ page }) => {
+  await setup(page);
+  await page.goto('/study/NVDA');
+  await expect(
+    page.getByText('Ex-dividend 2026-12-02: $0.25, paid 2026-12-23 (upcoming)'),
+  ).toBeVisible();
+});
+
+test('one failing panel shows its own error and leaves the rest of the page working', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/short_interest**', (r) =>
+    r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"boom"}' }),
+  );
+  await page.route('**/rest/v1/short_volume**', (r) =>
+    r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"boom"}' }),
+  );
+  await page.goto('/study/NVDA');
+  await expect(
+    page
+      .getByRole('alert')
+      .filter({ hasText: 'Short interest and short volume could not be loaded' }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Latest filing used: 2026-08-26')).toBeVisible();
+  await expect(page.getByText('$300.00').first()).toBeVisible();
+});

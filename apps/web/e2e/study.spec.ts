@@ -66,6 +66,17 @@ async function mock(page: Page, lastBar: string, withFilings = true) {
   await page.route('**/rest/v1/filings**', (r) => json(r, withFilings ? filings : []));
   await page.route('**/rest/v1/splits**', (r) => json(r, []));
   await page.route('**/rest/v1/market_holidays**', (r) => json(r, []));
+  // The data panels load on their own. Empty by default; tests that care register their own rows after this.
+  for (const table of [
+    'financial_facts',
+    'insider_filings',
+    'insider_transactions',
+    'news_articles',
+    'short_interest',
+    'short_volume',
+    'dividends',
+  ])
+    await page.route(`**/rest/v1/${table}**`, (r) => json(r, []));
 }
 
 test('the company page shows the summary, a drawn chart, labelled filings and honest placeholders', async ({
@@ -99,7 +110,9 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
   await expect(page.getByText('Item 5.02: Executive or director change')).toBeVisible();
   await expect(page.getByText('Item 9.01: Attached documents and exhibits')).toBeVisible();
   await expect(page.getByText('High', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Filed within two business days after the trade/)).toBeVisible();
+  await expect(
+    page.getByText(/Filed within two business days after the trade/).first(),
+  ).toBeVisible();
   await expect(page.getByRole('link', { name: /View on SEC/ }).first()).toHaveAttribute(
     'href',
     'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm',

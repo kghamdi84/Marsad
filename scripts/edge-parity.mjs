@@ -98,6 +98,7 @@ const out = {
     const parsed = core.parseCompanyFacts(cf.body);
     return core.summarizeFinancials(parsed.facts, '2026-12-31');
   })(),
+  rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
     outputTokens: 500,

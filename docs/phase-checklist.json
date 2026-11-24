@@ -166,13 +166,13 @@
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
           "status": "done",
-          "evidence": "Live: sec-filings run 45443124013 ok, 8,174 filings for 10 companies in 14.5 s; SEC accepted the declared User-Agent. Unit tests still use synthetic bodies."
+          "evidence": "Live: sec-filings run 45443124013 ok, 8,174 filings for 10 companies in 14.5 s; SEC accepted the declared User-Agent. Unit tests still use synthetic bodies. CAVEAT 2026-11-24: verified by manual runs only; GitHub's scheduler has not fired the 30-minute cron (ADR 0008)."
         },
         {
           "id": "1.4",
           "title": "Nasdaq halts RSS adapter (confirm URL and terms) and fixtures",
           "status": "done",
-          "evidence": "Live: nasdaq-halts run 45445920963 ok, 57 halts stored (12 active), 1.5 s; scheduled every 5 minutes around US hours. Parser on the real recorded feed; job 6 tests. Khaled approved polling 2026-11-24; terms of use not independently reviewed."
+          "evidence": "Live: nasdaq-halts run 45445920963 ok, 57 halts stored (12 active), 1.5 s; scheduled every 5 minutes around US hours. Parser on the real recorded feed; job 6 tests. Khaled approved polling 2026-11-24; terms of use not independently reviewed. CAVEAT 2026-11-24: verified by manual runs only; GitHub's scheduler has not fired the 5-minute cron (ADR 0008)."
         },
         {
           "id": "1.5",
@@ -226,13 +226,19 @@
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
           "status": "done",
-          "evidence": "Live: health-check run 45450173518 ok (5 sources ok, 1 never reported: massive live feed not built yet, 0 alerts). Migration system_alerts applied by the Supabase integration (anon REST 401). Core assessSources + job + health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page alerts and heartbeat age. Mutation-checked; simulated stale feed reproduces the brief example. Delivery (push, Telegram, email) is Phase 5 (5.11)."
+          "evidence": "Live: health-check run 45450173518 ok (5 sources ok, 1 never reported: massive live feed not built yet, 0 alerts). Migration system_alerts applied by the Supabase integration (anon REST 401). Core assessSources + job + health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page alerts and heartbeat age. Mutation-checked; simulated stale feed reproduces the brief example. Delivery (push, Telegram, email) is Phase 5 (5.11). CAVEAT 2026-11-24: the heartbeat's own schedule has not fired either (ADR 0008); it raised 2 real stale alerts (halts, SEC filings) when started by hand."
         },
         {
           "id": "1.14",
           "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
           "status": "done",
           "evidence": "Verified with Deno 2.9.6 and in CI (job edge-core green on GitHub): unchanged core fails under Deno, scripts/prepare-edge-core.mjs fixes it (18 files, 43 imports), deno check strict passes, Node and Deno output byte-identical. Manual deploy-functions.yml added. Supabase platform bundling of a real function cannot be verified until a function and an access token exist: tracked as 5.2b."
+        },
+        {
+          "id": "1.15",
+          "title": "Reliable scheduling for the polling jobs (ADR 0008): GitHub's scheduler has fired 1 scheduled run in a day",
+          "status": "todo",
+          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Evidence and options in docs/adr/0008-scheduling.md. Needs Khaled's decision and a fine-grained GitHub token (Actions: read and write, this repository only) stored in Supabase Vault."
         }
       ]
     },
@@ -251,13 +257,13 @@
           "id": "2.1",
           "title": "Company page chart with indicators and event markers (Lightweight Charts, attribution kept)",
           "status": "in_progress",
-          "evidence": "Live: massive-bars run 45454512012 ok (14 tickers, 7,000 rows, 500 bars each, 146 s; latest bar 2026-11-23 because the 24th was mid-session and partial days are never stored). Study page /study/$ticker: candlesticks with SMA 50, SMA 200, EMA 20, RSI 14 and volume, summary with provenance and a STALE label when the latest bar is older than the last finished session, 8-K and split markers placed point-in-time. Lightweight Charts attribution kept; a hash-pinned CSP entry was needed for its logo style (ADR 0002), covered by an e2e test under the real CSP. Still to do: markers for earnings, insider buys, dividends, halts and alerts received (those data sets are not stored yet)."
+          "evidence": "Live: massive-bars run 45454512012 ok (14 tickers, 7,000 rows, 500 bars each, 146 s; latest bar 2026-11-23 because the 24th was mid-session and partial days are never stored). Study page /study/$ticker: candlesticks with SMA 50, SMA 200, EMA 20, RSI 14 and volume, summary with provenance and a STALE label when the latest bar is older than the last finished session, 8-K and split markers placed point-in-time. Lightweight Charts attribution kept; a hash-pinned CSP entry was needed for its logo style (ADR 0002), covered by an e2e test under the real CSP. Dividend markers added (ex-dividend date, below the bar). Still to do: markers for earnings, insider buys, halts and alerts received."
         },
         {
           "id": "2.2",
           "title": "Financial statements and ratios, point-in-time, valuation percentiles",
-          "status": "in_progress",
-          "evidence": "Data layer done, not yet live: SEC company facts parser and point-in-time engine (core/fundamentals.ts) checked against an independent Python computation on the real NVIDIA facts (quarters, derived Q4, trailing four quarters, margins, year-over-year growth, balance sheet; point-in-time cutoffs and a hand-built restatement mutation-checked), financial_facts table, sec-facts job and workflow. Still to do: the Financials panel on the page. Valuation percentiles against a 5-year price history are not possible on the free plan (2 years of bars): the panel says so. P/E against trailing EPS is implemented."
+          "status": "done",
+          "evidence": "Live: sec-facts run (after PR #16) stored 10,126 facts for 10 companies in 19 s. Financials panel on the Study page: last 8 quarters with margins and growth, trailing four quarters, price to earnings, balance sheet, fiscal years, a 'Known as of' date picker that hides what was not yet filed (point-in-time), derived quarters marked, each figure's filing date and accession on hover. Checked against an independent Python computation on real NVIDIA facts. Valuation percentiles against a 5-year history show 'Requires a higher Massive plan' (the free plan gives 2 years of prices), which the brief accepts as a placeholder. 15 core tests plus 6 e2e panel tests."
         },
         {
           "id": "2.3",
@@ -269,7 +275,7 @@
           "id": "2.4",
           "title": "Form 4 with codes and 10b5-1 flag; Forms 3 and 5; 13F with lag label",
           "status": "in_progress",
-          "evidence": "Parser done, not yet live: core/form4.ts reads real NVIDIA Form 4s (12 sales totalling 30,000 shares and $4,542,781.49, matching an independent computation; gifts under a 10b5-1 plan), documents the element names, rejects error pages served with HTTP 200; insider tables and the sec-insiders job and workflow. Still to do: the panel with explained transaction codes and the 10b5-1 flag, Forms 3 and 5 display, 13F holders (placeholder: requires a full 13F ingest or a higher plan)."
+          "evidence": "Insider panel live-data tested: sec-insiders run read 80 Form 4 filings and stored 199 transactions. Panel shows explained transaction codes, role, shares, price, value, shares owned after, the 10b5-1 box (plan, no plan or not stated), 90-day open-market totals, the two-business-day lag, and admits unreadable filings. Verified on the real filing (12 sales, 30,000 shares, $4,542,781.49). Still to do: Forms 3 and 5 (the job reads only Form 4 and 4/A) and 13F holders (placeholder: needs a full 13F ingest or a higher plan)."
         },
         {
           "id": "2.5",
@@ -286,14 +292,14 @@
         {
           "id": "2.7",
           "title": "Short interest and short volume with definitions",
-          "status": "in_progress",
-          "evidence": "Data layer done, not yet live: short interest, short volume and dividends adapters tested on real NVDA rows, tables and the massive-study job. Still to do: the panel with one-line definitions and disclosure-lag labels."
+          "status": "done",
+          "evidence": "Live: massive-study-data run stored 322 short interest rows, 1,190 short volume rows and 85 dividends for 14 tickers. Panel shows both tables, a one-line definition of each (short interest is not short volume), and the reporting lag. ETFs may show none."
         },
         {
           "id": "2.8",
           "title": "News with tiers and clustering",
-          "status": "in_progress",
-          "evidence": "Core done: packages/core/src/news.ts publisher tiers (unknown publishers are tier 4), opinion label, story clustering with window, ticker and minimum-shared-words rules; 16 tests, rules mutation-checked. Real free-plan sample: Motley Fool, Zacks, GlobeNewswire only. Still to do: news job, table and UI. Adapter and job added (real NVDA news fixture, 30 articles). Clustering the 30 real headlines exposed a false merge (two templated Zacks headlines about different funds); fixed with a ticker guard and a same-outlet threshold, each with its own test and mutation check. Still to do: the News panel."
+          "status": "done",
+          "evidence": "Live: massive-news run stored 392 articles for 14 tickers. News panel groups stories (30 real headlines form 30 stories after the ticker and same-outlet guards), shows the earliest time in ET with local time, the outlet count, the source tier and a Reporting or Analysis-or-opinion label, with links that open in a new tab. Free-plan news comes from three publishers only."
         },
         {
           "id": "2.9",

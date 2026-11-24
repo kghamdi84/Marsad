@@ -131,7 +131,7 @@ export function snapToBar(
   return lastDate === null ? null : found;
 }
 
-export type MarkerKind = 'high-8k' | 'medium-8k' | 'split';
+export type MarkerKind = 'high-8k' | 'medium-8k' | 'split' | 'dividend';
 
 export interface ChartMarker {
   /** The bar date the marker sits on. */
@@ -155,14 +155,22 @@ export interface SplitEvent {
   splitTo: number;
 }
 
+export interface DividendEvent {
+  exDividendDate: string;
+  cashAmount: number;
+  currency: string;
+}
+
 /**
- * Markers for the chart: 8-Ks of high or medium materiality and splits. Form 4 and low-materiality 8-Ks
- * stay in the filings list, because hundreds of markers would hide the price.
+ * Markers for the chart: 8-Ks of high or medium materiality, splits and dividends (on the ex-dividend date,
+ * the first day the stock trades without the dividend). Form 4 and low-materiality 8-Ks stay in the filings
+ * list, because hundreds of markers would hide the price.
  */
 export function buildEventMarkers(
   filings: readonly FilingEvent[],
   splits: readonly SplitEvent[],
   barDates: readonly string[],
+  dividends: readonly DividendEvent[] = [],
 ): ChartMarker[] {
   const out: ChartMarker[] = [];
   for (const f of filings) {
@@ -186,6 +194,16 @@ export function buildEventMarkers(
       date,
       kind: 'split',
       label: `Split ${s.splitTo} for ${s.splitFrom}`,
+      materiality: null,
+    });
+  }
+  for (const d of dividends) {
+    const date = snapToBar(barDates, null, d.exDividendDate);
+    if (date === null) continue;
+    out.push({
+      date,
+      kind: 'dividend',
+      label: `Dividend ${d.currency === 'USD' ? '$' : `${d.currency} `}${d.cashAmount}`,
       materiality: null,
     });
   }
