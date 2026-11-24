@@ -159,8 +159,8 @@
         {
           "id": "1.2",
           "title": "FRED adapter and fixtures",
-          "status": "in_progress",
-          "evidence": "core/adapters/fred.ts + jobs/src/fred-job.ts + migration fred_observations + workflow fred-daily.yml; 4 job tests on SYNTHETIC bodies (partial failure marks error and leaves source not live). Needs merge, then a live run with FRED_API_KEY to confirm and record real values."
+          "status": "done",
+          "evidence": "Live: fred-daily run 45439081475 ok, 72,924 rows, 12 series. Real DGS10 body recorded 2026-11-24 (fixtures/fred, includes '.' on Veterans Day) and tested in core adapters.test.ts. Massive 10y equals FRED DGS10 exactly on 2026-11-18 to 20."
         },
         {
           "id": "1.3",
@@ -207,14 +207,14 @@
         {
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
-          "status": "in_progress",
-          "evidence": "Live nightly job reconcile-nightly (run 45443576867: 15 checks, Massive vs FRED 10y and both spreads). Added 2026-11-24: VWAP for SPY on the last 3 completed sessions, vendor daily vw vs the volume-weighted mean of minute vw, 0.1% tolerance; missing side or unavailable minute bars is a failure with the reason. A typical-price VWAP was rejected after measurement (up to 0.41% off, see DATA_SOURCES). 6 new job tests, mutation-checked. Needs merge and a live run to confirm. Deferred with reasons: VIX vs FRED needs the Massive Indices plan (Phase 3 or 5 purchase decision); filings completeness needs a second filings feed (Phase 2). Both listed in IDEAS.md."
+          "status": "done",
+          "evidence": "Live: reconcile-nightly run 45450479006 ok, 18 checks (15 yield and spread checks over 5 dates plus 3 VWAP checks for SPY 2026-11-19, 11-20, 11-23), all within tolerance. VWAP rebuilt from minute vw because a typical-price VWAP was measured up to 0.41% off (DATA_SOURCES.md). First attempt (run 45450189469) failed with a Massive 429 because I started the fixture recorder at the same moment; the failure was reported with its reason, as designed. Deferred with reasons, listed in IDEAS.md: VIX vs FRED (needs Massive Indices plan) and filings completeness (needs a second filings feed, Phase 2)."
         },
         {
           "id": "1.11",
           "title": "Job run records from every adapter and job",
-          "status": "in_progress",
-          "evidence": "core runJob used by the GPR job; live run record visible on the Status page (gpr-daily OK, 15302 rows, 22115 ms). Other jobs not yet deployed."
+          "status": "done",
+          "evidence": "Every job writes public.job_runs through core runJob: gpr-daily, fred-daily, massive-reference, reconcile-nightly, sec-filings, nasdaq-halts and health-check, each live and visible on the Status page. No Edge Function exists yet; the first one must use runJob (noted in ADR 0004)."
         },
         {
           "id": "1.12",
@@ -225,14 +225,14 @@
         {
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
-          "status": "in_progress",
-          "evidence": "core/health.ts (assessSources, healthTransitions, SOURCE_POLICY_VERSION) + jobs/src/health-job.ts + migration system_alerts (RLS, input snapshot and policy version stored per alert) + workflow health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page shows alerts and heartbeat age. 7 job tests and 5 core tests, mutation-checked (breaking 'alert once' fails 2 tests). Calendar not covering today fails the run loudly. Delivery (push, Telegram, email) is Phase 5. Needs merge (applies the migration), then a live run to confirm."
+          "status": "done",
+          "evidence": "Live: health-check run 45450173518 ok (5 sources ok, 1 never reported: massive live feed not built yet, 0 alerts). Migration system_alerts applied by the Supabase integration (anon REST 401). Core assessSources + job + health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page alerts and heartbeat age. Mutation-checked; simulated stale feed reproduces the brief example. Delivery (push, Telegram, email) is Phase 5 (5.11)."
         },
         {
           "id": "1.14",
           "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
-          "status": "in_progress",
-          "evidence": "Checked with Deno 2.9.6: unchanged core fails under Deno (./time.js not found); scripts/prepare-edge-core.mjs rewrites 43 imports in 18 files; deno check passes strict; scripts/edge-parity.mjs gives byte-identical Node and Deno output (9,295 bytes). CI job edge-core runs this on every PR; manual workflow deploy-functions.yml added (needs SUPABASE_ACCESS_TOKEN, does nothing until a function exists). NOT verified: Supabase platform bundling of a real function (no token, no function yet); confirmed at the first deploy in Phase 5. ADR 0004 updated."
+          "status": "done",
+          "evidence": "Verified with Deno 2.9.6 and in CI (job edge-core green on GitHub): unchanged core fails under Deno, scripts/prepare-edge-core.mjs fixes it (18 files, 43 imports), deno check strict passes, Node and Deno output byte-identical. Manual deploy-functions.yml added. Supabase platform bundling of a real function cannot be verified until a function and an access token exist: tracked as 5.2b."
         }
       ]
     },
@@ -496,6 +496,12 @@
         {
           "id": "5.2",
           "title": "Cron and tick fan-out",
+          "status": "todo",
+          "evidence": ""
+        },
+        {
+          "id": "5.2b",
+          "title": "Confirm Supabase platform bundling of the first real Edge Function (ADR 0004): add SUPABASE_ACCESS_TOKEN, run deploy-functions.yml, call the function",
           "status": "todo",
           "evidence": ""
         },

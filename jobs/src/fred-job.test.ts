@@ -27,7 +27,7 @@ function http(failing: string[] = [], empty: string[] = []): HttpClient {
   return new HttpClient({ fetch, clock, bucket: new TokenBucket(100, 100, clock), maxRetries: 0 });
 }
 
-describe('runFredJob (SYNTHETIC FRED bodies)', () => {
+describe('runFredJob (synthetic bodies for job logic; the real FRED shape is tested in core adapters.test.ts)', () => {
   it('stores all 12 series, records an ok run and marks the source live', async () => {
     const { store, log } = fakeStore();
     const run = await runFredJob({ http: http(), apiKey: 'k', store, now: () => NOW });

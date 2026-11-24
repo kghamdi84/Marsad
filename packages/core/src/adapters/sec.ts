@@ -4,8 +4,8 @@
  * (the caller builds the HttpClient with a bucket of at most 5 per second).
  *
  * The contact string comes from the SEC_USER_AGENT secret and is never hard-coded. Response shape
- * follows the documented `filings.recent` parallel arrays; the test body is synthetic until it is
- * re-recorded with the real contact string set.
+ * follows the documented `filings.recent` parallel arrays; confirmed against the live service on
+ * 2026-11-24 and recorded (trimmed) in fixtures/sec.
  */
 import { normalizeCik } from '../corporate-actions.js';
 import { HttpClient } from '../http.js';

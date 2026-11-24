@@ -6,7 +6,7 @@ import { runSecJob } from './sec-job.js';
 const NOW = new Date('2026-11-24T14:07:00Z');
 const cfg: SecConfig = { userAgent: 'Marsad research test@example.com', now: () => NOW };
 
-// SYNTHETIC bodies in the SEC's documented shapes (not recorded from the live service).
+// Synthetic bodies for job logic; the real SEC shapes are tested in core adapters.test.ts (fixtures/sec).
 const tickers = {
   '0': { cik_str: 1045810, ticker: 'NVDA', title: 'NVIDIA CORP' },
   '1': { cik_str: 1919011, ticker: 'RKLB', title: 'Rocket Lab Corp' },
@@ -59,7 +59,7 @@ function http(opts: { failCik?: string; tickerStatus?: number } = {}): {
   };
 }
 
-describe('runSecJob (SYNTHETIC SEC bodies)', () => {
+describe('runSecJob (synthetic bodies for job logic)', () => {
   it('stores instruments and filings, declares the User-Agent on every request, and marks the source live', async () => {
     const { store, log } = fakeStore();
     const h = http();
