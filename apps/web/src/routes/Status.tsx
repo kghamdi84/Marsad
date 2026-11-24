@@ -5,6 +5,7 @@ import {
   buildCalendar,
   describeSourceHealth,
   dualClock,
+  formatAge,
   type UpcomingRow,
 } from '@marsad/core';
 import { supabase } from '../lib/supabase';
@@ -36,6 +37,18 @@ function when(iso: string | null): string {
   return `${d.toISOString().slice(0, 10)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
 }
 
+interface AlertRow {
+  id: number;
+  created_at: string;
+  event: 'stale' | 'recovered' | 'mismatch';
+  source: string;
+  headline: string;
+  paused_rules: string[];
+}
+
+/** The heartbeat runs every 15 minutes in trading hours and every 3 hours otherwise. */
+const HEARTBEAT_LATE_SEC = 4 * 3600;
+
 interface HolidayRow {
   date: string;
   exchange: string;
@@ -47,14 +60,23 @@ interface HolidayRow {
 
 async function load() {
   if (!supabase) throw new Error('not configured');
-  const [sources, jobs, holidays] = await Promise.all([
+  const [sources, jobs, holidays, alerts, beat] = await Promise.all([
     supabase.from('source_status').select('*').order('source'),
     supabase.from('job_runs').select('*').order('started_at', { ascending: false }).limit(20),
     supabase.from('market_holidays').select('*').eq('exchange', 'NYSE'),
+    supabase.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(20),
+    supabase
+      .from('job_runs')
+      .select('started_at')
+      .eq('job', 'health-check')
+      .order('started_at', { ascending: false })
+      .limit(1),
   ]);
   if (sources.error) throw new Error(sources.error.message);
   if (jobs.error) throw new Error(jobs.error.message);
   if (holidays.error) throw new Error(holidays.error.message);
+  if (alerts.error) throw new Error(alerts.error.message);
+  if (beat.error) throw new Error(beat.error.message);
   const rows: UpcomingRow[] = (holidays.data as HolidayRow[]).map((h) => ({
     date: h.date,
     exchange: h.exchange,
@@ -66,9 +88,20 @@ async function load() {
   return {
     sources: sources.data as SourceRow[],
     jobs: jobs.data as JobRow[],
+    alerts: alerts.data as AlertRow[],
+    heartbeatAt: (beat.data as { started_at: string }[])[0]?.started_at ?? null,
     calendar: buildCalendar(rows, 'NYSE'),
     checkedAt: new Date().toISOString(),
   };
+}
+
+function heartbeatText(at: string | null, checkedAt: string): { text: string; warn: boolean } {
+  if (!at) return { text: t.status.heartbeatNone, warn: true };
+  const sec = (new Date(checkedAt).getTime() - new Date(at).getTime()) / 1000;
+  const age = formatAge(Math.max(0, sec));
+  return sec > HEARTBEAT_LATE_SEC
+    ? { text: t.status.heartbeatLate(age), warn: true }
+    : { text: t.status.heartbeat(age), warn: false };
 }
 
 const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
@@ -128,6 +161,45 @@ export function Status() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {q.data && (
+        <p
+          role="status"
+          className={
+            heartbeatText(q.data.heartbeatAt, q.data.checkedAt).warn ? 'text-down' : 'text-muted'
+          }
+        >
+          {heartbeatText(q.data.heartbeatAt, q.data.checkedAt).text}
+        </p>
+      )}
+
+      <div className="overflow-x-auto">
+        <h2 className="mb-2 font-semibold">{t.status.alerts}</h2>
+        {q.data && q.data.alerts.length === 0 ? (
+          <p className="text-muted">{t.status.noAlerts}</p>
+        ) : (
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className={th}>{t.status.colWhen}</th>
+                <th className={th}>{t.status.colEvent}</th>
+                <th className={th}>{t.status.colHeadline}</th>
+                <th className={th}>{t.status.colPaused}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.data?.alerts.map((a) => (
+                <tr key={a.id}>
+                  <td className={td}>{when(a.created_at)}</td>
+                  <td className={td}>{t.status.events[a.event]}</td>
+                  <td className={td}>{a.headline}</td>
+                  <td className={`${td} text-muted`}>{a.paused_rules.join(', ')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="overflow-x-auto">

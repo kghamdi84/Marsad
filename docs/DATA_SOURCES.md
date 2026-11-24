@@ -19,7 +19,17 @@ Current plan: free tier (about 5 calls per minute). Entitlement test reported in
 
 Plan ladder listed in the brief (Nov 2026, **to confirm** on massive.com/pricing before quoting a price): Stocks Advanced USD 199; Options Developer USD 79 (15-minute delayed); Options Advanced USD 199; Indices Starter USD 49 (delayed); Indices Advanced USD 99 (real-time VIX, VIX3M, SPX, NDX); partner datasets USD 99 each. A Stocks plan includes VXX but not the VIX index.
 
-**Confirmed live 2026-11-24** (api.massive.com with `Authorization: Bearer <key>`): `/v1/marketstatus/upcoming`, `/stocks/v1/splits`, `/fed/v1/treasury-yields` on the free plan. Entitlement error body: not yet observed.
+**Confirmed live 2026-11-24** (api.massive.com with `Authorization: Bearer <key>`): `/v1/marketstatus/upcoming`, `/stocks/v1/splits`, `/fed/v1/treasury-yields` on the free plan. Entitlement error body: not yet observed (the manual `record-fixtures` workflow captures it).
+
+**VWAP finding, 2026-11-24** (SPY, 5 sessions 2026-11-16 to 2026-11-20, 1-minute bars on the free plan via the Massive connector; n is small, one ticker): the vendor's daily-bar `vw` against three rebuilds.
+
+| Rebuild from minute bars                   | Difference from daily `vw` | Verdict at the 0.1% tolerance |
+| ------------------------------------------ | -------------------------- | ----------------------------- |
+| Volume-weighted mean of the minute `vw`    | +0.002% to +0.074%         | Within, thin margin           |
+| Typical price (high+low+close)/3, all bars | -0.002% to -0.413%         | Fails on 2 of 5 days          |
+| Typical price, regular session 09:30-16:00 | -0.287% to +0.046%         | Fails on 3 of 5 days          |
+
+The typical-price error grows with the day's range (4.57% range on 2026-11-20 gave -0.41%). Minute bars cover only 93.0% to 96.8% of the daily volume, so they are not a full tape. Consequences: the nightly check rebuilds VWAP from the minute `vw` field, not from OHLC; any rule that uses VWAP from `packages/core` `vwap()` (typical price) must expect it to differ from the vendor VWAP by up to about 0.4% on volatile days; rules should prefer `volumeWeightedPrice` over bar `vw` when minute bars carry it. The minute-versus-daily check is the vendor against itself at two aggregation levels, so it detects missing or corrupt bars, not a shared error in both.
 
 Endpoint groups (paths from the brief; parameters and fields **to confirm**; `vX` paths are experimental and sit behind adapters with contract tests):
 

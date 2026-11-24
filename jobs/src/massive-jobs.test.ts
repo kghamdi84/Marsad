@@ -17,6 +17,36 @@ import { runReconcileJob } from './reconcile-job.js';
 const NOW = new Date('2026-11-24T05:30:00Z');
 const cfg: MassiveConfig = { apiKey: 'test-key', planTier: 'end-of-day', now: () => NOW };
 
+// Hand-built SPY bars: the daily VWAP of each day is the exact volume-weighted mean of two minute bars
+// (100 at vw-0.5 and 100 at vw+0.5). 2026-11-24 is today's partial session and must not be checked.
+const DAILY_VWAP: Record<string, number> = {
+  '2026-11-19': 100,
+  '2026-11-20': 101,
+  '2026-11-23': 102,
+  '2026-11-24': 103,
+};
+const dailyBars = Object.entries(DAILY_VWAP).map(([date, vw]) => ({
+  t: Date.parse(`${date}T05:00:00Z`), // midnight ET in November
+  o: vw,
+  h: vw + 1,
+  l: vw - 1,
+  c: vw,
+  v: 1_000_000,
+  vw,
+}));
+function minuteBars(date: string, skew = 0) {
+  const vw = DAILY_VWAP[date] ?? 0;
+  return [vw - 0.5 + skew, vw + 0.5 + skew].map((p, i) => ({
+    t: Date.parse(`${date}T14:30:00Z`) + i * 60_000,
+    o: p,
+    h: p + 0.1,
+    l: p - 0.1,
+    c: p,
+    v: 100,
+    vw: p,
+  }));
+}
+
 /** Routes by path to bodies built from the recorded fixtures. `overrides` maps a path fragment to a response. */
 function http(overrides: Record<string, { status: number; body: string }> = {}): HttpClient {
   const clock: Clock = { now: () => NOW.getTime(), sleep: () => Promise.resolve() };
@@ -30,7 +60,10 @@ function http(overrides: Record<string, { status: number; body: string }> = {}):
         });
     }
     let body = '{}';
-    if (url.includes('/v1/marketstatus/upcoming')) body = JSON.stringify(holidays.data);
+    const minute = /\/range\/1\/minute\/(\d{4}-\d{2}-\d{2})\//.exec(url);
+    if (url.includes('/range/1/day/')) body = JSON.stringify({ results: dailyBars });
+    else if (minute) body = JSON.stringify({ results: minuteBars(minute[1] ?? '') });
+    else if (url.includes('/v1/marketstatus/upcoming')) body = JSON.stringify(holidays.data);
     else if (url.includes('/stocks/v1/splits'))
       body = JSON.stringify({ results: splitsFixture.data });
     else if (url.includes('/fed/v1/treasury-yields'))
@@ -131,10 +164,12 @@ describe('runReconcileJob', () => {
     const { store } = fakeStore(matching);
     const run = await runReconcileJob({ http: http(), cfg, store, now: () => NOW });
     expect(run.status).toBe('ok');
-    expect(run.rows_written).toBe(9);
+    expect(run.rows_written).toBe(12); // 9 yield and spread checks plus 3 VWAP checks
     expect(run.details).toMatchObject({
-      checks: 9,
+      checks: 12,
       dates: ['2026-11-18', '2026-11-19', '2026-11-20'],
+      // Only completed sessions: 2026-11-24 (today, 00:30 ET) is left out.
+      vwapDates: ['2026-11-19', '2026-11-20', '2026-11-23'],
     });
   });
 
@@ -192,5 +227,70 @@ describe('runReconcileJob', () => {
     expect(run.error).toBe(
       'Massive yields unavailable: Requires a higher Massive plan (not-entitled)',
     );
+  });
+
+  it('fails when the minute VWAP disagrees with the daily VWAP beyond 0.1%', async () => {
+    const skewed = {
+      status: 200,
+      body: JSON.stringify({ results: minuteBars('2026-11-20', 1) }), // about 1% high
+    };
+    const { store } = fakeStore(matching);
+    const run = await runReconcileJob({
+      http: http({ '/range/1/minute/2026-11-20/': skewed }),
+      cfg,
+      store,
+      now: () => NOW,
+    });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain('VWAP SPY 2026-11-20');
+    expect(run.error).not.toContain('VWAP SPY 2026-11-19');
+  });
+
+  it('accepts a difference inside 0.1%', async () => {
+    const near = {
+      status: 200,
+      body: JSON.stringify({ results: minuteBars('2026-11-20', 0.05) }), // 0.05% high
+    };
+    const { store } = fakeStore(matching);
+    const run = await runReconcileJob({
+      http: http({ '/range/1/minute/2026-11-20/': near }),
+      cfg,
+      store,
+      now: () => NOW,
+    });
+    expect(run.status).toBe('ok');
+  });
+
+  it('treats minute bars the plan cannot return as a failure, not a pass', async () => {
+    const denied = { status: 403, body: JSON.stringify({ status: 'NOT_AUTHORIZED' }) };
+    const { store } = fakeStore(matching);
+    const run = await runReconcileJob({
+      http: http({ '/range/1/minute/': denied }),
+      cfg,
+      store,
+      now: () => NOW,
+    });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain(
+      'minute bars unavailable: Requires a higher Massive plan (not-entitled)',
+    );
+  });
+
+  it('treats a daily bar without a vendor VWAP as a failure', async () => {
+    const noVw = {
+      status: 200,
+      body: JSON.stringify({
+        results: dailyBars.map((b) => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v })),
+      }),
+    };
+    const { store } = fakeStore(matching);
+    const run = await runReconcileJob({
+      http: http({ '/range/1/day/': noVw }),
+      cfg,
+      store,
+      now: () => NOW,
+    });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain('vendor VWAP is missing, cannot verify');
   });
 });

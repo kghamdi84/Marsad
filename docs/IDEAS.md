@@ -11,3 +11,6 @@ Captured during work so they are not built early.
 - Phase 1: confirm the Nasdaq Trader terms of use for polling the halts feed.
 - Phase 1: time-of-day adjusted RVOL for intraday bars (the current RVOL compares with the previous N bars).
 - Phase 1: a Python-free GPR conversion if a maintained, license-clean `.xls` reader for Deno or Node appears.
+- Phase 3: widen the VWAP reconciliation beyond SPY (a handful of liquid tickers) and revisit the 0.1% tolerance once there are 30 or more sessions; the 5-session margin (max 0.074%) is thin.
+- Phase 5: VIX against FRED `VIXCLS` needs the Massive Indices plan (not entitled on free); decide with the plan purchase.
+- Phase 2: filings completeness (stored EDGAR filings against a second feed such as the EDGAR current-filings Atom feed) once the Study module defines which forms matter.

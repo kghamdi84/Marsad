@@ -6,7 +6,9 @@ import type {
   GprDay,
   Halt,
   JobRunRecord,
+  SourceHeartbeat,
   Split,
+  SystemAlert,
   UpcomingRow,
 } from '@marsad/core';
 import type { SourceStatusUpdate, Store } from './store.js';
@@ -21,12 +23,27 @@ export interface FakeLog {
   halts: Halt[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
+  alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
 }
 
-export function fakeStore(fred: Record<string, FredObservation[]> = {}): {
+export interface FakeSeed {
+  fred?: Record<string, FredObservation[]>;
+  heartbeats?: SourceHeartbeat[];
+  holidays?: UpcomingRow[];
+  /** Previous stale/recovered state per source, as stored by earlier runs. */
+  health?: Record<string, 'stale' | 'recovered'>;
+}
+
+export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
   store: Store;
   log: FakeLog;
 } {
+  const isSeed = (x: unknown): x is FakeSeed =>
+    typeof x === 'object' &&
+    x !== null &&
+    ('fred' in x || 'heartbeats' in x || 'holidays' in x || 'health' in x);
+  const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
+  const fred = s.fred ?? {};
   const log: FakeLog = {
     gpr: [],
     fred: [],
@@ -37,6 +54,7 @@ export function fakeStore(fred: Record<string, FredObservation[]> = {}): {
     halts: [],
     runs: [],
     statuses: [],
+    alerts: [],
   };
   const store: Store = {
     upsertGprDays: (days) => {
@@ -76,6 +94,15 @@ export function fakeStore(fred: Record<string, FredObservation[]> = {}): {
     updateSourceStatus: (u) => {
       log.statuses.push(u);
       return Promise.resolve();
+    },
+    getSourceHeartbeats: () => Promise.resolve([...(s.heartbeats ?? [])]),
+    getHolidays: () => Promise.resolve([...(s.holidays ?? [])]),
+    getLatestHealthEvents: () => Promise.resolve({ ...(s.health ?? {}) }),
+    insertSystemAlerts: (alerts, policyVersion, snapshots) => {
+      alerts.forEach((alert, i) =>
+        log.alerts.push({ alert, policyVersion, snapshot: snapshots[i] ?? {} }),
+      );
+      return Promise.resolve(alerts.length);
     },
   };
   return { store, log };

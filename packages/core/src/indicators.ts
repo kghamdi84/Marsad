@@ -209,3 +209,23 @@ export function rvol(volume: readonly number[], period = 20): Series {
   }
   return out;
 }
+
+/**
+ * Volume-weighted average of per-bar prices: sum(price * volume) / sum(volume). With each bar's own
+ * volume-weighted price (a vendor's `vw`) this rebuilds the session VWAP exactly; with typical prices
+ * it only approximates it. Null when there is no volume.
+ */
+export function volumeWeightedPrice(
+  prices: readonly number[],
+  volume: readonly number[],
+): number | null {
+  checkSameLength(prices, volume);
+  let pv = 0;
+  let vol = 0;
+  prices.forEach((p, i) => {
+    const v = at(volume, i);
+    pv += p * v;
+    vol += v;
+  });
+  return vol === 0 ? null : pv / vol;
+}

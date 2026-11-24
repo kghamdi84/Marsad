@@ -97,13 +97,13 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 
 **Later in Phase 1 (not needed yet):**
 
-| Secret                                                                  | Where to find it                                               | Used for                                                                                    |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `MASSIVE_API_KEY`                                                       | massive.com dashboard, **API Keys**                            | Market data adapters, holiday calendar                                                      |
-| `FRED_API_KEY`                                                          | `https://fredaccount.stlouisfed.org/apikeys` (free)            | Macro series, VIX and yield cross-checks                                                    |
-| `SEC_USER_AGENT`                                                        | Text you choose, like `Marsad research your-email@example.com` | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in) |
-| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` | Only if Edge Functions are later deployed from GitHub Actions  | Not needed while the GitHub integration deploys the database                                |
-| `ANTHROPIC_API_KEY`                                                     | console.anthropic.com, **API Keys**                            | Phase 2                                                                                     |
+| Secret                  | Where to find it                                                 | Used for                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `MASSIVE_API_KEY`       | massive.com dashboard, **API Keys**                              | Market data adapters, holiday calendar                                                                                      |
+| `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)              | Macro series, VIX and yield cross-checks                                                                                    |
+| `SEC_USER_AGENT`        | Text you choose, like `Marsad research your-email@example.com`   | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in)                                 |
+| `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Only when the first Edge Function is deployed (Phase 5). Not needed now. The database is deployed by the GitHub integration |
+| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | Phase 2                                                                                                                     |
 
 ## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
 

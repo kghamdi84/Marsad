@@ -10,7 +10,13 @@ import {
   type FetchLike,
   type FetchResponse,
 } from '../http.js';
-import { fetchDailyBars, fetchMarketHolidays, fetchSplits, type MassiveConfig } from './massive.js';
+import {
+  fetchDailyBars,
+  fetchMarketHolidays,
+  fetchMinuteBars,
+  fetchSplits,
+  type MassiveConfig,
+} from './massive.js';
 import { fetchFredSeries, redactKey } from './fred.js';
 import { assertDeclaredUserAgent, fetchRecentFilings } from './sec.js';
 
@@ -241,5 +247,43 @@ describe('SEC adapter (SYNTHETIC body in the documented shape)', () => {
       ok: false,
       kind: 'invalid-response',
     });
+  });
+});
+
+describe('Massive minute bars (SYNTHETIC body in the field shape confirmed live on 2026-11-24)', () => {
+  const body = JSON.stringify({
+    ticker: 'SPY',
+    results: [
+      { v: 100, vw: 50.1, o: 50, c: 50.2, h: 50.3, l: 49.9, t: 1795165200000, n: 10 },
+      { v: 300, vw: 50.4, o: 50.2, c: 50.5, h: 50.6, l: 50.1, t: 1795165260000, n: 30 },
+    ],
+  });
+
+  it('asks for one day of 1-minute bars with the 50,000 limit and keeps the vendor VWAP', async () => {
+    const { http, calls } = setup(200, body);
+    const r = await fetchMinuteBars(http, massive, 'SPY', '2026-11-20');
+    expect(calls[0]?.url).toContain(
+      '/v2/aggs/ticker/SPY/range/1/minute/2026-11-20/2026-11-20?adjusted=true&sort=asc&limit=50000',
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.value?.map((b) => b.vw)).toEqual([50.1, 50.4]);
+    expect(r.data.provenance.asOf).toBe(new Date(1795165260000).toISOString());
+  });
+
+  it('rejects a bad ticker or date before any request', () => {
+    const { http, calls } = setup(200, body);
+    expect(() => fetchMinuteBars(http, massive, 'spy', '2026-11-20')).toThrow(RangeError);
+    expect(() => fetchMinuteBars(http, massive, 'SPY', '11/20/2026')).toThrow(RangeError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('reports an impossible bar as invalid data, not as a price', async () => {
+    const bad = JSON.stringify({
+      results: [{ v: 1, vw: 5, o: 5, c: 9, h: 6, l: 4, t: 1795165200000 }], // close above high
+    });
+    const { http } = setup(200, bad);
+    const r = await fetchMinuteBars(http, massive, 'SPY', '2026-11-20');
+    expect(r.ok).toBe(false);
   });
 });

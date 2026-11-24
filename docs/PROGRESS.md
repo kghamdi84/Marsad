@@ -2,7 +2,7 @@
 
 ## Current phase: 1, Data and trust layer (in progress). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-23 (Phase 1 session 1).
+Last updated 2026-11-24 (Phase 1 session 2).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -49,12 +49,22 @@ Khaled approved polling the Nasdaq trade-halts feed (yes, 2026-11-24). `jobs/src
 
 First live run after merging PR #10 (`bcaa7d5`): `nasdaq-halts` (run 45445920963) ok, 57 halts stored (12 active, 0 news-related active), 1.5 s. The Nasdaq feed parser and job work on the live feed; the schedule is every 5 minutes from GitHub Actions (which can run late) until the Phase 5 30-second poller.
 
+### Phase 1 session 2 (2026-11-24, in review as PR #12)
+
+- 1.13 Heartbeat: `jobs/src/health-job.ts` judges every source with the core policies and records a `system_alerts` row only on a change (stale, recovered). Each alert stores its input snapshot and `SOURCE_POLICY_VERSION`. Workflow `health.yml` runs every 15 minutes in trading hours and every 3 hours otherwise. If the market calendar does not cover today, session-dependent sources are not judged and the run fails loudly. The Status page lists alerts and shows the heartbeat age (a warning after 4 hours). Delivery (push, Telegram, email) is Phase 5. If the heartbeat itself dies, the only outside signal is GitHub's failure email to the repository owner.
+- 1.14 Edge Function path: the unchanged core fails under Deno (`./time.js` not found). `scripts/prepare-edge-core.mjs` builds the generated copy (18 files, 43 imports rewritten), `deno check` passes in strict mode, and Node and Deno give byte-identical results for indicators, sessions, health and time conversion. CI job `edge-core` runs this and passed on GitHub. Not verified: Supabase's own bundling of a real function (needs an access token and a first function; see ADR 0004).
+- 1.10 VWAP: measured on five real SPY sessions, a typical-price VWAP is up to 0.41% off the vendor VWAP, so the nightly check rebuilds it from minute `vw` (within 0.074%). Details in `docs/DATA_SOURCES.md`. VIX and filings completeness are deferred with reasons (IDEAS.md).
+- A mistake of mine, caught by CI: I changed the Status page and ran `./init.sh` but not the Playwright suite, so the e2e test failed on GitHub. Fixed with new e2e tests; I now run `pnpm e2e` before pushing UI changes.
+- `record-fixtures.yml` (manual) captures real FRED, SEC and Massive bodies, including the Massive not-entitled error, so the synthetic test bodies can be replaced.
+- Finding for Khaled: the repository is public, while the docs say private.
+
 ### What is NOT done in Phase 1
 
-- Unit-test fixtures for FRED and SEC are still synthetic bodies in the documented shapes (both services now confirmed working live); re-recording them is a small follow-up. The Massive entitlement error body has not been observed live.
-- No deployed adapters, no Edge Functions, no scheduled halts polling, no nightly reconciliation job, no heartbeat job (item 1.14 untouched: Edge Function core bundling and a Supabase CLI deploy path remain unverified; this machine has no Docker or Deno).
+- Unit-test fixtures for FRED and SEC are still synthetic; `record-fixtures.yml` exists to replace them, but it can only run after PR #12 is merged. The Massive entitlement error body has not been observed live, for the same reason.
+- 1.10 VIX versus FRED needs the Massive Indices plan; filings completeness needs a second filings feed.
+- Edge Functions: none exist yet; the deploy workflow is manual and untested against Supabase.
 - Nasdaq Trader terms of use not independently reviewed (Khaled approved polling).
-- The Phase 0 follow-ups (advisors, `list_migrations`, Auth Hooks empty, Status screenshot) need a session whose Supabase connector sees the project.
+- The Phase 0 follow-ups (advisors, `list_migrations`, Auth Hooks empty) need a session whose Supabase connector sees the project; the connector still lists only the work organization.
 
 ### Done (Phase 0)
 

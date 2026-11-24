@@ -208,7 +208,7 @@
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
           "status": "in_progress",
-          "evidence": "Live: reconcile-nightly run 45443576867 ok, 15 checks over 5 dates within tolerance (Massive vs FRED 10y and spreads). Scheduled 00:45 UTC daily. Not yet covered: VIX (needs Indices plan), filings completeness, VWAP (needs minute bars)."
+          "evidence": "Live nightly job reconcile-nightly (run 45443576867: 15 checks, Massive vs FRED 10y and both spreads). Added 2026-11-24: VWAP for SPY on the last 3 completed sessions, vendor daily vw vs the volume-weighted mean of minute vw, 0.1% tolerance; missing side or unavailable minute bars is a failure with the reason. A typical-price VWAP was rejected after measurement (up to 0.41% off, see DATA_SOURCES). 6 new job tests, mutation-checked. Needs merge and a live run to confirm. Deferred with reasons: VIX vs FRED needs the Massive Indices plan (Phase 3 or 5 purchase decision); filings completeness needs a second filings feed (Phase 2). Both listed in IDEAS.md."
         },
         {
           "id": "1.11",
@@ -226,13 +226,13 @@
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
           "status": "in_progress",
-          "evidence": "core/health.ts: per-source session-aware policies, transition-only alerts, paused rules. Test reproduces the brief example (3m 10s, 4 rules paused, one alert, one recovery). Not yet scheduled: needs the heartbeat job and the alert dispatcher (Phase 5 delivery)."
+          "evidence": "core/health.ts (assessSources, healthTransitions, SOURCE_POLICY_VERSION) + jobs/src/health-job.ts + migration system_alerts (RLS, input snapshot and policy version stored per alert) + workflow health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page shows alerts and heartbeat age. 7 job tests and 5 core tests, mutation-checked (breaking 'alert once' fails 2 tests). Calendar not covering today fails the run loudly. Delivery (push, Telegram, email) is Phase 5. Needs merge (applies the migration), then a live run to confirm."
         },
         {
           "id": "1.14",
           "title": "Supabase CLI deploy workflow and Edge Function core bundling (ADR 0004 verification)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Checked with Deno 2.9.6: unchanged core fails under Deno (./time.js not found); scripts/prepare-edge-core.mjs rewrites 43 imports in 18 files; deno check passes strict; scripts/edge-parity.mjs gives byte-identical Node and Deno output (9,295 bytes). CI job edge-core runs this on every PR; manual workflow deploy-functions.yml added (needs SUPABASE_ACCESS_TOKEN, does nothing until a function exists). NOT verified: Supabase platform bundling of a real function (no token, no function yet); confirmed at the first deploy in Phase 5. ADR 0004 updated."
         }
       ]
     },

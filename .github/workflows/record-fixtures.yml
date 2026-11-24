@@ -1,0 +1,29 @@
+name: Record fixtures
+
+# Manual only. Calls a few live endpoints once and prints trimmed responses to the log so real bodies can be
+# saved under fixtures/. Prints response bodies only (never keys or headers); logs of a public repository are
+# public, so only public data may be added here.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Record
+        run: pnpm --filter @marsad/jobs exec tsx src/record-fixtures-main.ts
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}

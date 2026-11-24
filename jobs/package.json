@@ -9,7 +9,8 @@
     "fred": "tsx src/fred-main.ts",
     "massive": "tsx src/massive-main.ts",
     "sec": "tsx src/sec-main.ts",
-    "halts": "tsx src/halts-main.ts"
+    "halts": "tsx src/halts-main.ts",
+    "health": "tsx src/health-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",
