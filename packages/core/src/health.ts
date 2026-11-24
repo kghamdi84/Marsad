@@ -81,7 +81,7 @@ export function assessSources(
 }
 
 /** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
-export const SOURCE_POLICY_VERSION = '2026-11-24.1';
+export const SOURCE_POLICY_VERSION = '2026-11-25.1';
 
 export interface SystemAlert {
   kind: 'system';
@@ -198,6 +198,14 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     label: 'Massive reference data',
     dependentRules: ['group:calendar'],
     maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
+    required: false,
+  },
+  {
+    source: 'massive_bars',
+    label: 'Massive daily bars',
+    dependentRules: ['group:daily-bars'],
+    // Written once a weekday after the close. Friday evening to Tuesday evening (a holiday Monday) is 4 days.
+    maxSilenceSec: { 'pre-market': 432000, regular: 432000, 'after-hours': 432000, closed: 432000 },
     required: false,
   },
   {

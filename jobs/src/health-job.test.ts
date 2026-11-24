@@ -17,6 +17,7 @@ const healthy = [
   beat('sec_edgar', 900),
   beat('fred', 3600),
   beat('massive_reference', 3600),
+  beat('massive_bars', 3600),
   beat('gpr', 3600),
 ];
 

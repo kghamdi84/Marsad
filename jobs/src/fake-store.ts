@@ -1,5 +1,6 @@
 /** An in-memory Store for tests. Records every write; `fred` seeds what getFredRange returns. */
 import type {
+  Bar,
   CompanyRef,
   Filing,
   FredObservation,
@@ -21,6 +22,7 @@ export interface FakeLog {
   instruments: CompanyRef[][];
   filings: { cik: string; n: number }[];
   halts: Halt[][];
+  bars: { ticker: string; bars: Bar[] }[];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -52,6 +54,7 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     instruments: [],
     filings: [],
     halts: [],
+    bars: [],
     runs: [],
     statuses: [],
     alerts: [],
@@ -86,6 +89,10 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     upsertHalts: (halts: readonly Halt[]) => {
       log.halts.push([...halts]);
       return Promise.resolve(halts.length);
+    },
+    upsertDailyBars: (ticker: string, bars: readonly Bar[]) => {
+      log.bars.push({ ticker, bars: [...bars] });
+      return Promise.resolve(bars.length);
     },
     recordRun: (run) => {
       log.runs.push(run);

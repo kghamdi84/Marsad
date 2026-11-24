@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: massive-api # one group for every workflow that uses the Massive key (about 5 calls a minute)
+  cancel-in-progress: false
+
 jobs:
   record:
     runs-on: ubuntu-latest

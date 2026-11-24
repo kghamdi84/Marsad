@@ -2,30 +2,13 @@ import {
   fetchMarketHolidays,
   fetchSplits,
   runJob,
+  STARTING_TICKERS,
   type HttpClient,
   type JobRunRecord,
   type MassiveConfig,
   type Split,
 } from '@marsad/core';
 import type { Store } from './store.js';
-
-/** The starting watchlist plus the core ETFs Marsad tracks. Splits are fetched per ticker. */
-export const DEFAULT_TICKERS = [
-  'NVDA',
-  'RKLB',
-  'MARA',
-  'SOFI',
-  'HOOD',
-  'OKLO',
-  'IONQ',
-  'HIMS',
-  'RGTI',
-  'BBAI',
-  'SPY',
-  'QQQ',
-  'IWM',
-  'DIA',
-] as const;
 
 export interface MassiveReferenceDeps {
   http: HttpClient;
@@ -54,7 +37,7 @@ export async function runMassiveReferenceJob(deps: MassiveReferenceDeps): Promis
       else failed.push(`calendar: ${cal.display} (${cal.kind})`);
 
       const splits: Split[] = [];
-      for (const ticker of deps.tickers ?? DEFAULT_TICKERS) {
+      for (const ticker of deps.tickers ?? STARTING_TICKERS) {
         const r = await fetchSplits(http, cfg, ticker);
         if (r.ok) splits.push(...(r.data.value ?? []));
         else failed.push(`splits ${ticker}: ${r.display} (${r.kind})`);
@@ -69,7 +52,7 @@ export async function runMassiveReferenceJob(deps: MassiveReferenceDeps): Promis
         latencyMs: now().getTime() - started,
         planTier: 'end-of-day',
         state: 'live',
-        note: `Calendar and splits for ${(deps.tickers ?? DEFAULT_TICKERS).length} tickers`,
+        note: `Calendar and splits for ${(deps.tickers ?? STARTING_TICKERS).length} tickers`,
       });
       return {
         rows,

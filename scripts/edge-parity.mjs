@@ -30,6 +30,15 @@ const closes = Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i / 3) * 5 + 
 const highs = closes.map((c) => c + 1);
 const lows = closes.map((c) => c - 1);
 const volume = closes.map((_, i) => 1000 + i * 10);
+const aiPayload = {
+  facts: [
+    { id: 'F1', label: 'Revenue', value: 4_180_000_000, unit: 'usd' },
+    { id: 'F2', label: 'Revenue growth', value: 12.4, unit: 'pct' },
+    { id: 'F3', label: 'Operating margin change', value: -2.5, unit: 'pct' },
+    { id: 'F4', label: '8-K item 5.02 filed in FY2026', value: '5.02', unit: 'text' },
+  ],
+  documents: [],
+};
 const policy = core.DEFAULT_SOURCE_POLICIES.find((p) => p.source === 'nasdaq_halts');
 const out = {
   sma: core.sma(closes, 20),
@@ -48,5 +57,38 @@ const out = {
   ),
   etWall: core.etWallToUtc('2026-11-24', 9, 30).toISOString(),
   goldenKeys: Object.keys(golden).sort(),
+  // The verifier and the filings and news knowledge must behave identically in both runtimes.
+  verify: [
+    'Revenue was $4.18B [F1]. Revenue grew 12.4% year over year [F2].',
+    'Revenue grew 14.1% year over year [F2].',
+    'Operating margin rose 2.5% [F3].',
+    'Revenue was $4.2B [F2].',
+    'The FY2026 10-K lists item 5.02 [F4].',
+  ].map((t) => core.verifyText(t, aiPayload)),
+  eightK: core.describeEightK(['9.01', '2.02', '5.02']),
+  news: core.clusterNews([
+    {
+      id: 'a',
+      publisher: 'Reuters',
+      title: 'Nvidia CEO Jensen Huang reinstated after board vote',
+      publishedAt: '2026-11-24T14:00:00Z',
+      url: 'u',
+      tickers: ['NVDA'],
+    },
+    {
+      id: 'b',
+      publisher: 'Bloomberg',
+      title: 'Nvidia reinstates CEO Jensen Huang after board vote',
+      publishedAt: '2026-11-24T14:20:00Z',
+      url: 'u',
+      tickers: ['NVDA'],
+    },
+  ]),
+  cost: core.costOfUsage('claude-sonnet-5-5', {
+    inputTokens: 1000,
+    outputTokens: 500,
+    cacheReadTokens: 40000,
+    cacheWriteTokens: 8000,
+  }),
 };
 console.log(JSON.stringify(out));

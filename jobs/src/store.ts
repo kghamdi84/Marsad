@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { etDate } from '@marsad/core';
 import type {
+  Bar,
   CompanyRef,
   Filing,
   FredObservation,
@@ -36,6 +38,8 @@ export interface Store {
   upsertInstruments(companies: readonly CompanyRef[]): Promise<number>;
   upsertFilings(cik: string, filings: readonly Filing[], fetchedAt: Date): Promise<number>;
   upsertHalts(halts: readonly Halt[], seenAt: Date): Promise<number>;
+  /** Daily bars keyed by ticker and ET date; `bars` carry the epoch ms of each ET midnight. */
+  upsertDailyBars(ticker: string, bars: readonly Bar[], fetchedAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -190,6 +194,26 @@ export function supabaseStore(url: string, secretKey: string): Store {
         if (error) throw new Error(`halts upsert failed: ${error.message}`);
       }
       return rows.length;
+    },
+    async upsertDailyBars(ticker, bars, fetchedAt) {
+      let written = 0;
+      for (let i = 0; i < bars.length; i += CHUNK) {
+        const rows = bars.slice(i, i + CHUNK).map((b) => ({
+          ticker,
+          date: etDate(new Date(b.t)),
+          open: b.o,
+          high: b.h,
+          low: b.l,
+          close: b.c,
+          volume: b.v,
+          vwap: b.vw ?? null,
+          fetched_at: fetchedAt.toISOString(),
+        }));
+        const { error } = await db.from('daily_bars').upsert(rows, { onConflict: 'ticker,date' });
+        if (error) throw new Error(`daily_bars upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      return written;
     },
     async recordRun(run) {
       const { error } = await db.from('job_runs').insert(run);
