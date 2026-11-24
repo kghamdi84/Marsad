@@ -250,8 +250,8 @@
         {
           "id": "2.1",
           "title": "Company page chart with indicators and event markers (Lightweight Charts, attribution kept)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Live: massive-bars run 45454512012 ok (14 tickers, 7,000 rows, 500 bars each, 146 s; latest bar 2026-11-23 because the 24th was mid-session and partial days are never stored). Study page /study/$ticker: candlesticks with SMA 50, SMA 200, EMA 20, RSI 14 and volume, summary with provenance and a STALE label when the latest bar is older than the last finished session, 8-K and split markers placed point-in-time. Lightweight Charts attribution kept; a hash-pinned CSP entry was needed for its logo style (ADR 0002), covered by an e2e test under the real CSP. Still to do: markers for earnings, insider buys, dividends, halts and alerts received (those data sets are not stored yet)."
         },
         {
           "id": "2.2",
@@ -263,7 +263,7 @@
           "id": "2.3",
           "title": "Filings timeline with 8-K item labels and materiality",
           "status": "in_progress",
-          "evidence": "Core done: packages/core/src/filings.ts has all 33 8-K items with official SEC titles, plain labels and materiality (14 set by the brief, 19 marked marsad-default), Form 4 code explanations (codes not verified from an SEC source are shown as unexplained), disclosure lags. Real NVIDIA 8-K (items 5.02, 9.01) labels as high. 14 tests. Still to do: timeline UI."
+          "evidence": "Core done: packages/core/src/filings.ts has all 33 8-K items with official SEC titles, plain labels and materiality (14 set by the brief, 19 marked marsad-default), Form 4 code explanations (codes not verified from an SEC source are shown as unexplained), disclosure lags. Real NVIDIA 8-K (items 5.02, 9.01) labels as high. 14 tests. Timeline UI done on the Study page: accepted time in ET with local time, plain 8-K item labels with a High/Medium/Low word (rating marked as Marsad default where the brief set none), reporting-lag notes, link to the SEC document. Still to do: Form 4 transaction codes and the 10b5-1 flag (needs the Form 4 XML), Forms 3 and 5, 13F holders."
         },
         {
           "id": "2.4",

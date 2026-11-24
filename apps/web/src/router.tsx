@@ -2,6 +2,8 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { Shell } from './components/Shell';
 import { Placeholder } from './routes/Placeholder';
 import { Status } from './routes/Status';
+import { Study } from './routes/Study';
+import { StudyCompany } from './routes/StudyCompany';
 import { t } from './strings';
 
 const root = createRootRoute({ component: Shell });
@@ -15,7 +17,8 @@ const page = (path: string, title: string, phase: number) =>
 
 const routeTree = root.addChildren([
   page('/', t.nav.watch, 3),
-  page('/study', t.nav.study, 2),
+  createRoute({ getParentRoute: () => root, path: '/study', component: Study }),
+  createRoute({ getParentRoute: () => root, path: '/study/$ticker', component: StudyCompany }),
   page('/regime', t.nav.regime, 3),
   page('/alerts', t.nav.alerts, 5),
   page('/journal', t.nav.journal, 7),
