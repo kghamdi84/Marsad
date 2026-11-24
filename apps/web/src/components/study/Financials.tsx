@@ -1,34 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  etDate,
-  formatFactValue,
-  peRatio,
-  summarizeFinancials,
-  toFixedHalfUp,
-  type DailyBar,
-  type Metric,
-} from '@marsad/core';
+import { etDate, peRatio, summarizeFinancials, toFixedHalfUp, type DailyBar } from '@marsad/core';
 import { loadFacts } from '../../lib/studyPanels';
 import { t } from '../../strings';
-import { PanelShell, num, td, th, thNum } from './Panel';
+import { Cell, PanelShell, num, td, th, thNum, usd } from './Panel';
 
-const usd = (v: number | null) =>
-  v === null ? '' : formatFactValue({ id: '', label: '', value: v, unit: 'usd' });
 // A table column keeps one decimal everywhere (75.0%, not 75%), unlike running text which trims zeros.
 const pct = (v: number | null) => (v === null ? '' : `${toFixedHalfUp(v, 1)}%`);
-
-function Cell({ m, text }: { m: Metric; text: string }) {
-  if (m.value === null) return <>{t.study.financials.notReported}</>;
-  return (
-    <span
-      title={m.filed && m.accession ? t.study.financials.source(m.filed, m.accession) : undefined}
-    >
-      {text}
-      {m.derived && <span className="ms-1 text-xs text-muted">{t.study.financials.derived}</span>}
-    </span>
-  );
-}
 
 export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar[] }) {
   const today = etDate(new Date());

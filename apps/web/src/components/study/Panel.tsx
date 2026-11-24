@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { formatFactValue, type Metric } from '@marsad/core';
 import { t } from '../../strings';
 
 export const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
@@ -32,5 +33,22 @@ export function PanelShell({
       )}
       {!state.isPending && !state.isError && children}
     </section>
+  );
+}
+
+/** A dollar figure in the units a person reads (`$96.22B`, `$1.78`). Empty when there is no value. */
+export const usd = (v: number | null) =>
+  v === null ? '' : formatFactValue({ id: '', label: '', value: v, unit: 'usd' });
+
+/** A reported figure: its text, a "derived" mark when no filing states it directly, and its source on hover. */
+export function Cell({ m, text }: { m: Metric; text: string }) {
+  if (m.value === null) return <>{t.study.financials.notReported}</>;
+  return (
+    <span
+      title={m.filed && m.accession ? t.study.financials.source(m.filed, m.accession) : undefined}
+    >
+      {text}
+      {m.derived && <span className="ms-1 text-xs text-muted">{t.study.financials.derived}</span>}
+    </span>
   );
 }

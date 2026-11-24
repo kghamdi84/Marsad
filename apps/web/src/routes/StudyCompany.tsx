@@ -16,6 +16,7 @@ import {
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
 import { Dividends } from '../components/study/Dividends';
+import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
 import { Insiders } from '../components/study/Insiders';
 import { NewsPanel } from '../components/study/NewsPanel';
@@ -313,6 +314,9 @@ export function StudyCompany() {
       )}
 
       {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
+      {q.data?.company && (
+        <Earnings cik={q.data.company.cik} bars={q.data.bars} splits={q.data.splits} />
+      )}
       {q.data?.company && <Insiders cik={q.data.company.cik} />}
       {q.data && <ShortData ticker={q.data.ticker} />}
       {q.data && <NewsPanel ticker={q.data.ticker} />}

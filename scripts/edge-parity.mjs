@@ -98,6 +98,52 @@ const out = {
     const parsed = core.parseCompanyFacts(cf.body);
     return core.summarizeFinancials(parsed.facts, '2026-12-31');
   })(),
+  // Winter and summer release times, an after-close, a before-open and a pending release: the session logic reads
+  // New York wall-clock time through Intl, which is the part most likely to differ between Node and Deno.
+  earnings: (() => {
+    const cf = JSON.parse(
+      readFileSync(join(root, 'fixtures/sec/companyfacts-NVDA-trimmed.json'), 'utf8'),
+    );
+    const quarters = core.summarizeFinancials(
+      core.parseCompanyFacts(cf.body).facts,
+      '2026-12-31',
+    ).quarters;
+    const bar = (date, close) => ({
+      date,
+      open: close,
+      high: close,
+      low: close,
+      close,
+      volume: 1,
+      vwap: close,
+    });
+    const eightK = (accession, acceptedAt) => ({
+      accession,
+      form: '8-K',
+      filingDate: acceptedAt.slice(0, 10),
+      acceptedAt,
+      items: ['2.02', '9.01'],
+    });
+    return core.buildEarningsHistory({
+      quarters,
+      filings: [
+        eightK('winter-after-close', '2026-01-27T21:10:00Z'),
+        eightK('summer-before-open', '2026-08-19T11:00:00Z'),
+        eightK('pending', '2026-11-17T21:20:51.000Z'),
+      ],
+      bars: [
+        bar('2026-01-26', 50),
+        bar('2026-01-27', 52),
+        bar('2026-01-28', 40),
+        bar('2026-08-18', 100),
+        bar('2026-08-19', 110),
+        bar('2026-11-16', 190),
+        bar('2026-11-17', 200),
+        bar('2026-11-18', 210),
+      ],
+      splits: [],
+    });
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

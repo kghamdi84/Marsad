@@ -104,6 +104,45 @@ export const t = {
       valuation:
         "Valuation against the company's own 5-year history needs 5 years of prices; the free plan gives 2 years.",
     },
+    earnings: {
+      title: 'Earnings history',
+      note: 'The release time is when the SEC accepted the 8-K that carries the results (Item 2.02), shown in ET. The move compares the close of the first session that could trade on the news with the close before it. Prices are end-of-day and split-adjusted.',
+      none: 'No earnings releases or reported quarters are stored for this company.',
+      colQuarter: 'Quarter ended',
+      colReleased: 'Results released',
+      colRevenue: 'Revenue',
+      colYoY: 'Revenue vs a year earlier',
+      colEps: 'Diluted EPS',
+      colMove: 'Stock move',
+      timing: {
+        'before-open': 'before the open',
+        'during-session': 'during the session',
+        'after-close': 'after the close',
+      },
+      noTiming: 'time not recorded',
+      pending: 'Results not yet in a filed 10-Q or 10-K',
+      derived: 'derived',
+      notReported: 'Not reported',
+      moveText: (pct: string, base: string, baseClose: string, at: string, atClose: string) =>
+        `${pct} (${base} close ${baseClose}, ${at} close ${atClose})`,
+      large: 'Over 25%: no split in the window, so check the news before trusting it.',
+      gaps: {
+        'no-release': 'No results 8-K stored for this quarter',
+        'no-time': 'The filing has no recorded time, so the reacting session is unknown',
+        'outside-bars': 'Before the first stored price (the free plan keeps 2 years)',
+        'not-yet': 'The reacting session has no price bar yet',
+        'missing-bars': 'Price bars are missing around this date',
+        split: 'A split falls in this window, so the move is not computed',
+      },
+      summary: (n: number, mean: string, up: number, down: number) =>
+        `Average size of the move over ${n} report${n === 1 ? '' : 's'}: ${mean} (${up} up, ${down} down). This is too few reports to say how often the stock rises or falls.`,
+      summaryNone: 'No report has a computed move yet.',
+      missingTitle: 'Needs more than the free plan',
+      missingEstimates:
+        'Estimates, surprise against estimates and guidance changes: requires a higher Massive plan (Benzinga data).',
+      missingImplied:
+        'Move against the options-implied move: needs options data, which is built in a later phase.',
+    },
     insiders: {
       title: 'Insider transactions (Form 4)',
       note: "Insiders report within two business days of a trade, so recent trades may not be here yet. The 10b5-1 flag is the checkbox on the filing: a pre-arranged plan, so the trade date does not show the insider's view on that day.",
@@ -201,7 +240,7 @@ export const t = {
       {
         name: 'Earnings against estimates, surprise and implied move',
         state: 'Requires a higher Massive plan',
-        why: 'Estimates come from Benzinga data, which the free plan does not include. Reported results will come from SEC filings.',
+        why: 'Estimates come from Benzinga data, which the free plan does not include. Reported results and the price move after each release are in Earnings history above; the implied move needs options data.',
       },
       {
         name: 'Analyst actions (opinion)',

@@ -1,4 +1,4 @@
-import type { DividendEvent, FinancialFact, NewsItem } from '@marsad/core';
+import type { DividendEvent, EarningsFiling, FinancialFact, NewsItem } from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -209,5 +209,30 @@ export async function loadNews(ticker: string): Promise<NewsItem[]> {
     publishedAt: new Date(String(r['published_at'])).toISOString(),
     url: String(r['url']),
     tickers: Array.isArray(r['tickers']) ? (r['tickers'] as string[]) : [],
+  }));
+}
+
+/**
+ * Every stored 8-K that reports results (Item 2.02), however old. The company page's own filings list keeps only
+ * the newest 200 filings, which for a company with many Form 4s can be a few weeks, so earnings asks for these alone.
+ */
+export async function loadEarningsFilings(cik: string): Promise<EarningsFiling[]> {
+  const rows = check(
+    await client()
+      .from('filings')
+      .select('accession, form, filing_date, accepted_at, items')
+      .eq('cik', cik)
+      .eq('form', '8-K')
+      .contains('items', ['2.02'])
+      .order('filing_date', { ascending: false })
+      .limit(40),
+    'filings',
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    accession: String(r['accession']),
+    form: String(r['form']),
+    filingDate: String(r['filing_date']),
+    acceptedAt: r['accepted_at'] ? String(r['accepted_at']) : null,
+    items: Array.isArray(r['items']) ? (r['items'] as string[]) : [],
   }));
 }
