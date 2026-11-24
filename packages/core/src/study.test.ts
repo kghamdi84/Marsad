@@ -4,6 +4,7 @@ import nvda from '../../../fixtures/sec/submissions-NVDA-trimmed.json';
 import {
   INDICATOR_VERSION,
   buildEventMarkers,
+  mergeFilingEvents,
   snapToBar,
   summarizeBars,
   type DailyBar,
@@ -180,5 +181,27 @@ describe('buildEventMarkers', () => {
         materiality: 'high',
       },
     ]);
+  });
+});
+
+describe('mergeFilingEvents', () => {
+  const a = {
+    form: '8-K',
+    filingDate: '2026-11-17',
+    acceptedAt: '2026-11-17T21:20:51Z',
+    items: ['2.02'],
+  };
+  it('lists a filing once when two sources both have it, and keeps the order of the first', () => {
+    const b = { ...a, items: ['2.02', '9.01'] };
+    const other = { ...a, filingDate: '2026-08-19', acceptedAt: '2026-08-19T20:20:00Z' };
+    expect(mergeFilingEvents([a], [other, b])).toEqual([a, other]);
+  });
+  it('keeps two filings of the same form on the same day when their acceptance times differ', () => {
+    const later = { ...a, acceptedAt: '2026-11-17T22:00:00Z' };
+    expect(mergeFilingEvents([a], [later])).toHaveLength(2);
+  });
+  it('treats a missing acceptance time as its own value', () => {
+    const none = { ...a, acceptedAt: null };
+    expect(mergeFilingEvents([a], [none, none])).toEqual([a, none]);
   });
 });

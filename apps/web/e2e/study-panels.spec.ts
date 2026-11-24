@@ -225,25 +225,32 @@ test('earnings: each release matched to its quarter, the move in the session tha
   await setup(page);
   // The 2026-11-17 8-K is the real recorded filing (accession 0001045810-26-000088). The August one is invented
   // for this test: accepted 16:20 ET on Wed 2026-08-19, a week before the Q2 10-Q was filed on 2026-08-26.
+  // The page's own filings list comes back empty (older than its newest-200 window); only the query that asks
+  // for results 8-Ks (form = 8-K) returns them, so the chart markers below must come from that query too.
   await page.route('**/rest/v1/filings**', (r) =>
-    json(r, [
-      {
-        accession: '0001045810-26-000088',
-        form: '8-K',
-        filing_date: '2026-11-17',
-        accepted_at: '2026-11-17T21:20:51Z',
-        primary_document: 'nvda-20261117.htm',
-        items: ['2.02', '9.01'],
-      },
-      {
-        accession: '0001045810-26-000999',
-        form: '8-K',
-        filing_date: '2026-08-19',
-        accepted_at: '2026-08-19T20:20:00Z',
-        primary_document: 'x.htm',
-        items: ['2.02', '9.01'],
-      },
-    ]),
+    json(
+      r,
+      !r.request().url().includes('form=eq.8-K')
+        ? []
+        : [
+            {
+              accession: '0001045810-26-000088',
+              form: '8-K',
+              filing_date: '2026-11-17',
+              accepted_at: '2026-11-17T21:20:51Z',
+              primary_document: 'nvda-20261117.htm',
+              items: ['2.02', '9.01'],
+            },
+            {
+              accession: '0001045810-26-000999',
+              form: '8-K',
+              filing_date: '2026-08-19',
+              accepted_at: '2026-08-19T20:20:00Z',
+              primary_document: 'x.htm',
+              items: ['2.02', '9.01'],
+            },
+          ],
+    ),
   );
   // The fixture bars rise 0.5 a day; make 2026-08-20 close at 239.40 so the August reaction is a clear drop.
   await page.route('**/rest/v1/daily_bars**', (r) =>
@@ -276,6 +283,9 @@ test('earnings: each release matched to its quarter, the move in the session tha
   ).toBeVisible();
   await expect(panel.getByText(/too few reports to say how often/)).toBeVisible();
   await expect(panel.getByText(/requires a higher Massive plan \(Benzinga data\)/)).toBeVisible();
+  // Both releases also mark the chart, on the session that reacted (the 17th and 19th were after the close).
+  await expect(page.getByText('2026-11-18: 8-K: Earnings results released (High)')).toBeVisible();
+  await expect(page.getByText('2026-08-20: 8-K: Earnings results released (High)')).toBeVisible();
   if (process.env.SHOT_DIR)
     await panel.screenshot({ path: `${process.env.SHOT_DIR}/earnings.png` });
 });
