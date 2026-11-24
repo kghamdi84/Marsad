@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import dividends from '../../../fixtures/massive/dividends-NVDA.json' with { type: 'json' };
 import news from '../../../fixtures/massive/news-NVDA.json' with { type: 'json' };
+import sections from '../../../fixtures/massive/sections-NVDA-risk_factors.json' with { type: 'json' };
 import shortInterest from '../../../fixtures/massive/short-interest-NVDA.json' with { type: 'json' };
 import shortVolume from '../../../fixtures/massive/short-volume-NVDA.json' with { type: 'json' };
 import factsFixture from '../../../fixtures/sec/companyfacts-NVDA-trimmed.json' with { type: 'json' };
@@ -225,25 +226,32 @@ test('earnings: each release matched to its quarter, the move in the session tha
   await setup(page);
   // The 2026-11-17 8-K is the real recorded filing (accession 0001045810-26-000088). The August one is invented
   // for this test: accepted 16:20 ET on Wed 2026-08-19, a week before the Q2 10-Q was filed on 2026-08-26.
+  // The page's own filings list comes back empty (older than its newest-200 window); only the query that asks
+  // for results 8-Ks (form = 8-K) returns them, so the chart markers below must come from that query too.
   await page.route('**/rest/v1/filings**', (r) =>
-    json(r, [
-      {
-        accession: '0001045810-26-000088',
-        form: '8-K',
-        filing_date: '2026-11-17',
-        accepted_at: '2026-11-17T21:20:51Z',
-        primary_document: 'nvda-20261117.htm',
-        items: ['2.02', '9.01'],
-      },
-      {
-        accession: '0001045810-26-000999',
-        form: '8-K',
-        filing_date: '2026-08-19',
-        accepted_at: '2026-08-19T20:20:00Z',
-        primary_document: 'x.htm',
-        items: ['2.02', '9.01'],
-      },
-    ]),
+    json(
+      r,
+      !r.request().url().includes('form=eq.8-K')
+        ? []
+        : [
+            {
+              accession: '0001045810-26-000088',
+              form: '8-K',
+              filing_date: '2026-11-17',
+              accepted_at: '2026-11-17T21:20:51Z',
+              primary_document: 'nvda-20261117.htm',
+              items: ['2.02', '9.01'],
+            },
+            {
+              accession: '0001045810-26-000999',
+              form: '8-K',
+              filing_date: '2026-08-19',
+              accepted_at: '2026-08-19T20:20:00Z',
+              primary_document: 'x.htm',
+              items: ['2.02', '9.01'],
+            },
+          ],
+    ),
   );
   // The fixture bars rise 0.5 a day; make 2026-08-20 close at 239.40 so the August reaction is a clear drop.
   await page.route('**/rest/v1/daily_bars**', (r) =>
@@ -276,8 +284,100 @@ test('earnings: each release matched to its quarter, the move in the session tha
   ).toBeVisible();
   await expect(panel.getByText(/too few reports to say how often/)).toBeVisible();
   await expect(panel.getByText(/requires a higher Massive plan \(Benzinga data\)/)).toBeVisible();
+  // Both releases also mark the chart, on the session that reacted (the 17th and 19th were after the close).
+  await expect(page.getByText('2026-11-18: 8-K: Earnings results released (High)')).toBeVisible();
+  await expect(page.getByText('2026-08-20: 8-K: Earnings results released (High)')).toBeVisible();
   if (process.env.SHOT_DIR)
     await panel.screenshot({ path: `${process.env.SHOT_DIR}/earnings.png` });
+});
+
+/** The recorded 10-K rows as `annual_sections` rows (the two real NVIDIA reports, fiscal 2026 and 2025). */
+function sectionRows(): Json[] {
+  return (sections.body.results as Json[]).map((x) => ({
+    period_end: x['period_end'],
+    filing_date: x['filing_date'],
+    filing_url: x['filing_url'],
+    text: x['text'],
+  }));
+}
+
+test('risk factors: nothing is fetched until opened, then two real 10-Ks are compared by sentence', async ({
+  page,
+}) => {
+  await setup(page);
+  let fetched = 0;
+  await page.route('**/rest/v1/annual_sections**', (r) => {
+    fetched++;
+    return json(r, sectionRows());
+  });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
+  await expect(panel.getByText(/by computer rules and not by a model/)).toBeVisible();
+  await expect(panel.getByText('Latest filing used')).toHaveCount(0);
+  expect(fetched).toBe(0); // two 110 KB reports are not loaded for everyone who opens the page
+  await panel.getByText('Show the comparison').click();
+  // Counts from an independent Python implementation of the same rules, run on the same two recorded reports.
+  await expect(
+    panel.getByText('71 new, 49 removed, 66 edited, 449 unchanged sentences.'),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(
+      'Newer: year ended 2026-01-25, filed 2026-02-25. Older: year ended 2025-01-26, filed 2025-02-26.',
+    ),
+  ).toBeVisible();
+  const newer = panel.getByRole('link', { name: 'Newer 10-K on SEC' });
+  await expect(newer).toHaveAttribute(
+    'href',
+    'https://www.sec.gov/Archives/edgar/data/1045810/0001045810-26-000021.txt',
+  );
+  await expect(newer).toHaveAttribute('target', '_blank');
+  await expect(newer).toHaveAttribute('rel', /noopener/);
+  await expect(
+    panel.getByText(/The list at the top of the section repeats each risk title/),
+  ).toBeVisible();
+  // New and removed wording, quoted exactly, under the heading it sat under.
+  await expect(
+    panel.getByText(
+      'We have entered into an intellectual property license arrangement with Groq, Inc., or Groq, that required significant, nonrefundable payments.',
+    ),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(
+      'NVIDIA DGX Cloud services may not be successful and will take time, resources, and investment.',
+    ),
+  ).toBeVisible();
+  // An edited sentence shows the old and new word, marked by more than colour.
+  const edited = panel.getByRole('heading', { name: 'Edited (66)' });
+  await expect(edited).toBeVisible();
+  await expect(panel.locator('del', { hasText: 'component' }).first()).toBeVisible();
+  await expect(panel.locator('ins', { hasText: 'capacity' }).first()).toBeVisible();
+  await expect(panel.getByText('Similarity 0.93').first()).toBeVisible();
+  if (process.env.SHOT_DIR) await panel.screenshot({ path: `${process.env.SHOT_DIR}/risk.png` });
+  // Long lists start short and open on request.
+  await expect(panel.getByRole('button', { name: 'Show all 71' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Show all 71' }).click();
+  await expect(panel.getByRole('button', { name: 'Show fewer' }).first()).toBeVisible();
+  expect(fetched).toBe(1);
+});
+
+test('risk factors: says why there is nothing to compare', async ({ page }) => {
+  await setup(page);
+  const run = async (rows: Json[], expected: RegExp | string) => {
+    await page.unroute('**/rest/v1/annual_sections**');
+    await page.route('**/rest/v1/annual_sections**', (r) => json(r, rows));
+    await page.goto('/study/NVDA');
+    const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
+    await panel.getByText('Show the comparison').click();
+    await expect(panel.getByText(expected)).toBeVisible();
+  };
+  await run([], 'No annual report text is stored for this company');
+  await run(sectionRows().slice(0, 1), 'Only one annual report is stored');
+  // The vendor's real history jumped from 2025 to 2017: not a fair comparison, so none is made.
+  const [a, b] = sectionRows() as [Json, Json];
+  await run(
+    [a, { ...b, period_end: '2017-01-29' }],
+    /years ending 2026-01-25 and 2017-01-29, which are not a year apart/,
+  );
 });
 
 test('insiders: codes explained, the 10b5-1 box shown, totals computed, unreadable filings admitted', async ({

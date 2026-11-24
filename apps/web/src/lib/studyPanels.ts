@@ -1,4 +1,10 @@
-import type { DividendEvent, EarningsFiling, FinancialFact, NewsItem } from '@marsad/core';
+import type {
+  DatedSection,
+  DividendEvent,
+  EarningsFiling,
+  FinancialFact,
+  NewsItem,
+} from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -234,5 +240,25 @@ export async function loadEarningsFilings(cik: string): Promise<EarningsFiling[]
     filingDate: String(r['filing_date']),
     acceptedAt: r['accepted_at'] ? String(r['accepted_at']) : null,
     items: Array.isArray(r['items']) ? (r['items'] as string[]) : [],
+  }));
+}
+
+/** The two newest stored 10-K risk-factor sections (about 110 KB of text each), newest fiscal year first. */
+export async function loadRiskFactorSections(cik: string): Promise<DatedSection[]> {
+  const rows = check(
+    await client()
+      .from('annual_sections')
+      .select('period_end, filing_date, filing_url, text')
+      .eq('cik', cik)
+      .eq('section', 'risk_factors')
+      .order('period_end', { ascending: false })
+      .limit(2),
+    'annual_sections',
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    periodEnd: String(r['period_end']),
+    filingDate: String(r['filing_date']),
+    filingUrl: String(r['filing_url']),
+    text: String(r['text']),
   }));
 }

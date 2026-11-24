@@ -101,7 +101,14 @@ export async function loadStudy(ticker: string): Promise<StudyData> {
   };
 }
 
-export function filingEvents(filings: readonly FilingRow[]): FilingEvent[] {
+export function filingEvents(
+  filings: readonly {
+    form: string;
+    filingDate: string;
+    acceptedAt: string | null;
+    items: readonly string[];
+  }[],
+): FilingEvent[] {
   return filings.map((f) => ({
     form: f.form,
     filingDate: f.filingDate,

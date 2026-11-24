@@ -9,6 +9,7 @@ import {
   dualClock,
   etDate,
   formLabel,
+  mergeFilingEvents,
   normalizeTicker,
   summarizeBars,
   type BarSummary,
@@ -20,9 +21,10 @@ import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
 import { Insiders } from '../components/study/Insiders';
 import { NewsPanel } from '../components/study/NewsPanel';
+import { RiskFactors } from '../components/study/RiskFactors';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
-import { loadDividends } from '../lib/studyPanels';
+import { loadDividends, loadEarningsFilings } from '../lib/studyPanels';
 import { t } from '../strings';
 
 const PriceChart = lazy(() => import('../components/PriceChart'));
@@ -205,17 +207,25 @@ export function StudyCompany() {
     queryFn: () => loadDividends(ticker as string),
     enabled: ticker !== null,
   });
+  // The page's filings list keeps the newest 200 rows; results 8-Ks are asked for on their own so older earnings
+  // still get their marker. Shares its cache entry with the Earnings panel.
+  const cik = q.data?.company?.cik;
+  const results = useQuery({
+    queryKey: ['earnings-filings', cik],
+    queryFn: () => loadEarningsFilings(cik as string),
+    enabled: cik !== undefined,
+  });
   const markers = useMemo(
     () =>
       q.data
         ? buildEventMarkers(
-            filingEvents(q.data.filings),
+            mergeFilingEvents(filingEvents(q.data.filings), filingEvents(results.data ?? [])),
             q.data.splits,
             q.data.bars.map((b) => b.date),
             dividends.data ?? [],
           )
         : [],
-    [q.data, dividends.data],
+    [q.data, dividends.data, results.data],
   );
 
   if (ticker === null)
@@ -314,6 +324,7 @@ export function StudyCompany() {
       )}
 
       {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
+      {q.data?.company && <RiskFactors cik={q.data.company.cik} />}
       {q.data?.company && (
         <Earnings cik={q.data.company.cik} bars={q.data.bars} splits={q.data.splits} />
       )}

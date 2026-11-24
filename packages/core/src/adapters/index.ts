@@ -5,3 +5,4 @@ export * from './sec.js';
 export * from './nasdaq.js';
 export * from './sec-facts.js';
 export * from './massive-study.js';
+export * from './massive-sections.js';

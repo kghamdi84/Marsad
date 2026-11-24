@@ -15,3 +15,5 @@ Captured during work so they are not built early.
 - Phase 2: filings completeness (stored EDGAR filings against a second feed such as the EDGAR current-filings Atom feed) once the Study module defines which forms matter.
 - Phase 2: the SEC job stores only the `filings.recent` list, so quarters older than about a year have no results 8-K and the earnings history says so. Load the older `submissions` files (the `filings.files` entries) to fill them, which also lengthens the filings list.
 - Phase 2: show earnings releases as chart markers (the release is known; the marker would sit on the reacting bar).
+- Phase 2: 10-Q risk-factor updates and the Item 1 business text (the vendor endpoint also serves `business`); a 10-Q comparison needs a different source because the sections endpoint is 10-K only.
+- Phase 2: tune the risk-diff cut-off (0.6) on more companies once the weekly job has stored them all, and drop the duplicate summary-list sentences if they prove noisy.

@@ -149,6 +149,19 @@ export interface FilingEvent {
   items: readonly string[];
 }
 
+/** Filing events from several lists with each filing once (same form, filing date and acceptance time). */
+export function mergeFilingEvents(...lists: readonly (readonly FilingEvent[])[]): FilingEvent[] {
+  const seen = new Set<string>();
+  const out: FilingEvent[] = [];
+  for (const f of lists.flat()) {
+    const key = `${f.form}|${f.filingDate}|${f.acceptedAt ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(f);
+  }
+  return out;
+}
+
 export interface SplitEvent {
   executionDate: string;
   splitFrom: number;

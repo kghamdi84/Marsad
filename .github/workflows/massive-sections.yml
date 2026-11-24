@@ -1,0 +1,36 @@
+name: Massive 10-K sections
+
+# Stores the two newest 10-K risk-factor sections of each tracked company, weekly (Sunday 05:45 UTC): annual
+# reports change once a year. One call per stock at about 5 calls a minute, so the run takes about 2 minutes.
+# Shares the massive-api concurrency group. GitHub's scheduler is unreliable (ADR 0008), so run it by hand after
+# a company files its 10-K.
+on:
+  schedule:
+    - cron: '45 5 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: massive-api
+  cancel-in-progress: false
+
+jobs:
+  sections:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the job
+        run: pnpm --filter @marsad/jobs massive sections
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}

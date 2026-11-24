@@ -4,14 +4,16 @@ import form4Sales from '../../fixtures/sec/form4-0001696841-26-000016.json';
 import form4Gift from '../../fixtures/sec/form4-0001197647-26-000013.json';
 import dividends from '../../fixtures/massive/dividends-NVDA.json';
 import news from '../../fixtures/massive/news-NVDA.json';
+import sections from '../../fixtures/massive/sections-NVDA-risk_factors.json';
 import notEntitled from '../../fixtures/massive/not-entitled-403.json';
 import shortInterest from '../../fixtures/massive/short-interest-NVDA.json';
 import shortVolume from '../../fixtures/massive/short-volume-NVDA.json';
-import type { MassiveConfig, SecConfig } from '@marsad/core';
+import { STARTING_STOCKS, type MassiveConfig, type SecConfig } from '@marsad/core';
 import { runFactsJob } from './facts-job.js';
 import { fakeStore } from './fake-store.js';
 import { runInsidersJob } from './insiders-job.js';
 import { runNewsJob } from './news-job.js';
+import { runSectionsJob } from './sections-job.js';
 import { runStudyDataJob } from './study-data-job.js';
 import { routedHttp } from './test-http.js';
 
@@ -252,5 +254,72 @@ describe('runStudyDataJob on the real NVDA short data and dividends', () => {
     expect(bad.error).toBe(
       'Study data failed: short volume NVDA: Requires a higher Massive plan (not-entitled)',
     );
+  });
+});
+
+describe('runSectionsJob on the real NVIDIA 10-K sections', () => {
+  const route = ['/stocks/filings/10-K/vX/sections', { status: 200, body: sections.body }] as const;
+  it('stores both annual reports and marks the source live', async () => {
+    const { store, log } = fakeStore();
+    const { http, urls } = routedHttp(NOW, [route]);
+    const run = await runSectionsJob({
+      http,
+      cfg: massive,
+      store,
+      now: () => NOW,
+      tickers: ['NVDA'],
+    });
+    expect(run.status).toBe('ok');
+    expect(run.rows_written).toBe(2);
+    expect(urls[0]).toContain('ticker=NVDA&section=risk_factors&limit=2');
+    expect(log.annualSections[0]?.map((x) => [x.periodEnd, x.filingDate, x.text.length])).toEqual([
+      ['2026-01-25', '2026-02-25', 114916],
+      ['2025-01-26', '2025-02-26', 110844],
+    ]);
+    expect(run.details).toMatchObject({ periodEnds: { NVDA: ['2026-01-25', '2025-01-26'] } });
+    expect(log.statuses[0]).toMatchObject({ source: 'massive_sections', state: 'live' });
+  });
+  it('lists a company with no annual report from the vendor instead of failing or hiding it', async () => {
+    const { store, log } = fakeStore();
+    const { http } = routedHttp(NOW, [
+      ['ticker=NVDA', { status: 200, body: sections.body }],
+      ['ticker=ZZZ', { status: 200, body: { status: 'OK', results: [] } }],
+    ]);
+    const run = await runSectionsJob({
+      http,
+      cfg: massive,
+      store,
+      now: () => NOW,
+      tickers: ['NVDA', 'ZZZ'],
+    });
+    expect(run.status).toBe('ok');
+    expect(run.details).toMatchObject({ noAnnualReport: ['ZZZ'] });
+    expect(log.statuses[0]?.note).toContain('1 of 2 companies; no 10-K from the vendor for ZZZ');
+  });
+  it('names a ticker the vendor refused and does not mark the source live', async () => {
+    const { store, log } = fakeStore();
+    const { http } = routedHttp(NOW, [
+      ['/stocks/filings/10-K/', { status: 403, body: notEntitled.body }],
+    ]);
+    const run = await runSectionsJob({
+      http,
+      cfg: massive,
+      store,
+      now: () => NOW,
+      tickers: ['NVDA'],
+    });
+    expect(run.status).toBe('error');
+    expect(run.error).toBe('Sections failed: NVDA: Requires a higher Massive plan (not-entitled)');
+    expect(log.statuses).toEqual([]);
+    expect(log.annualSections).toEqual([]);
+  });
+  it('asks only for stocks by default: an ETF has no 10-K', async () => {
+    const { store } = fakeStore();
+    const { http, urls } = routedHttp(NOW, [
+      ['/stocks/filings/10-K/', { status: 200, body: { results: [] } }],
+    ]);
+    await runSectionsJob({ http, cfg: massive, store, now: () => NOW });
+    expect(urls).toHaveLength(STARTING_STOCKS.length);
+    expect(urls.some((u) => /ticker=(SPY|QQQ|IWM|DIA)&/.test(u))).toBe(false);
   });
 });

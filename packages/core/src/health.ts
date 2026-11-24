@@ -81,7 +81,7 @@ export function assessSources(
 }
 
 /** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
-export const SOURCE_POLICY_VERSION = '2026-11-26.1';
+export const SOURCE_POLICY_VERSION = '2026-11-27.1';
 
 export interface SystemAlert {
   kind: 'system';
@@ -217,6 +217,14 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     label: 'Massive short data and dividends',
     dependentRules: ['group:short-data'],
     maxSilenceSec: { 'pre-market': 432000, regular: 432000, 'after-hours': 432000, closed: 432000 },
+    required: false,
+  },
+  {
+    source: 'massive_sections',
+    label: 'Massive 10-K sections',
+    dependentRules: ['group:risk-factors'],
+    // A weekly job and annual reports that change once a year: 10 days of silence is a missed run, not a stale report.
+    maxSilenceSec: { 'pre-market': 864000, regular: 864000, 'after-hours': 864000, closed: 864000 },
     required: false,
   },
   {
