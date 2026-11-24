@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyPublisher,
   clusterNews,
+  headlineEntities,
   headlineSimilarity,
   headlineTokens,
   normalizePublisher,
@@ -140,5 +141,80 @@ describe('clusterNews: one story from many outlets counts once', () => {
   });
   it('returns nothing for no articles', () => {
     expect(clusterNews([])).toEqual([]);
+  });
+});
+
+describe('clustering guards found on real headlines (Zacks, 2026-11-24)', () => {
+  const sofi = item(
+    'z-sfy',
+    'Zacks Investment Research',
+    'Should SoFi Select 500 ETF (SFY) Be on Your Investing Radar?',
+    '2026-11-24T10:20:02Z',
+  );
+  const ivv = item(
+    'z-ivv',
+    'Zacks Investment Research',
+    'Should iShares Core S&P 500 ETF (IVV) Be on Your Investing Radar?',
+    '2026-11-24T10:20:02Z',
+  );
+  it('keeps two templated headlines about different funds apart (a real false merge before the guards)', () => {
+    expect(clusterNews([sofi, ivv])).toHaveLength(2);
+  });
+  it('the ticker guard works on its own: the same template from two different outlets, naming different tickers, stays apart', () => {
+    const a = item(
+      't1',
+      'Reuters',
+      'Should SoFi Select 500 ETF (SFY) Be on Your Investing Radar?',
+      '2026-11-24T10:20:02Z',
+    );
+    const b = item(
+      't2',
+      'Bloomberg',
+      'Should iShares Core S&P 500 ETF (IVV) Be on Your Investing Radar?',
+      '2026-11-24T10:25:00Z',
+    );
+    expect(clusterNews([a, b])).toHaveLength(2);
+    // Without tickers in the headline the same wording from two outlets is treated as one story.
+    const c = { ...a, title: 'Should SoFi Select 500 ETF Be on Your Investing Radar?' };
+    const d = { ...b, title: 'Should SoFi Select 500 ETF Be on Your Investing Radar?' };
+    expect(clusterNews([c, d])).toHaveLength(1);
+  });
+  it('reads the tickers a headline names', () => {
+    expect([...headlineEntities(sofi.title)]).toEqual(['SFY']);
+    expect([...headlineEntities('Why $NVDA and AMD (AMD) rose')].sort()).toEqual(['AMD', 'NVDA']);
+    expect(headlineEntities('Nvidia rises').size).toBe(0);
+  });
+  it('merges rewrites that name the same ticker', () => {
+    const a = item(
+      'e1',
+      'Reuters',
+      'Nvidia (NVDA) CEO Jensen Huang reinstated after board vote',
+      '2026-11-24T14:00:00Z',
+    );
+    const b = item(
+      'e2',
+      'Bloomberg',
+      'Nvidia (NVDA) reinstates CEO Jensen Huang after board vote',
+      '2026-11-24T14:20:00Z',
+    );
+    expect(clusterNews([a, b])).toHaveLength(1);
+  });
+  it('keeps two articles from one outlet apart unless their headlines are nearly identical', () => {
+    const a = item(
+      'r1',
+      'Reuters',
+      'Nvidia CEO Jensen Huang reinstated after board vote',
+      '2026-11-24T14:00:00Z',
+    );
+    const rewrite = item(
+      'r2',
+      'Reuters',
+      'Nvidia reinstates CEO Jensen Huang after board vote',
+      '2026-11-24T14:30:00Z',
+    );
+    expect(clusterNews([a, rewrite])).toHaveLength(2);
+    expect(clusterNews([a, { ...a, id: 'r3', publishedAt: '2026-11-24T14:30:00Z' }])).toHaveLength(
+      1,
+    );
   });
 });

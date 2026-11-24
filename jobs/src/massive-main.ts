@@ -1,5 +1,5 @@
 /**
- * Entry point for the Massive jobs (run by GitHub Actions): `reference`, `reconcile` or `bars`.
+ * Entry point for the Massive jobs (run by GitHub Actions): `reference`, `reconcile`, `bars`, `news` or `study`.
  * Reads MASSIVE_API_KEY, SUPABASE_URL and SUPABASE_SECRET_KEY from the environment; never logs them.
  */
 import {
@@ -11,6 +11,8 @@ import {
   type MassiveConfig,
 } from '@marsad/core';
 import { runBarsJob } from './bars-job.js';
+import { runNewsJob } from './news-job.js';
+import { runStudyDataJob } from './study-data-job.js';
 import { runMassiveReferenceJob } from './massive-reference-job.js';
 import { runReconcileJob } from './reconcile-job.js';
 import { supabaseStore } from './store.js';
@@ -22,8 +24,9 @@ function need(name: string): string {
 }
 
 const which = process.argv[2];
-if (which !== 'reference' && which !== 'reconcile' && which !== 'bars')
-  throw new Error('usage: massive-main.ts reference|reconcile|bars');
+const MODES = ['reference', 'reconcile', 'bars', 'news', 'study'] as const;
+type Mode = (typeof MODES)[number];
+if (!MODES.includes(which as Mode)) throw new Error(`usage: massive-main.ts ${MODES.join('|')}`);
 
 const clock: Clock = {
   now: () => Date.now(),
@@ -49,12 +52,14 @@ const cfg: MassiveConfig = {
 const store = supabaseStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY'));
 const now = () => new Date();
 
-const run =
-  which === 'reference'
-    ? await runMassiveReferenceJob({ http, cfg, store, now })
-    : which === 'bars'
-      ? await runBarsJob({ http, cfg, store, now })
-      : await runReconcileJob({ http, cfg, store, now });
+const jobs = {
+  reference: () => runMassiveReferenceJob({ http, cfg, store, now }),
+  reconcile: () => runReconcileJob({ http, cfg, store, now }),
+  bars: () => runBarsJob({ http, cfg, store, now }),
+  news: () => runNewsJob({ http, cfg, store, now }),
+  study: () => runStudyDataJob({ http, cfg, store, now }),
+} satisfies Record<Mode, () => Promise<unknown>>;
+const run = await jobs[which as Mode]();
 console.log(
   `${run.job}: ${run.status}, rows ${run.rows_written ?? 0}, ${run.latency_ms} ms${run.error ? `, error: ${run.error}` : ''}${run.status === 'ok' ? ` details: ${JSON.stringify(run.details)}` : ''}`,
 );

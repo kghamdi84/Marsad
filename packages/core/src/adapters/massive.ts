@@ -35,7 +35,8 @@ function num(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
-async function call<T>(
+/** One Massive request with the shared auth, caching, failure classification and provenance. */
+export async function massiveCall<T>(
   http: HttpClient,
   cfg: MassiveConfig,
   path: string,
@@ -78,7 +79,7 @@ export function fetchMarketHolidays(
   http: HttpClient,
   cfg: MassiveConfig,
 ): Promise<AdapterResult<UpcomingRow[]>> {
-  return call(
+  return massiveCall(
     http,
     cfg,
     '/v1/marketstatus/upcoming',
@@ -141,7 +142,7 @@ export function fetchDailyBars(
 ): Promise<AdapterResult<Bar[]>> {
   if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker)) throw new RangeError(`Bad ticker: ${ticker}`);
   const path = `/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}?adjusted=true&sort=asc`;
-  return call(
+  return massiveCall(
     http,
     cfg,
     path,
@@ -166,7 +167,7 @@ export function fetchMinuteBars(
   if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker)) throw new RangeError(`Bad ticker: ${ticker}`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new RangeError('date must be YYYY-MM-DD');
   const path = `/v2/aggs/ticker/${ticker}/range/1/minute/${date}/${date}?adjusted=true&sort=asc&limit=50000`;
-  return call(
+  return massiveCall(
     http,
     cfg,
     path,
@@ -182,7 +183,7 @@ export function fetchSplits(
   ticker: string,
 ): Promise<AdapterResult<Split[]>> {
   if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker)) throw new RangeError(`Bad ticker: ${ticker}`);
-  return call(
+  return massiveCall(
     http,
     cfg,
     `/stocks/v1/splits?ticker=${ticker}&limit=100`,
@@ -235,7 +236,7 @@ export function fetchTreasuryYields(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to))
     throw new RangeError('dates must be YYYY-MM-DD');
   const path = `/fed/v1/treasury-yields?date.gte=${from}&date.lte=${to}&limit=100&sort=date.asc`;
-  return call(http, cfg, path, '/fed/v1/treasury-yields', 3600_000, (items) => {
+  return massiveCall(http, cfg, path, '/fed/v1/treasury-yields', 3600_000, (items) => {
     const out: TreasuryYieldDay[] = [];
     for (const it of items) {
       const r = it as Record<string, unknown>;

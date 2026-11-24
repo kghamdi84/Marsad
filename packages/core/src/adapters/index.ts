@@ -3,3 +3,5 @@ export * from './massive.js';
 export * from './fred.js';
 export * from './sec.js';
 export * from './nasdaq.js';
+export * from './sec-facts.js';
+export * from './massive-study.js';

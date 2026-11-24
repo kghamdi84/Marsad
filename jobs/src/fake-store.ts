@@ -2,6 +2,11 @@
 import type {
   Bar,
   CompanyRef,
+  DividendRow,
+  FinancialFact,
+  NewsArticle,
+  ShortInterestRow,
+  ShortVolumeRow,
   Filing,
   FredObservation,
   GprDay,
@@ -12,7 +17,7 @@ import type {
   SystemAlert,
   UpcomingRow,
 } from '@marsad/core';
-import type { SourceStatusUpdate, Store } from './store.js';
+import type { InsiderCandidate, InsiderResult, SourceStatusUpdate, Store } from './store.js';
 
 export interface FakeLog {
   gpr: GprDay[][];
@@ -23,6 +28,12 @@ export interface FakeLog {
   filings: { cik: string; n: number }[];
   halts: Halt[][];
   bars: { ticker: string; bars: Bar[] }[];
+  facts: { cik: string; facts: FinancialFact[] }[];
+  insiders: InsiderResult[];
+  news: NewsArticle[][];
+  shortInterest: ShortInterestRow[][];
+  shortVolume: ShortVolumeRow[][];
+  dividends: DividendRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -34,6 +45,8 @@ export interface FakeSeed {
   holidays?: UpcomingRow[];
   /** Previous stale/recovered state per source, as stored by earlier runs. */
   health?: Record<string, 'stale' | 'recovered'>;
+  instruments?: { cik: string; ticker: string }[];
+  insiderCandidates?: InsiderCandidate[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -43,7 +56,12 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
   const isSeed = (x: unknown): x is FakeSeed =>
     typeof x === 'object' &&
     x !== null &&
-    ('fred' in x || 'heartbeats' in x || 'holidays' in x || 'health' in x);
+    ('fred' in x ||
+      'heartbeats' in x ||
+      'holidays' in x ||
+      'health' in x ||
+      'instruments' in x ||
+      'insiderCandidates' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const log: FakeLog = {
@@ -55,6 +73,12 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     filings: [],
     halts: [],
     bars: [],
+    facts: [],
+    insiders: [],
+    news: [],
+    shortInterest: [],
+    shortVolume: [],
+    dividends: [],
     runs: [],
     statuses: [],
     alerts: [],
@@ -93,6 +117,33 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     upsertDailyBars: (ticker: string, bars: readonly Bar[]) => {
       log.bars.push({ ticker, bars: [...bars] });
       return Promise.resolve(bars.length);
+    },
+    getInstruments: () => Promise.resolve([...(s.instruments ?? [])]),
+    upsertFinancialFacts: (cik: string, facts: readonly FinancialFact[]) => {
+      log.facts.push({ cik, facts: [...facts] });
+      return Promise.resolve(facts.length);
+    },
+    getUnreadInsiderFilings: (limit: number) =>
+      Promise.resolve((s.insiderCandidates ?? []).slice(0, limit)),
+    saveInsiderFiling: (res: InsiderResult) => {
+      log.insiders.push(res);
+      return Promise.resolve(res.status === 'ok' ? res.doc.transactions.length : 0);
+    },
+    upsertNewsArticles: (a: readonly NewsArticle[]) => {
+      log.news.push([...a]);
+      return Promise.resolve(a.length);
+    },
+    upsertShortInterest: (r: readonly ShortInterestRow[]) => {
+      log.shortInterest.push([...r]);
+      return Promise.resolve(r.length);
+    },
+    upsertShortVolume: (r: readonly ShortVolumeRow[]) => {
+      log.shortVolume.push([...r]);
+      return Promise.resolve(r.length);
+    },
+    upsertDividends: (r: readonly DividendRow[]) => {
+      log.dividends.push([...r]);
+      return Promise.resolve(r.length);
     },
     recordRun: (run) => {
       log.runs.push(run);

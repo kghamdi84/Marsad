@@ -81,7 +81,7 @@ export function assessSources(
 }
 
 /** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
-export const SOURCE_POLICY_VERSION = '2026-11-25.1';
+export const SOURCE_POLICY_VERSION = '2026-11-26.1';
 
 export interface SystemAlert {
   kind: 'system';
@@ -182,8 +182,41 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     source: 'sec_edgar',
     label: 'SEC EDGAR',
     dependentRules: ['group:filings'],
-    // The Phase 1 job runs every 30 minutes; Phase 5 replaces it with a faster poller and tightens this.
-    maxSilenceSec: { 'pre-market': 14400, regular: 7200, 'after-hours': 14400, closed: null },
+    // The Phase 1 job runs every 30 minutes from 11:07 UTC on weekdays; Phase 5 replaces it with a faster poller
+    // and tightens this. Pre-market begins about 09:00 UTC, before the first run of the day, so its limit must
+    // cover the gap since the previous evening or a weekend (up to 4 days around a holiday). A real outage is
+    // still caught from the regular session on, where the limit is 2 hours.
+    maxSilenceSec: { 'pre-market': 345600, regular: 7200, 'after-hours': 14400, closed: null },
+    required: false,
+  },
+  {
+    source: 'sec_insiders',
+    label: 'SEC insider filings (Form 4)',
+    dependentRules: ['group:insiders'],
+    // The job runs hourly from 11:17 UTC to 23:17 UTC on weekdays: same gap logic as the SEC filings feed.
+    maxSilenceSec: { 'pre-market': 345600, regular: 7200, 'after-hours': 14400, closed: null },
+    required: false,
+  },
+  {
+    source: 'sec_facts',
+    label: 'SEC financial statements (XBRL)',
+    dependentRules: ['group:fundamentals'],
+    maxSilenceSec: { 'pre-market': 432000, regular: 432000, 'after-hours': 432000, closed: 432000 },
+    required: false,
+  },
+  {
+    source: 'massive_news',
+    label: 'Massive news',
+    dependentRules: ['group:news'],
+    // Three runs a weekday (12:05, 15:05, 18:05 UTC); a weekend is 3 days.
+    maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
+    required: false,
+  },
+  {
+    source: 'massive_study',
+    label: 'Massive short data and dividends',
+    dependentRules: ['group:short-data'],
+    maxSilenceSec: { 'pre-market': 432000, regular: 432000, 'after-hours': 432000, closed: 432000 },
     required: false,
   },
   {

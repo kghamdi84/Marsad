@@ -256,8 +256,8 @@
         {
           "id": "2.2",
           "title": "Financial statements and ratios, point-in-time, valuation percentiles",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Data layer done, not yet live: SEC company facts parser and point-in-time engine (core/fundamentals.ts) checked against an independent Python computation on the real NVIDIA facts (quarters, derived Q4, trailing four quarters, margins, year-over-year growth, balance sheet; point-in-time cutoffs and a hand-built restatement mutation-checked), financial_facts table, sec-facts job and workflow. Still to do: the Financials panel on the page. Valuation percentiles against a 5-year price history are not possible on the free plan (2 years of bars): the panel says so. P/E against trailing EPS is implemented."
         },
         {
           "id": "2.3",
@@ -268,8 +268,8 @@
         {
           "id": "2.4",
           "title": "Form 4 with codes and 10b5-1 flag; Forms 3 and 5; 13F with lag label",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Parser done, not yet live: core/form4.ts reads real NVIDIA Form 4s (12 sales totalling 30,000 shares and $4,542,781.49, matching an independent computation; gifts under a 10b5-1 plan), documents the element names, rejects error pages served with HTTP 200; insider tables and the sec-insiders job and workflow. Still to do: the panel with explained transaction codes and the 10b5-1 flag, Forms 3 and 5 display, 13F holders (placeholder: requires a full 13F ingest or a higher plan)."
         },
         {
           "id": "2.5",
@@ -286,14 +286,14 @@
         {
           "id": "2.7",
           "title": "Short interest and short volume with definitions",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Data layer done, not yet live: short interest, short volume and dividends adapters tested on real NVDA rows, tables and the massive-study job. Still to do: the panel with one-line definitions and disclosure-lag labels."
         },
         {
           "id": "2.8",
           "title": "News with tiers and clustering",
           "status": "in_progress",
-          "evidence": "Core done: packages/core/src/news.ts publisher tiers (unknown publishers are tier 4), opinion label, story clustering with window, ticker and minimum-shared-words rules; 16 tests, rules mutation-checked. Real free-plan sample: Motley Fool, Zacks, GlobeNewswire only. Still to do: news job, table and UI."
+          "evidence": "Core done: packages/core/src/news.ts publisher tiers (unknown publishers are tier 4), opinion label, story clustering with window, ticker and minimum-shared-words rules; 16 tests, rules mutation-checked. Real free-plan sample: Motley Fool, Zacks, GlobeNewswire only. Still to do: news job, table and UI. Adapter and job added (real NVDA news fixture, 30 articles). Clustering the 30 real headlines exposed a false merge (two templated Zacks headlines about different funds); fixed with a ticker guard and a same-outlet threshold, each with its own test and mutation check. Still to do: the News panel."
         },
         {
           "id": "2.9",

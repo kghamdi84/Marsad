@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sec-filings
+  group: sec-api # one group for every workflow that calls the SEC (fair access: 10 requests a second)
   cancel-in-progress: false
 
 jobs:

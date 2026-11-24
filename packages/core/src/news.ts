@@ -129,6 +129,14 @@ export function headlineTokens(title: string): Set<string> {
   );
 }
 
+/** Tickers a headline names, as `(SFY)` or `$NVDA`. Two headlines naming different ones are about different things. */
+export function headlineEntities(title: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of title.matchAll(/\(([A-Z]{1,5}(?:[.-][A-Z])?)\)|\$([A-Z]{1,5})\b/g))
+    out.add((m[1] ?? m[2]) as string);
+  return out;
+}
+
 export function headlineSimilarity(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
   let shared = 0;
   for (const t of a) if (b.has(t)) shared += 1;
@@ -141,6 +149,8 @@ export interface ClusterOptions {
   threshold?: number;
   /** Minimum shared words, so very short headlines are not merged by chance. Default 3. */
   minShared?: number;
+  /** Similarity needed when both articles come from the same outlet. Default 0.9: one outlet rarely publishes the same story twice under different headlines, but often publishes one template for many companies. */
+  sameOutletThreshold?: number;
   /** Longest gap after the earliest article for a story to absorb another. Default 36 hours. */
   windowHours?: number;
   rules?: Readonly<Record<string, PublisherRule>>;
@@ -158,14 +168,17 @@ export function clusterNews(
 ): NewsCluster[] {
   const threshold = options.threshold ?? 0.5;
   const minShared = options.minShared ?? 3;
+  const sameOutlet = options.sameOutletThreshold ?? 0.9;
   const windowMs = (options.windowHours ?? 36) * 3_600_000;
   const rules = options.rules ?? DEFAULT_PUBLISHER_RULES;
   const sorted = [...new Map(items.map((i) => [i.id, i])).values()].sort(
     (a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt) || a.id.localeCompare(b.id),
   );
-  const groups: { items: NewsItem[]; tokens: Set<string>; first: number }[] = [];
+  const groups: { items: NewsItem[]; tokens: Set<string>; entities: Set<string>; first: number }[] =
+    [];
   for (const item of sorted) {
     const tokens = headlineTokens(item.title);
+    const entities = headlineEntities(item.title);
     const at = Date.parse(item.publishedAt);
     const home = groups.find((g) => {
       if (at - g.first > windowMs) return false;
@@ -173,12 +186,19 @@ export function clusterNews(
       if (!head) return false;
       const tickersKnown = item.tickers.length > 0 && head.tickers.length > 0;
       if (tickersKnown && !item.tickers.some((t) => head.tickers.includes(t))) return false;
+      // Headlines that name different tickers are different stories, however alike their wording.
+      if (entities.size > 0 && g.entities.size > 0 && ![...entities].some((e) => g.entities.has(e)))
+        return false;
       let shared = 0;
       for (const t of tokens) if (g.tokens.has(t)) shared += 1;
-      return shared >= minShared && headlineSimilarity(tokens, g.tokens) >= threshold;
+      const same = normalizePublisher(head.publisher) === normalizePublisher(item.publisher);
+      return (
+        shared >= minShared &&
+        headlineSimilarity(tokens, g.tokens) >= (same ? Math.max(threshold, sameOutlet) : threshold)
+      );
     });
     if (home) home.items.push(item);
-    else groups.push({ items: [item], tokens, first: at });
+    else groups.push({ items: [item], tokens, entities, first: at });
   }
   return groups
     .map((g): NewsCluster => {

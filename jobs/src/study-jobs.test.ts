@@ -1,0 +1,256 @@
+import { describe, expect, it } from 'vitest';
+import factsFixture from '../../fixtures/sec/companyfacts-NVDA-trimmed.json';
+import form4Sales from '../../fixtures/sec/form4-0001696841-26-000016.json';
+import form4Gift from '../../fixtures/sec/form4-0001197647-26-000013.json';
+import dividends from '../../fixtures/massive/dividends-NVDA.json';
+import news from '../../fixtures/massive/news-NVDA.json';
+import notEntitled from '../../fixtures/massive/not-entitled-403.json';
+import shortInterest from '../../fixtures/massive/short-interest-NVDA.json';
+import shortVolume from '../../fixtures/massive/short-volume-NVDA.json';
+import type { MassiveConfig, SecConfig } from '@marsad/core';
+import { runFactsJob } from './facts-job.js';
+import { fakeStore } from './fake-store.js';
+import { runInsidersJob } from './insiders-job.js';
+import { runNewsJob } from './news-job.js';
+import { runStudyDataJob } from './study-data-job.js';
+import { routedHttp } from './test-http.js';
+
+const NOW = new Date('2026-11-24T23:15:00Z');
+const sec: SecConfig = { userAgent: 'Marsad research contact@example.com', now: () => NOW };
+const massive: MassiveConfig = { apiKey: 'k', planTier: 'end-of-day', now: () => NOW };
+const NVDA = { cik: '0001045810', ticker: 'NVDA' };
+
+describe('runFactsJob on the real NVIDIA company facts', () => {
+  it('stores only the concepts the Study page reads, keeps filing dates, and marks the source live', async () => {
+    const { store, log } = fakeStore({ instruments: [NVDA] });
+    const { http } = routedHttp(NOW, [
+      ['/companyfacts/CIK0001045810.json', { status: 200, body: factsFixture.body }],
+    ]);
+    const run = await runFactsJob({ http, cfg: sec, store, now: () => NOW });
+    expect(run.status).toBe('ok');
+    // 224 of the 240 recorded rows are for the 13 financial concepts and the share count (counted separately in
+    // Python); the 16 capex rows are left out.
+    expect(run.rows_written).toBe(224);
+    expect(log.facts[0]?.facts).toHaveLength(224);
+    expect(
+      log.facts[0]?.facts.some((f) => f.concept === 'PaymentsToAcquirePropertyPlantAndEquipment'),
+    ).toBe(false);
+    expect(
+      log.facts[0]?.facts.find(
+        (f) => f.concept === 'Revenues' && f.end === '2026-07-26' && f.start === '2026-04-27',
+      ),
+    ).toMatchObject({ value: 96_221_000_000, filed: '2026-08-26' });
+    expect(log.statuses[0]).toMatchObject({ source: 'sec_facts', state: 'live' });
+  });
+  it('names a company the SEC did not answer for and does not mark the source live', async () => {
+    const { store, log } = fakeStore({ instruments: [NVDA] });
+    const { http } = routedHttp(NOW, [['/companyfacts/', { status: 404, body: 'not found' }]]);
+    const run = await runFactsJob({ http, cfg: sec, store, now: () => NOW });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain('Financial facts failed: NVDA');
+    expect(log.statuses).toEqual([]);
+  });
+  it('fails loudly when no instruments exist yet, and when a company reports none of the expected concepts', async () => {
+    const none = await runFactsJob({
+      http: routedHttp(NOW, []).http,
+      cfg: sec,
+      store: fakeStore().store,
+      now: () => NOW,
+    });
+    expect(none.error).toContain('SEC filings job has to run first');
+    const empty = {
+      cik: 1,
+      entityName: 'X',
+      facts: {
+        'us-gaap': {
+          Other: {
+            units: { USD: [{ end: '2026-01-01', val: 1, accn: 'a', filed: '2026-01-02' }] },
+          },
+        },
+      },
+    };
+    const { http } = routedHttp(NOW, [['/companyfacts/', { status: 200, body: empty }]]);
+    const run = await runFactsJob({
+      http,
+      cfg: sec,
+      store: fakeStore({ instruments: [NVDA] }).store,
+      now: () => NOW,
+    });
+    expect(run.error).toContain('NVDA: none of the expected concepts were reported');
+  });
+});
+
+describe('runInsidersJob on real Form 4 documents', () => {
+  const candidates = [
+    {
+      accession: '0001696841-26-000016',
+      cik: '0001045810',
+      primaryDocument: 'xslF345X06/wk-form4_1795470863.xml',
+      acceptedAt: '2026-11-19T21:54:28.000Z',
+    },
+    {
+      accession: '0001197647-26-000013',
+      cik: '0001045810',
+      primaryDocument: 'xslF345X06/wk-form4_1793999520.xml',
+      acceptedAt: '2026-11-06T21:00:00.000Z',
+    },
+  ];
+  const routes = [
+    ['000169684126000016', { status: 200, body: form4Sales.body }],
+    ['000119764726000013', { status: 200, body: form4Gift.body }],
+  ] as const;
+
+  it('reads each filing, stores the insider, the 10b5-1 flag and every transaction, and marks the source live', async () => {
+    const { store, log } = fakeStore({ insiderCandidates: candidates });
+    const { http, urls } = routedHttp(NOW, routes);
+    const run = await runInsidersJob({ http, cfg: sec, store, now: () => NOW });
+    expect(run).toMatchObject({ status: 'ok', rows_written: 13 }); // 12 sales plus 1 gift
+    expect(urls[0]).toContain(
+      '/Archives/edgar/data/1045810/000169684126000016/wk-form4_1795470863.xml',
+    );
+    expect(log.insiders.map((r) => [r.accession, r.status])).toEqual([
+      ['0001696841-26-000016', 'ok'],
+      ['0001197647-26-000013', 'ok'],
+    ]);
+    const first = log.insiders[0];
+    if (first?.status !== 'ok') throw new Error('expected ok');
+    expect(first.doc.plan10b5).toBe(true);
+    expect(first.filedAt).toBe('2026-11-19T21:54:28.000Z');
+    expect(log.statuses[0]).toMatchObject({ source: 'sec_insiders', state: 'live' });
+  });
+  it('stores an error page served with HTTP 200 as an unreadable filing and fails the run, never as "no transactions"', async () => {
+    const { store, log } = fakeStore({ insiderCandidates: candidates.slice(0, 1) });
+    const { http } = routedHttp(NOW, [
+      ['/Archives/', { status: 200, body: '<html>Request rate threshold exceeded</html>' }],
+    ]);
+    const run = await runInsidersJob({ http, cfg: sec, store, now: () => NOW });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain('1 unreadable');
+    expect(log.insiders[0]).toMatchObject({ status: 'error', accession: '0001696841-26-000016' });
+    expect(log.statuses).toEqual([]);
+  });
+  it('does not store a filing that failed to download, so the next run tries again', async () => {
+    const { store, log } = fakeStore({ insiderCandidates: candidates.slice(0, 1) });
+    const { http } = routedHttp(NOW, [['/Archives/', { status: 503, body: 'down' }]]);
+    const run = await runInsidersJob({ http, cfg: sec, store, now: () => NOW });
+    expect(run.status).toBe('error');
+    expect(run.error).toContain('1 failed to fetch');
+    expect(log.insiders).toEqual([]);
+  });
+  it('stores a filing whose index entry is not an XML document as an error', async () => {
+    const { store, log } = fakeStore({
+      insiderCandidates: [
+        {
+          accession: '0001-26-000001',
+          cik: '0001045810',
+          primaryDocument: 'filing.htm',
+          acceptedAt: null,
+        },
+      ],
+    });
+    const run = await runInsidersJob({
+      http: routedHttp(NOW, []).http,
+      cfg: sec,
+      store,
+      now: () => NOW,
+    });
+    expect(run.status).toBe('error');
+    expect(log.insiders[0]).toMatchObject({ status: 'error' });
+  });
+  it('is an ok run with nothing to do when every filing has been read', async () => {
+    const run = await runInsidersJob({
+      http: routedHttp(NOW, []).http,
+      cfg: sec,
+      store: fakeStore().store,
+      now: () => NOW,
+    });
+    expect(run).toMatchObject({ status: 'ok', rows_written: 0 });
+  });
+});
+
+describe('runNewsJob on the real NVDA news', () => {
+  it('stores each article once even when two tickers return it, and marks the source live', async () => {
+    const { store, log } = fakeStore();
+    const { http, urls } = routedHttp(NOW, [
+      ['/v2/reference/news', { status: 200, body: news.body }],
+    ]);
+    const run = await runNewsJob({
+      http,
+      cfg: massive,
+      store,
+      now: () => NOW,
+      tickers: ['NVDA', 'AMD'],
+    });
+    expect(run).toMatchObject({ status: 'ok', rows_written: 30 });
+    expect(urls).toHaveLength(2);
+    expect(log.statuses[0]).toMatchObject({
+      source: 'massive_news',
+      note: '30 articles, newest 2026-11-24T17:45Z',
+    });
+  });
+  it('names a ticker the plan does not cover', async () => {
+    const { http } = routedHttp(NOW, [
+      ['/v2/reference/news', { status: 403, body: notEntitled.body }],
+    ]);
+    const run = await runNewsJob({
+      http,
+      cfg: massive,
+      store: fakeStore().store,
+      now: () => NOW,
+      tickers: ['NVDA'],
+    });
+    expect(run.error).toBe('News failed: NVDA: Requires a higher Massive plan (not-entitled)');
+  });
+});
+
+describe('runStudyDataJob on the real NVDA short data and dividends', () => {
+  const routes = [
+    ['/stocks/v1/short-interest', { status: 200, body: shortInterest.body }],
+    ['/stocks/v1/short-volume', { status: 200, body: shortVolume.body }],
+    ['/stocks/v1/dividends', { status: 200, body: dividends.body }],
+  ] as const;
+  it('stores all three data sets per ticker and says how many rows of each', async () => {
+    const { store, log } = fakeStore();
+    const { http, urls } = routedHttp(NOW, routes);
+    const run = await runStudyDataJob({
+      http,
+      cfg: massive,
+      store,
+      now: () => NOW,
+      tickers: ['NVDA'],
+    });
+    expect(run.status).toBe('ok');
+    expect(run.details).toMatchObject({
+      shortInterest: shortInterest.body.results.length,
+      shortVolume: shortVolume.body.results.length,
+      dividends: dividends.body.results.length,
+    });
+    expect(urls[0]).toContain('settlement_date.gte=2025-11-24'); // one year back
+    expect(urls[1]).toContain('date.gte=2026-07-27'); // 120 days back
+    expect(log.statuses[0]).toMatchObject({ source: 'massive_study', state: 'live' });
+  });
+  it('treats an empty answer (an ETF, a company with no dividend) as normal and a failed request as an error', async () => {
+    const empty = { status: 'OK', results: [] };
+    const ok = await runStudyDataJob({
+      http: routedHttp(NOW, [['/stocks/v1/', { status: 200, body: empty }]]).http,
+      cfg: massive,
+      store: fakeStore().store,
+      now: () => NOW,
+      tickers: ['SPY'],
+    });
+    expect(ok.status).toBe('ok');
+    const bad = await runStudyDataJob({
+      http: routedHttp(NOW, [
+        ['/stocks/v1/short-volume', { status: 403, body: notEntitled.body }],
+        ...routes.filter((r) => !r[0].includes('short-volume')),
+      ]).http,
+      cfg: massive,
+      store: fakeStore().store,
+      now: () => NOW,
+      tickers: ['NVDA'],
+    });
+    expect(bad.error).toBe(
+      'Study data failed: short volume NVDA: Requires a higher Massive plan (not-entitled)',
+    );
+  });
+});
