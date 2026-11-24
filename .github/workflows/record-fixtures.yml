@@ -13,6 +13,7 @@ on:
         options:
           - record-fixtures-main.ts
           - record-study-main.ts
+          - record-sections-main.ts
 
 permissions:
   contents: read
