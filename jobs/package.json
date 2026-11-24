@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "gpr": "tsx src/gpr-main.ts"
+    "gpr": "tsx src/gpr-main.ts",
+    "fred": "tsx src/fred-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

@@ -21,6 +21,10 @@ Web: Status page judges each source with the core policy and says why in words.
 - Khaled's Status page screenshot (2026-11-24 11:14 ET) shows: Geopolitical Risk Index "OK, last message 1m 6s ago (limit 4d 0h)", plan tier end-of-day, latency 21481 ms, note "Latest value 2026-11-23"; job run `gpr-daily` OK with 15302 rows. FRED shows "No data received yet"; Massive, Nasdaq halts and SEC show "Calendar not loaded, cannot judge", which is the intended behaviour until the calendar job fills `market_holidays` (needs the Massive key). This closes the Phase 0 follow-up "Status page screenshot".
 - Tooling note: Claude cannot read or set GitHub secrets (the proxy blocks that API, correctly); everything else on Actions, including starting workflows and reading logs, works from a session.
 
+### FRED job (2026-11-24, awaiting merge and first live run)
+
+`jobs/src/fred-job.ts` fetches all 12 FRED series from 1990 and stores them in `fred_observations` (new migration), one run record per run, source status live only when every series succeeded. Workflow `.github/workflows/fred-daily.yml` (23:30 UTC daily) needs the secret `FRED_API_KEY` (Khaled added it; Claude cannot read secrets, so the first run proves it). Tests use synthetic FRED bodies; the first live run logs the newest three values of each series (public numbers) so real values can be checked and a real fixture recorded.
+
 ### What is NOT done in Phase 1
 
 - Live recording of Massive, FRED and SEC responses: no keys and no SEC contact string yet. FRED and SEC tests use labelled synthetic bodies. The Massive entitlement error body and base URL are unconfirmed against the live REST API.

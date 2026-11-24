@@ -14,6 +14,7 @@ function fakeStore() {
       log.upserts.push([...days]);
       return Promise.resolve(days.length);
     },
+    upsertFredObservations: () => Promise.resolve(0),
     recordRun: (run) => {
       log.runs.push(run);
       return Promise.resolve();

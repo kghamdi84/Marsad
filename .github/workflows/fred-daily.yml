@@ -1,0 +1,33 @@
+name: FRED daily
+
+# Downloads the FRED series Marsad uses and stores them in Supabase.
+on:
+  schedule:
+    - cron: '30 23 * * *' # 23:30 UTC daily, after FRED's evening updates
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fred-daily
+  cancel-in-progress: false
+
+jobs:
+  fred:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the FRED job
+        run: pnpm --filter @marsad/jobs fred
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
