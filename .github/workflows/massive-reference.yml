@@ -1,0 +1,34 @@
+name: Massive reference data
+
+# Stores the market holiday calendar and split history. The free Massive plan allows about 5 calls a
+# minute, so this job spreads its calls out and takes a few minutes.
+on:
+  schedule:
+    - cron: '30 5 * * *' # 05:30 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: massive-reference
+  cancel-in-progress: false
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the reference job
+        run: pnpm --filter @marsad/jobs massive reference
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}

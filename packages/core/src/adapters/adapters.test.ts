@@ -221,6 +221,11 @@ describe('SEC adapter (SYNTHETIC body in the documented shape)', () => {
   it('refuses to run without a declared contact', async () => {
     expect(() => assertDeclaredUserAgent('Marsad')).toThrow(RangeError);
     expect(() => assertDeclaredUserAgent('node')).toThrow(RangeError);
+    // A web address alone is not what the SEC asks for, and neither is an email with no name.
+    expect(() => assertDeclaredUserAgent('Marsad research https://example.com')).toThrow(
+      RangeError,
+    );
+    expect(() => assertDeclaredUserAgent('contact@example.com')).toThrow(RangeError);
     expect(() => assertDeclaredUserAgent('Marsad research contact@example.com')).not.toThrow();
     await expect(
       fetchRecentFilings(setup(200, body).http, { ...cfg, userAgent: 'x' }, 1),

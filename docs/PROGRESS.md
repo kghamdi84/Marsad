@@ -25,6 +25,17 @@ Web: Status page judges each source with the core policy and says why in words.
 
 `jobs/src/fred-job.ts` fetches all 12 FRED series from 1990 and stores them in `fred_observations` (new migration), one run record per run, source status live only when every series succeeded. Workflow `.github/workflows/fred-daily.yml` (23:30 UTC daily) needs the secret `FRED_API_KEY` (Khaled added it; Claude cannot read secrets, so the first run proves it). Tests use synthetic FRED bodies; the first live run logs the newest three values of each series (public numbers) so real values can be checked and a real fixture recorded.
 
+### Massive jobs (2026-11-24, awaiting merge and first live runs)
+
+- `jobs/src/massive-reference-job.ts`: market holiday calendar (`market_holidays`) and split history (`splits`) for the 10 watchlist names and SPY, QQQ, IWM, DIA; run at 05:30 UTC by `massive-reference.yml`. Uses its own source row `massive_reference` (daily limit), so the Status page does not judge it by the live-price limit. A plan problem is reported as "Requires a higher Massive plan".
+- `jobs/src/reconcile-job.ts`: nightly check of Massive Treasury yields against FRED (10-year, 10y-3m and 10y-2y spreads) for every date both published; mismatch, or nothing to compare, fails the run (`reconcile-nightly.yml`, 00:45 UTC).
+- Adapter `fetchTreasuryYields` and a recorded fixture `fixtures/massive/treasury-yields.json`. Tests (jobs 14, core 141) use the recorded Massive rows.
+- Unconfirmed until the first live runs: Massive base URL (`https://api.massive.com`), the REST envelope, and the entitlement error body. The first run's log shows any of these failing, and `docs/DATA_SOURCES.md` gets updated from it.
+
+### SEC job (2026-11-24, awaiting merge and first live run)
+
+`jobs/src/sec-job.ts` looks up the CIK of each of the 10 watchlist stocks in the SEC ticker file, stores them in `instruments` (unique by CIK) and stores each company's recent filings in `filings` (new migration, RLS tested). Runs twice an hour on weekdays (`sec-filings.yml`) with the `SEC_USER_AGENT` secret (Khaled added `Marsad research` plus a contact email; Claude cannot read secrets, so the first run proves it). The adapter refuses to run without a name and contact email, per the SEC's page (reviewed 2026-11-20). The `sec_edgar` status limit was loosened to 2 hours in sessions because this job is not a once-a-minute poller; Phase 5 tightens it. Tests use synthetic bodies in the SEC's documented shapes (10 tests across adapter and job); the first live run is the real check, including that the SEC accepts the User-Agent.
+
 ### What is NOT done in Phase 1
 
 - Live recording of Massive, FRED and SEC responses: no keys and no SEC contact string yet. FRED and SEC tests use labelled synthetic bodies. The Massive entitlement error body and base URL are unconfirmed against the live REST API.

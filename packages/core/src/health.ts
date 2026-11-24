@@ -140,13 +140,21 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     source: 'sec_edgar',
     label: 'SEC EDGAR',
     dependentRules: ['group:filings'],
-    maxSilenceSec: { 'pre-market': 900, regular: 600, 'after-hours': 900, closed: null },
+    // The Phase 1 job runs every 30 minutes; Phase 5 replaces it with a faster poller and tightens this.
+    maxSilenceSec: { 'pre-market': 14400, regular: 7200, 'after-hours': 14400, closed: null },
     required: false,
   },
   {
     source: 'fred',
     label: 'FRED (St. Louis Fed)',
     dependentRules: ['group:macro'],
+    maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
+    required: false,
+  },
+  {
+    source: 'massive_reference',
+    label: 'Massive reference data',
+    dependentRules: ['group:calendar'],
     maxSilenceSec: { 'pre-market': 259200, regular: 259200, 'after-hours': 259200, closed: 259200 },
     required: false,
   },

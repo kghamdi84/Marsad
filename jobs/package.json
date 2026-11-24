@@ -6,7 +6,9 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "gpr": "tsx src/gpr-main.ts",
-    "fred": "tsx src/fred-main.ts"
+    "fred": "tsx src/fred-main.ts",
+    "massive": "tsx src/massive-main.ts",
+    "sec": "tsx src/sec-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

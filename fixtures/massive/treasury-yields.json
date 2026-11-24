@@ -1,0 +1,41 @@
+{
+  "_recorded": {
+    "source": "massive",
+    "endpoint": "/fed/v1/treasury-yields?date.gte=2026-11-18&date.lte=2026-11-23",
+    "recordedAt": "2026-11-24",
+    "via": "Massive MCP call_api (table output, not the raw REST envelope)",
+    "note": "Entitled on the free plan. Array shape reconstructed from the MCP table."
+  },
+  "data": [
+    {
+      "date": "2026-11-18",
+      "yield_1_month": 4.1,
+      "yield_3_month": 4.34,
+      "yield_1_year": 4.62,
+      "yield_2_year": 4.8,
+      "yield_5_year": 4.89,
+      "yield_10_year": 5.07,
+      "yield_30_year": 5.41
+    },
+    {
+      "date": "2026-11-19",
+      "yield_1_month": 4.2,
+      "yield_3_month": 4.34,
+      "yield_1_year": 4.62,
+      "yield_2_year": 4.76,
+      "yield_5_year": 4.86,
+      "yield_10_year": 5.04,
+      "yield_30_year": 5.4
+    },
+    {
+      "date": "2026-11-20",
+      "yield_1_month": 4.19,
+      "yield_3_month": 4.32,
+      "yield_1_year": 4.51,
+      "yield_2_year": 4.63,
+      "yield_5_year": 4.71,
+      "yield_10_year": 4.92,
+      "yield_30_year": 5.31
+    }
+  ]
+}

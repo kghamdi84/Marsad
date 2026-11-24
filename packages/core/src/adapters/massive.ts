@@ -170,15 +170,53 @@ export function fetchSplits(
           to === null
         )
           return null;
-        out.push({
+        const split: Split = {
           ticker: r['ticker'],
           executionDate: r['execution_date'],
           splitFrom: from,
           splitTo: to,
           adjustmentType: String(r['adjustment_type'] ?? ''),
-        });
+        };
+        if (typeof r['id'] === 'string') split.vendorId = r['id'];
+        const factor = num(r['historical_adjustment_factor']);
+        if (factor !== null) split.historicalAdjustmentFactor = factor;
+        out.push(split);
       }
       return { value: out, asOf: cfg.now() };
     },
   );
+}
+
+export interface TreasuryYieldDay {
+  date: string; // YYYY-MM-DD
+  y3m: number | null;
+  y2y: number | null;
+  y10y: number | null;
+}
+
+/** Daily Treasury yields (percent). Used to cross-check FRED's DGS10, T10Y3M and T10Y2Y. */
+export function fetchTreasuryYields(
+  http: HttpClient,
+  cfg: MassiveConfig,
+  from: string,
+  to: string,
+): Promise<AdapterResult<TreasuryYieldDay[]>> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to))
+    throw new RangeError('dates must be YYYY-MM-DD');
+  const path = `/fed/v1/treasury-yields?date.gte=${from}&date.lte=${to}&limit=100&sort=date.asc`;
+  return call(http, cfg, path, '/fed/v1/treasury-yields', 3600_000, (items) => {
+    const out: TreasuryYieldDay[] = [];
+    for (const it of items) {
+      const r = it as Record<string, unknown>;
+      if (typeof r['date'] !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r['date'])) return null;
+      out.push({
+        date: r['date'],
+        y3m: num(r['yield_3_month']),
+        y2y: num(r['yield_2_year']),
+        y10y: num(r['yield_10_year']),
+      });
+    }
+    const last = out.at(-1);
+    return { value: out, asOf: last ? new Date(`${last.date}T00:00:00Z`) : cfg.now() };
+  });
 }

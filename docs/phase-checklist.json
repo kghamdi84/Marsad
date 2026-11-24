@@ -154,7 +154,7 @@
           "id": "1.1",
           "title": "Massive adapter with token bucket, caching, backoff, entitlement detection and fixtures",
           "status": "in_progress",
-          "evidence": "Adapters in core/adapters/massive.ts for holidays, daily bars, splits: tested on recorded fixtures (provenance, Authorization header, bad-bar rejection, entitlement shown as requires plan). Code complete; live envelope, base URL and entitlement body still to confirm with MASSIVE_API_KEY. Not deployed."
+          "evidence": "Adapters for holidays, daily bars, splits and treasury yields (recorded fixtures); jobs/src/massive-reference-job.ts and reconcile-job.ts with workflows massive-reference.yml and reconcile-nightly.yml (14 job tests). Awaiting merge and the first live runs to confirm base URL, envelope and entitlement body."
         },
         {
           "id": "1.2",
@@ -166,7 +166,7 @@
           "id": "1.3",
           "title": "SEC EDGAR adapter (fair-access User-Agent and rate) and fixtures",
           "status": "in_progress",
-          "evidence": "core/adapters/sec.ts: submissions parser, refuses to run without a declared contact in SEC_USER_AGENT, 8-K items parsed. Tested on a SYNTHETIC documented-shape body; real recording waits for Khaled to choose the contact string. Not deployed."
+          "evidence": "core/adapters/sec.ts (submissions parser, company tickers parser, refuses to run without a name and contact email per the SEC page reviewed 2026-11-20) + jobs/src/sec-job.ts + migration filings + workflow sec-filings.yml. 10 tests on SYNTHETIC bodies; awaiting merge and first live run (also confirms the SEC accepts the User-Agent)."
         },
         {
           "id": "1.4",
@@ -190,7 +190,7 @@
           "id": "1.7",
           "title": "Market calendar and time utilities (ms/ns conversion, holidays, early closes)",
           "status": "done",
-          "evidence": "timestamps.ts (s/ms/us/ns to UTC ms, 7 tests) and calendar.ts (holidays and early closes from recorded Massive /v1/marketstatus/upcoming, DST weeks, session state, 16 tests). Calendar rows come from fixtures/massive recorded via MCP; live envelope still to confirm with the API key."
+          "evidence": "timestamps.ts (s/ms/us/ns to UTC ms, 7 tests) and calendar.ts (holidays and early closes from recorded Massive /v1/marketstatus/upcoming, DST weeks, session state, 16 tests). Calendar rows come from fixtures/massive recorded via MCP; live envelope still to confirm with the API key. market_holidays filled by the massive-reference job (awaiting first live run)."
         },
         {
           "id": "1.8",
@@ -208,7 +208,7 @@
           "id": "1.10",
           "title": "Cross-source checks and nightly reconciliation job",
           "status": "in_progress",
-          "evidence": "core/reconcile.ts: VIX vs FRED, 10y vs FRED, VWAP, filings completeness, missing side = failure, report and critical alerts (8 tests). The nightly job and live data are not yet wired."
+          "evidence": "core/reconcile.ts + jobs/src/reconcile-job.ts (5 tests: pass, mismatch, nothing to compare, skipped dates, plan denial) + workflow reconcile-nightly.yml 00:45 UTC. Live: manual Massive-vs-FRED check matched exactly on 3 days. VIX cross-check needs the Indices plan; filings completeness needs the SEC adapter deployed."
         },
         {
           "id": "1.11",
