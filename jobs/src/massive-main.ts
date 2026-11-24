@@ -36,11 +36,14 @@ const clock: Clock = {
 const fetchLike: FetchLike = (url, init) =>
   fetch(url, init?.headers ? { headers: init.headers } : undefined);
 
-// The free plan allows about 5 calls a minute: a bucket of 5 refilling at 5 per minute stays inside it.
+// The free plan allows about 5 calls a minute. A bucket that starts with 5 tokens refilling at 5 per minute still
+// sends about 9 calls in the first minute (the 5 at once, then one every 12 seconds), which the vendor refused with a
+// 429 on 2026-11-24 (OKLO, after earlier calls had used the retries). A bucket of 1 spaces every call 12 seconds apart,
+// so no minute ever holds more than 5.
 const http = new HttpClient({
   fetch: fetchLike,
   clock,
-  bucket: new TokenBucket(5, 5 / 60, clock),
+  bucket: new TokenBucket(1, 5 / 60, clock),
   cache: new TtlCache<string>(),
   maxRetries: 3,
   baseDelayMs: 2000,
