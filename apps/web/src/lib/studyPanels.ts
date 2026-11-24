@@ -52,6 +52,9 @@ export async function loadFacts(cik: string): Promise<FinancialFact[]> {
 
 export interface InsiderRow {
   accession: string;
+  /** The filing type: 4, 5, 4/A or 5/A. */
+  form: string;
+  isAmendment: boolean;
   ownerName: string;
   isDirector: boolean;
   isOfficer: boolean;
@@ -69,49 +72,148 @@ export interface InsiderRow {
   table: 'non-derivative' | 'derivative';
 }
 
+export interface HoldingRow {
+  table: 'non-derivative' | 'derivative';
+  securityTitle: string;
+  shares: number | null;
+  ownership: 'D' | 'I' | null;
+  nature: string | null;
+  exercisePrice: number | null;
+  expirationDate: string | null;
+  underlyingTitle: string | null;
+  underlyingShares: number | null;
+  footnotes: string[];
+}
+
+/** One Form 3 (initial holdings) or 3/A, with its holdings table. */
+export interface Form3Filing {
+  accession: string;
+  form: string;
+  isAmendment: boolean;
+  originalSubmission: string | null;
+  ownerName: string;
+  coOwners: string[];
+  isDirector: boolean;
+  isOfficer: boolean;
+  officerTitle: string | null;
+  isTenPercentOwner: boolean;
+  /** The date that made the person an insider (the report's "event date"). */
+  eventDate: string;
+  filedAt: string | null;
+  /** True when the filing states the person owns no securities. */
+  noSecuritiesOwned: boolean | null;
+  holdings: HoldingRow[];
+}
+
 export interface InsiderData {
   rows: InsiderRow[];
+  /** Initial-holdings reports, newest first. */
+  form3: Form3Filing[];
   /** Filings the job could not read. Shown, never hidden. */
   unreadable: number;
 }
+
+const IS_FORM3 = (type: unknown) => type === '3' || type === '3/A';
 
 export async function loadInsiders(cik: string): Promise<InsiderData> {
   const filings = check(
     await client()
       .from('insider_filings')
       .select(
-        'accession, status, owner_name, is_director, is_officer, officer_title, is_ten_percent_owner, plan_10b5, filed_at, period_of_report',
+        'accession, status, document_type, owner_name, co_owners, is_director, is_officer, officer_title, is_ten_percent_owner, plan_10b5, filed_at, period_of_report, no_securities_owned, original_submission',
       )
       .eq('issuer_cik', cik)
       .order('period_of_report', { ascending: false, nullsFirst: false })
-      .limit(200),
+      .limit(500),
     'insider_filings',
   ) as Record<string, unknown>[];
   const ok = filings.filter((f) => f['status'] === 'ok');
   const unreadable = filings.length - ok.length;
-  if (ok.length === 0) return { rows: [], unreadable };
-  const tx = check(
-    await client()
-      .from('insider_transactions')
-      .select(
-        'accession, line, table_kind, trade_date, code, shares, price_per_share, acquired_disposed, shares_after, value_usd',
-      )
-      .in(
-        'accession',
-        ok.map((f) => f['accession'] as string),
-      )
-      .order('trade_date', { ascending: false })
-      .limit(1000),
-    'insider_transactions',
-  ) as Record<string, unknown>[];
-  const head = new Map(ok.map((f) => [f['accession'] as string, f]));
   const n = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+
+  // Initial holdings (Form 3): the newest few, with their holdings rows.
+  const form3Heads = ok.filter((f) => IS_FORM3(f['document_type'])).slice(0, 12);
+  const holdingRows =
+    form3Heads.length === 0
+      ? []
+      : (check(
+          await client()
+            .from('insider_holdings')
+            .select(
+              'accession, line, table_kind, security_title, shares, ownership, nature_of_ownership, exercise_price, expiration_date, underlying_title, underlying_shares, footnotes',
+            )
+            .in(
+              'accession',
+              form3Heads.map((f) => f['accession'] as string),
+            )
+            .order('line', { ascending: true }),
+          'insider_holdings',
+        ) as Record<string, unknown>[]);
+  const form3: Form3Filing[] = form3Heads.map((f) => ({
+    accession: String(f['accession']),
+    form: String(f['document_type']),
+    isAmendment: f['document_type'] === '3/A',
+    originalSubmission: (f['original_submission'] as string | null) ?? null,
+    ownerName: String(f['owner_name'] ?? ''),
+    coOwners: Array.isArray(f['co_owners']) ? (f['co_owners'] as string[]) : [],
+    isDirector: f['is_director'] === true,
+    isOfficer: f['is_officer'] === true,
+    officerTitle: (f['officer_title'] as string | null) ?? null,
+    isTenPercentOwner: f['is_ten_percent_owner'] === true,
+    eventDate: String(f['period_of_report'] ?? ''),
+    filedAt: (f['filed_at'] as string | null) ?? null,
+    noSecuritiesOwned:
+      typeof f['no_securities_owned'] === 'boolean' ? f['no_securities_owned'] : null,
+    holdings: holdingRows
+      .filter((h) => h['accession'] === f['accession'])
+      .map((h) => ({
+        table: h['table_kind'] === 'derivative' ? 'derivative' : 'non-derivative',
+        securityTitle: String(h['security_title'] ?? ''),
+        shares: n(h['shares']),
+        ownership: h['ownership'] === 'D' || h['ownership'] === 'I' ? h['ownership'] : null,
+        nature: (h['nature_of_ownership'] as string | null) ?? null,
+        exercisePrice: n(h['exercise_price']),
+        expirationDate: (h['expiration_date'] as string | null) ?? null,
+        underlyingTitle: (h['underlying_title'] as string | null) ?? null,
+        underlyingShares: n(h['underlying_shares']),
+        footnotes: Array.isArray(h['footnotes']) ? (h['footnotes'] as string[]) : [],
+      })),
+  }));
+
+  // Trades (Forms 4 and 5 and their amendments). The accession list is asked in chunks: a few hundred in one
+  // address would be too long for the API.
+  const trades = ok.filter((f) => !IS_FORM3(f['document_type']));
+  const tx: Record<string, unknown>[] = [];
+  for (let i = 0; i < trades.length; i += 100) {
+    tx.push(
+      ...(check(
+        await client()
+          .from('insider_transactions')
+          .select(
+            'accession, line, table_kind, trade_date, code, shares, price_per_share, acquired_disposed, shares_after, value_usd',
+          )
+          .in(
+            'accession',
+            trades.slice(i, i + 100).map((f) => f['accession'] as string),
+          )
+          .order('trade_date', { ascending: false })
+          .limit(1000),
+        'insider_transactions',
+      ) as Record<string, unknown>[]),
+    );
+  }
+  tx.sort((a, b) => String(b['trade_date']).localeCompare(String(a['trade_date'])));
+  const head = new Map(trades.map((f) => [f['accession'] as string, f]));
   return {
     unreadable,
-    rows: tx.map((t) => {
+    form3,
+    rows: tx.slice(0, 1000).map((t) => {
       const f = head.get(t['accession'] as string) as Record<string, unknown>;
+      const form = String(f['document_type'] ?? '');
       return {
         accession: String(t['accession']),
+        form,
+        isAmendment: form.endsWith('/A'),
         ownerName: String(f['owner_name'] ?? ''),
         isDirector: f['is_director'] === true,
         isOfficer: f['is_officer'] === true,

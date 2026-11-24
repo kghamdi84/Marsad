@@ -1,7 +1,11 @@
 /**
  * SEC Form 3, 4 and 5 ownership documents (the XML behind each insider filing). Element names were confirmed
- * on three real NVIDIA Form 4s recorded on 2026-11-24 (fixtures/sec/form4-*.json). The 10b5-1 checkbox is the
- * document-level `aff10b5One`; a transaction's own footnote usually states the plan and its adoption date.
+ * on three real NVIDIA Form 4s recorded on 2026-11-24 (fixtures/sec/form4-*.json) and on real Form 3, 3/A, 5 and
+ * 5/A documents recorded the same day (fixtures/sec/form3-*, form3A-*, form5-*, form5A-*). The 10b5-1 checkbox is
+ * the document-level `aff10b5One`; a transaction's own footnote usually states the plan and its adoption date.
+ * A Form 3 reports what an insider already holds (holdings, not trades) and can say outright that the person
+ * owns nothing (`noSecuritiesOwned`); a Form 5 reports trades that were not reported earlier, sometimes years
+ * late; an amendment (`/A`) can repeat what an earlier filing said.
  */
 import { child, children, descendants, parseXml, text, XmlError, type XmlNode } from './xml.js';
 
@@ -46,6 +50,25 @@ export interface InsiderTransaction {
   valueUsd: number | null;
 }
 
+/** One line of a Form 3 or Form 5 holdings table: what the insider holds, not a trade. */
+export interface InsiderHolding {
+  table: 'non-derivative' | 'derivative';
+  securityTitle: string;
+  /** Shares owned after the report. Null for most derivative rows, which give `underlyingShares` instead. */
+  shares: number | null;
+  ownership: 'D' | 'I' | null;
+  /** For indirect ownership, how: for example "By GV 2019 L.P.". */
+  natureOfOwnership: string | null;
+  /** Derivative only. Null when the filing gives the price only in a footnote (restricted stock units). */
+  exercisePrice: number | null;
+  /** ISO dates when the filing states one; often the date is only in a footnote, then null. */
+  exerciseDate: string | null;
+  expirationDate: string | null;
+  underlyingTitle: string | null;
+  underlyingShares: number | null;
+  footnotes: string[];
+}
+
 export interface Form4Document {
   documentType: string;
   periodOfReport: string;
@@ -54,12 +77,25 @@ export interface Form4Document {
   /** The 10b5-1 checkbox: true or false when the filing has it, null for older forms without it. */
   plan10b5: boolean | null;
   transactions: InsiderTransaction[];
+  /** Holdings tables (Form 3, and some Form 5 and Form 4 documents). */
+  holdings: InsiderHolding[];
+  /** Form 3 only: true when the filing states that the person owns no securities. Null when it has no such flag. */
+  noSecuritiesOwned: boolean | null;
+  /** True for 3/A, 4/A and 5/A. An amendment can repeat what the original said. */
+  isAmendment: boolean;
+  /** The date the original was submitted, stated by an amendment. */
+  dateOfOriginalSubmission: string | null;
   footnotes: Record<string, string>;
 }
 
 function flag(node: XmlNode | null, path: string): boolean {
   const v = text(node, path);
   return v === '1' || v?.toLowerCase() === 'true';
+}
+
+function flagOrNull(node: XmlNode | null, path: string): boolean | null {
+  const v = text(node, path);
+  return v === null ? null : v === '1' || v.toLowerCase() === 'true';
 }
 
 function number(node: XmlNode | null, path: string): number | null {
@@ -102,6 +138,33 @@ function transaction(
     exercisePrice: number(node, 'conversionOrExercisePrice/value'),
     footnotes: [...new Set(ids)].map((id) => notes[id]).filter((s): s is string => s !== undefined),
     valueUsd: shares !== null && price !== null && price > 0 ? shares * price : null,
+  };
+}
+
+function optionalDate(node: XmlNode, path: string): string | null {
+  const v = text(node, path);
+  return v !== null && DATE.test(v) ? v : null;
+}
+
+function holding(
+  node: XmlNode,
+  table: InsiderHolding['table'],
+  notes: Record<string, string>,
+): InsiderHolding {
+  const own = text(node, 'ownershipNature/directOrIndirectOwnership/value');
+  const ids = descendants(node, 'footnoteId').map((f) => f.attrs['id'] ?? '');
+  return {
+    table,
+    securityTitle: text(node, 'securityTitle/value') ?? '',
+    shares: number(node, 'postTransactionAmounts/sharesOwnedFollowingTransaction/value'),
+    ownership: own === 'D' || own === 'I' ? own : null,
+    natureOfOwnership: text(node, 'ownershipNature/natureOfOwnership/value'),
+    exercisePrice: number(node, 'conversionOrExercisePrice/value'),
+    exerciseDate: optionalDate(node, 'exerciseDate/value'),
+    expirationDate: optionalDate(node, 'expirationDate/value'),
+    underlyingTitle: text(node, 'underlyingSecurity/underlyingSecurityTitle/value'),
+    underlyingShares: number(node, 'underlyingSecurity/underlyingSecurityShares/value'),
+    footnotes: [...new Set(ids)].map((id) => notes[id]).filter((s): s is string => s !== undefined),
   };
 }
 
@@ -160,6 +223,17 @@ export function parseForm4(xml: string): Form4Document {
         transaction(n, 'derivative', footnotes),
       ),
     ],
+    holdings: [
+      ...children(root, 'nonDerivativeTable/nonDerivativeHolding').map((n) =>
+        holding(n, 'non-derivative', footnotes),
+      ),
+      ...children(root, 'derivativeTable/derivativeHolding').map((n) =>
+        holding(n, 'derivative', footnotes),
+      ),
+    ],
+    noSecuritiesOwned: flagOrNull(root, 'noSecuritiesOwned'),
+    isAmendment: documentType.endsWith('/A'),
+    dateOfOriginalSubmission: optionalDate(root, 'dateOfOriginalSubmission'),
     footnotes,
   };
 }
@@ -185,4 +259,59 @@ export function summarizeForm4(doc: Form4Document): Form4Summary {
     if (t.code === 'S' && t.valueUsd !== null) sold += t.valueUsd;
   }
   return { netSharesByCode: net, purchasedUsd: purchased, soldUsd: sold };
+}
+
+export interface InsiderTradeLine {
+  table: 'non-derivative' | 'derivative';
+  /** ISO trade date. */
+  date: string;
+  code: string;
+  shares: number | null;
+  valueUsd: number | null;
+  /** True for a 3/A, 4/A or 5/A: it can repeat an earlier filing. */
+  isAmendment: boolean;
+}
+
+export interface RecentOpenMarket {
+  soldShares: number;
+  soldUsd: number;
+  boughtShares: number;
+  boughtUsd: number;
+  /** Open-market lines inside the window left out because they come from an amendment. */
+  amendmentLines: number;
+}
+
+/**
+ * Open-market sales (S) and purchases (P) on or after `since` (an ISO date), from shares and the reported price.
+ * Derivative rows are left out. Lines from an amendment are listed by the page but not added to the totals: an
+ * amendment usually repeats an earlier filing, and the original may or may not be stored, so adding both would
+ * count one trade twice. Dates are trade dates, so a late Form 5 reporting an old trade never counts as recent.
+ */
+export function summarizeRecentOpenMarket(
+  lines: readonly InsiderTradeLine[],
+  since: string,
+): RecentOpenMarket {
+  const out: RecentOpenMarket = {
+    soldShares: 0,
+    soldUsd: 0,
+    boughtShares: 0,
+    boughtUsd: 0,
+    amendmentLines: 0,
+  };
+  for (const l of lines) {
+    if (l.table !== 'non-derivative' || l.date < since || l.shares === null) continue;
+    if (l.code !== 'S' && l.code !== 'P') continue;
+    if (l.isAmendment) {
+      out.amendmentLines += 1;
+      continue;
+    }
+    if (l.code === 'S') {
+      out.soldShares += l.shares;
+      out.soldUsd += l.valueUsd ?? 0;
+    } else {
+      out.boughtShares += l.shares;
+      out.boughtUsd += l.valueUsd ?? 0;
+    }
+  }
+  return out;
 }

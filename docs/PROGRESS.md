@@ -2,7 +2,7 @@
 
 ## Current phase: 1, Data and trust layer (complete, awaiting Khaled's sign-off). Phase 0 follow-ups still open, see below.
 
-Last updated 2026-11-24 (Phase 2, risk-factor comparison).
+Last updated 2026-11-24 (Phase 2, insider Forms 3 and 5).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -107,6 +107,16 @@ Needs after merge: the new migration `20261127000000_annual_sections.sql` is app
 - First live run of `massive-sections` **failed**: `Sections failed: OKLO: Massive rate limit reached (rate-limited)`, recorded as an error run as designed. Cause: the shared request bucket started with 5 tokens refilling at 5 a minute, which sends about 9 calls in the first minute against the free plan's about 5; earlier jobs had survived on retries. Fix: a bucket of 1, so every call is 12 seconds apart (applies to every Massive job; their calls take slightly longer, none exceed the limit).
 - Rerun after the fix: `massive-sections: ok, rows 19, 110074 ms`. NVDA 2026 and 2025; RKLB, MARA, SOFI, HOOD, OKLO, IONQ, HIMS and BBAI 2025 and 2024; **RGTI only 2025** (its panel will say there is nothing to compare). No company is missing from the vendor.
 - Not looked at live: the panel itself needs Khaled's signed-in session; the end-to-end test renders the same real reports.
+
+### Insider Forms 3 and 5 (2026-11-24, checklist 2.4)
+
+The insider panel is now "Insider filings (Forms 3, 4 and 5)". The job reads all three forms and their amendments. I recorded real documents first: the 10 tracked companies list 263 Form 3 and 5 filings, and six of them are saved as fixtures (a mixed Form 3, a restricted-stock-only Form 3, a Form 3 stating the person owns nothing, a joint Form 3/A with four owners, a Form 5 and an amended Form 5/A).
+
+Things the real data showed that I would not have guessed: a Form 3 can say outright that the person owns no securities (stored and shown as a fact); restricted stock units give no price or date as values, only footnotes (shown as "Not stated, see the filing notes"); an amended Form 5 filed in March 2025 reports sales made in December 2023 and June 2024 (so the panel now shows the filed date next to the trade date); amendments can repeat an earlier filing, so their lines are listed but not added to the 90-day totals; and Form 4 documents carry holdings rows too, which are now stored.
+
+Verification: six real documents checked against an independent Python reading of the XML, parser mutation-checked (all caught), the totals function moved into core and mutation-checked (one equivalent mutant, since `0 + null` is `0` in JavaScript), a per-table access test for every Study table, Node and Deno byte-identical, 4 e2e checks on the page (screenshot reviewed). One existing test changed: the Form 4 job test now expects 16 rows, because it also stores the 3 holdings rows those two filings carry.
+
+After merge: the Supabase integration applies `20261128000000_insider_holdings.sql` (additive). Form 3 history fills in as the hourly insiders job reads 80 filings a run, newest first. The job's candidate window grew from the newest 400 to the newest 600 filings and its "already read" check is now asked in chunks, because a few hundred accession numbers in one request would be too long. 13F holders stay a placeholder, now with the reason.
 
 ### What is NOT done (carried forward, none blocks Phase 2)
 

@@ -372,24 +372,29 @@ export function supabaseStore(url: string, secretKey: string): Store {
       return written;
     },
     async getUnreadInsiderFilings(limit) {
+      // Forms 3, 4 and 5 and their amendments. Newest first, so a fresh Form 4 is read before an old Form 3.
       const { data, error } = await db
         .from('filings')
         .select('accession, cik, primary_document, accepted_at')
-        .in('form', ['4', '4/A'])
+        .in('form', ['3', '3/A', '4', '4/A', '5', '5/A'])
         .not('primary_document', 'is', null)
         .order('accepted_at', { ascending: false })
-        .limit(400);
+        .limit(600);
       if (error) throw new Error(`filings read failed: ${error.message}`);
       const rows = data ?? [];
-      const seen = await db
-        .from('insider_filings')
-        .select('accession')
-        .in(
-          'accession',
-          rows.map((r) => r.accession as string),
-        );
-      if (seen.error) throw new Error(`insider_filings read failed: ${seen.error.message}`);
-      const done = new Set((seen.data ?? []).map((r) => r.accession as string));
+      // Asked in chunks: a few hundred accession numbers in one address would be too long for the API.
+      const done = new Set<string>();
+      for (let i = 0; i < rows.length; i += 150) {
+        const seen = await db
+          .from('insider_filings')
+          .select('accession')
+          .in(
+            'accession',
+            rows.slice(i, i + 150).map((r) => r.accession as string),
+          );
+        if (seen.error) throw new Error(`insider_filings read failed: ${seen.error.message}`);
+        for (const r of seen.data ?? []) done.add(r.accession as string);
+      }
       return rows
         .filter((r) => !done.has(r.accession as string))
         .slice(0, limit)
@@ -431,6 +436,9 @@ export function supabaseStore(url: string, secretKey: string): Store {
           is_officer: owner?.isOfficer ?? null,
           officer_title: owner?.officerTitle ?? null,
           is_ten_percent_owner: owner?.isTenPercentOwner ?? null,
+          co_owners: res.doc.owners.slice(1).map((o) => o.name),
+          no_securities_owned: res.doc.noSecuritiesOwned,
+          original_submission: res.doc.dateOfOriginalSubmission,
           plan_10b5: res.doc.plan10b5,
           filed_at: res.filedAt,
           parsed_at: new Date().toISOString(),
@@ -438,28 +446,53 @@ export function supabaseStore(url: string, secretKey: string): Store {
         { onConflict: 'accession' },
       );
       if (head.error) throw new Error(`insider_filings upsert failed: ${head.error.message}`);
-      if (res.doc.transactions.length === 0) return 0;
-      const rows = res.doc.transactions.map((t, i) => ({
-        accession: res.accession,
-        line: i + 1,
-        table_kind: t.table,
-        security_title: t.securityTitle,
-        trade_date: t.date,
-        code: t.code,
-        shares: t.shares,
-        price_per_share: t.pricePerShare,
-        acquired_disposed: t.acquiredDisposed,
-        shares_after: t.sharesAfter,
-        ownership: t.ownership,
-        exercise_price: t.exercisePrice,
-        value_usd: t.valueUsd,
-        footnotes: t.footnotes,
-      }));
-      const { error } = await db
-        .from('insider_transactions')
-        .upsert(rows, { onConflict: 'accession,line' });
-      if (error) throw new Error(`insider_transactions upsert failed: ${error.message}`);
-      return rows.length;
+      let written = 0;
+      if (res.doc.transactions.length > 0) {
+        const rows = res.doc.transactions.map((t, i) => ({
+          accession: res.accession,
+          line: i + 1,
+          table_kind: t.table,
+          security_title: t.securityTitle,
+          trade_date: t.date,
+          code: t.code,
+          shares: t.shares,
+          price_per_share: t.pricePerShare,
+          acquired_disposed: t.acquiredDisposed,
+          shares_after: t.sharesAfter,
+          ownership: t.ownership,
+          exercise_price: t.exercisePrice,
+          value_usd: t.valueUsd,
+          footnotes: t.footnotes,
+        }));
+        const { error } = await db
+          .from('insider_transactions')
+          .upsert(rows, { onConflict: 'accession,line' });
+        if (error) throw new Error(`insider_transactions upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      if (res.doc.holdings.length > 0) {
+        const rows = res.doc.holdings.map((h, i) => ({
+          accession: res.accession,
+          line: i + 1,
+          table_kind: h.table,
+          security_title: h.securityTitle,
+          shares: h.shares,
+          ownership: h.ownership,
+          nature_of_ownership: h.natureOfOwnership,
+          exercise_price: h.exercisePrice,
+          exercise_date: h.exerciseDate,
+          expiration_date: h.expirationDate,
+          underlying_title: h.underlyingTitle,
+          underlying_shares: h.underlyingShares,
+          footnotes: h.footnotes,
+        }));
+        const { error } = await db
+          .from('insider_holdings')
+          .upsert(rows, { onConflict: 'accession,line' });
+        if (error) throw new Error(`insider_holdings upsert failed: ${error.message}`);
+        written += rows.length;
+      }
+      return written;
     },
     async upsertNewsArticles(articles, fetchedAt) {
       if (articles.length === 0) return 0;

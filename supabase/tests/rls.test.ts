@@ -83,6 +83,10 @@ beforeAll(async () => {
     insert into public.insider_filings (accession, issuer_cik, status) values ('0001696841-26-000016', '0001045810', 'ok');
     insert into public.insider_transactions (accession, line, table_kind, trade_date, code, shares, price_per_share)
       values ('0001696841-26-000016', 1, 'non-derivative', date '2026-11-19', 'S', 1434, 146.0298);
+    insert into public.insider_holdings (accession, line, table_kind, security_title, shares, ownership)
+      values ('0001696841-26-000016', 1, 'non-derivative', 'Common Stock', 268238, 'D');
+    insert into public.annual_sections (cik, ticker, section, period_end, filing_date, filing_url, text)
+      values ('0001045810', 'NVDA', 'risk_factors', date '2026-01-25', date '2026-02-25', 'https://www.sec.gov/x', 'Item 1A. Risk Factors');
     insert into public.news_articles (id, published_at, publisher, title, url)
       values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
     insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
@@ -234,6 +238,42 @@ describe('system tables', () => {
         /permission denied/,
       );
     }
+  });
+
+  it('every Study table follows the same rule: owner with MFA reads, everyone else nothing, nobody deletes', async () => {
+    for (const table of [
+      'financial_facts',
+      'insider_filings',
+      'insider_transactions',
+      'insider_holdings',
+      'annual_sections',
+      'news_articles',
+      'short_interest',
+      'short_volume',
+      'dividends',
+    ]) {
+      await as(owner2, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(1));
+      await as(other2, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(0));
+      await as(owner1, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(0));
+      await expect(as(anon, (tx) => count(tx, `public.${table}`))).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(as(owner2, (tx) => tx.query(`delete from public.${table}`))).rejects.toThrow(
+        /permission denied/,
+      );
+    }
+  });
+
+  it('the new insider columns default sensibly and holdings reject an unknown table kind', async () => {
+    const r = await db.query<{ co_owners: string[]; no_securities_owned: boolean | null }>(
+      `select co_owners, no_securities_owned from public.insider_filings where accession = '0001696841-26-000016'`,
+    );
+    expect(r.rows[0]).toEqual({ co_owners: [], no_securities_owned: null });
+    await expect(
+      db.query(
+        `insert into public.insider_holdings (accession, line, table_kind) values ('0001696841-26-000016', 9, 'other')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
   });
 
   it('rejects malformed identifiers at the database', async () => {

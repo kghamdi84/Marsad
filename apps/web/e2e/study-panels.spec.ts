@@ -87,6 +87,7 @@ async function setup(page: Page) {
       {
         accession: '0001696841-26-000016',
         status: 'ok',
+        document_type: '4',
         owner_name: 'Teter Timothy S.',
         is_director: false,
         is_officer: true,
@@ -101,6 +102,107 @@ async function setup(page: Page) {
         status: 'error',
         owner_name: null,
         period_of_report: null,
+      },
+      // Forms 3, 3/A and 5/A: the owners, dates, flags and holdings are read from the real documents recorded on
+      // 2026-11-24 (fixtures/sec). The filing dates are the real ones; the times of day are invented.
+      {
+        accession: '0002164059-26-000002',
+        status: 'ok',
+        document_type: '3',
+        owner_name: 'Petit de Mange Edward',
+        co_owners: [],
+        is_director: false,
+        is_officer: true,
+        officer_title: 'VP of Recycling',
+        is_ten_percent_owner: false,
+        no_securities_owned: false,
+        filed_at: '2026-11-12T20:00:00Z',
+        period_of_report: '2026-11-04',
+      },
+      {
+        accession: '0001773751-26-000248',
+        status: 'ok',
+        document_type: '3',
+        owner_name: 'Huberman Andrew D',
+        co_owners: [],
+        is_director: true,
+        is_officer: false,
+        is_ten_percent_owner: false,
+        no_securities_owned: true,
+        filed_at: '2026-11-12T19:00:00Z',
+        period_of_report: '2026-11-04',
+      },
+      {
+        accession: '0001209191-22-023889',
+        status: 'ok',
+        document_type: '3/A',
+        owner_name: 'GV 2019 GP, L.L.C.',
+        co_owners: ['GV 2019 GP, L.P.', 'GV 2019, L.P.', 'Alphabet Inc.'],
+        is_director: false,
+        is_officer: false,
+        is_ten_percent_owner: true,
+        no_securities_owned: false,
+        original_submission: '2021-10-04',
+        filed_at: '2022-04-08T20:00:00Z',
+        period_of_report: '2021-09-30',
+      },
+      {
+        accession: '0001045810-25-000070',
+        status: 'ok',
+        document_type: '5/A',
+        owner_name: 'Drell Persis',
+        co_owners: [],
+        is_director: true,
+        is_officer: false,
+        is_ten_percent_owner: false,
+        plan_10b5: false,
+        original_submission: '2025-03-12',
+        filed_at: '2025-03-21T20:00:00Z',
+        period_of_report: '2025-01-26',
+      },
+    ]),
+  );
+  await page.route('**/rest/v1/insider_holdings**', (r) =>
+    json(r, [
+      {
+        accession: '0002164059-26-000002',
+        line: 1,
+        table_kind: 'non-derivative',
+        security_title: 'Class A Common Stock',
+        shares: 61985,
+        ownership: 'D',
+      },
+      {
+        accession: '0002164059-26-000002',
+        line: 2,
+        table_kind: 'derivative',
+        security_title: 'Restricted Stock Units',
+        underlying_title: 'Class A Common Stock',
+        underlying_shares: 1938,
+        ownership: 'D',
+        footnotes: [
+          'Each restricted stock unit ("RSU") represents a contingent right to receive one share of the Issuer\'s Class A Common Stock.',
+        ],
+      },
+      {
+        accession: '0002164059-26-000002',
+        line: 5,
+        table_kind: 'derivative',
+        security_title: 'Stock Option',
+        exercise_price: 3.18,
+        expiration_date: '2033-12-22',
+        underlying_title: 'Class A Common Stock',
+        underlying_shares: 109116,
+        ownership: 'D',
+      },
+      {
+        accession: '0001209191-22-023889',
+        line: 1,
+        table_kind: 'non-derivative',
+        security_title: 'Common Stock',
+        shares: 4556532,
+        ownership: 'I',
+        nature_of_ownership: 'By GV 2019 L.P.',
       },
     ]),
   );
@@ -131,6 +233,31 @@ async function setup(page: Page) {
         acquired_disposed: 'D',
         shares_after: 2657660,
         value_usd: 1410 * 157.4947,
+      },
+      // The two sales the real amended Form 5 reports, made in 2023 and 2024 and filed in March 2025.
+      {
+        accession: '0001045810-25-000070',
+        line: 1,
+        table_kind: 'non-derivative',
+        trade_date: '2023-12-13',
+        code: 'S',
+        shares: 65000,
+        price_per_share: 48.2582,
+        acquired_disposed: 'D',
+        shares_after: 212740,
+        value_usd: 65000 * 48.2582,
+      },
+      {
+        accession: '0001045810-25-000070',
+        line: 2,
+        table_kind: 'non-derivative',
+        trade_date: '2024-06-14',
+        code: 'S',
+        shares: 34000,
+        price_per_share: 131.7047,
+        acquired_disposed: 'D',
+        shares_after: 178740,
+        value_usd: 34000 * 131.7047,
       },
     ]),
   );
@@ -385,17 +512,80 @@ test('insiders: codes explained, the 10b5-1 box shown, totals computed, unreadab
 }) => {
   await setup(page);
   await page.goto('/study/NVDA');
-  const panel = page.getByRole('region', { name: 'Insider transactions (Form 4)' });
+  const panel = page.getByRole('region', { name: 'Insider filings (Forms 3, 4 and 5)' });
   await expect(panel.getByText('Teter Timothy S.').first()).toBeVisible();
   await expect(panel.getByText('Officer, EVP, General Counsel and Sec').first()).toBeVisible();
   await expect(panel.getByText(/Open-market or private sale of securities/).first()).toBeVisible();
   await expect(panel.getByText('Plan box checked').first()).toBeVisible();
   await expect(panel.getByText(/Filed within two business days after the trade/)).toBeVisible();
   // 1,434 + 1,410 = 2,844 shares; 1,434 x 146.0298 + 1,410 x 157.4947 = $431,474.26 (computed separately in Python).
+  // The two sales in the amended Form 5 (2023 and 2024) are outside the 90 days and are not added.
   await expect(panel.getByText(/sold 2,844 shares \(\$431,474\.26\)/)).toBeVisible();
   await expect(
     panel.getByText('1 insider filing could not be read and is not included.'),
   ).toBeVisible();
+});
+
+test('insiders: Forms 3 and 5 with their lags, an owns-nothing statement, a joint filing and a late amendment', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Insider filings (Forms 3, 4 and 5)' });
+  // All three lags are stated, and the difference between trade date and filed date is explained.
+  await expect(
+    panel.getByText('Form 3: Filed within 10 days after the person becomes an insider.'),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(
+      'Form 5: Filed up to 45 days after the fiscal year ends, for trades not reported earlier.',
+    ),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(/A Form 5 can report trades made long before it was filed/),
+  ).toBeVisible();
+
+  // The amended Form 5 reports sales from 2023 and 2024 that were filed on 2025-03-21: both dates are shown.
+  const late = panel.getByRole('row', { name: /^2023-12-13/ });
+  await expect(late).toContainText('2025-03-21');
+  await expect(late).toContainText('Form 5/A');
+  await expect(late).toContainText('amendment');
+  await expect(late).toContainText('Drell Persis');
+
+  // Form 3 (initial holdings): reported 8 days after the person became an insider on 2026-11-04.
+  const holdings = panel.getByRole('heading', { name: 'Initial holdings (Form 3)' });
+  await expect(holdings).toBeVisible();
+  const oklo = panel.getByRole('listitem').filter({ hasText: 'Petit de Mange Edward' });
+  await expect(oklo).toContainText('Officer, VP of Recycling');
+  await expect(oklo).toContainText('Became an insider 2026-11-04, filed 2026-11-12, 8 days later');
+  await expect(oklo.getByRole('row', { name: /Class A Common Stock/ }).first()).toContainText(
+    '61,985 shares',
+  );
+  // A restricted stock unit gives no price (only a footnote) and no date: said so, not left blank or guessed.
+  const rsu = oklo.getByRole('row', { name: /Restricted Stock Units/ });
+  await expect(rsu).toContainText('converts into 1,938 Class A Common Stock');
+  await expect(rsu).toContainText('Not stated, see the filing notes');
+  await expect(rsu).toContainText('represents a contingent right to receive one share');
+  const option = oklo.getByRole('row', { name: /Stock Option/ });
+  await expect(option).toContainText('$3.18');
+  await expect(option).toContainText('2033-12-22');
+  await expect(option).toContainText('converts into 109,116 Class A Common Stock');
+
+  // A Form 3 that says the person owns nothing is an explicit statement.
+  await expect(panel.getByRole('listitem').filter({ hasText: 'Huberman Andrew D' })).toContainText(
+    'The filing states that this person owns no securities.',
+  );
+
+  // A joint amended Form 3 names its other owners and the indirect holding.
+  const joint = panel.getByRole('listitem').filter({ hasText: 'GV 2019 GP, L.L.C.' });
+  await expect(joint).toContainText('and 3 other reporting owners');
+  await expect(joint).toContainText('10% owner');
+  await expect(joint).toContainText('Form 3/A: Amendment of a report submitted 2021-10-04');
+  await expect(joint).toContainText('Indirect: By GV 2019 L.P.');
+  await expect(joint).toContainText('4,556,532 shares');
+  if (process.env.SHOT_DIR)
+    await panel.screenshot({ path: `${process.env.SHOT_DIR}/insiders.png` });
 });
 
 test('short data: both definitions, the lag, and the real rows', async ({ page }) => {

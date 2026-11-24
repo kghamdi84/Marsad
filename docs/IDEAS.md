@@ -17,3 +17,6 @@ Captured during work so they are not built early.
 - Phase 2: show earnings releases as chart markers (the release is known; the marker would sit on the reacting bar).
 - Phase 2: 10-Q risk-factor updates and the Item 1 business text (the vendor endpoint also serves `business`); a 10-Q comparison needs a different source because the sections endpoint is 10-K only.
 - Phase 2: tune the risk-diff cut-off (0.6) on more companies once the weekly job has stored them all, and drop the duplicate summary-list sentences if they prove noisy.
+- Phase 2: the vendor's `/stocks/insiders/vX/holdings` (roster of insiders with the shares each holds now, one row per owner per issuer) could give a "current holdings" view without adding up filings; entitlement not yet checked. The Form 4 and Form 5 holdings rows the insiders job now stores (for example a director's direct and indirect stakes) are another source for it.
+- Phase 2: 13F holders of a stock need the SEC quarterly 13F data sets (the vendor's endpoint is by filing fund), a larger job: download, join by CUSIP to the stock, label the 45-day lag.
+- Phase 2: show a transaction's own timeliness flag (the filer marks a trade "L" for late) and the nature of ownership on trades (a sale through a family trust is indirect); both are in the documents and not yet stored.
