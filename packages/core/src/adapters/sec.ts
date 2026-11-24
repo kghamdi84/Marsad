@@ -28,11 +28,18 @@ export interface Filing {
   items: string[]; // 8-K item numbers, for example ["2.02", "9.01"]
 }
 
-/** Rejects a User-Agent that clearly lacks a contact, so a misconfiguration cannot violate fair access. */
+/**
+ * Rejects a User-Agent that clearly lacks what the SEC asks for: a company or application name followed
+ * by an admin contact email, for example "Marsad research name@example.com" (SEC "Accessing EDGAR Data",
+ * last reviewed by the SEC 2026-11-20). A misconfiguration therefore cannot send anonymous requests.
+ */
 export function assertDeclaredUserAgent(ua: string): void {
-  if (ua.trim().length < 12 || !/[^\s@]+@[^\s@]+\.[^\s@]+|https?:\/\//.test(ua)) {
+  const trimmed = ua.trim();
+  const email = /[^\s@]+@[^\s@]+\.[^\s@]+/.exec(trimmed);
+  const name = email ? trimmed.slice(0, email.index).trim() : '';
+  if (!email || name.length < 3) {
     throw new RangeError(
-      'SEC_USER_AGENT must include a contact email or URL (SEC fair-access policy)',
+      'SEC_USER_AGENT must be a name followed by a contact email, like "Marsad research name@example.com" (SEC fair-access policy)',
     );
   }
 }
