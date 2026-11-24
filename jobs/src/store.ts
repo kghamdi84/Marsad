@@ -6,7 +6,9 @@ import type {
   GprDay,
   Halt,
   JobRunRecord,
+  SourceHeartbeat,
   Split,
+  SystemAlert,
   UpcomingRow,
 } from '@marsad/core';
 
@@ -36,6 +38,17 @@ export interface Store {
   upsertHalts(halts: readonly Halt[], seenAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
+  /** Last message time of every source in `source_status`. */
+  getSourceHeartbeats(): Promise<SourceHeartbeat[]>;
+  /** Market holidays and early closes for one exchange, as the calendar builder reads them. */
+  getHolidays(exchange: string): Promise<UpcomingRow[]>;
+  /** The newest stale or recovered event per source: the heartbeat's previous state. */
+  getLatestHealthEvents(): Promise<Record<string, 'stale' | 'recovered'>>;
+  insertSystemAlerts(
+    alerts: readonly SystemAlert[],
+    policyVersion: string,
+    snapshots: readonly Record<string, unknown>[],
+  ): Promise<number>;
 }
 
 const CHUNK = 1000;
@@ -195,6 +208,63 @@ export function supabaseStore(url: string, secretKey: string): Store {
         })
         .eq('source', u.source);
       if (error) throw new Error(`source_status update failed: ${error.message}`);
+    },
+    async getSourceHeartbeats() {
+      const { data, error } = await db.from('source_status').select('source, last_message_at');
+      if (error) throw new Error(`source_status read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({
+        source: r.source as string,
+        lastMessageAt: r.last_message_at ? new Date(r.last_message_at as string) : null,
+      }));
+    },
+    async getHolidays(exchange) {
+      const { data, error } = await db
+        .from('market_holidays')
+        .select('date, exchange, name, status, open_at, close_at')
+        .eq('exchange', exchange);
+      if (error) throw new Error(`market_holidays read failed: ${error.message}`);
+      return (data ?? []).map((h) => ({
+        date: h.date as string,
+        exchange: h.exchange as string,
+        name: h.name as string,
+        status: h.status as string,
+        ...(h.open_at ? { open: h.open_at as string } : {}),
+        ...(h.close_at ? { close: h.close_at as string } : {}),
+      }));
+    },
+    async getLatestHealthEvents() {
+      const { data, error } = await db
+        .from('system_alerts')
+        .select('source, event, created_at')
+        .in('event', ['stale', 'recovered'])
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(500);
+      if (error) throw new Error(`system_alerts read failed: ${error.message}`);
+      const out: Record<string, 'stale' | 'recovered'> = {};
+      for (const r of data ?? []) {
+        const source = r.source as string;
+        if (!(source in out)) out[source] = r.event as 'stale' | 'recovered';
+      }
+      return out;
+    },
+    async insertSystemAlerts(alerts, policyVersion, snapshots) {
+      if (alerts.length === 0) return 0;
+      const rows = alerts.map((a, i) => ({
+        event: a.event,
+        source: a.source,
+        priority: a.priority,
+        headline: a.headline,
+        trigger: a.trigger,
+        paused_rules: [...a.pausedRules],
+        last_good_at: a.lastGoodAt,
+        created_at: a.createdAt,
+        policy_version: policyVersion,
+        snapshot: snapshots[i] ?? {},
+      }));
+      const { error } = await db.from('system_alerts').insert(rows);
+      if (error) throw new Error(`system_alerts insert failed: ${error.message}`);
+      return rows.length;
     },
   };
 }

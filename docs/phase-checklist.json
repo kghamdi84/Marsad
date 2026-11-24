@@ -226,7 +226,7 @@
           "id": "1.13",
           "title": "Heartbeat and stale-feed system alerts",
           "status": "in_progress",
-          "evidence": "core/health.ts: per-source session-aware policies, transition-only alerts, paused rules. Test reproduces the brief example (3m 10s, 4 rules paused, one alert, one recovery). Not yet scheduled: needs the heartbeat job and the alert dispatcher (Phase 5 delivery)."
+          "evidence": "core/health.ts (assessSources, healthTransitions, SOURCE_POLICY_VERSION) + jobs/src/health-job.ts + migration system_alerts (RLS, input snapshot and policy version stored per alert) + workflow health.yml (every 15 min in trading hours, every 3 h otherwise) + Status page shows alerts and heartbeat age. 7 job tests and 5 core tests, mutation-checked (breaking 'alert once' fails 2 tests). Calendar not covering today fails the run loudly. Delivery (push, Telegram, email) is Phase 5. Needs merge (applies the migration), then a live run to confirm."
         },
         {
           "id": "1.14",

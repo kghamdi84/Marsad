@@ -76,6 +76,8 @@ beforeAll(async () => {
       select id, 'NVDA', date '1999-01-22' from public.instruments;
     insert into public.splits (vendor_id, ticker, execution_date, split_from, split_to, adjustment_type)
       values ('E-test', 'NVDA', date '2024-06-10', 1, 10, 'forward_split');
+    insert into public.system_alerts (event, source, headline, trigger, policy_version)
+      values ('stale', 'nasdaq_halts', 'Nasdaq trade halts stale, silent for 40 min', 'test', 'test');
   `);
 });
 
@@ -202,8 +204,8 @@ describe('system tables', () => {
     ).rejects.toThrow(/permission denied/);
   });
 
-  it('identity and split tables follow the same rule: owner with MFA reads, everyone else nothing', async () => {
-    for (const table of ['instruments', 'instrument_tickers', 'splits']) {
+  it('identity, split and alert tables follow the same rule: owner with MFA reads, everyone else nothing', async () => {
+    for (const table of ['instruments', 'instrument_tickers', 'splits', 'system_alerts']) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
       await as(owner1, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
@@ -245,5 +247,22 @@ describe('schema guards', () => {
       select table_name from information_schema.role_table_grants
       where grantee = 'anon' and table_schema = 'public'`);
     expect(r.rows).toEqual([]);
+  });
+});
+
+describe('system alerts', () => {
+  it('rejects an alert with a headline over 90 characters or an unknown event', async () => {
+    await expect(
+      db.query(
+        `insert into public.system_alerts (event, source, headline, trigger, policy_version)
+         values ('stale', 'x', '${'a'.repeat(91)}', 't', 'v')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.system_alerts (event, source, headline, trigger, policy_version)
+         values ('calm', 'x', 'h', 't', 'v')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
   });
 });

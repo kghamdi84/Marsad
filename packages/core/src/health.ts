@@ -42,6 +42,47 @@ export function evaluateSourceHealth(
   return { ...base, state: silenceSec > limit ? 'stale' : 'ok' };
 }
 
+/** Latest message time reported by a source, as stored in `public.source_status`. */
+export interface SourceHeartbeat {
+  source: string;
+  lastMessageAt: Date | null;
+}
+
+export interface SourceAssessment {
+  health: SourceHealth[];
+  /** Sources whose limit depends on the session but the market calendar does not cover today. */
+  uncheckable: string[];
+}
+
+/**
+ * Judges every source against its policy. A source whose limit depends on the session cannot be judged
+ * when the calendar does not cover today, so it is listed in `uncheckable` (never guessed, never
+ * assumed calm). Sources with one limit for every session are always judged.
+ */
+export function assessSources(
+  policies: readonly SourcePolicy[],
+  heartbeats: readonly SourceHeartbeat[],
+  now: Date,
+  calendar: MarketCalendar,
+): SourceAssessment {
+  const covered = sessionInfo(now, calendar).calendarCovered;
+  const health: SourceHealth[] = [];
+  const uncheckable: string[] = [];
+  for (const policy of policies) {
+    const sessionDependent = new Set(Object.values(policy.maxSilenceSec)).size > 1;
+    if (sessionDependent && !covered) {
+      uncheckable.push(policy.source);
+      continue;
+    }
+    const last = heartbeats.find((h) => h.source === policy.source)?.lastMessageAt ?? null;
+    health.push(evaluateSourceHealth(policy, last, now, calendar));
+  }
+  return { health, uncheckable };
+}
+
+/** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
+export const SOURCE_POLICY_VERSION = '2026-11-24.1';
+
 export interface SystemAlert {
   kind: 'system';
   priority: 'critical';

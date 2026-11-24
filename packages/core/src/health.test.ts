@@ -3,6 +3,8 @@ import upcoming from '../../../fixtures/massive/market-status-upcoming.json';
 import { buildCalendar, type UpcomingRow } from './calendar.js';
 import {
   DEFAULT_SOURCE_POLICIES,
+  SOURCE_POLICY_VERSION,
+  assessSources,
   describeSourceHealth,
   evaluateSourceHealth,
   healthTransitions,
@@ -192,5 +194,54 @@ describe('describeSourceHealth (the status page text)', () => {
     expect(
       describeSourceHealth(gpr, D('2026-11-20T00:00:00Z'), D('2026-11-24T20:46:00Z'), empty).state,
     ).toBe('stale');
+  });
+});
+
+describe('assessSources (what the heartbeat job decides)', () => {
+  const now = D('2026-11-24T20:46:00Z'); // 15:46 ET, regular session
+  const beats = [
+    { source: 'massive_options', lastMessageAt: D('2026-11-24T20:42:50Z') }, // 190 s, limit 120
+    { source: 'massive_prices', lastMessageAt: D('2026-11-24T20:45:30Z') }, // 30 s, limit 90
+  ];
+
+  it('judges every source against its own limit', () => {
+    const r = assessSources(policies, beats, now, cal);
+    expect(r.uncheckable).toEqual([]);
+    expect(r.health.map((h) => [h.source, h.state])).toEqual([
+      ['massive_options', 'stale'],
+      ['massive_prices', 'ok'],
+    ]);
+  });
+
+  it('treats a source with no status row as never reported, not as healthy', () => {
+    const r = assessSources(policies, [], now, cal);
+    expect(r.health.map((h) => [h.source, h.state])).toEqual([
+      ['massive_options', 'never'],
+      ['massive_prices', 'stale'], // required
+    ]);
+  });
+
+  it('refuses to judge session-dependent sources when the calendar does not cover today', () => {
+    const far = D('2030-01-15T15:00:00Z');
+    const r = assessSources(policies, beats, far, cal);
+    expect(r.uncheckable).toEqual(['massive_options', 'massive_prices']);
+    expect(r.health).toEqual([]);
+  });
+
+  it('still judges daily sources without a calendar', () => {
+    const far = D('2030-01-15T15:00:00Z');
+    const daily = DEFAULT_SOURCE_POLICIES.filter((p) => p.source === 'fred');
+    const r = assessSources(
+      daily,
+      [{ source: 'fred', lastMessageAt: D('2030-01-14T00:00:00Z') }],
+      far,
+      cal,
+    );
+    expect(r.uncheckable).toEqual([]);
+    expect(r.health[0]).toMatchObject({ source: 'fred', state: 'ok' });
+  });
+
+  it('carries a policy version for replay', () => {
+    expect(SOURCE_POLICY_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}\.\d+$/);
   });
 });
