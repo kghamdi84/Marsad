@@ -3,9 +3,10 @@
  * connector's endpoint search and recorded in fixtures/massive on 2026-11-23.
  *
  * Authentication: `Authorization: Bearer <key>`, so keys never appear in URLs or logs.
- * Unconfirmed against the live REST API (no key was available when this was written): the base URL
- * and the JSON envelope (`status`, `request_id`, `next_url`). Parsing accepts either a bare array or
- * an object with `results`.
+ * Confirmed against the live REST API on 2026-11-24 (base URL https://api.massive.com; envelope
+ * `status`, `request_id`, `results`, `resultsCount`; recorded under fixtures/massive). A plan problem
+ * is HTTP 403 with `{"status":"NOT_AUTHORIZED", ...}`. Parsing accepts either a bare array or an
+ * object with `results`.
  */
 import type { Bar, Split } from '../corporate-actions.js';
 import type { UpcomingRow } from '../calendar.js';

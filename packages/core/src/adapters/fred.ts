@@ -3,8 +3,8 @@
  * offers no header option), so the key is redacted from every stored endpoint string.
  *
  * Response shape follows the published API documentation: `{ observations: [{ date, value, ... }] }`
- * where a missing value is the string ".". Not yet recorded from the live API (no key in this
- * session); the test body is synthetic.
+ * where a missing value is the string ".". Confirmed against the live API on 2026-11-24 and recorded
+ * in fixtures/fred (DGS10 around Veterans Day, which shows the "." value).
  */
 import { HttpClient } from '../http.js';
 import type { Sourced } from '../provenance.js';

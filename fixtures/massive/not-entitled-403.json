@@ -1,0 +1,1 @@
+{"recordedAt":"2026-11-24T17:35:18.249Z","source":"massive","endpoint":"/v3/snapshot/options/AAPL","status":403,"body":{"status":"NOT_AUTHORIZED","request_id":"76aa11cc1e93a9ed447a86b2eff92cad","message":"You are not entitled to this data. Please upgrade your plan at https://massive.com/pricing"}}

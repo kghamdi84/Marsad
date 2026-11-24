@@ -1,0 +1,1 @@
+{"recordedAt":"2026-11-24T17:35:17.804Z","source":"sec_edgar","endpoint":"/files/company_tickers.json","status":200,"trimmedTo":"first 2 entries, NVDA and AAPL (of 10399)","body":{"0":{"cik_str":320193,"ticker":"AAPL","title":"Apple Inc."},"1":{"cik_str":789019,"ticker":"MSFT","title":"MICROSOFT CORP"},"2":{"cik_str":1045810,"ticker":"NVDA","title":"NVIDIA CORP"}}}

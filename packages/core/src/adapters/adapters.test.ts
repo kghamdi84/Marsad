@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import aggs from '../../../../fixtures/massive/aggs-SPY-1d-2026-10.json';
+import dailyWeek from '../../../../fixtures/massive/aggs-SPY-1d-2026-11-16-to-20.json';
+import minuteDay from '../../../../fixtures/massive/aggs-SPY-1m-2026-11-18.json';
+import notEntitled from '../../../../fixtures/massive/not-entitled-403.json';
+import fredReal from '../../../../fixtures/fred/observations-DGS10-2026-11.json';
+import secSubmissions from '../../../../fixtures/sec/submissions-NVDA-trimmed.json';
+import secTickers from '../../../../fixtures/sec/company-tickers-trimmed.json';
 import holidays from '../../../../fixtures/massive/market-status-upcoming.json';
 import splitsFixture from '../../../../fixtures/massive/splits-NVDA.json';
 import {
@@ -18,7 +24,8 @@ import {
   type MassiveConfig,
 } from './massive.js';
 import { fetchFredSeries, redactKey } from './fred.js';
-import { assertDeclaredUserAgent, fetchRecentFilings } from './sec.js';
+import { assertDeclaredUserAgent, fetchRecentFilings, parseCompanyTickers } from './sec.js';
+import { volumeWeightedPrice } from '../indicators.js';
 
 const NOW = new Date('2026-11-23T19:40:00Z');
 
@@ -109,7 +116,7 @@ describe('Massive adapter on recorded fixtures', () => {
   });
 
   it('turns an entitlement error into "requires plan", not an outage', async () => {
-    // Synthetic body in the documented Polygon-lineage shape (not a recorded Massive response).
+    // Synthetic body for this unit; the real recorded 403 body is tested in 'real recorded responses' below.
     const body = JSON.stringify({
       status: 'NOT_AUTHORIZED',
       message: 'You are not entitled to this data.',
@@ -143,7 +150,7 @@ describe('Massive adapter on recorded fixtures', () => {
   });
 });
 
-describe('FRED adapter (SYNTHETIC body in the documented shape)', () => {
+describe('FRED adapter (synthetic bodies for edge cases; real recording tested below)', () => {
   const cfg = { apiKey: 'fred-secret-key', now: () => NOW };
   const body = JSON.stringify({
     observations: [
@@ -194,7 +201,7 @@ describe('FRED adapter (SYNTHETIC body in the documented shape)', () => {
   });
 });
 
-describe('SEC adapter (SYNTHETIC body in the documented shape)', () => {
+describe('SEC adapter (synthetic bodies for edge cases; real recording tested below)', () => {
   const cfg = { userAgent: 'Marsad research contact@example.com', now: () => NOW };
   const body = JSON.stringify({
     cik: '1045810',
@@ -250,7 +257,7 @@ describe('SEC adapter (SYNTHETIC body in the documented shape)', () => {
   });
 });
 
-describe('Massive minute bars (SYNTHETIC body in the field shape confirmed live on 2026-11-24)', () => {
+describe('Massive minute bars (synthetic body for edge cases; real recording tested below)', () => {
   const body = JSON.stringify({
     ticker: 'SPY',
     results: [
@@ -285,5 +292,83 @@ describe('Massive minute bars (SYNTHETIC body in the field shape confirmed live 
     const { http } = setup(200, bad);
     const r = await fetchMinuteBars(http, massive, 'SPY', '2026-11-20');
     expect(r.ok).toBe(false);
+  });
+});
+
+// Bodies below were recorded from the live services on 2026-11-24 by the manual record-fixtures workflow
+// (see fixtures/README.md). Expected values were computed independently in Python from the same files.
+describe('real recorded responses (2026-11-24)', () => {
+  it('FRED: parses the real DGS10 body, with "." on Veterans Day as null', async () => {
+    const { http } = setup(200, JSON.stringify(fredReal.body));
+    const r = await fetchFredSeries(http, { apiKey: 'k', now: () => NOW }, 'DGS10', '2026-11-05');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const obs = r.data.value ?? [];
+    expect(obs).toHaveLength(12);
+    expect(obs.find((o) => o.date === '2026-11-11')?.value).toBeNull();
+    expect(obs.at(-1)).toEqual({ date: '2026-11-20', value: 4.92 });
+    expect(r.data.provenance.asOf).toBe('2026-11-20T00:00:00.000Z');
+  });
+
+  it('SEC: parses the real NVIDIA submissions body, including 8-K items and Form 4s', async () => {
+    const { http } = setup(200, JSON.stringify(secSubmissions.body));
+    const r = await fetchRecentFilings(
+      http,
+      { userAgent: 'Marsad research contact@example.com', now: () => NOW },
+      1045810,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const filings = r.data.value ?? [];
+    expect(filings).toHaveLength(8);
+    expect(filings[0]).toMatchObject({ accession: '0001696841-26-000016', form: '4', items: [] });
+    expect(filings[1]).toMatchObject({
+      accession: '0001045810-26-000090',
+      form: '8-K',
+      filingDate: '2026-11-23',
+      acceptedAt: '2026-11-23T13:57:54.000Z',
+      items: ['5.02', '9.01'],
+      primaryDocument: 'nvda-20261122.htm',
+    });
+  });
+
+  it('SEC: maps tickers to zero-padded CIKs from the real company file', () => {
+    const map = parseCompanyTickers(secTickers.body);
+    expect(map.get('NVDA')).toMatchObject({ cik: '0001045810', ticker: 'NVDA' });
+    expect(map.get('AAPL')?.cik).toBe('0000320193');
+  });
+
+  it('Massive: the real not-entitled body (HTTP 403, NOT_AUTHORIZED) says a higher plan is needed', async () => {
+    expect(notEntitled.status).toBe(403);
+    const { http } = setup(403, JSON.stringify(notEntitled.body));
+    const r = await fetchMinuteBars(http, massive, 'SPY', '2026-11-18');
+    expect(r).toMatchObject({ ok: false, kind: 'not-entitled' });
+    if (!r.ok) expect(r.display).toBe('Requires a higher Massive plan');
+  });
+
+  it('Massive: the real 1-minute day rebuilds the vendor daily VWAP within 0.1% (observed +0.008%)', async () => {
+    const minute = setup(200, JSON.stringify(minuteDay.body));
+    const m = await fetchMinuteBars(minute.http, massive, 'SPY', '2026-11-18');
+    const day = setup(200, JSON.stringify(dailyWeek.body));
+    const d = await fetchDailyBars(day.http, massive, 'SPY', '2026-11-16', '2026-11-20');
+    expect(m.ok && d.ok).toBe(true);
+    if (!m.ok || !d.ok) return;
+    const bars = m.data.value ?? [];
+    expect(bars).toHaveLength(931);
+    expect(bars.every((b) => typeof b.vw === 'number')).toBe(true);
+    const computed = volumeWeightedPrice(
+      bars.map((b) => b.vw ?? Number.NaN),
+      bars.map((b) => b.v),
+    );
+    expect(computed).toBeCloseTo(731.0142679493207, 9); // independent Python computation
+    const vendor = (d.data.value ?? []).find((b) => b.t === 1794978000000)?.vw;
+    expect(vendor).toBe(730.9578);
+    expect(Math.abs((computed ?? 0) / (vendor ?? 1) - 1)).toBeLessThan(0.001);
+    // Minute bars carry about 93% of the day's volume, so they are not a full tape.
+    const share =
+      bars.reduce((a, b) => a + b.v, 0) /
+      (d.data.value ?? []).find((b) => b.t === 1794978000000)!.v;
+    expect(share).toBeGreaterThan(0.92);
+    expect(share).toBeLessThan(0.94);
   });
 });
