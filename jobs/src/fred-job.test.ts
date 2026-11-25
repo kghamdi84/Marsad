@@ -28,16 +28,16 @@ function http(failing: string[] = [], empty: string[] = []): HttpClient {
 }
 
 describe('runFredJob (synthetic bodies for job logic; the real FRED shape is tested in core adapters.test.ts)', () => {
-  it('stores all 12 series, records an ok run and marks the source live', async () => {
+  it('stores all 14 series, records an ok run and marks the source live', async () => {
     const { store, log } = fakeStore();
     const run = await runFredJob({ http: http(), apiKey: 'k', store, now: () => NOW });
-    expect(run).toMatchObject({ job: 'fred-daily', status: 'ok', rows_written: 36, error: null });
-    expect(log.fred).toHaveLength(12);
+    expect(run).toMatchObject({ job: 'fred-daily', status: 'ok', rows_written: 42, error: null });
+    expect(log.fred).toHaveLength(14);
     expect(log.statuses[0]).toMatchObject({
       source: 'fred',
       state: 'live',
       planTier: 'end-of-day',
-      note: '12 series updated',
+      note: '14 series updated',
     });
     expect(log.runs).toEqual([run]);
   });
@@ -52,7 +52,7 @@ describe('runFredJob (synthetic bodies for job logic; the real FRED shape is tes
     });
     expect(run.status).toBe('error');
     expect(run.error).toBe('FRED series failed: NFCI: server-error, ICSA: server-error');
-    expect(log.fred).toHaveLength(10);
+    expect(log.fred).toHaveLength(12); // 14 series, 2 failed
     expect(log.statuses).toEqual([]);
   });
 
@@ -78,7 +78,7 @@ describe('runFredJob (synthetic bodies for job logic; the real FRED shape is tes
       now: () => NOW,
       logSample: (s, o) => lines.push(`${s} ${JSON.stringify(o)}`),
     });
-    expect(lines).toHaveLength(12);
+    expect(lines).toHaveLength(14);
     expect(lines.join('\n')).not.toContain('super-secret-key');
   });
 });

@@ -1,8 +1,8 @@
 # Progress
 
-## Current phase: 1, Data and trust layer (complete, awaiting Khaled's sign-off). Phase 0 follow-ups still open, see below.
+## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-24 (Phase 2 report).
+Last updated 2026-11-25 (Phase 3, regime batch A).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,18 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch A: regime label, recession filter, volatility, credit and uncertainty panels (2026-11-25)
+
+Built on Claude Opus 5.5 at high effort, as the brief asks for the methodology. ADR 0009 documents every rule and threshold and what the free data allows.
+
+- **What the free data reaches** (measured): VIX3M is free on FRED, so the term structure needs no paid plan; the S&P 500 on FRED keeps 10 years and the ICE BofA spreads 3 years; Massive's grouped daily returns the whole market in one call on the free plan (for the breadth batch).
+- **Core** `packages/core/src/regime.ts`: the recession filter (5 signals, point-in-time publication lags), the regime label (first rule that matches), event studies (non-overlapping episodes, NumPy-style quartiles, an all-days benchmark, "insufficient history" below 30 episodes), and panel helpers. Checked day by day against an independent Python implementation on real FRED history and against known facts (the Sahm rule's July 2024 trigger, the October 2022 curve inversion). Every rule mutation-checked; Node and Deno identical.
+- **A rule I changed after looking at the output:** the first recovery rule labelled 30% of all days, including months at new highs after a brief VIX spike. It now also requires the S&P 500 to be at least 5% below its high (ADR 0009 records this).
+- **Job and tables:** FRED job now also stores VIX3M and the S&P 500; `regime_daily` stores every day with its inputs and rule versions (the stored inputs reproduce the stored label, tested); `regime_event_stats`; the regime step runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old.
+- **Regime page:** label, reason, inputs and how long it has held; recession filter with each signal; event-study table; volatility, credit and curve, GPR and EPU panels, each with source and the date of every value.
+- **Honest limits:** with 10 years of free S&P 500 data, every label has fewer than 30 independent episodes, so the event study shows "insufficient history" (the all-days benchmark has enough at 1 and 3 months). The label also changes about 32 times a year (IDEAS.md).
+- **After merge:** the migration creates `regime_daily` and `regime_event_stats`; run the FRED workflow by hand once (it fetches VIX3M and the S&P 500 and then computes the regime).
 
 ### Phase 2 report (2026-11-24): Study module, built without the AI pieces
 

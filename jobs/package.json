@@ -10,7 +10,8 @@
     "massive": "tsx src/massive-main.ts",
     "sec": "tsx src/sec-main.ts",
     "halts": "tsx src/halts-main.ts",
-    "health": "tsx src/health-main.ts"
+    "health": "tsx src/health-main.ts",
+    "regime": "tsx src/regime-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

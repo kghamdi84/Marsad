@@ -333,6 +333,146 @@ export const t = {
     ],
   },
 
+  regime: {
+    title: 'Regime',
+    intro:
+      'What kind of market this is, from documented rules (ADR 0009), computed at the end of each day from stored data. It describes the market; it does not forecast it.',
+    none: 'No regime has been computed yet. The regime job runs after the FRED job.',
+    labelTitle: 'Market regime',
+    labels: {
+      stress: 'Stress',
+      bear: 'Bear',
+      recovery: 'Recovery',
+      'bull-calm': 'Bull, calm',
+      'bull-correction': 'Bull, correction',
+      'insufficient-data': 'Insufficient data',
+    } as Record<string, string>,
+    reasons: {
+      'vix-high': 'VIX is at or above 30.',
+      backwardation:
+        'VIX is at or above VIX3M (backwardation) and the S&P 500 is below its 50-day average.',
+      'below-falling-200': 'The S&P 500 is below a falling 200-day average.',
+      recovering:
+        'Within 63 sessions of stress or a bear, above the 50-day average, and still at least 5% below the high.',
+      calm: 'Above both averages, less than 5% below the high, and VIX below 20.',
+      pullback: 'An uptrend with a pullback or higher volatility.',
+      insufficient: "Needs 252 sessions of S&P 500 history and the day's VIX.",
+    } as Record<string, string>,
+    asOf: (date: string, version: string) => `As of the close on ${date}. Rules ${version}.`,
+    since: (date: string, n: number) =>
+      `This label since ${date} (${n} session${n === 1 ? '' : 's'}).`,
+    pastYear: 'Past year, sessions per label',
+    inputs: {
+      sp500: 'S&P 500 close',
+      sma50: '50-day average',
+      sma200: '200-day average',
+      rising: 'rising',
+      falling: 'falling',
+      drawdown: 'From the 252-day high',
+      vix: 'VIX',
+      vix3m: 'VIX3M',
+      ratio: 'VIX over VIX3M',
+    },
+    inputsSource:
+      'Source: FRED (S&P 500, VIXCLS, VXVCLS). The S&P 500 on FRED goes back 10 years, so labels start in November 2017.',
+    recession: {
+      title: 'Recession filter',
+      level: {
+        low: 'Low',
+        elevated: 'Elevated',
+        high: 'High',
+        unavailable: 'Not enough data',
+      } as Record<string, string>,
+      summary: (available: number, triggered: number) =>
+        `${triggered} of ${available} available signals triggered (5 signals in total).`,
+      rule: 'High when the Sahm rule triggers or three signals do; elevated with one or two; low with none. Each value is used only from the day it was published.',
+      colSignal: 'Signal',
+      colState: 'State',
+      colValue: 'Value',
+      colRule: 'Triggers when',
+      colAsOf: 'Data for',
+      states: { triggered: 'Triggered', clear: 'Clear', unavailable: 'No data' } as Record<
+        string,
+        string
+      >,
+      names: {
+        sahm: 'Sahm rule (real time)',
+        curve: 'Yield curve, 10-year minus 3-month',
+        credit: 'High-yield spread',
+        claims: 'Jobless claims, 4-week average',
+        nfci: 'Financial conditions (NFCI)',
+      } as Record<string, string>,
+      rules: {
+        sahm: 'at or above 0.50',
+        curve: 'below zero now, or on 20 of the last 378 sessions',
+        credit: 'at or above 6.0 points, or up 1.5 points over 63 sessions',
+        claims: 'at least 20% above the lowest 4-week average of the previous 52 weeks',
+        nfci: 'above zero (tighter than average)',
+      } as Record<string, string>,
+      curveDetail: (n: number) => `inverted on ${n} of the last 378 sessions`,
+      creditDetail: (change: string) => `${change} points over 63 sessions`,
+      claimsDetail: (low: string) => `lowest 4-week average in the previous year ${low}`,
+      creditNote:
+        'FRED keeps the high-yield spread for 3 years only, so before November 2023 this signal has no data.',
+    },
+    study: {
+      title: 'What happened next (event study)',
+      note: (from: string, to: string) =>
+        `S&P 500 return after each episode: the first day of a run of the label, with new episodes at least 63 sessions apart so they do not overlap. Data ${from} to ${to}. "All days" is the benchmark.`,
+      colCondition: 'Condition',
+      horizon: (n: number) =>
+        n === 21
+          ? '1 month (21 sessions)'
+          : n === 63
+            ? '3 months (63 sessions)'
+            : n === 126
+              ? '6 months (126 sessions)'
+              : `${n} sessions`,
+      cell: (median: string, q1: string, q3: string, n: number) =>
+        `median ${median}, middle half ${q1} to ${q3}, n ${n}`,
+      insufficient: (n: number) =>
+        `Insufficient history: ${n} episode${n === 1 ? '' : 's'}, 30 needed`,
+      vix30: 'VIX at or above 30',
+      allDays: 'All days (benchmark)',
+      depth:
+        'With 10 years of S&P 500 data most labels have fewer than 30 independent episodes. A longer price history would need a paid data plan or a proxy index; see ADR 0009.',
+    },
+    volatility: {
+      title: 'Volatility and its term structure',
+      vix: 'VIX',
+      vix3m: 'VIX3M (3-month)',
+      ratio: 'VIX over VIX3M',
+      contango: 'Below 1: contango, the usual calm shape.',
+      backwardation: 'At or above 1: backwardation, near-term fear above longer-term.',
+      source: 'Source: FRED VIXCLS and VXVCLS (official daily closes).',
+    },
+    credit: {
+      title: 'Credit and the curve',
+      hy: 'High-yield spread',
+      ig: 'Investment-grade spread',
+      hyIg: 'High-yield minus investment-grade',
+      dgs10: '10-year Treasury yield',
+      curve3m: '10-year minus 3-month',
+      curve2y: '10-year minus 2-year',
+      source:
+        'Source: FRED (ICE BofA spreads, Treasury yields). Spreads and yields in percentage points.',
+    },
+    uncertainty: {
+      title: 'Geopolitical risk and policy uncertainty',
+      gpr: 'Geopolitical Risk index (daily)',
+      epu: 'Economic Policy Uncertainty (daily)',
+      source:
+        'Sources: Caldara and Iacoviello daily GPR index; Baker, Bloom and Davis daily EPU index via FRED. Both are counts of newspaper coverage and are noisy day to day.',
+    },
+    colMeasure: 'Measure',
+    colLatest: 'Latest',
+    colChange: 'Change over 1 month',
+    colPercentile: '1-year percentile',
+    colAsOf: 'As of',
+    noData: 'No data stored',
+    ofN: (n: number) => `of ${n} days only`,
+  },
+
   placeholder: (phase: number) =>
     `This module is built in Phase ${phase}. No data is shown until then.`,
   status: {

@@ -24,6 +24,8 @@ export interface FredObservation {
 /** The series Marsad uses, with what each feeds. */
 export const FRED_SERIES = {
   VIXCLS: 'VIX daily close (cross-check of the vendor VIX)',
+  VXVCLS: 'VIX3M daily close (3-month implied volatility), for the VIX term structure',
+  SP500: 'S&P 500 index close (FRED keeps 10 years), for the regime label',
   T10Y3M: '10-year minus 3-month Treasury spread',
   T10Y2Y: '10-year minus 2-year Treasury spread',
   DGS10: '10-year Treasury yield (cross-check of Massive yields)',

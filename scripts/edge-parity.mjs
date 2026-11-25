@@ -191,6 +191,40 @@ const out = {
       firstWords: d.changed[0]?.words,
     };
   })(),
+  // The regime label history and the recession filter on the real FRED downloads (ADR 0009).
+  regime: (() => {
+    const load = (id) =>
+      JSON.parse(readFileSync(join(root, `fixtures/fred/fredgraph-${id}.json`), 'utf8'))
+        .body.trim()
+        .split('\n')
+        .slice(1)
+        .map((l) => l.split(','))
+        .filter(([, v]) => v !== undefined && v !== '' && v !== '.')
+        .map(([date, v]) => ({ date, value: Number(v) }));
+    const s = {};
+    for (const id of [
+      'SP500',
+      'VIXCLS',
+      'VXVCLS',
+      'T10Y3M',
+      'BAMLH0A0HYM2',
+      'ICSA',
+      'NFCI',
+      'SAHMREALTIME',
+    ])
+      s[id] = load(id);
+    const days = core.regimeHistory(s.SP500, s.VIXCLS, s.VXVCLS);
+    return {
+      labels: days.map((d) => `${d.date} ${d.label} ${d.reason}`),
+      filters: ['2021-06-30', '2023-06-30', '2024-08-10', '2026-11-24'].map((d) =>
+        core.recessionFilter(s, d),
+      ),
+      stress: core.eventStudy(
+        s.SP500,
+        days.map((d) => d.label === 'stress'),
+      ),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
