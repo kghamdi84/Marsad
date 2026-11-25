@@ -123,6 +123,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
 
+### Live: regime (2026-11-25, PR #23 merged as `54e9c4a`)
+
+- The Supabase integration created `regime_daily` and `regime_event_stats` (anon REST returns 401; it took longer than the usual 30 seconds, about 2 minutes).
+- FRED daily, run by hand on `main`: `fred-daily: ok, rows 80484` (14 series, now with VIX3M and the S&P 500), then `regime-daily: ok, rows 2512`: latest 2026-11-23, label stress, recession filter elevated, sessions 2016-11-25 to 2026-11-23. The same values the tests compute from the recorded files.
+- CI on `main` failed after the merge: the regime job test timed out at 5.6 seconds on the runner (4.3 locally). Cause: the recession filter rescanned every series for each day (the production regime step took 19 seconds). Fixed in PR #24 with a binary search; results unchanged and pinned by the tests.
+
 ### Phase 3 batch A: regime label, recession filter, volatility, credit and uncertainty panels (2026-11-25)
 
 Built on Claude Opus 5.5 at high effort, as the brief asks for the methodology. ADR 0009 documents every rule and threshold and what the free data allows.
