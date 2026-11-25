@@ -20,6 +20,19 @@ const FRAMES = [
   ['us-gaap', 'StockholdersEquity', 'USD', 'CY2025Q4I'],
   ['dei', 'EntityCommonStockSharesOutstanding', 'shares', 'CY2025Q4I'],
   ['us-gaap', 'CommonStockSharesOutstanding', 'shares', 'CY2025Q4I'],
+  // Fallbacks for companies that do not tag the figures above (ADR 0035).
+  ['us-gaap', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD', 'CY2025'],
+  ['us-gaap', 'Revenues', 'USD', 'CY2025'],
+  ['us-gaap', 'CostOfRevenue', 'USD', 'CY2025'],
+  ['us-gaap', 'CostOfGoodsAndServicesSold', 'USD', 'CY2025'],
+  ['us-gaap', 'ProfitLoss', 'USD', 'CY2025'],
+  [
+    'us-gaap',
+    'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
+    'USD',
+    'CY2025Q4I',
+  ],
+  ['us-gaap', 'WeightedAverageNumberOfDilutedSharesOutstanding', 'shares', 'CY2025'],
 ] as const;
 
 const get = async (url: string) => {

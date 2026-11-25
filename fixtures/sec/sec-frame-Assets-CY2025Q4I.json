@@ -1,0 +1,113 @@
+{
+  "recordedAt": "2026-11-25T17:18:28.281Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/Assets/USD/CY2025Q4I.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "Assets",
+    "ccp": "CY2025Q4I",
+    "uom": "USD",
+    "label": "Assets",
+    "description": "Sum of the carrying amounts as of the balance sheet date of all assets that are recognized. Assets are probable future economic benefits obtained or controlled by an entity as a result of past transactions or events.",
+    "pts": 6241,
+    "data": [
+      {
+        "accn": "0001628280-26-067844",
+        "cik": 21344,
+        "entityName": "COCA COLA CO",
+        "loc": "US-GA",
+        "end": "2025-12-31",
+        "val": 104816000000
+      },
+      {
+        "accn": "0000034088-26-000067",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "end": "2025-12-31",
+        "val": 448980000000
+      },
+      {
+        "accn": "0000037996-26-000191",
+        "cik": 37996,
+        "entityName": "Ford Motor Co",
+        "loc": "US-MI",
+        "end": "2025-12-31",
+        "val": 289160000000
+      },
+      {
+        "accn": "0000050863-26-000191",
+        "cik": 50863,
+        "entityName": "Intel Corporation",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 211429000000
+      },
+      {
+        "accn": "0000070858-26-000548",
+        "cik": 70858,
+        "entityName": "BofA Finance LLC",
+        "loc": "-",
+        "end": "2025-12-31",
+        "val": 3411738000000
+      },
+      {
+        "accn": "0000078003-26-000127",
+        "cik": 78003,
+        "entityName": "PFIZER INC",
+        "loc": "US-NY",
+        "end": "2025-12-31",
+        "val": 208160000000
+      },
+      {
+        "accn": "0000104169-26-000154",
+        "cik": 104169,
+        "entityName": "WALMART INC.",
+        "loc": "US-AR",
+        "end": "2026-01-31",
+        "val": 284668000000
+      },
+      {
+        "accn": "0000200406-26-000197",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "end": "2025-12-28",
+        "val": 199210000000
+      },
+      {
+        "accn": "0000320193-26-000006",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 379297000000
+      },
+      {
+        "accn": "0000732717-26-000372",
+        "cik": 732717,
+        "entityName": "AT&T INC.",
+        "loc": "US-TX",
+        "end": "2025-12-31",
+        "val": 420198000000
+      },
+      {
+        "accn": "0001193125-26-027207",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "end": "2025-12-31",
+        "val": 665302000000
+      },
+      {
+        "accn": "0001045810-26-000075",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "loc": "US-CA",
+        "end": "2026-01-25",
+        "val": 206803000000
+      }
+    ],
+    "totalRows": 6241
+  }
+}

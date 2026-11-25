@@ -1,0 +1,116 @@
+{
+  "recordedAt": "2026-11-25T17:18:27.428Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/NetIncomeLoss/USD/CY2025.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "NetIncomeLoss",
+    "ccp": "CY2025",
+    "uom": "USD",
+    "label": "Net Income (Loss) Attributable to Parent",
+    "description": "The portion of profit or loss for the period, net of income taxes, which is attributable to the parent.",
+    "pts": 5728,
+    "data": [
+      {
+        "accn": "0001628280-26-010047",
+        "cik": 21344,
+        "entityName": "COCA COLA CO",
+        "loc": "US-GA",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 13107000000
+      },
+      {
+        "accn": "0001193125-26-147614",
+        "cik": 34088,
+        "entityName": "EXXON MOBIL CORPORATION",
+        "loc": "-",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 28844000000
+      },
+      {
+        "accn": "0000050863-26-000011",
+        "cik": 50863,
+        "entityName": "INTEL CORPORATION",
+        "loc": "US-CA",
+        "start": "2024-12-29",
+        "end": "2025-12-27",
+        "val": -267000000
+      },
+      {
+        "accn": "0000070858-26-000157",
+        "cik": 70858,
+        "entityName": "Bank of America Corporation",
+        "loc": "US-NC",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 30509000000
+      },
+      {
+        "accn": "0000078003-26-000026",
+        "cik": 78003,
+        "entityName": "PFIZER INC",
+        "loc": "US-NY",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 7771000000
+      },
+      {
+        "accn": "0001193125-26-173673",
+        "cik": 104169,
+        "entityName": "Walmart Inc.",
+        "loc": "-",
+        "start": "2025-02-01",
+        "end": "2026-01-31",
+        "val": 21893000000
+      },
+      {
+        "accn": "0000200406-26-000016",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "start": "2024-12-30",
+        "end": "2025-12-28",
+        "val": 26804000000
+      },
+      {
+        "accn": "0000320193-26-000026",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "start": "2024-09-29",
+        "end": "2025-09-27",
+        "val": 112010000000
+      },
+      {
+        "accn": "0000732717-26-000120",
+        "cik": 732717,
+        "entityName": "AT&T INC.",
+        "loc": "US-TX",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 21953000000
+      },
+      {
+        "accn": "0001193125-26-427849",
+        "cik": 789019,
+        "entityName": "Microsoft Corporation",
+        "loc": "-",
+        "start": "2024-07-01",
+        "end": "2025-06-30",
+        "val": 101832000000
+      },
+      {
+        "accn": "0001045810-26-000036",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORPORATION",
+        "loc": "-",
+        "start": "2025-01-27",
+        "end": "2026-01-25",
+        "val": 120067000000
+      }
+    ],
+    "totalRows": 5728
+  }
+}

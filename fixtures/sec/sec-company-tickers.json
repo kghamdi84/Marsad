@@ -1,0 +1,173 @@
+{
+  "recordedAt": "2026-11-25T17:18:30.193Z",
+  "endpoint": "/files/company_tickers.json",
+  "status": 200,
+  "totalRows": 10400,
+  "body": {
+    "0": {
+      "cik_str": 320193,
+      "ticker": "AAPL",
+      "title": "Apple Inc."
+    },
+    "1": {
+      "cik_str": 789019,
+      "ticker": "MSFT",
+      "title": "MICROSOFT CORP"
+    },
+    "3": {
+      "cik_str": 1045810,
+      "ticker": "NVDA",
+      "title": "NVIDIA CORP"
+    },
+    "10": {
+      "cik_str": 104169,
+      "ticker": "WMT",
+      "title": "Walmart Inc."
+    },
+    "16": {
+      "cik_str": 200406,
+      "ticker": "JNJ",
+      "title": "JOHNSON & JOHNSON"
+    },
+    "22": {
+      "cik_str": 21344,
+      "ticker": "KO",
+      "title": "COCA COLA CO"
+    },
+    "29": {
+      "cik_str": 70858,
+      "ticker": "BAC",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "36": {
+      "cik_str": 50863,
+      "ticker": "INTC",
+      "title": "INTEL CORP"
+    },
+    "92": {
+      "cik_str": 78003,
+      "ticker": "PFE",
+      "title": "PFIZER INC"
+    },
+    "96": {
+      "cik_str": 732717,
+      "ticker": "T",
+      "title": "AT&T INC."
+    },
+    "345": {
+      "cik_str": 37996,
+      "ticker": "F",
+      "title": "FORD MOTOR CO"
+    },
+    "7420": {
+      "cik_str": 70858,
+      "ticker": "BML-PG",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "7423": {
+      "cik_str": 70858,
+      "ticker": "BML-PL",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "7424": {
+      "cik_str": 70858,
+      "ticker": "BAC-PB",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "7426": {
+      "cik_str": 70858,
+      "ticker": "BAC-PK",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "7437": {
+      "cik_str": 732717,
+      "ticker": "TBB",
+      "title": "AT&T INC."
+    },
+    "9605": {
+      "cik_str": 732717,
+      "ticker": "T-PA",
+      "title": "AT&T INC."
+    },
+    "9617": {
+      "cik_str": 732717,
+      "ticker": "T-PC",
+      "title": "AT&T INC."
+    },
+    "9810": {
+      "cik_str": 70858,
+      "ticker": "BAC-PL",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9811": {
+      "cik_str": 70858,
+      "ticker": "MER-PK",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9812": {
+      "cik_str": 70858,
+      "ticker": "BACRP",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9813": {
+      "cik_str": 70858,
+      "ticker": "BAC-PE",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9815": {
+      "cik_str": 70858,
+      "ticker": "BAC-PM",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9816": {
+      "cik_str": 70858,
+      "ticker": "BAC-PN",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9817": {
+      "cik_str": 70858,
+      "ticker": "BAC-PO",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9818": {
+      "cik_str": 70858,
+      "ticker": "BAC-PP",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9819": {
+      "cik_str": 70858,
+      "ticker": "BAC-PQ",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9820": {
+      "cik_str": 70858,
+      "ticker": "BAC-PS",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9821": {
+      "cik_str": 70858,
+      "ticker": "BML-PH",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "9822": {
+      "cik_str": 70858,
+      "ticker": "BML-PJ",
+      "title": "BANK OF AMERICA CORP /DE/"
+    },
+    "10269": {
+      "cik_str": 37996,
+      "ticker": "F-PB",
+      "title": "FORD MOTOR CO"
+    },
+    "10270": {
+      "cik_str": 37996,
+      "ticker": "F-PC",
+      "title": "FORD MOTOR CO"
+    },
+    "10271": {
+      "cik_str": 37996,
+      "ticker": "F-PD",
+      "title": "FORD MOTOR CO"
+    }
+  }
+}

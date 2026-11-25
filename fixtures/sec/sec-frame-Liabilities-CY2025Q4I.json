@@ -1,0 +1,81 @@
+{
+  "recordedAt": "2026-11-25T17:18:28.629Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/Liabilities/USD/CY2025Q4I.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "Liabilities",
+    "ccp": "CY2025Q4I",
+    "uom": "USD",
+    "label": "Liabilities",
+    "description": "Sum of the carrying amounts as of the balance sheet date of all liabilities that are recognized. Liabilities are probable future sacrifices of economic benefits arising from present obligations of an entity to transfer assets or provide services to other entities in the future.",
+    "pts": 5600,
+    "data": [
+      {
+        "accn": "0000034088-26-000067",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "end": "2025-12-31",
+        "val": 182354000000
+      },
+      {
+        "accn": "0000037996-26-000191",
+        "cik": 37996,
+        "entityName": "Ford Motor Co",
+        "loc": "US-MI",
+        "end": "2025-12-31",
+        "val": 253180000000
+      },
+      {
+        "accn": "0000070858-26-000548",
+        "cik": 70858,
+        "entityName": "BofA Finance LLC",
+        "loc": "-",
+        "end": "2025-12-31",
+        "val": 3108495000000
+      },
+      {
+        "accn": "0000078003-26-000127",
+        "cik": 78003,
+        "entityName": "PFIZER INC",
+        "loc": "US-NY",
+        "end": "2025-12-31",
+        "val": 121385000000
+      },
+      {
+        "accn": "0000200406-26-000197",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "end": "2025-12-28",
+        "val": 117666000000
+      },
+      {
+        "accn": "0000320193-26-000006",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 291107000000
+      },
+      {
+        "accn": "0001193125-26-027207",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "end": "2025-12-31",
+        "val": 274427000000
+      },
+      {
+        "accn": "0001045810-26-000075",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "loc": "US-CA",
+        "end": "2026-01-25",
+        "val": 49510000000
+      }
+    ],
+    "totalRows": 5600
+  }
+}
