@@ -157,6 +157,10 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Options positions on the Journal page (2026-11-25)
+
+- **ADR 0034** (`options-pos-1`): defined-risk options positions placed in Sahm are entered by hand with their exit rules and bear case; code shows the maximum loss and gain, breakevens, days to expiry and the result at expiry at the last close, flags the time exit and assignment risk, and says plainly that today's value needs option quotes.
+
 ### Telegram as the optional second channel (2026-11-25)
 
 - **ADR 0033** (`telegram-1`): everything that is pushed also goes to Telegram when the bot secrets exist, with the same freshness rules; each channel claims its items separately, so one failing never silences the other. SETUP step 7 has the iPad steps.

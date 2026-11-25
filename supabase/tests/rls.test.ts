@@ -619,6 +619,29 @@ describe('system tables', () => {
     await db.query(`delete from public.system_alerts where source = 'x'`);
   });
 
+  it('options positions are personal and need an exit rule, a bear case and 1 to 4 legs', async () => {
+    const leg = `{"type":"call","strike":100,"qty":1,"price":5}`;
+    const ins = (legs: string, exit = '21', bear = 'Below 100 it expires worthless.') =>
+      `insert into public.option_positions (underlying, label, expiry, legs, opened_on, exit_dte, bear_case) values ('NVDA', 'Long call', '2026-12-18', '${legs}'::jsonb, '2026-11-20', ${exit}, '${bear}')`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins(`[${leg}]`));
+      expect(await count(tx, 'public.option_positions')).toBe(1);
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.option_positions')).toBe(0));
+    await expect(as(owner1, (tx) => tx.query(ins(`[${leg}]`)))).rejects.toThrow();
+    for (const bad of [
+      ins(`[${leg}]`, 'null'),
+      ins(`[${leg}]`, '21', ' '),
+      ins('[]'),
+      ins(`[${[leg, leg, leg, leg, leg].join(',')}]`),
+      ins(`${leg}`),
+    ])
+      await expect(as(owner2, (tx) => tx.query(bad))).rejects.toThrow(/check constraint/);
+    await expect(as(anon, (tx) => count(tx, 'public.option_positions'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(
