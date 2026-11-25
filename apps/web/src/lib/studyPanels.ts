@@ -391,7 +391,8 @@ export interface HoldersView {
   totalShares: number;
   totalValueUsd: number;
   cusips: { cusip: string; issuer: string; lines: number }[];
-  leftOut: { options: number; amendments: number; otherPeriod: number };
+  /** minorCusip is absent from lists made under holders-1. */
+  leftOut: { options: number; amendments: number; otherPeriod: number; minorCusip?: number };
   top: {
     rank: number;
     name: string;

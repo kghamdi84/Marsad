@@ -133,7 +133,31 @@ describe('holderList', () => {
       { cusip: '773121108', issuer: 'ROCKET LAB CORP', lines: 2 },
       { cusip: '773122106', issuer: 'ROCKET LAB USA INC', lines: 1 },
     ]);
-    expect(l?.leftOut).toEqual({ options: 1, otherPeriod: 1, amendments: 1, notCommon: 0 });
+    expect(l?.leftOut).toEqual({
+      options: 1,
+      otherPeriod: 1,
+      amendments: 1,
+      notCommon: 0,
+      minorCusip: 0,
+    });
+  });
+
+  it('merges CUSIPs written in lower case and leaves out a CUSIP on under 1% of the lines (holders-2)', () => {
+    // 150 lines under NVIDIA's CUSIP (one in lower case) and one filer typing Oracle's CUSIP: 1 of 151 lines is
+    // under 1%, so it is left out and counted; its 999 shares are not added.
+    const nv = { issuer: 'NVIDIA CORP', cusip: '67066G104' };
+    const many = Array.from({ length: 149 }, () => row('a1', 10, nv));
+    const l = holderList(
+      [
+        ...many,
+        row('a2', 10, { ...nv, cusip: '67066g104' }),
+        row('a2', 999, { ...nv, cusip: '68389X105' }),
+      ],
+      filers,
+    );
+    expect(l?.cusips).toEqual([{ cusip: '67066G104', issuer: 'NVIDIA CORP', lines: 150 }]);
+    expect(l?.totalShares).toBe(1500);
+    expect(l?.leftOut.minorCusip).toBe(1);
   });
 
   it('is null when no original report is present', () => {
@@ -198,5 +222,6 @@ describe('holderList on the real 13F sample (filings Jun to Aug 2026)', () => {
   it('counts Rocket Lab under both its new and its pre-redomicile CUSIP, and says so', () => {
     const l = holderList(rows(companyKey('Rocket Lab Corp')), filers);
     expect(l?.cusips.map((c) => c.cusip).sort()).toEqual(['773121108', '773122106']);
+    expect(l?.leftOut.minorCusip).toBe(0);
   });
 });

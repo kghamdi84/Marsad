@@ -29,8 +29,8 @@ export interface ThirteenFSource {
 }
 
 export interface HoldersStore {
-  /** The newest data set already stored (its file name), or null. */
-  getStoredDataSet(): Promise<string | null>;
+  /** The newest data set already stored (its file name) and the rule version it was read with, or null. */
+  getStoredDataSet(): Promise<{ dataSet: string; version: string } | null>;
   saveHolders(
     dataSet: string,
     lists: readonly { ticker: string; list: HolderList }[],
@@ -63,7 +63,9 @@ export async function runHoldersJob(deps: HoldersJobDeps): Promise<JobRunRecord>
       const newest = urls[0];
       if (!newest) throw new Error('No 13F data set link found on the SEC page');
       const dataSet = fileName(newest);
-      if ((await store.getStoredDataSet()) === dataSet)
+      // Read again when the counting rules changed since the stored lists were made.
+      const stored = await store.getStoredDataSet();
+      if (stored?.dataSet === dataSet && stored.version === HOLDERS_VERSION)
         return { rows: 0, skipped: `data set ${dataSet} already stored`, details: { dataSet } };
       const list = await fetchCompanyTickers(http, sec);
       if (!list.ok) throw new Error(`SEC ticker list: ${list.display}`);
@@ -150,6 +152,7 @@ export async function runHoldersJob(deps: HoldersJobDeps): Promise<JobRunRecord>
                 period: x.list.period,
                 filers: x.list.filers,
                 cusips: x.list.cusips.map((c) => c.cusip),
+                minorCusipLines: x.list.leftOut.minorCusip,
               },
             ]),
           ),

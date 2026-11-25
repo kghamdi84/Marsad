@@ -59,11 +59,12 @@ export function supabaseHoldersStore(url: string, secretKey: string): HoldersSto
     async getStoredDataSet() {
       const { data, error } = await db
         .from('holders_13f_lists')
-        .select('data_set, fetched_at')
+        .select('data_set, version, fetched_at')
         .order('fetched_at', { ascending: false })
         .limit(1);
       if (error) throw new Error(`holders_13f_lists read failed: ${error.message}`);
-      return (data?.[0]?.['data_set'] as string | undefined) ?? null;
+      const r = data?.[0];
+      return r ? { dataSet: String(r['data_set']), version: String(r['version']) } : null;
     },
     async saveHolders(dataSet, lists) {
       let n = 0;

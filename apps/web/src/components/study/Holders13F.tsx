@@ -51,7 +51,12 @@ function List({ ticker }: { ticker: string }) {
       </div>
       <p className="text-xs text-muted">
         {h.cusips(d.cusips.map((c) => `${c.cusip} (${c.issuer})`).join(', '))}{' '}
-        {h.leftOut(d.leftOut.options, d.leftOut.amendments, d.leftOut.otherPeriod)}
+        {h.leftOut(
+          d.leftOut.options,
+          d.leftOut.amendments,
+          d.leftOut.otherPeriod,
+          d.leftOut.minorCusip ?? 0,
+        )}
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import type { HolderList, JobRunRecord } from '@marsad/core';
+import { HOLDERS_VERSION, type HolderList, type JobRunRecord } from '@marsad/core';
 import { routedHttp } from './test-http.js';
 import { runHoldersJob, type HoldersStore, type ThirteenFSource } from './holders-job.js';
 
@@ -41,7 +41,7 @@ const source = (urls = [sample.url]): ThirteenFSource & { downloads: string[] } 
   };
 };
 
-function memory(stored: string | null = null) {
+function memory(stored: { dataSet: string; version: string } | null = null) {
   const saved: { dataSet: string; lists: { ticker: string; list: HolderList }[] }[] = [];
   const runs: JobRunRecord[] = [];
   const store: HoldersStore = {
@@ -86,12 +86,21 @@ describe('runHoldersJob on the real 13F sample', () => {
   });
 
   it('skips a data set already stored, without downloading it', async () => {
-    const m = memory('01jun2026-31aug2026_form13f.zip');
+    const m = memory({ dataSet: '01jun2026-31aug2026_form13f.zip', version: HOLDERS_VERSION });
     const s = source();
     const { http } = routedHttp(NOW, []);
     const run = await runHoldersJob({ http, sec, source: s, store: m.store, now: () => NOW });
     expect(run.status).toBe('skipped');
     expect(s.downloads).toEqual([]);
+  });
+
+  it('reads a stored data set again when it was counted under older rules', async () => {
+    const m = memory({ dataSet: '01jun2026-31aug2026_form13f.zip', version: 'holders-1' });
+    const s = source();
+    const { http } = routedHttp(NOW, [['company_tickers.json', { status: 200, body: list }]]);
+    const run = await runHoldersJob({ http, sec, source: s, store: m.store, now: () => NOW });
+    expect(run.status).toBe('ok');
+    expect(s.downloads).toHaveLength(1);
   });
 
   it('fails plainly when the SEC page lists no data set', async () => {

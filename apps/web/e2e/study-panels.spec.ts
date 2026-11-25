@@ -446,7 +446,7 @@ test('13F holders: the period, the lag, the top filers and the CUSIPs counted', 
           { cusip: '773121108', issuer: 'ROCKET LAB CORP', lines: 2 },
           { cusip: '773122106', issuer: 'ROCKET LAB USA INC', lines: 1 },
         ],
-        left_out: { options: 3, amendments: 1, otherPeriod: 0 },
+        left_out: { options: 3, amendments: 1, otherPeriod: 0, minorCusip: 2 },
       },
     ]),
   );
@@ -490,7 +490,11 @@ test('13F holders: the period, the lag, the top filers and the CUSIPs counted', 
       /Counted under CUSIP 773121108 \(ROCKET LAB CORP\), 773122106 \(ROCKET LAB USA INC\)/,
     ),
   ).toBeVisible();
-  await expect(panel.getByText(/Left out: 3 option lines, 1 amended reports/)).toBeVisible();
+  await expect(
+    panel.getByText(
+      /Left out: 3 option lines, 1 amended reports, 0 lines for an older quarter, 2 lines under a CUSIP/,
+    ),
+  ).toBeVisible();
 });
 
 test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and the comparison', async ({
