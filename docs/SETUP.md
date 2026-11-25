@@ -70,6 +70,10 @@ Marsad signs in with email and password while it is being tested (ADR 0039). The
 2. Tap **Actions**, choose **Set password**, tap **Run workflow**, then **Run workflow** again. It finishes in about a minute with "password set".
 3. In Marsad, sign in with your email and that password, and let iCloud Keychain save it.
 
+## Step 2c. Let friends create accounts (ADR 0040)
+
+In Supabase (organization **Personal Projects**, project `hwdwivilqdydmxhycapy`): tap **Authentication**, then **Sign In / Providers**. Turn **Allow new users to sign up** on, and turn **Confirm email** off (the built-in email sender allows only a few emails an hour). Tap **Save**. Friends then tap **Create an account** on Marsad's sign-in screen.
+
 ## Step 3. Link the Netlify site to GitHub (done)
 
 Claude created the site `marsad-k84` in team **GIG** and set `VITE_SUPABASE_URL`. Khaled linked it to `kghamdi84/Marsad`, branch `main`, on 2026-11-23, with build command `pnpm --filter @marsad/web build` and publish directory `apps/web/dist` (the same values as `netlify.toml`).
