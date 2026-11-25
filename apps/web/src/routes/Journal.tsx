@@ -22,6 +22,7 @@ import {
   type ThesisStatus,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../components/ui';
+import { EtfLookThrough } from '../components/journal/EtfLookThrough';
 import { OptionPositions } from '../components/journal/OptionPositions';
 import { Trades } from '../components/journal/Trades';
 import { num, td, th, thNum } from '../components/study/Panel';
@@ -503,7 +504,6 @@ function Exposure({
               ))}
             </ul>
           )}
-          <p className="text-xs text-muted">{x.overlap}</p>
         </>
       )}
     </section>
@@ -574,6 +574,7 @@ function Portfolio() {
     <>
       <Exposure holdings={q.data.holdings} bars={q.data.bars} vix={q.data.vix} />
       <Rotation holdings={q.data.holdings} bars={q.data.bars} />
+      <EtfLookThrough holdings={q.data.holdings} bars={q.data.bars} />
     </>
   );
 }

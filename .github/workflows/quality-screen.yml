@@ -2,7 +2,8 @@ name: Weekly SEC data
 
 # Weekly jobs on free SEC data. The quality-at-a-discount screen (ADR 0035): SEC XBRL frames for the Marsad
 # universe, about 16 requests. The 13F holders (ADR 0037): the newest SEC Form 13F data set (about 100 MB),
-# downloaded only when it is new. Sunday after the weekly exports; run by hand any time.
+# downloaded only when it is new. ETF holdings (ADR 0038): the newest N-PORT report of SPY, QQQ and DIA, each
+# downloaded once. Sunday after the weekly exports; run by hand any time.
 on:
   schedule:
     - cron: '41 9 * * 0'
@@ -36,6 +37,13 @@ jobs:
       - name: Read 13F holders
         if: ${{ !cancelled() }}
         run: pnpm --filter @marsad/jobs holders
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      - name: Read ETF holdings (N-PORT)
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs etf
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

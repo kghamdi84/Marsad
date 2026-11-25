@@ -241,8 +241,28 @@ export const t = {
       scenariosTitle: 'Stress scenarios (approximations)',
       corrTitle: 'Highly correlated pairs (126 sessions, 0.8 or more)',
       corrNone: 'No pair at 0.8 or more.',
-      overlap:
-        'ETF overlap needs ETF constituent data, which the current data plans do not include; it arrives with that data.',
+    },
+    etf: {
+      title: 'ETF look-through and overlap',
+      intro:
+        'Holdings of SPY, QQQ and DIA from their newest public SEC Form N-PORT reports. Look-through shows how many dollars of each stock you hold directly also sit inside the funds you hold.',
+      none: 'No ETF holdings stored yet. The weekly SEC job loads them on Sunday.',
+      report: (etf: string, date: string, n: number, matched: number) =>
+        `${etf}: holdings as of ${date} (${n} lines, ${matched} matched to a ticker).`,
+      overlapTitle: 'Overlap between funds',
+      colPair: 'Funds',
+      colOverlap: 'Overlap',
+      and: 'and',
+      lookTitle: 'Your look-through exposure',
+      noFunds: 'You hold none of SPY, QQQ or DIA, so there is nothing to look through.',
+      noShared: (funds: string) =>
+        `None of the stocks you hold directly are matched inside ${funds}.`,
+      colTicker: 'Ticker',
+      colDirect: 'Direct (USD)',
+      colVia: 'Through funds (USD)',
+      colTotal: 'Total (USD)',
+      footnote:
+        'Source: SEC EDGAR Form NPORT-P, formula etf-1. Public N-PORT reports are quarterly and published up to 60 days after the month they describe, so weights are as of the report date, not today. Overlap is the sum, over shared securities by CUSIP, of the smaller weight. IWM is not covered (its trust files for many funds).',
     },
     review: {
       title: 'Weekly review',

@@ -25,7 +25,8 @@
     "push": "tsx src/push-main.ts",
     "digest": "tsx src/digest-main.ts",
     "quality": "tsx src/quality-main.ts",
-    "holders": "tsx src/holders-main.ts"
+    "holders": "tsx src/holders-main.ts",
+    "etf": "tsx src/etf-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

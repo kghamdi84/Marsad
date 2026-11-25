@@ -678,8 +678,8 @@
         {
           "id": "7.3",
           "title": "ETF overlap and stock-to-ETF rotation signal",
-          "status": "in_progress",
-          "evidence": "rotation-1 (ADR 0022): 3/6/12-month relative strength against the sector ETF and SPY, trend, and Khaled's thesis status; suggests the ETF or SPY when lagging with a weakening thesis. Still to do: ETF overlap (needs ETF constituent data, not on any current plan)."
+          "status": "done",
+          "evidence": "rotation-1 (ADR 0022): 3/6/12-month relative strength against the sector ETF and SPY, trend, and Khaled's thesis status; suggests the ETF or SPY when lagging with a weakening thesis. ETF overlap and look-through (etf-1, ADR 0038): holdings of SPY, QQQ and DIA from their newest public SEC N-PORT reports, loaded weekly; overlap by CUSIP (sum of smaller weights) matches an independent Python calculation on the real June/July 2026 reports (SPY-QQQ 53.71%, SPY-DIA 27.98%, QQQ-DIA 20.18%) in jobs/src/etf-job.test.ts; Journal panel tested in apps/web/e2e/journal.spec.ts. IWM not covered (multi-fund trust)."
         },
         {
           "id": "7.4",
