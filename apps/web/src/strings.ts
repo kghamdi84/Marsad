@@ -1056,6 +1056,21 @@ export const t = {
     basisAssets: 'Total assets',
     debtMax: 'Debt limit (%)',
     cashMax: 'Cash limit (%)',
+    aiDailyCap: 'AI daily cap (USD, blank keeps AI off)',
+    aiMonthlyCap: 'AI monthly cap (USD, blank keeps AI off)',
+    capsInvalid: 'Caps must be above zero, or blank.',
+    costs: 'Costs',
+    costsIntro:
+      'What Marsad costs this month. Plan changes are yours to decide; AI text falls back to templates at a cap, with a warning at 80%.',
+    colService: 'Service',
+    colPlan: 'Plan',
+    colMonthly: 'USD a month',
+    aiOff: 'AI is off: no caps are set. Text comes from templates.',
+    aiSpend: (today: string, month: string, calls: number) =>
+      `AI spend: USD ${today} today, USD ${month} this month (${calls} call${calls === 1 ? '' : 's'}).`,
+    aiBudget: (message: string, d: string, m: string) => `${message} (daily ${d}%, monthly ${m}%).`,
+    actions: (minutes: number, runs: number) =>
+      `GitHub Actions: at least ${minutes} minutes this month over ${runs} job runs (estimated from the job log; setup time is not logged).`,
     savePreferences: 'Save preferences',
     preferencesSaved: 'Preferences saved.',
     preferencesInvalid: 'Limits must be above 0% and below 100%.',

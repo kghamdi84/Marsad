@@ -176,8 +176,54 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
       shariah_basis: 'assets',
       shariah_debt_max: 0.3,
       shariah_cash_max: 0.33,
+      ai_daily_cap_usd: null,
+      ai_monthly_cap_usd: null,
     });
   await form.getByLabel('Cash limit (%)').fill('120');
   await form.getByRole('button', { name: 'Save preferences' }).click();
   await expect(form).toContainText('Limits must be above 0% and below 100%.');
+});
+
+test('costs: every plan at USD 0, AI off until caps are set, then spend against the caps with a warning', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  const month = new Date().toISOString().slice(0, 7);
+  let caps: unknown[] = [];
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/user_settings**', (r) => r.fulfill(json(caps)));
+  await page.route('**/rest/v1/ai_usage**', (r) =>
+    r.fulfill(
+      json([
+        { created_at: `${month}-01T08:00:00Z`, model: 'claude-sonnet-5-5', usd: 4.2 },
+        { created_at: `${month}-01T09:00:00Z`, model: 'claude-haiku-5-5', usd: 0.3 },
+      ]),
+    ),
+  );
+  await page.route('**/rest/v1/job_runs**', (r) =>
+    r.fulfill(
+      json([
+        { started_at: `${month}-01T10:00:00Z`, latency_ms: 90_000, job: 'x', status: 'ok' },
+        { started_at: `${month}-01T11:00:00Z`, latency_ms: 2_000, job: 'x', status: 'ok' },
+      ]),
+    ),
+  );
+  await page.goto('/status');
+  await expect(page.getByRole('row', { name: /^Supabase/ })).toContainText('0.00');
+  await expect(page.getByText('AI is off: no caps are set.')).toBeVisible();
+  // 90 s rounds up to 2 minutes, 2 s to 1: at least 3 minutes over 2 runs.
+  await expect(
+    page.getByText('GitHub Actions: at least 3 minutes this month over 2 job runs'),
+  ).toBeVisible();
+
+  caps = [{ ai_daily_cap_usd: 100, ai_monthly_cap_usd: 5, shariah_screen: false }];
+  await page.reload();
+  // USD 4.50 of a USD 5 monthly cap is 90%: a warning.
+  await expect(page.getByText('USD 4.50 this month (2 calls).')).toBeVisible();
+  await expect(page.getByText('AI spend at 90% of a cap (daily')).toBeVisible();
 });

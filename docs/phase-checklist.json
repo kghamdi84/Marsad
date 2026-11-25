@@ -739,8 +739,8 @@
         {
           "id": "8.3",
           "title": "Cost tracker with caps",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "costs-1 (ADR 0028): plan costs (all USD 0 today), ai_usage table for every Claude call, AI spend today and this month against opt-in caps (warning at 80%, templates at the cap; AI off while caps are blank), GitHub Actions minutes estimated from job_runs. Unit, RLS and browser tests."
         },
         {
           "id": "8.4",

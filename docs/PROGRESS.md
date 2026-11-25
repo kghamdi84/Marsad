@@ -128,6 +128,15 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Cost tracker (2026-11-25)
+
+- **ADR 0028** (`costs-1`): the Status page lists every plan's monthly cost (all USD 0 today), AI spend against caps Khaled sets in Preferences (blank caps keep AI off; warning at 80%, templates at the cap), and GitHub Actions minutes estimated from the job log.
+
+### Live data after the breadth backfill (2026-11-25, 11:53 UTC)
+
+- Breadth backfill (run 45588953591) succeeded in 2 h 4 min; the sentiment step then computed 3,240 days. Fear and Greed composite: 4, extreme fear, on 2026-11-23 from 4 of 7 components (476 breadth days, 501 SPY bars, no IEF bars yet). Capitulation watch: off on 2026-11-24.
+- The topics backfill started at 11:53 UTC; the bars job (IEF, GLD, ITA, IYT, the 11 sector ETFs, then exit alerts and the scorecard) is queued behind it. The FRED workflow (composite with the bond component) runs after that.
+
 ### Shariah screening aid (2026-11-25)
 
 - **ADR 0027** (`shariah-1`): off by default; when switched on in Preferences (Status page), each company's Financials panel shows debt and cash over market capitalization or total assets against Khaled's limits, from the filings, with every caveat (business activity and non-permissible income are not screened; Sahm's label takes precedence).
