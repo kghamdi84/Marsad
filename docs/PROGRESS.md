@@ -160,7 +160,7 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 ### Quality at a discount and the 10-K business text (2026-11-25)
 
 - **ADR 0035** (`quality-1`): a weekly screen of the Marsad universe from free SEC XBRL frames: quality (gross profits over assets, return on assets, low accruals, low leverage) and value (earnings yield, book-to-market) as percentiles; passing companies shown on the Regime page with every exclusion counted and every fallback figure named. Real frames recorded 2026-11-25.
-- The company page shows the 10-K business description as filed (2.5).
+- The company page shows the 10-K business description as filed, and each stock's 10-Q risk-factor updates with a quarter-over-quarter comparison (ADR 0036; extraction checked on four real filings).
 
 ### Options positions on the Journal page (2026-11-25)
 

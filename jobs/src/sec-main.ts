@@ -3,6 +3,8 @@
  * SUPABASE_SECRET_KEY from the environment; never logs them.
  */
 import { HttpClient, TokenBucket, TtlCache, type Clock, type FetchLike } from '@marsad/core';
+import { runTenQJob } from './tenq-job.js';
+import { supabaseTenQStore } from './tenq-store.js';
 import { runFactsJob } from './facts-job.js';
 import { runInsidersJob } from './insiders-job.js';
 import { runSecJob } from './sec-job.js';
@@ -21,7 +23,7 @@ const clock: Clock = {
 const fetchLike: FetchLike = (url, init) =>
   fetch(url, init?.headers ? { headers: init.headers } : undefined);
 
-const MODES = ['filings', 'facts', 'insiders'] as const;
+const MODES = ['filings', 'facts', 'insiders', 'tenq'] as const;
 type Mode = (typeof MODES)[number];
 const which = (process.argv[2] ?? 'filings') as Mode;
 if (!MODES.includes(which)) throw new Error(`usage: sec-main.ts ${MODES.join('|')}`);
@@ -40,7 +42,15 @@ const deps = {
   store: supabaseStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY')),
   now: () => new Date(),
 };
-const run = await { filings: runSecJob, facts: runFactsJob, insiders: runInsidersJob }[which](deps);
+const run =
+  which === 'tenq'
+    ? await runTenQJob({
+        http: deps.http,
+        sec: deps.cfg,
+        store: supabaseTenQStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY')),
+        now: deps.now,
+      })
+    : await { filings: runSecJob, facts: runFactsJob, insiders: runInsidersJob }[which](deps);
 
 console.log(
   `${run.job}: ${run.status}, rows ${run.rows_written ?? 0}, ${run.latency_ms} ms${run.error ? `, error: ${run.error}` : ''}${run.status === 'ok' ? ` details: ${JSON.stringify(run.details)}` : ''}`,

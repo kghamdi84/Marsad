@@ -101,7 +101,7 @@ function ChangedItem({ c }: { c: ChangedSentence }) {
   );
 }
 
-function Result({ diff }: { diff: RiskDiff }) {
+export function Result({ diff }: { diff: RiskDiff }) {
   const r = t.study.risk;
   return (
     <>

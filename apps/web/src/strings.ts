@@ -581,6 +581,24 @@ export const t = {
       view: '10-K on SEC',
       textLabel: 'Business description as filed',
     },
+    quarterly: {
+      title: 'Risk factors, quarter over quarter (10-Q)',
+      intro:
+        'Part II, Item 1A of the two newest quarterly reports, read from the SEC filings. A 10-Q lists changes since the annual report or says there were none; the two quarters are compared sentence by sentence with the same rules as the 10-K comparison.',
+      open: 'Show the quarterly updates',
+      loading: 'Loading the quarterly reports',
+      none: 'No quarterly report text is stored for this company yet.',
+      newest: (filed: string) => `Newest 10-Q, filed ${filed}`,
+      unchanged:
+        'This quarter says there were no material changes to the risk factors in the annual report.',
+      changes:
+        'This quarter lists risk factors added or changed since the annual report (shown below as filed).',
+      textLabel: 'Quarterly risk factors as filed',
+      view: '10-Q on SEC',
+      compare: (newer: string, older: string) =>
+        `Compared with the 10-Q filed ${older} (newer: ${newer}).`,
+      oneOnly: 'Only one quarterly report is stored, so there is nothing to compare yet.',
+    },
     risk: {
       title: 'Risk factors, year over year (10-K)',
       open: 'Show the comparison',
@@ -796,11 +814,6 @@ export const t = {
         name: 'Valuation percentiles against the 5-year history',
         state: 'Requires a higher Massive plan',
         why: 'A 5-year price history is beyond the free plan, which allows 2 years of daily bars. Statements come from SEC filings instead.',
-      },
-      {
-        name: '10-Q sections and quarter-to-quarter risk changes',
-        state: 'Not built',
-        why: 'The annual-report comparison above uses the vendor’s 10-K sections. That feed covers 10-Ks only, so quarterly reports would need the filing documents themselves.',
       },
       {
         name: '13F holders',

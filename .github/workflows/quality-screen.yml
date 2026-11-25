@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-screen
+  group: sec-api # shares the SEC fair-access limit with the other SEC workflows
   cancel-in-progress: false
 
 jobs:
