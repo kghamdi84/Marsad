@@ -560,7 +560,7 @@ export function supabaseStore(url: string, secretKey: string): Store {
         policy_version: policyVersion,
         snapshot: snapshots[i] ?? {},
         // Every system alert is critical: pushed (ADR 0031) and copied by email (ADR 0032).
-        delivery: { push: 'pending', email: 'pending' },
+        delivery: { push: 'pending', email: 'pending', telegram: 'pending' },
       }));
       const { error } = await db.from('system_alerts').insert(rows);
       if (error) throw new Error(`system_alerts insert failed: ${error.message}`);

@@ -203,6 +203,7 @@ describe('runSentimentJob on a market that capitulates on its last days', () => 
     await runSentimentJob({ store, now: () => new Date('2026-07-16T23:00:00Z') });
     const a = log.storedAlerts.flat()[0];
     expect(a?.decision).toBe('digest');
+    // Held for the digest: no push, so no Telegram either.
     expect(a?.delivery).toEqual({
       push: 'not sent (digest)',
       email: 'not sent (not critical)',

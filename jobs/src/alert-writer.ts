@@ -80,6 +80,8 @@ export async function pipelineAndStore(
       // alerts held back go to the next digest (ADR 0032).
       delivery: {
         push: r.decision === 'push' ? 'pending' : `not sent (${r.decision})`,
+        // The second channel (ADR 0033) carries exactly what push carries.
+        ...(r.decision === 'push' ? { telegram: 'pending' } : {}),
         email:
           r.decision === 'push' && input.priority === 'critical'
             ? 'pending'

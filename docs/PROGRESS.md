@@ -157,6 +157,10 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Telegram as the optional second channel (2026-11-25)
+
+- **ADR 0033** (`telegram-1`): everything that is pushed also goes to Telegram when the bot secrets exist, with the same freshness rules; each channel claims its items separately, so one failing never silences the other. SETUP step 7 has the iPad steps.
+
 ### Email copies of critical alerts and the alert digest (2026-11-25)
 
 - **ADR 0032** (`digest-1`): every critical push alert and system alert also arrives by email with its full card; alerts held back by quiet hours or the daily push limit are collected into one digest email after the pre-market brief and the close recap. Same once-only delivery claim as push; nothing older than 24 hours (copies) or 48 hours (digest) is mailed as news.

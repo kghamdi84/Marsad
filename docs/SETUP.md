@@ -109,11 +109,16 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 
 In Supabase: **Edge Functions**, then **Secrets**, then **Add new secret**. Same names as the data keys above (`MASSIVE_API_KEY`, `FRED_API_KEY`, `SEC_USER_AGENT`, later `ANTHROPIC_API_KEY`). Claude can also add these through the connector if you paste them into the secure form it shows, never into chat.
 
-## Step 7. Optional: Telegram bot (Phase 5)
+## Step 7. Optional: Telegram as a second alert channel (free)
 
-1. In Telegram, open a chat with `@BotFather`, send `/newbot`, choose a name like `Marsad Alerts` and a username ending in `bot`.
-2. BotFather replies with a token. Store it only as the Supabase secret `TELEGRAM_BOT_TOKEN`.
-3. Send any message to your new bot, then tell Claude "Telegram bot ready"; Claude reads your chat ID from the bot's updates.
+Alerts that reach the iPad as notifications can also arrive in Telegram, so one broken channel never means silence.
+
+1. In Telegram, open a chat with **@BotFather** (the blue check mark shows it is Telegram's own), send `/newbot`, choose a name (for example `Marsad alerts`) and a user name ending in `bot`. BotFather replies with a token. Copy it.
+2. In GitHub: the repository, **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Name `TELEGRAM_BOT_TOKEN`, paste the token, tap **Add secret**.
+3. In Telegram, open your new bot and tap **Start**, then send it any message.
+4. In Safari, open `https://api.telegram.org/bot<TOKEN>/getUpdates`, replacing `<TOKEN>` with your token. Find `"chat":{"id":` and copy the number after it.
+5. Add one more GitHub secret: name `TELEGRAM_CHAT_ID`, value that number.
+6. To test: GitHub, **Actions**, **Web Push**, **Run workflow**, set **Send a test notification** to true, **Run workflow**. A Telegram message arrives within a few minutes.
 
 ## Step 8. Claude Code cloud environment network allow list
 

@@ -48,7 +48,7 @@ describe('runWeeklyReviewJob', () => {
     expect(sent).toEqual(['Weekly review, week ending 2026-11-29']);
     const b = log.briefs[0];
     expect(b?.brief.kind).toBe('weekly-review');
-    expect(b?.delivery).toEqual({ email: 'sent', push: 'pending' });
+    expect(b?.delivery).toEqual({ email: 'sent', push: 'pending', telegram: 'pending' });
     const lines = (h: string) => b?.brief.sections.find((s) => s.heading === h)?.lines;
     expect(lines('Results')?.[0]).toBe('1 trade closed, 1 winning: USD 400.00 realized.');
     expect(lines('Alerts')).toEqual(['1 alert: 1 push.', 'Feedback: 1 noise.']);
