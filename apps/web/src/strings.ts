@@ -12,13 +12,19 @@ export const t = {
   signIn: {
     title: 'Sign in to Marsad',
     emailLabel: 'Email',
-    sendCode: 'Send code',
+    sendLink: 'Email me a sign-in link',
     sending: 'Sending',
-    codeSent: (email: string) =>
-      `We sent a sign-in email to ${email}. Open its link on this device, in this browser. If the email shows a 6-digit code instead, enter it below.`,
-    codeLabel: 'Code from the email',
-    verify: 'Verify code',
-    verifying: 'Verifying',
+    linkSent: (email: string) =>
+      `We sent a sign-in email to ${email}. Tap Sign in in that email. You are then signed in wherever the link opens.`,
+    pasteHelp:
+      'To sign in here instead (for example, in the Home Screen app): in the email, touch and hold Sign in, choose Copy Link, then paste it below. A 6-digit code also works if the email has one.',
+    codeLabel: 'Sign-in link or code',
+    verify: 'Sign in',
+    verifying: 'Signing in',
+    notALinkOrCode:
+      'That is not the sign-in link from the email or a 6-digit code. Copy the whole Sign in link and try again.',
+    linkFailed: (reason: string) =>
+      `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
     useDifferentEmail: 'Use a different email',
     noAccount: 'Sign-ups are closed. Only the existing account can sign in.',
   },

@@ -123,6 +123,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
 
+### Sign-in fix (2026-11-25)
+
+- **Problem** (reported by Khaled from an iPhone): the sign-in email has a link and no code, and the link only worked in the browser that requested it (PKCE). Mail apps on iPhone open links elsewhere, so sign-in failed; the screen also asked for a code the email never contains.
+- **Fix** (ADR 0005 revision 2026-11-25): implicit flow, so the link signs in wherever it opens; the field now accepts the copied link (or a code) and verifies its one-time token in any browser, including the Home Screen app; a failed link's reason is shown; the address bar is cleaned. TOTP (aal2) is still required for all data.
+- **Verified**: 15 unit tests for the link and error parsing; browser tests for the request (no code challenge, no user creation), a link opened in a fresh browser, a pasted link, a pasted non-link, and a failed link; restoring PKCE makes two of them fail. Not verified against the live Supabase project from here (no access to its auth logs or the inbox): Khaled's first sign-in is the live check.
+
 ### Phase 3 batch B: Marsad universe and breadth (2026-11-25)
 
 - **ADR 0010** defines the universe (top 1,000 US common stocks and ETFs by 20-session dollar volume, rebuilt monthly from data before the rebuild, point-in-time ticker lists so delisted names count) and breadth (above the 50- and 200-day averages, 52-week highs and lows, advancers and decliners with volume, the Zweig thrust, a McClellan-style volume oscillator).

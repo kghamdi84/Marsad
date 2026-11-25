@@ -54,7 +54,7 @@ In the Supabase project (`hwdwivilqdydmxhycapy`):
    - Under **Email**, keep **Email** enabled. Turn **Confirm email** on.
    - Set **Email OTP Length** to `6` and **Email OTP Expiration** to `600` seconds if those fields are shown.
 2. Tap **Authentication**, then **Multi-Factor** (or **MFA**). Set **TOTP (App Authenticator)** to **Enabled**.
-3. Email template: no change needed. On the Free plan without custom SMTP, Supabase does not allow editing templates, and its default "Magic link or OTP" email contains a **Sign in** link. Marsad accepts that link (open it on the same device and browser that requested it). Do **not** create a "Send Email hook" under **Auth Hooks**: it would replace Supabase's emails and no sign-in email would arrive.
+3. Email template: no change needed. On the Free plan without custom SMTP, Supabase does not allow editing templates, and its default "Magic link or OTP" email contains a **Sign in** link. Marsad accepts that link: tap **Sign in** in the email and you are signed in wherever it opens; or, to sign in in the Home Screen app, touch and hold **Sign in**, choose **Copy Link**, and paste it into Marsad's sign-in field. Do **not** create a "Send Email hook" under **Auth Hooks**: it would replace Supabase's emails and no sign-in email would arrive.
 
 4. Tap **Authentication**, then **Users**, then **Add user**, then **Create new user**. Email: your personal email. Turn **Auto Confirm User** on. Leave the password empty if allowed; otherwise use a long random one you discard. Tap **Create user**.
 5. Tap **Authentication**, then **URL Configuration**. Set **Site URL** to `https://marsad-k84.netlify.app`.
