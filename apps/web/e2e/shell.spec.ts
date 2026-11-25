@@ -17,8 +17,9 @@ test('requesting a sign-in link never asks Supabase to create a user', async ({ 
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
   await expect(page.getByLabel('Sign-in link or code')).toBeVisible();
   await expect(page.getByText('Tap Sign in in that email')).toBeVisible();
   expect(body).toMatchObject({ email: 'owner@example.com', create_user: false });
@@ -42,8 +43,9 @@ test('a rejected code shows the error text', async ({ page }) => {
     }),
   );
   await page.goto('/');
+  await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
   await page.getByLabel('Sign-in link or code').fill('123456');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('alert')).toContainText('expired');
@@ -79,7 +81,7 @@ async function mockUserAndFactors(page: import('@playwright/test').Page) {
   );
 }
 
-test('opening the emailed link in any browser signs in and asks for the second factor', async ({
+test('opening the emailed link in any browser signs in (password mode: no second factor, ADR 0039)', async ({
   page,
 }) => {
   const { token, exp } = aal1Token();
@@ -88,7 +90,7 @@ test('opening the emailed link in any browser signs in and asks for the second f
   await page.goto(
     `/#access_token=${token}&expires_at=${exp}&expires_in=3600&refresh_token=r&token_type=bearer&type=magiclink`,
   );
-  await expect(page.getByRole('heading', { name: 'Two-factor check' })).toBeVisible();
+  await expect(page.getByRole('navigation').first()).toBeVisible();
   // The tokens are removed from the address bar.
   expect(new URL(page.url()).hash).toBe('');
 });
@@ -116,15 +118,16 @@ test('pasting the copied sign-in link verifies its token here', async ({ page })
   });
   await mockUserAndFactors(page);
   await page.goto('/');
+  await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
   await page
     .getByLabel('Sign-in link or code')
     .fill(
       'https://e2e-test-project.supabase.co/auth/v1/verify?token=abc123hash&type=magiclink&redirect_to=https://marsad-k84.netlify.app/',
     );
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Two-factor check' })).toBeVisible();
+  await expect(page.getByRole('navigation').first()).toBeVisible();
   expect(verifyBody).toMatchObject({ token_hash: 'abc123hash', type: 'magiclink' });
 });
 
@@ -138,8 +141,9 @@ test('pasting something else says so without calling Supabase', async ({ page })
     return r.fulfill({ status: 500, body: '{}' });
   });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
   await page.getByLabel('Sign-in link or code').fill('https://example.com/not-the-link');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('alert')).toContainText('not the sign-in link');
@@ -152,4 +156,55 @@ test('a failed link shows its reason on the sign-in screen', async ({ page }) =>
   );
   await expect(page.getByRole('alert')).toContainText('Email link is invalid or has expired');
   await expect(page.getByRole('alert')).toContainText('Request a new one');
+});
+
+test('signing in with email and password posts the password grant and opens the app', async ({
+  page,
+}) => {
+  const { token, exp } = aal1Token();
+  let grant: string | null = null;
+  let body: Record<string, unknown> | null = null;
+  await page.route('**/auth/v1/token**', async (r) => {
+    grant = new URL(r.request().url()).searchParams.get('grant_type');
+    body = r.request().postDataJSON() as Record<string, unknown>;
+    await r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: token,
+        refresh_token: 'r',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: exp,
+        user: linkUser,
+      }),
+    });
+  });
+  await mockUserAndFactors(page);
+  await page.goto('/');
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByLabel('Password').fill('correct horse battery');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('navigation').first()).toBeVisible();
+  expect(grant).toBe('password');
+  expect(body).toMatchObject({ email: 'owner@example.com', password: 'correct horse battery' });
+});
+
+test('a wrong password says how to set a new one', async ({ page }) => {
+  await page.route('**/auth/v1/token**', (r) =>
+    r.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 400,
+        error_code: 'invalid_credentials',
+        msg: 'Invalid login credentials',
+      }),
+    }),
+  );
+  await page.goto('/');
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByLabel('Password').fill('wrong');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Set password workflow');
 });

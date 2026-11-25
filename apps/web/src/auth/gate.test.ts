@@ -7,6 +7,7 @@ const base: GateInput = {
   hasSession: true,
   currentLevel: 'aal1',
   nextLevel: 'aal1',
+  requireMfa: true,
 };
 
 describe('gateFor', () => {
@@ -32,5 +33,13 @@ describe('gateFor', () => {
     for (const nextLevel of ['aal1', 'aal2', null] as const) {
       expect(gateFor({ ...base, currentLevel: 'aal1', nextLevel })).not.toBe('ready');
     }
+  });
+  it('in password mode opens the app for any signed-in session, with or without a factor (ADR 0039)', () => {
+    for (const nextLevel of ['aal1', 'aal2', null] as const) {
+      expect(gateFor({ ...base, requireMfa: false, currentLevel: 'aal1', nextLevel })).toBe(
+        'ready',
+      );
+    }
+    expect(gateFor({ ...base, requireMfa: false, hasSession: false })).toBe('signed-out');
   });
 });

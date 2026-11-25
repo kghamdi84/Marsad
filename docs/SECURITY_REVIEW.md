@@ -60,6 +60,8 @@ Checked live with `curl -I https://marsad-k84.netlify.app/`:
 
 ## Open items
 
+0. **Second factor suspended (ADR 0039, 2026-11-25).** At Khaled's request, sign-in is email and password and row-level security accepts an aal1 session of the app owner. Restore before the platform is final: one migration (`require_mfa = true`) and `REQUIRE_MFA = true`.
+
 1. **Supabase Security Advisor: read 2026-11-25 (by Khaled's browser assistant, read-only).** Security: no errors; one warning, "Leaked Password Protection Disabled", which does not apply (Marsad signs in by emailed code and a second factor, with no password; see item 2) and which Supabase offers only on the Pro plan anyway (Supabase docs, Password security); one info item, "RLS Enabled No Policy" on `private.app_owners`, which is intended (no API role may read it; only the `private.is_app_owner()` function does). Performance: no errors or warnings; six unindexed foreign keys, now indexed (`20261225000000_fk_indexes.sql`); twelve "unused index" notes, kept, because the indexes serve page and job queries that have run only a few times in a days-old database. Auth confirmed: sign-ups off, email confirmation on, TOTP multi-factor on, SMS multi-factor off, anonymous sign-ins off, email the only provider, site and redirect URLs limited to marsad-k84.netlify.app.
 2. **Leaked password protection** is not relevant: Marsad signs in by emailed code and a second factor, without passwords.
 3. **Build-time `glob` and `minimatch` advisories**: recheck at the next review.

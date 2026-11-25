@@ -3,11 +3,11 @@ import { seedSession, scanAfterEach } from './helpers';
 
 scanAfterEach();
 
-test('an aal1 session is sent to the two-factor check', async ({ page }) => {
+test('in password mode an aal1 session opens the app (ADR 0039)', async ({ page }) => {
   await seedSession(page, 'aal1');
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Two-factor check' })).toBeVisible();
-  await expect(page.getByRole('navigation')).toHaveCount(0);
+  await expect(page.getByRole('navigation').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Two-factor check' })).toHaveCount(0);
 });
 
 test('an aal2 session sees the shell and the status page', async ({ page }) => {
