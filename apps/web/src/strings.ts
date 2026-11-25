@@ -570,6 +570,17 @@ export const t = {
       missingImplied:
         'Move against the options-implied move: needs options data, which is built in a later phase.',
     },
+    business: {
+      title: 'What the company does (10-K, Item 1)',
+      intro:
+        'The business description from the newest annual report, exactly as filed. It is the company describing itself, not an independent view.',
+      open: 'Show the business description',
+      loading: 'Loading the annual report text',
+      none: 'No business description is stored for this company (ETFs file none).',
+      filed: (period: string, filed: string) => `Year ended ${period}, filed ${filed}.`,
+      view: '10-K on SEC',
+      textLabel: 'Business description as filed',
+    },
     risk: {
       title: 'Risk factors, year over year (10-K)',
       open: 'Show the comparison',

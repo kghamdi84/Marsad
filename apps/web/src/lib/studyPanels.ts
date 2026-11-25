@@ -385,6 +385,29 @@ export async function loadEarningsFilings(cik: string): Promise<EarningsFiling[]
   }));
 }
 
+/** The newest stored 10-K business section (Item 1), or null when none is stored. */
+export async function loadBusinessSection(cik: string): Promise<DatedSection | null> {
+  const rows = check(
+    await client()
+      .from('annual_sections')
+      .select('period_end, filing_date, filing_url, text')
+      .eq('cik', cik)
+      .eq('section', 'business')
+      .order('period_end', { ascending: false })
+      .limit(1),
+    'annual_sections',
+  ) as Record<string, unknown>[];
+  const r = rows[0];
+  return r
+    ? {
+        periodEnd: String(r['period_end']),
+        filingDate: String(r['filing_date']),
+        filingUrl: String(r['filing_url']),
+        text: String(r['text']),
+      }
+    : null;
+}
+
 /** The two newest stored 10-K risk-factor sections (about 110 KB of text each), newest fiscal year first. */
 export async function loadRiskFactorSections(cik: string): Promise<DatedSection[]> {
   const rows = check(

@@ -17,7 +17,8 @@ export interface SectionsJobDeps {
 }
 
 /**
- * Stores the two newest 10-K risk-factor sections of each tracked company, for the year-over-year comparison.
+ * Stores the two newest 10-K risk-factor sections of each tracked company, for the year-over-year comparison, and
+ * the newest business section (Item 1).
  * ETFs have no 10-K, so only the stocks are asked. A company the vendor has no annual report for is listed in the
  * run details (a coverage gap, not an error); a failed request is named and makes the run an error. The source is
  * marked live only when every request worked.
@@ -46,6 +47,13 @@ export async function runSectionsJob(deps: SectionsJobDeps): Promise<JobRunRecor
         }
         rows += await store.upsertAnnualSections(sections, now());
         periodEnds[t] = sections.map((s) => s.periodEnd);
+        // The newest business description (Item 1), shown on the company page as written.
+        const b = await fetchAnnualSections(http, cfg, t, 'business', 1);
+        if (!b.ok) {
+          failed.push(`${t} business: ${b.display} (${b.kind})`);
+          continue;
+        }
+        rows += await store.upsertAnnualSections(b.data.value ?? [], now());
       }
       if (failed.length > 0) throw new Error(`Sections failed: ${failed.join('; ')}`.slice(0, 480));
       await store.updateSourceStatus({
