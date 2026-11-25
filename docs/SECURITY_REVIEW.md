@@ -6,7 +6,7 @@
 
 ## Summary
 
-No finding allows anyone but Khaled, signed in with a second factor, to read or change data. Three hardening changes were made in this review (cross-origin headers, GitHub Actions pinned to commit SHAs, Dependabot for those pins). Two items remain open: the Supabase Security Advisor has to be read by Khaled (the connector lacks permission), and two moderate advisories in a build-time dependency are accepted for now.
+No finding allows anyone but Khaled, signed in with a second factor, to read or change data. Three hardening changes were made in this review (cross-origin headers, GitHub Actions pinned to commit SHAs, Dependabot for those pins). The Supabase Security Advisor was read on 2026-11-25: no errors; its one warning (leaked-password protection) does not apply, because Marsad uses no passwords. Two moderate advisories in a build-time dependency are accepted for now.
 
 ## Database access (row-level security)
 
@@ -60,6 +60,6 @@ Checked live with `curl -I https://marsad-k84.netlify.app/`:
 
 ## Open items
 
-1. **Supabase Security Advisor (Khaled).** The Supabase connector returns "You do not have permission" for advisors. In Supabase, open the Marsad project, choose **Advisors**, then **Security Advisor**, and read the list. The schema guards above cover the usual findings (row-level security disabled, policies without checks, `SECURITY DEFINER` views); anything else it reports goes to the next session.
+1. **Supabase Security Advisor: read 2026-11-25 (by Khaled's browser assistant, read-only).** Security: no errors; one warning, "Leaked Password Protection Disabled", which does not apply (Marsad signs in by emailed code and a second factor, with no password; see item 2) and which Supabase offers only on the Pro plan anyway (Supabase docs, Password security); one info item, "RLS Enabled No Policy" on `private.app_owners`, which is intended (no API role may read it; only the `private.is_app_owner()` function does). Performance: no errors or warnings; six unindexed foreign keys, now indexed (`20261225000000_fk_indexes.sql`); twelve "unused index" notes, kept, because the indexes serve page and job queries that have run only a few times in a days-old database. Auth confirmed: sign-ups off, email confirmation on, TOTP multi-factor on, SMS multi-factor off, anonymous sign-ins off, email the only provider, site and redirect URLs limited to marsad-k84.netlify.app.
 2. **Leaked password protection** is not relevant: Marsad signs in by emailed code and a second factor, without passwords.
 3. **Build-time `glob` and `minimatch` advisories**: recheck at the next review.
