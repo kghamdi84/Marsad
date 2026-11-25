@@ -708,8 +708,8 @@
         {
           "id": "7.8",
           "title": "Weekly AI review",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "weekly-review-1 (ADR 0029): Sunday job writes the review from templates (results, behavior with broken rules named, alerts and feedback, 5-session scorecard, regime), stored with inputs as a weekly-review brief, emailed when configured, shown on the Journal page. Still to do: the Opus prose (needs an Anthropic key and caps)."
         }
       ]
     },
@@ -733,14 +733,14 @@
         {
           "id": "8.2",
           "title": "Optional Shariah screen",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "shariah-1 (ADR 0027): off by default; basis and limits in Preferences (Status page); debt and cash ratios from filings as known on the chosen date, a missing input never passes, every caveat shown (business activity and non-permissible income not screened; Sahm's label takes precedence). Unit and browser tests on the real NVDA filing."
         },
         {
           "id": "8.3",
           "title": "Cost tracker with caps",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "costs-1 (ADR 0028): plan costs (all USD 0 today), ai_usage table for every Claude call, AI spend today and this month against opt-in caps (warning at 80%, templates at the cap; AI off while caps are blank), GitHub Actions minutes estimated from job_runs. Unit, RLS and browser tests."
         },
         {
           "id": "8.4",

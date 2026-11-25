@@ -258,3 +258,26 @@ export async function screenshotUrl(path: string): Promise<string> {
   if (r.error) throw new Error(`screenshot: ${r.error.message}`);
   return URL.createObjectURL(r.data);
 }
+
+/** The newest weekly review (a brief of kind weekly-review), or null before the first Sunday run. */
+export async function loadWeeklyReview(): Promise<{
+  title: string;
+  forDate: string;
+  sections: { heading: string; lines: string[] }[];
+} | null> {
+  const r = await client()
+    .from('briefs')
+    .select('title, for_date, sections')
+    .eq('kind', 'weekly-review')
+    .order('for_date', { ascending: false })
+    .limit(1);
+  if (r.error) throw new Error(`briefs: ${r.error.message}`);
+  const x = ((r.data ?? []) as Record<string, unknown>[])[0];
+  return x
+    ? {
+        title: String(x['title']),
+        forDate: String(x['for_date']),
+        sections: (x['sections'] ?? []) as { heading: string; lines: string[] }[],
+      }
+    : null;
+}

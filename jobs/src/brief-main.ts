@@ -5,6 +5,7 @@
  */
 import type { BriefKind } from '@marsad/core';
 import { runBriefJob } from './brief-job.js';
+import { resendSender } from './email.js';
 import { supabaseStore } from './store.js';
 
 function need(name: string): string {
@@ -17,20 +18,7 @@ const kind = process.argv[2] as BriefKind;
 if (kind !== 'pre-market' && kind !== 'close-recap')
   throw new Error('usage: brief-main.ts pre-market|close-recap');
 
-const apiKey = process.env['RESEND_API_KEY']?.trim();
-const to = process.env['BRIEF_EMAIL_TO']?.trim();
-const from = process.env['BRIEF_EMAIL_FROM']?.trim() || 'Marsad <onboarding@resend.dev>';
-const sendEmail =
-  apiKey && to
-    ? async (subject: string, text: string) => {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from, to: [to], subject, text }),
-        });
-        if (!res.ok) throw new Error(`Resend answered ${res.status}`);
-      }
-    : undefined;
+const sendEmail = resendSender();
 
 const minutes = Number(process.env['BRIEF_MINUTES_BEFORE_OPEN'] ?? '60');
 const run = await runBriefJob({

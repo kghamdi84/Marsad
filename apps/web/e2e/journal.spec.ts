@@ -355,3 +355,26 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
       followed: { stopPlaced: true },
     });
 });
+
+test('journal: the latest weekly review, or when the first one is due', async ({ page }) => {
+  await seedSession(page, 'aal2');
+  let rows: unknown[] = [];
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/briefs**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) }),
+  );
+  await page.goto('/journal');
+  await expect(page.getByText('The first weekly review is written on Sunday')).toBeVisible();
+  rows = [
+    {
+      title: 'Weekly review, week ending 2026-11-29',
+      for_date: '2026-11-29',
+      sections: [{ heading: 'Behavior', lines: ['Mean adherence 86 over 3 trades.'] }],
+    },
+  ];
+  await page.reload();
+  const review = page.getByRole('region', { name: 'Weekly review, week ending 2026-11-29' });
+  await expect(review).toContainText('Mean adherence 86 over 3 trades.');
+});

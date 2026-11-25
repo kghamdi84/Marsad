@@ -110,6 +110,8 @@ beforeAll(async () => {
               'halt|SOFI|halts|halt:x', 'push', 'SOFI halted', '{}'::jsonb, '[]'::jsonb, '{}'::jsonb);
     insert into public.alert_outcomes (alert_id, horizon, version, status, ref_date, end_date, ret)
       values ('11111111-1111-4111-8111-111111111111', '1d', 'scorecard-1', 'done', date '2026-11-23', date '2026-11-24', 0.01);
+    insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd)
+      values ('brief', 'pre-market narrative', 'claude-sonnet-5-5', 1000, 200, 0.004);
     insert into public.rules (id, version, hash, doc) values ('index-trend-filter', 1, 'abcdef12', '{}'::jsonb);
     insert into public.rule_events (rule_id, version, to_status, reason) values ('index-trend-filter', 1, 'draft', 'new version');
     insert into public.backtest_runs (rule_id, version, engine, params, trials, report)
@@ -301,6 +303,7 @@ describe('system tables', () => {
       'backtest_runs',
       'alerts',
       'alert_outcomes',
+      'ai_usage',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',
@@ -552,6 +555,13 @@ describe('system tables', () => {
       expect(r.affectedRows).toBe(0);
     });
     await db.query(`delete from storage.objects`);
+  });
+
+  it('briefs accept the weekly review kind', async () => {
+    await db.query(
+      `insert into public.briefs (kind, for_date, version, title, push_body, sections, inputs) values ('weekly-review', date '2026-11-29', 'weekly-review-1', 'Weekly review, week ending 2026-11-29', '0 closed.', '[]'::jsonb, '{}'::jsonb)`,
+    );
+    await db.query(`delete from public.briefs where kind = 'weekly-review'`);
   });
 
   it('a rule version cannot change; only its status can', async () => {

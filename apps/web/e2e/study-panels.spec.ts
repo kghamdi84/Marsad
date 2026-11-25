@@ -703,3 +703,33 @@ test('thesis card: a new version needs a real bear case, is saved append-only an
     body: { thesis_status: 'weakening' },
   });
 });
+
+test('Shariah screening aid: off by default; when on, ratios from the filings with every caveat', async ({
+  page,
+}) => {
+  await setup(page);
+  let settings: Json | null = null;
+  await page.route('**/rest/v1/user_settings**', (r) =>
+    json(r, settings === null ? [] : [settings]),
+  );
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Financials, as filed' });
+  await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Shariah screening aid' })).toHaveCount(0);
+
+  settings = {
+    shariah_screen: true,
+    shariah_basis: 'market-cap',
+    shariah_debt_max: 0.33,
+    shariah_cash_max: 0.33,
+  };
+  await page.reload();
+  const aid = page.getByRole('region', { name: 'Shariah screening aid' });
+  // Market cap: last close 300.00 x 24.1 billion shares (cover page filed 2026-08-26) = USD 7.23 trillion.
+  // Long-term debt 33.366 billion / 7,230 billion = 0.5%; cash 22.443 billion / 7,230 billion = 0.3%.
+  await expect(aid).toContainText('Debt: 0.5% (limit below 33.0%): within the limit.');
+  await expect(aid).toContainText('Cash: 0.3% (limit below 33.0%): within the limit.');
+  await expect(aid).toContainText('Passes the financial ratios.');
+  await expect(aid).toContainText('Sahm’s own Shariah label takes precedence.');
+  await expect(aid).toContainText('Business activity is not screened');
+});

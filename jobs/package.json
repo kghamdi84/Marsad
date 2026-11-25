@@ -19,7 +19,8 @@
     "alerts-halts": "tsx src/halt-alerts-main.ts",
     "alerts-exits": "tsx src/exit-alerts-main.ts",
     "scorecard": "tsx src/scorecard-main.ts",
-    "exports": "tsx src/exports-main.ts"
+    "exports": "tsx src/exports-main.ts",
+    "weekly-review": "tsx src/weekly-review-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

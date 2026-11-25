@@ -1,15 +1,21 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
   DEFAULT_SOURCE_POLICIES,
+  PLAN_COSTS,
+  actionsMinutes,
+  aiSpend,
   buildCalendar,
   describeSourceHealth,
   dualClock,
   formatAge,
   latencyByKind,
+  toFixedHalfUp,
   type UpcomingRow,
 } from '@marsad/core';
 import { downloadExport, listExports } from '../lib/exports';
+import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
 
@@ -168,6 +174,215 @@ function Latency() {
   );
 }
 
+function Preferences() {
+  const q = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  if (q.isError)
+    return (
+      <p role="alert" className="text-down">
+        {q.error.message}
+      </p>
+    );
+  return q.data ? <PreferencesForm initial={q.data} /> : null;
+}
+
+function PreferencesForm({ initial }: { initial: Prefs }) {
+  const qc = useQueryClient();
+  const [p, setP] = useState<Prefs>(initial);
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: savePreferences,
+    onSuccess: () => {
+      setMsg(t.status.preferencesSaved);
+      void qc.invalidateQueries({ queryKey: ['preferences'] });
+    },
+  });
+  const pct = (v: number) => String(Math.round(v * 1000) / 10);
+  const sh = p.shariah;
+  const set = (patch: Partial<Prefs['shariah']>) => setP({ ...p, shariah: { ...sh, ...patch } });
+  const cap = (v: string) => (v.trim() === '' ? null : Number(v));
+  return (
+    <form
+      aria-label={t.status.preferences}
+      className="flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setMsg(null);
+        const ok = [sh.debtMax, sh.cashMax].every((v) => v > 0 && v < 1);
+        if (!ok) return setMsg(t.status.preferencesInvalid);
+        const capsOk = [p.ai.dailyUsd, p.ai.monthlyUsd].every((v) => v === null || v > 0);
+        if (!capsOk) return setMsg(t.status.capsInvalid);
+        save.mutate(p);
+      }}
+    >
+      <h2 className="font-semibold">{t.status.preferences}</h2>
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={sh.enabled}
+          onChange={(e) => set({ enabled: e.target.checked })}
+        />
+        {t.status.shariahToggle}
+      </label>
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.shariahBasis}
+          <select
+            className="min-h-11 rounded-sm border border-line bg-bg px-2 text-fg"
+            value={sh.basis}
+            onChange={(e) => set({ basis: e.target.value === 'assets' ? 'assets' : 'market-cap' })}
+          >
+            <option value="market-cap">{t.status.basisMarketCap}</option>
+            <option value="assets">{t.status.basisAssets}</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.debtMax}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={pct(sh.debtMax)}
+            onChange={(e) => set({ debtMax: Number(e.target.value) / 100 })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.cashMax}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={pct(sh.cashMax)}
+            onChange={(e) => set({ cashMax: Number(e.target.value) / 100 })}
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.aiDailyCap}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-32 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={p.ai.dailyUsd ?? ''}
+            onChange={(e) => setP({ ...p, ai: { ...p.ai, dailyUsd: cap(e.target.value) } })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.aiMonthlyCap}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-32 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={p.ai.monthlyUsd ?? ''}
+            onChange={(e) => setP({ ...p, ai: { ...p.ai, monthlyUsd: cap(e.target.value) } })}
+          />
+        </label>
+      </div>
+      <button
+        type="submit"
+        disabled={save.isPending}
+        className="min-h-11 self-start rounded-sm border border-line px-3 text-sm"
+      >
+        {t.status.savePreferences}
+      </button>
+      {save.isError && (
+        <p role="alert" className="text-down">
+          {save.error.message}
+        </p>
+      )}
+      {msg && <p className="text-sm">{msg}</p>}
+    </form>
+  );
+}
+
+async function loadCosts() {
+  if (!supabase) throw new Error('not configured');
+  const monthStart = `${new Date().toISOString().slice(0, 7)}-01T00:00:00Z`;
+  const [u, j] = await Promise.all([
+    supabase
+      .from('ai_usage')
+      .select('created_at, model, usd')
+      .gte('created_at', monthStart)
+      .limit(10000),
+    supabase
+      .from('job_runs')
+      .select('started_at, latency_ms')
+      .gte('started_at', monthStart)
+      .limit(10000),
+  ]);
+  if (u.error) throw new Error(u.error.message);
+  if (j.error) throw new Error(j.error.message);
+  return {
+    usage: (u.data as { created_at: string; model: string; usd: number }[]).map((r) => ({
+      createdAt: new Date(r.created_at).toISOString(),
+      model: r.model,
+      usd: Number(r.usd),
+    })),
+    runs: (j.data as { started_at: string; latency_ms: number | null }[]).map((r) => ({
+      startedAt: new Date(r.started_at).toISOString(),
+      latencyMs: r.latency_ms === null ? null : Number(r.latency_ms),
+    })),
+  };
+}
+
+function Costs() {
+  const q = useQuery({ queryKey: ['costs'], queryFn: loadCosts });
+  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  const now = new Date();
+  const caps =
+    prefs.data?.ai.dailyUsd != null && prefs.data.ai.monthlyUsd != null
+      ? { dailyUsd: prefs.data.ai.dailyUsd, monthlyUsd: prefs.data.ai.monthlyUsd }
+      : null;
+  const ai = q.data ? aiSpend(q.data.usage, now, caps) : null;
+  const gh = q.data ? actionsMinutes(q.data.runs, now) : null;
+  const money = (v: number) => toFixedHalfUp(v, 2);
+  return (
+    <div className="overflow-x-auto">
+      <h2 className="mb-2 font-semibold">{t.status.costs}</h2>
+      <p className="mb-2 text-sm text-muted">{t.status.costsIntro}</p>
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            <th className={th}>{t.status.colService}</th>
+            <th className={th}>{t.status.colPlan}</th>
+            <th className={thEnd}>{t.status.colMonthly}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PLAN_COSTS.map((c) => (
+            <tr key={c.service}>
+              <td className={td}>
+                {c.service}
+                <span className="block text-xs text-muted">{c.note}</span>
+              </td>
+              <td className={td}>{c.plan}</td>
+              <td className={`${td} text-end tabular-nums`}>{money(c.usdPerMonth)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {q.isError && (
+        <p role="alert" className="text-down">
+          {q.error.message}
+        </p>
+      )}
+      {ai && (
+        <p className="mt-2 text-sm">
+          {t.status.aiSpend(money(ai.todayUsd), money(ai.monthUsd), ai.calls)}{' '}
+          {ai.budget ? (
+            <span className={ai.budget.state === 'ok' ? '' : 'font-medium text-down'}>
+              {t.status.aiBudget(
+                ai.budget.message,
+                String(ai.budget.dailyPct),
+                String(ai.budget.monthlyPct),
+              )}
+            </span>
+          ) : (
+            t.status.aiOff
+          )}
+        </p>
+      )}
+      {gh && <p className="text-sm">{t.status.actions(gh.minutes, gh.runs)}</p>}
+    </div>
+  );
+}
+
 function Exports() {
   const q = useQuery({ queryKey: ['exports'], queryFn: listExports });
   const dl = useMutation({
@@ -303,6 +518,10 @@ export function Status() {
           </table>
         )}
       </div>
+
+      <Costs />
+
+      <Preferences />
 
       <Exports />
 

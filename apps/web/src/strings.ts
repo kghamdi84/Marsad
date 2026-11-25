@@ -205,6 +205,10 @@ export const t = {
       overlap:
         'ETF overlap needs ETF constituent data, which the current data plans do not include; it arrives with that data.',
     },
+    review: {
+      title: 'Weekly review',
+      none: 'The first weekly review is written on Sunday at 07:10 UTC, after the export.',
+    },
     trades: {
       title: 'Trades and adherence',
       intro:
@@ -654,6 +658,23 @@ export const t = {
     materiality: { high: 'High', medium: 'Medium', low: 'Low', unknown: 'Unrated' },
     marsadDefault: 'Marsad default rating',
     missing: 'Not available on the free plan',
+    shariah: {
+      title: 'Shariah screening aid',
+      basis: (b: string) =>
+        b === 'assets'
+          ? 'Ratios over total assets.'
+          : 'Ratios over market capitalization (last close times shares outstanding).',
+      ratio: (name: string, value: string, max: string, pass: string) =>
+        `${name === 'debt' ? 'Debt' : 'Cash'}: ${value} (limit below ${max}): ${pass}.`,
+      pass: 'within the limit',
+      fail: 'over the limit',
+      unknown: 'not available',
+      verdict: {
+        'passes-ratios': 'Passes the financial ratios.',
+        'fails-ratios': 'Fails at least one financial ratio.',
+        unknown: 'Cannot be judged: an input is missing.',
+      } as Record<string, string>,
+    },
     thesis: {
       title: 'Thesis card',
       intro:
@@ -1032,6 +1053,31 @@ export const t = {
     sources: 'Data sources',
     jobs: 'Recent job runs',
     alerts: 'System alerts',
+    preferences: 'Preferences',
+    shariahToggle: 'Show the Shariah screening aid on company pages',
+    shariahBasis: 'Divide debt and cash by',
+    basisMarketCap: 'Market capitalization',
+    basisAssets: 'Total assets',
+    debtMax: 'Debt limit (%)',
+    cashMax: 'Cash limit (%)',
+    aiDailyCap: 'AI daily cap (USD, blank keeps AI off)',
+    aiMonthlyCap: 'AI monthly cap (USD, blank keeps AI off)',
+    capsInvalid: 'Caps must be above zero, or blank.',
+    costs: 'Costs',
+    costsIntro:
+      'What Marsad costs this month. Plan changes are yours to decide; AI text falls back to templates at a cap, with a warning at 80%.',
+    colService: 'Service',
+    colPlan: 'Plan',
+    colMonthly: 'USD a month',
+    aiOff: 'AI is off: no caps are set. Text comes from templates.',
+    aiSpend: (today: string, month: string, calls: number) =>
+      `AI spend: USD ${today} today, USD ${month} this month (${calls} call${calls === 1 ? '' : 's'}).`,
+    aiBudget: (message: string, d: string, m: string) => `${message} (daily ${d}%, monthly ${m}%).`,
+    actions: (minutes: number, runs: number) =>
+      `GitHub Actions: at least ${minutes} minutes this month over ${runs} job runs (estimated from the job log; setup time is not logged).`,
+    savePreferences: 'Save preferences',
+    preferencesSaved: 'Preferences saved.',
+    preferencesInvalid: 'Limits must be above 0% and below 100%.',
     exports: 'Weekly exports',
     exportsIntro:
       'Each Sunday your journal, holdings, theses, watchlists, feedback and the rule library are saved as JSON files in private storage. Tap a file to save it.',

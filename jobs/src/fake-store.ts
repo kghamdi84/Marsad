@@ -118,6 +118,7 @@ export interface FakeSeed {
   holdings?: HoldingRef[];
   scoredAlerts?: ScoredAlert[];
   exportTables?: Record<string, Record<string, unknown>[]>;
+  outcomes?: Outcome[];
   /** Keys `alertId|horizon` already finished. */
   finishedOutcomes?: string[];
 }
@@ -151,7 +152,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'holdings' in x ||
       'scoredAlerts' in x ||
       'finishedOutcomes' in x ||
-      'exportTables' in x);
+      'exportTables' in x ||
+      'outcomes' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -218,6 +220,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       Promise.resolve(
         new Set((s.finishedOutcomes ?? []).filter((k) => ids.includes(k.split('|')[0] ?? ''))),
       ),
+    getOutcomes: (ids) =>
+      Promise.resolve((s.outcomes ?? []).filter((o) => ids.includes(o.alertId))),
     upsertOutcomes: (rows) => {
       log.outcomes.push([...rows]);
       return Promise.resolve(rows.length);
