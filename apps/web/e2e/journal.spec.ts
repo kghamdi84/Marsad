@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 const json = (body: unknown) => ({
   status: 200,

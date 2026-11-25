@@ -287,7 +287,7 @@ export function StudyCompany() {
               {toggle('volume', t.study.volume)}
             </fieldset>
             <div
-              role="img"
+              role="figure"
               aria-label={t.study.chartLabel(ticker, summary.asOf)}
               className="rounded-sm border border-line"
             >

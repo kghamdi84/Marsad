@@ -35,7 +35,9 @@ import vix3m from '../../../fixtures/fred/fredgraph-VXVCLS.json' with { type: 'j
 import oil from '../../../fixtures/fred/fredgraph-DCOILWTICO.json' with { type: 'json' };
 import dollar from '../../../fixtures/fred/fredgraph-DTWEXBGS.json' with { type: 'json' };
 import newsSample from '../../../fixtures/massive/news-market-sample-2026-11-24.json' with { type: 'json' };
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 // Every row below is computed from the real FRED downloads in fixtures/ by the same core functions the regime job
 // uses, then served in the shape of the database tables. Nothing is invented.

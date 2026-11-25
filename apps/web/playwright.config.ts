@@ -12,6 +12,14 @@ export default defineConfig({
     baseURL: 'http://localhost:4173',
     launchOptions: existsSync(preinstalled) ? { executablePath: preinstalled } : {},
   },
+  // Desktop, and an iPad-sized touch screen (Khaled's device, Phase 8 pass): every test and scan runs on both.
+  projects: [
+    { name: 'desktop', use: { viewport: { width: 1280, height: 720 } } },
+    {
+      name: 'ipad',
+      use: { viewport: { width: 834, height: 1194 }, isMobile: true, hasTouch: true },
+    },
+  ],
   webServer: {
     // A fake project address: tests intercept every Supabase request.
     command: 'pnpm build && pnpm preview',

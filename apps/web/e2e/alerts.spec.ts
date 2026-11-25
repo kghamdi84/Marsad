@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { DEFAULT_ALERT_SETTINGS, haltAlerts, renderCard, runPipeline } from '@marsad/core';
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 // A halt alert built by the job's own core functions (synthetic halt, not market data).
 const NOW = new Date('2026-11-25T19:35:00Z');

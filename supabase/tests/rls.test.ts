@@ -533,6 +533,67 @@ describe('schema guards', () => {
       where grantee = 'anon' and table_schema = 'public'`);
     expect(r.rows).toEqual([]);
   });
+  // Phase 8 security review (docs/SECURITY_REVIEW.md): the rules every new table must keep.
+  it('every policy is for authenticated only and requires an MFA session', async () => {
+    const r = await db.query<{
+      tablename: string;
+      policyname: string;
+      roles: string;
+      qual: string | null;
+      with_check: string | null;
+    }>(`
+      select tablename, policyname, roles::text as roles, qual, with_check from pg_policies where schemaname = 'public'`);
+    expect(r.rows.length).toBeGreaterThan(20);
+    const bad = r.rows.filter(
+      (p) =>
+        p.roles !== '{authenticated}' ||
+        !/private\.(is_mfa|is_app_owner)\(\)/.test(p.qual ?? '') ||
+        (p.with_check !== null && !/private\.(is_mfa|is_app_owner)\(\)/.test(p.with_check)),
+    );
+    expect(bad.map((p) => `${p.tablename}.${p.policyname}`)).toEqual([]);
+  });
+
+  it('every table with an owner_id is personal: its policies filter by auth.uid()', async () => {
+    const r = await db.query<{ tablename: string; policyname: string }>(`
+      select p.tablename, p.policyname from pg_policies p
+      where p.schemaname = 'public'
+        and exists (select 1 from information_schema.columns c
+                    where c.table_schema = 'public' and c.table_name = p.tablename and c.column_name = 'owner_id')
+        and (p.qual not like '%owner_id = ( SELECT auth.uid()%'
+             or (p.with_check is not null and p.with_check not like '%owner_id = ( SELECT auth.uid()%'))`);
+    expect(r.rows).toEqual([]);
+  });
+
+  it('signed-in users can write only personal tables (those with an owner_id)', async () => {
+    const r = await db.query<{ table_name: string; privilege_type: string }>(`
+      select g.table_name, g.privilege_type from information_schema.role_table_grants g
+      where g.grantee = 'authenticated' and g.table_schema = 'public'
+        and (g.privilege_type in ('TRUNCATE', 'REFERENCES', 'TRIGGER')
+             or (g.privilege_type in ('INSERT', 'UPDATE', 'DELETE')
+                 and not exists (select 1 from information_schema.columns c
+                                 where c.table_schema = 'public' and c.table_name = g.table_name
+                                   and c.column_name = 'owner_id')))`);
+    expect(r.rows).toEqual([]);
+  });
+
+  it('public has no views and no security-definer or anon-callable functions', async () => {
+    const views = await db.query<{ relname: string }>(`
+      select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('v', 'm')`);
+    expect(views.rows).toEqual([]);
+    const fns = await db.query<{ proname: string; definer: boolean; anon: boolean }>(`
+      select p.proname, p.prosecdef as definer, has_function_privilege('anon', p.oid, 'execute') as anon
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'`);
+    expect(fns.rows.filter((f) => f.definer || f.anon)).toEqual([]);
+  });
+
+  it('anon cannot use the private schema or call its functions', async () => {
+    const r = await db.query<{ usage: boolean; mfa: boolean; owner: boolean }>(`
+      select has_schema_privilege('anon', 'private', 'usage') as usage,
+             has_function_privilege('anon', 'private.is_mfa()', 'execute') as mfa,
+             has_function_privilege('anon', 'private.is_app_owner()', 'execute') as owner`);
+    expect(r.rows[0]).toEqual({ usage: false, mfa: false, owner: false });
+  });
 });
 
 describe('system alerts', () => {

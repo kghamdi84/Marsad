@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 test('lab: playbooks with evidence, stored runs with intervals or insufficient history, and what is left out', async ({
   page,

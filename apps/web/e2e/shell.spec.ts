@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 test('signed-out visitors see only the sign-in screen', async ({ page }) => {
   await page.goto('/status');
