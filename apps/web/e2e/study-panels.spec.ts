@@ -646,3 +646,60 @@ test('one failing panel shows its own error and leaves the rest of the page work
   await expect(page.getByText('Latest filing used: 2026-08-26')).toBeVisible();
   await expect(page.getByText('$300.00').first()).toBeVisible();
 });
+
+test('thesis card: a new version needs a real bear case, is saved append-only and sets the holding status', async ({
+  page,
+}) => {
+  await setup(page);
+  const saved: { table: string; method: string; body: unknown }[] = [];
+  const v1 = {
+    id: 1,
+    ticker: 'NVDA',
+    status: 'intact',
+    bull: 'Data-center demand keeps compounding.',
+    bear: 'Hyperscaler capex peaks and custom chips take share, compressing margins from a high base.',
+    risks: ['Capex cycle', 'Export limits'],
+    change_view: 'Two quarters of falling data-center revenue, or gross margin under 65%.',
+    sources: ['https://www.sec.gov/'],
+    created_at: '2026-11-20T10:00:00Z',
+  };
+  await page.route('**/rest/v1/theses**', (r) => {
+    if (r.request().method() === 'GET') return json(r, [v1]);
+    saved.push({ table: 'theses', method: r.request().method(), body: r.request().postDataJSON() });
+    return r.fulfill({ status: 201, body: '' });
+  });
+  await page.route('**/rest/v1/holdings**', (r) => {
+    saved.push({
+      table: 'holdings',
+      method: r.request().method(),
+      body: r.request().postDataJSON(),
+    });
+    return r.fulfill({ status: 204, body: '' });
+  });
+  await page.goto('/study/NVDA');
+  const card = page.getByRole('region', { name: 'Thesis card' });
+  await expect(card).toContainText('Status: Intact.');
+  await expect(card).toContainText('Hyperscaler capex peaks');
+  await card.getByRole('button', { name: 'Write a new version' }).click();
+  const form = card.getByRole('form', { name: 'Write a new version' });
+  await form.getByLabel('Status').selectOption('weakening');
+  await form.getByLabel('Bear case (required)').fill('Could go down.');
+  await form.getByRole('button', { name: 'Save new version' }).click();
+  await expect(form).toContainText('The bear case is required: at least 40 characters');
+  expect(saved).toEqual([]);
+  await form
+    .getByLabel('Bear case (required)')
+    .fill('Custom accelerators win the next cycle and pricing power fades into 2027.');
+  await form.getByRole('button', { name: 'Save new version' }).click();
+  await expect.poll(() => saved.length).toBe(2);
+  expect(saved[0]).toMatchObject({
+    table: 'theses',
+    method: 'POST',
+    body: { ticker: 'NVDA', status: 'weakening', risks: ['Capex cycle', 'Export limits'] },
+  });
+  expect(saved[1]).toMatchObject({
+    table: 'holdings',
+    method: 'PATCH',
+    body: { thesis_status: 'weakening' },
+  });
+});

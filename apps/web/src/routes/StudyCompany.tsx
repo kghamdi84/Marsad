@@ -25,6 +25,7 @@ import { RiskFactors } from '../components/study/RiskFactors';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
 import { loadDividends, loadEarningsFilings } from '../lib/studyPanels';
+import { ThesisCard } from '../components/study/ThesisCard';
 import { t } from '../strings';
 
 const PriceChart = lazy(() => import('../components/PriceChart'));
@@ -326,6 +327,7 @@ export function StudyCompany() {
         </section>
       )}
 
+      {q.data && <ThesisCard ticker={q.data.ticker} />}
       {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
       {q.data?.company && <RiskFactors cik={q.data.company.cik} />}
       {q.data?.company && (

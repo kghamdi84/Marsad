@@ -514,6 +514,26 @@ describe('system tables', () => {
     await db.query(`delete from storage.objects`);
   });
 
+  it('theses are personal, append-only, and refuse a missing bear case', async () => {
+    const ins = (bear: string) =>
+      `insert into public.theses (ticker, status, bull, bear, risks, change_view) values ('RKLB', 'intact', 'Bull.', '${bear}', '{Dilution}', '${'x'.repeat(40)}')`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins('y'.repeat(40)));
+      expect(await count(tx, 'public.theses')).toBe(1);
+      await expect(tx.query(`update public.theses set status = 'broken'`)).rejects.toThrow(
+        /permission denied/,
+      );
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.theses')).toBe(0));
+    await expect(as(owner2, (tx) => tx.query(ins('Could go down.')))).rejects.toThrow(
+      /check constraint/,
+    );
+    await expect(as(owner2, (tx) => tx.query(`delete from public.theses`))).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(as(anon, (tx) => count(tx, 'public.theses'))).rejects.toThrow(/permission denied/);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

@@ -654,6 +654,28 @@ export const t = {
     materiality: { high: 'High', medium: 'Medium', low: 'Low', unknown: 'Unrated' },
     marsadDefault: 'Marsad default rating',
     missing: 'Not available on the free plan',
+    thesis: {
+      title: 'Thesis card',
+      intro:
+        'Your view, with its other side written down. The bear case and what would change your view are required. Each save is a new version; older versions stay below.',
+      none: 'No thesis yet. Writing one before you buy is part of the checklist.',
+      status: 'Status',
+      statuses: { intact: 'Intact', weakening: 'Weakening', broken: 'Broken' } as Record<
+        string,
+        string
+      >,
+      bull: 'Bull case',
+      bear: 'Bear case (required)',
+      risks: 'Key risks (one a line)',
+      changeView: 'What would change my view (required)',
+      sources: 'Sources (https links, one a line)',
+      save: 'Save new version',
+      edit: 'Write a new version',
+      saved: 'Saved. Open holdings of this ticker now carry this status.',
+      savedAt: (when: string) => `Saved ${when}.`,
+      history: (n: number) => `Earlier versions (${n})`,
+      ai: 'An AI draft from cited filings and news arrives once an Anthropic key and cost caps are set.',
+    },
     placeholdersTitle: 'More on this company',
     placeholders: [
       {

@@ -310,8 +310,8 @@
         {
           "id": "2.10",
           "title": "Thesis card with required bear case",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "thesis-1 (ADR 0025): append-only personal thesis cards on each company page; bear case and what would change the view required by app and database; saving sets the open holding's thesis status. Unit, RLS and browser tests. Still to do: the AI draft from cited sources (needs an Anthropic key and caps)."
         },
         {
           "id": "2.11",
