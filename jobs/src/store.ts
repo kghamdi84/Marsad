@@ -62,6 +62,8 @@ export interface Store {
   upsertShortVolume(rows: readonly ShortVolumeRow[], fetchedAt: Date): Promise<number>;
   upsertDividends(rows: readonly DividendRow[], fetchedAt: Date): Promise<number>;
   upsertAnnualSections(rows: readonly AnnualSection[], fetchedAt: Date): Promise<number>;
+  upsertRegimeDays(rows: readonly RegimeRow[]): Promise<number>;
+  replaceEventStats(ruleVersion: string, rows: readonly EventStatRow[]): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -75,6 +77,33 @@ export interface Store {
     policyVersion: string,
     snapshots: readonly Record<string, unknown>[],
   ): Promise<number>;
+}
+
+/** One stored regime day: the label, its inputs and the recession filter, with both rule versions. */
+export interface RegimeRow {
+  date: string;
+  ruleVersion: string;
+  label: string;
+  reason: string;
+  inputs: Record<string, unknown>;
+  recessionVersion: string;
+  recessionLevel: string;
+  recession: Record<string, unknown>;
+}
+
+export interface EventStatRow {
+  condition: string;
+  horizon: number;
+  n: number;
+  sufficient: boolean;
+  median: number | null;
+  q1: number | null;
+  q3: number | null;
+  min: number | null;
+  max: number | null;
+  episodes: string[];
+  dataFrom: string;
+  dataTo: string;
 }
 
 export interface InsiderCandidate {
@@ -177,18 +206,24 @@ export function supabaseStore(url: string, secretKey: string): Store {
       return out.length;
     },
     async getFredRange(series, from, to) {
-      const { data, error } = await db
-        .from('fred_observations')
-        .select('date, value')
-        .eq('series_id', series)
-        .gte('date', from)
-        .lte('date', to)
-        .order('date', { ascending: true });
-      if (error) throw new Error(`fred_observations read failed: ${error.message}`);
-      return (data ?? []).map((r) => ({
-        date: r.date as string,
-        value: r.value === null ? null : Number(r.value),
-      }));
+      // Paged: the API returns at most 1,000 rows a request, and a long range (VIX since 1990) has about 9,600.
+      const out: { date: string; value: number | null }[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('fred_observations')
+          .select('date, value')
+          .eq('series_id', series)
+          .gte('date', from)
+          .lte('date', to)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`fred_observations read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({ date: r.date as string, value: r.value === null ? null : Number(r.value) });
+        if (rows.length < 1000) break;
+      }
+      return out;
     },
     async upsertInstruments(companies) {
       if (companies.length === 0) return 0;
@@ -579,6 +614,49 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .from('annual_sections')
         .upsert(out, { onConflict: 'cik,section,period_end' });
       if (error) throw new Error(`annual_sections upsert failed: ${error.message}`);
+      return out.length;
+    },
+    async upsertRegimeDays(rows) {
+      let written = 0;
+      for (let i = 0; i < rows.length; i += 500) {
+        const chunk = rows.slice(i, i + 500).map((r) => ({
+          date: r.date,
+          rule_version: r.ruleVersion,
+          label: r.label,
+          reason: r.reason,
+          inputs: r.inputs,
+          recession_version: r.recessionVersion,
+          recession_level: r.recessionLevel,
+          recession: r.recession,
+          computed_at: new Date().toISOString(),
+        }));
+        const { error } = await db.from('regime_daily').upsert(chunk, { onConflict: 'date' });
+        if (error) throw new Error(`regime_daily upsert failed: ${error.message}`);
+        written += chunk.length;
+      }
+      return written;
+    },
+    async replaceEventStats(ruleVersion, rows) {
+      const out = rows.map((r) => ({
+        rule_version: ruleVersion,
+        condition: r.condition,
+        horizon: r.horizon,
+        n: r.n,
+        sufficient: r.sufficient,
+        median: r.median,
+        q1: r.q1,
+        q3: r.q3,
+        min: r.min,
+        max: r.max,
+        episodes: r.episodes,
+        data_from: r.dataFrom,
+        data_to: r.dataTo,
+        computed_at: new Date().toISOString(),
+      }));
+      const { error } = await db
+        .from('regime_event_stats')
+        .upsert(out, { onConflict: 'rule_version,condition,horizon' });
+      if (error) throw new Error(`regime_event_stats upsert failed: ${error.message}`);
       return out.length;
     },
   };

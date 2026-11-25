@@ -19,6 +19,9 @@ import {
   quantile,
   recessionFilter,
   regimeHistory,
+  seriesSnapshot,
+  seriesDifference,
+  currentRun,
   type MacroSeries,
   type Obs,
   type RegimeInputs,
@@ -346,5 +349,61 @@ describe('event studies', () => {
       [126, 19, false],
     ]);
     expect(base[1]?.median).toBeCloseTo(0.037155, 6);
+  });
+});
+
+describe('panel snapshots', () => {
+  const series = (values: number[]): Obs[] =>
+    values.map((value, i) => ({ date: `2026-01-${String(i + 1).padStart(2, '0')}`, value }));
+  it('newest value, change over the given sessions and the share of the window at or below it', () => {
+    // Values 10, 20, 30, 40, 25: newest 25; two sessions back is 30, so -5; 3 of 5 at or below 25 = 60.
+    expect(seriesSnapshot(series([10, 20, 30, 40, 25]), 2, 252)).toEqual({
+      date: '2026-01-05',
+      value: 25,
+      change: -5,
+      percentile: 60,
+      n: 5,
+    });
+  });
+  it('uses only the trailing window for the percentile, and has no change without an earlier value', () => {
+    // Window of 3: 30, 40, 25 -> 1 of 3 at or below 25.
+    const s = seriesSnapshot(series([10, 20, 30, 40, 25]), 9, 3);
+    expect(s?.percentile).toBeCloseTo(100 / 3, 12);
+    expect(s?.n).toBe(3);
+    expect(s?.change).toBeNull();
+    expect(seriesSnapshot([])).toBeNull();
+  });
+  it('the real VIX on 2026-11-23: 26.62, and its one-year percentile from the recorded history', () => {
+    const s = seriesSnapshot(vix);
+    expect(s).toMatchObject({ date: '2026-11-23', value: 26.62, n: 252 });
+    // Counted separately in Python: 241 of the last 252 VIX closes are at or below 26.62, so 95.63.
+    expect(s?.percentile).toBeCloseTo((100 * 241) / 252, 10);
+  });
+});
+
+describe('panel helpers', () => {
+  it('subtracts on shared dates only: the real high-yield minus investment-grade spread on 2026-11-23 is 3.63 - 0.97', () => {
+    const d = seriesDifference(
+      [
+        { date: 'a', value: 5 },
+        { date: 'b', value: 6 },
+      ],
+      [{ date: 'b', value: 2 }],
+    );
+    expect(d).toEqual([{ date: 'b', value: 4 }]);
+    const ig: Obs[] = [{ date: '2026-11-23', value: 0.97 }];
+    const hy: Obs[] = [{ date: '2026-11-23', value: 3.63 }];
+    expect(seriesDifference(hy, ig)[0]?.value).toBeCloseTo(2.66, 12);
+  });
+  it('the current run: the newest label, the day it started and how many sessions it has lasted', () => {
+    const days = [
+      { date: 'd1', label: 'bull-calm' },
+      { date: 'd2', label: 'stress' },
+      { date: 'd3', label: 'stress' },
+      { date: 'd4', label: 'stress' },
+    ];
+    expect(currentRun(days)).toEqual({ label: 'stress', since: 'd2', sessions: 3 });
+    expect(currentRun(days.slice(0, 1))).toEqual({ label: 'bull-calm', since: 'd1', sessions: 1 });
+    expect(currentRun([])).toBeNull();
   });
 });

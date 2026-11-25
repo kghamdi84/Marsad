@@ -354,8 +354,8 @@
         {
           "id": "3.4",
           "title": "VIX and term structure (or labeled VXX fallback)",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "VIX (FRED VIXCLS) and VIX3M (FRED VXVCLS, free, daily since 2007) give the real term structure, so no VXX fallback is needed. Regime page panel: latest, change over a month, 1-year percentile and date for each, with the contango or backwardation reading; the label uses VIX over VIX3M (backwardation below the 50-day average counts as stress). Source and date on the page; tested on real FRED data (VIX 26.62 on 2026-11-23 at the 95.6th percentile of its year, counted independently)."
         },
         {
           "id": "3.5",
@@ -366,26 +366,26 @@
         {
           "id": "3.6",
           "title": "GPR and EPU",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Panel done: the daily GPR (Caldara and Iacoviello) and daily EPU (Baker, Bloom and Davis, FRED USEPUINDXD) with latest, change, 1-year percentile, date and source; a percentile resting on fewer than 252 days says so. Still to do: GPR and EPU in the regime context lines and the geopolitical panel (3.11)."
         },
         {
           "id": "3.7",
           "title": "Credit and the curve",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Credit and the curve panel: high-yield and investment-grade spreads, their difference, the 10-year yield, 10y minus 3m and 10y minus 2y, each with change over a month, 1-year percentile, date and source. FRED keeps the ICE BofA spreads for 3 years only (from 2023-11-27), stated on the page."
         },
         {
           "id": "3.8",
           "title": "Recession filter",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Recession filter recession-1 (ADR 0009): Sahm rule, curve inversion history (Estrella and Mishkin), high-yield level and 3-month change, claims trend, NFCI; low, elevated or high with every signal's value, threshold, source and date; each value used only from its publication day. Known-answer tests on real FRED history: high from 2024-08-10 when the July 2024 Sahm reading (0.53) counts as published, not a day before; low in mid-2021; elevated in mid-2023 (curve inverted since October 2022). Matches an independent Python implementation; every threshold mutation-checked; Node and Deno identical."
         },
         {
           "id": "3.9",
           "title": "Regime classifier with event-study statistics",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Regime label regime-1 and event studies event-study-1 (ADR 0009): stress, bear, recovery, bull calm, bull correction from the S&P 500 trend, drawdown, VIX and VIX3M. The first draft's recovery rule labelled 30% of all days and was tightened (documented). Day-by-day match with an independent Python implementation over 2,512 sessions (2016 to 2026); known days labelled as history remembers them. New tables regime_daily (each day with its inputs and rule versions, so the label is reproducible from stored data, tested) and regime_event_stats; regime job runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old. Event study: non-overlapping episodes, n, median, quartiles and an all-days benchmark; fewer than 30 episodes shows 'insufficient history', which is most labels with 10 years of free S&P 500 data. Still to do: the Zweig breadth thrust and capitulation context (need breadth), and the live run after merge."
         },
         {
           "id": "3.10",

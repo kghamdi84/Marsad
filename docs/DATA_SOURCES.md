@@ -68,6 +68,15 @@ Built on the vendor's section text so no filing HTML is parsed. Facts measured o
 - Known limits: the list at the top of Item 1A repeats each risk title, so a new risk can show twice; "U.S." before a capital letter splits a sentence the same way in both years, so it does not create false differences; a sentence cut by a page break at a full stop is still one sentence, but a risk rewritten into different sentences shows as removed plus new.
 - The vendor's history has holes, so the panel compares only two reports a fiscal year apart (350 to 380 days).
 
+## Regime inputs: what the free data reaches (measured 2026-11-25)
+
+- **VIX3M is free on FRED** (`VXVCLS`, daily from 2007-12-04), so the VIX term structure (VIX over VIX3M) needs neither the Massive Indices plan nor the VXX fallback. VIX itself is `VIXCLS` (from 1990).
+- **The S&P 500 on FRED (`SP500`) keeps only 10 years** (from 2016-11-25 on the day measured). The regime label therefore starts in November 2017 (252 sessions of warm-up), and most event-study conditions have fewer than 30 independent episodes. Options to deepen it are in ADR 0009.
+- **The ICE BofA high-yield and investment-grade spreads keep only 3 years on FRED** (from 2023-11-27), a licensing limit. The recession filter's credit signal is unavailable before then and says so.
+- Long histories that are free: 10-year minus 3-month (1982), NFCI (1971), initial claims (1967), the real-time Sahm rule (1959), daily EPU (1985), and the Nasdaq Composite (`NASDAQCOM`, 1971; a possible labelled proxy, not used).
+- **Massive grouped daily** (`/v2/aggs/grouped/locale/us/market/stocks/{date}`) works on the free plan through the connector: one call returned 12,650 US tickers for 2026-11-24. That makes the 1,000-stock breadth universe affordable at one call per day (to confirm with the project key in the breadth job; the free plan reaches back 2 years).
+- **Publication lags** are applied before any value is used: claims 5 days after the week, NFCI 5 days, the Sahm rule from the 10th of the next month (ADR 0009).
+
 ## SEC structured data (confirmed on real NVIDIA responses, 2026-11-24)
 
 - **Company facts** (`https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json`): every XBRL value with the filing that reported it (`accn`, `form`, `filed`). Findings that shape the code: the same period reappears in later filings (59 of 158 recorded periods did; none had a different value in this sample, so restatements are tested with a hand-built case); `fy` and `fp` describe the _filing_, so a comparison figure repeated in next year's 10-Q carries next year's labels and periods are identified by their dates; cash-flow items exist only as year-to-date totals (91, 182, 273 and 364 day periods), so quarters are derived by subtraction and marked derived; revenue is `Revenues` in recent filings and `RevenueFromContractWithCustomerExcludingAssessedTax` in older ones. Q4 flow figures are the year minus nine months. Diluted EPS for a derived quarter is an approximation, because share counts change.

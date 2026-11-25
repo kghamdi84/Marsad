@@ -433,3 +433,57 @@ export function baselineStudy(
     return stats(h, r);
   });
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Panels
+
+export interface SeriesSnapshot {
+  date: string;
+  value: number;
+  /** Change from the value `changeSessions` observations earlier, in the series' own units. Null without one. */
+  change: number | null;
+  /** Share of the last `window` observations (this one included) at or below this value, 0 to 100. */
+  percentile: number;
+  /** How many observations the percentile used (fewer than `window` early in a series). */
+  n: number;
+}
+
+/** The newest value of a series with its change and its percentile over the trailing window (252 is about a year of sessions). */
+export function seriesSnapshot(
+  obs: readonly Obs[],
+  changeSessions = 21,
+  window = 252,
+): SeriesSnapshot | null {
+  const last = obs.at(-1);
+  if (!last) return null;
+  const prior = obs[obs.length - 1 - changeSessions];
+  const recent = obs.slice(-window);
+  const atOrBelow = recent.filter((o) => o.value <= last.value).length;
+  return {
+    date: last.date,
+    value: last.value,
+    change: prior ? last.value - prior.value : null,
+    percentile: (100 * atOrBelow) / recent.length,
+    n: recent.length,
+  };
+}
+
+/** `a` minus `b` on the dates both have a value (for example high-yield minus investment-grade spread). */
+export function seriesDifference(a: readonly Obs[], b: readonly Obs[]): Obs[] {
+  const other = new Map(b.map((o) => [o.date, o.value]));
+  return a.flatMap((o) => {
+    const v = other.get(o.date);
+    return v === undefined ? [] : [{ date: o.date, value: o.value - v }];
+  });
+}
+
+/** The label of the newest day, the first day of its current run, and how many sessions the run has lasted. */
+export function currentRun<T extends { date: string; label: string }>(
+  days: readonly T[],
+): { label: string; since: string; sessions: number } | null {
+  const last = days.at(-1);
+  if (!last) return null;
+  let i = days.length - 1;
+  while (i > 0 && days[i - 1]?.label === last.label) i -= 1;
+  return { label: last.label, since: (days[i] as T).date, sessions: days.length - i };
+}

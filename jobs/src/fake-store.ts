@@ -18,7 +18,14 @@ import type {
   SystemAlert,
   UpcomingRow,
 } from '@marsad/core';
-import type { InsiderCandidate, InsiderResult, SourceStatusUpdate, Store } from './store.js';
+import type {
+  EventStatRow,
+  InsiderCandidate,
+  InsiderResult,
+  RegimeRow,
+  SourceStatusUpdate,
+  Store,
+} from './store.js';
 
 export interface FakeLog {
   gpr: GprDay[][];
@@ -36,6 +43,8 @@ export interface FakeLog {
   shortVolume: ShortVolumeRow[][];
   dividends: DividendRow[][];
   annualSections: AnnualSection[][];
+  regimeDays: RegimeRow[][];
+  eventStats: { ruleVersion: string; rows: EventStatRow[] }[];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -82,6 +91,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     shortVolume: [],
     dividends: [],
     annualSections: [],
+    regimeDays: [],
+    eventStats: [],
     runs: [],
     statuses: [],
     alerts: [],
@@ -153,6 +164,14 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     upsertAnnualSections: (r: readonly AnnualSection[]) => {
       log.annualSections.push([...r]);
       return Promise.resolve(r.length);
+    },
+    upsertRegimeDays: (r: readonly RegimeRow[]) => {
+      log.regimeDays.push([...r]);
+      return Promise.resolve(r.length);
+    },
+    replaceEventStats: (ruleVersion: string, rows: readonly EventStatRow[]) => {
+      log.eventStats.push({ ruleVersion, rows: [...rows] });
+      return Promise.resolve(rows.length);
     },
     recordRun: (run) => {
       log.runs.push(run);

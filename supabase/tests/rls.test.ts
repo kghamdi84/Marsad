@@ -87,6 +87,10 @@ beforeAll(async () => {
       values ('0001696841-26-000016', 1, 'non-derivative', 'Common Stock', 268238, 'D');
     insert into public.annual_sections (cik, ticker, section, period_end, filing_date, filing_url, text)
       values ('0001045810', 'NVDA', 'risk_factors', date '2026-01-25', date '2026-02-25', 'https://www.sec.gov/x', 'Item 1A. Risk Factors');
+    insert into public.regime_daily (date, rule_version, label, reason, inputs, recession_version, recession_level, recession)
+      values (date '2026-11-23', 'regime-1', 'stress', 'backwardation', '{}'::jsonb, 'recession-1', 'elevated', '{}'::jsonb);
+    insert into public.regime_event_stats (rule_version, condition, horizon, n, sufficient, data_from, data_to)
+      values ('regime-1', 'stress', 63, 16, false, date '2016-11-25', date '2026-11-23');
     insert into public.news_articles (id, published_at, publisher, title, url)
       values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
     insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
@@ -247,6 +251,8 @@ describe('system tables', () => {
       'insider_transactions',
       'insider_holdings',
       'annual_sections',
+      'regime_daily',
+      'regime_event_stats',
       'news_articles',
       'short_interest',
       'short_volume',
@@ -272,6 +278,27 @@ describe('system tables', () => {
     await expect(
       db.query(
         `insert into public.insider_holdings (accession, line, table_kind) values ('0001696841-26-000016', 9, 'other')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it('the regime tables reject an unknown label or level and a non-positive horizon', async () => {
+    await expect(
+      db.query(
+        `insert into public.regime_daily (date, rule_version, label, reason, inputs, recession_version, recession_level, recession)
+         values (date '2026-11-24', 'regime-1', 'euphoria', 'x', '{}', 'recession-1', 'low', '{}')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.regime_daily (date, rule_version, label, reason, inputs, recession_version, recession_level, recession)
+         values (date '2026-11-24', 'regime-1', 'stress', 'x', '{}', 'recession-1', 'moderate', '{}')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.regime_event_stats (rule_version, condition, horizon, n, sufficient, data_from, data_to)
+         values ('regime-1', 'bear', 0, 1, false, date '2020-01-01', date '2020-01-02')`,
       ),
     ).rejects.toThrow(/check constraint/);
   });
