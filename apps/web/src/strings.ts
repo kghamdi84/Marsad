@@ -26,7 +26,20 @@ export const t = {
     linkFailed: (reason: string) =>
       `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
     useDifferentEmail: 'Use a different email',
-    noAccount: 'Sign-ups are closed. Only the existing account can sign in.',
+    noAccount: 'New here? Create an account with your email and a password.',
+    createAccount: 'Create an account',
+    createTitle: 'Create a Marsad account',
+    newPasswordLabel: 'Password (at least 10 characters)',
+    confirmPasswordLabel: 'Password again',
+    create: 'Create account',
+    creating: 'Creating',
+    passwordsDiffer: 'The two passwords are different.',
+    passwordTooShort: 'Use at least 10 characters.',
+    alreadyRegistered:
+      'An account with this email already exists. Sign in instead; to set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
+    confirmSent: (email: string) =>
+      `Almost done: Supabase sent a confirmation email to ${email}. Open it, then sign in here with your password.`,
+    haveAccount: 'I already have an account',
     passwordLabel: 'Password',
     signInPassword: 'Sign in',
     signingIn: 'Signing in',

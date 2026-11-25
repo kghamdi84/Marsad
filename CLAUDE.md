@@ -41,7 +41,7 @@ Anything that costs money (paid plans, paid data, upgrades); deleting data or ta
 14. Source tiers 1 to 4; news clustered; opinion labeled. 15. Disclosure lags labeled.
 15. Risk percentages per horizon with n and a 90% Wilson interval, or "insufficient history".
 16. AI explains, code decides and calculates. Numbers in AI text are verified against the payload; failure falls back to templates. Untrusted text is wrapped in per-call random-ID tags.
-17. Security: RLS on every table (personal tables `owner_id = auth.uid()`, system tables owner-only), all policies require an aal2 (MFA) session (temporarily relaxed to password sign-in at Khaled's request, ADR 0039; restore before the platform is final), sign-ups disabled, only the publishable key in the browser, strict CSP and noindex.
+17. Security: RLS on every table (personal tables `owner_id = auth.uid()`, system tables owner-only), all policies require an aal2 (MFA) session (temporarily relaxed to password sign-in at Khaled's request, ADR 0039; restore before the platform is final), sign-ups open to friends as members who read shared tables only (ADR 0040), only the publishable key in the browser, strict CSP and noindex.
 18. Cost caps with 80% warnings; AI falls back to templates at the cap.
 
 ## Engineering

@@ -208,3 +208,63 @@ test('a wrong password says how to set a new one', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Set password workflow');
 });
+
+test('a friend creates an account with email and password and lands in the app (ADR 0040)', async ({
+  page,
+}) => {
+  const { token, exp } = aal1Token();
+  let body: Record<string, unknown> | null = null;
+  await page.route('**/auth/v1/signup**', async (r) => {
+    body = r.request().postDataJSON() as Record<string, unknown>;
+    await r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: token,
+        refresh_token: 'r',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: exp,
+        user: { ...linkUser, factors: [] },
+      }),
+    });
+  });
+  await mockUserAndFactors(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Create an account' }).click();
+  await page.getByLabel('Email').fill('friend@example.com');
+  await page.getByLabel('Password (at least 10 characters)').fill('short');
+  await page.getByLabel('Password again').fill('short');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('alert')).toContainText('at least 10 characters');
+  expect(body).toBeNull();
+  await page.getByLabel('Password (at least 10 characters)').fill('a long password');
+  await page.getByLabel('Password again').fill('a long passwrd');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('alert')).toContainText('different');
+  await page.getByLabel('Password again').fill('a long password');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('navigation').first()).toBeVisible();
+  expect(body).toMatchObject({ email: 'friend@example.com', password: 'a long password' });
+});
+
+test('creating an account with an email that exists says to sign in instead', async ({ page }) => {
+  await page.route('**/auth/v1/signup**', (r) =>
+    r.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 422,
+        error_code: 'user_already_exists',
+        msg: 'User already registered',
+      }),
+    }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Create an account' }).click();
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByLabel('Password (at least 10 characters)').fill('a long password');
+  await page.getByLabel('Password again').fill('a long password');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('alert')).toContainText('already exists');
+});

@@ -272,10 +272,10 @@ describe('system tables', () => {
     });
   });
 
-  it('a non-owner account reads no system rows', async () => {
+  it('a member account (a friend, ADR 0040) reads the shared job runs and source status', async () => {
     await as(other2, async (tx) => {
-      expect(await count(tx, 'public.job_runs')).toBe(0);
-      expect(await count(tx, 'public.source_status')).toBe(0);
+      expect(await count(tx, 'public.job_runs')).toBe(1);
+      expect(await count(tx, 'public.source_status')).toBe(14);
     });
   });
 
@@ -291,16 +291,18 @@ describe('system tables', () => {
     ).rejects.toThrow(/permission denied/);
   });
 
-  it('identity, split and alert tables follow the same rule: owner with MFA reads, everyone else nothing', async () => {
-    for (const table of [
-      'instruments',
-      'instrument_tickers',
-      'splits',
-      'system_alerts',
-      'daily_bars',
-    ]) {
+  it('identity, split and alert tables: owner and members read the shared ones, system alerts are owner-only', async () => {
+    for (const [table, member] of [
+      ['instruments', 1],
+      ['instrument_tickers', 1],
+      ['splits', 1],
+      ['system_alerts', 0],
+      ['daily_bars', 1],
+    ] as const) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
-      await as(other2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
+      await as(other2, async (tx) =>
+        expect(await count(tx, `public.${table}`), table).toBe(member),
+      );
       await as(owner1, async (tx) => expect(await count(tx, `public.${table}`)).toBe(0));
       await expect(as(anon, (tx) => count(tx, `public.${table}`))).rejects.toThrow(
         /permission denied/,
@@ -311,7 +313,8 @@ describe('system tables', () => {
     }
   });
 
-  it('every Study table follows the same rule: owner with MFA reads, everyone else nothing, nobody deletes', async () => {
+  it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {
+    const ownerOnly = new Set(['briefs', 'alerts', 'alert_outcomes', 'ai_usage']);
     for (const table of [
       'financial_facts',
       'insider_filings',
@@ -344,7 +347,9 @@ describe('system tables', () => {
       'dividends',
     ]) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(1));
-      await as(other2, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(0));
+      await as(other2, async (tx) =>
+        expect(await count(tx, `public.${table}`), table).toBe(ownerOnly.has(table) ? 0 : 1),
+      );
       await as(owner1, async (tx) => expect(await count(tx, `public.${table}`), table).toBe(0));
       await expect(as(anon, (tx) => count(tx, `public.${table}`))).rejects.toThrow(
         /permission denied/,
@@ -761,10 +766,13 @@ describe('password mode (ADR 0039)', () => {
     });
   });
 
-  it('another account signed in with a password still reads nothing of the owner', async () => {
+  it('a friend signed in with a password reads shared data but nothing of the owner', async () => {
     await asPasswordMode(other1, async (tx) => {
-      expect(await count(tx, 'public.job_runs')).toBe(0);
+      expect(await count(tx, 'public.job_runs')).toBe(1);
+      expect(await count(tx, 'public.daily_bars')).toBe(1);
       expect(await count(tx, 'public.alerts')).toBe(0);
+      expect(await count(tx, 'public.briefs')).toBe(0);
+      expect(await count(tx, 'public.user_settings')).toBe(1);
       const r = await tx.query<{ owner_id: string }>('select owner_id from public.watchlist_items');
       expect(r.rows.every((x) => x.owner_id === OTHER)).toBe(true);
     });
@@ -823,10 +831,19 @@ describe('schema guards', () => {
     const bad = r.rows.filter(
       (p) =>
         p.roles !== '{authenticated}' ||
-        !/private\.(is_mfa|is_app_owner)\(\)/.test(p.qual ?? '') ||
-        (p.with_check !== null && !/private\.(is_mfa|is_app_owner)\(\)/.test(p.with_check)),
+        !/private\.(is_mfa|is_app_owner|is_member)\(\)/.test(p.qual ?? '') ||
+        (p.with_check !== null &&
+          !/private\.(is_mfa|is_app_owner|is_member)\(\)/.test(p.with_check)),
     );
     expect(bad.map((p) => `${p.tablename}.${p.policyname}`)).toEqual([]);
+  });
+
+  it("Khaled's signals stay owner-only: alerts, outcomes, briefs, AI usage, push devices, system alerts (ADR 0040)", async () => {
+    const r = await db.query<{ tablename: string; qual: string }>(`
+      select tablename, qual from pg_policies where schemaname = 'public' and tablename in
+        ('alerts', 'alert_outcomes', 'briefs', 'ai_usage', 'push_subscriptions', 'system_alerts')`);
+    expect(r.rows).toHaveLength(6);
+    for (const p of r.rows) expect(p.qual, p.tablename).toMatch(/private\.is_app_owner\(\)/);
   });
 
   it('every table with an owner_id is personal: its policies filter by auth.uid()', async () => {
