@@ -3,6 +3,7 @@ import {
   DEFAULT_ALERT_SETTINGS as S,
   dedupeKey,
   inQuietHours,
+  latencyByKind,
   pushText,
   renderCard,
   riskText,
@@ -198,5 +199,18 @@ describe('card and push', () => {
     expect(p.title.length).toBeLessThanOrEqual(60);
     expect(p.body.length).toBeLessThanOrEqual(140);
     expect(pushText(base).title.startsWith('[SETUP, high] SOFI: ')).toBe(true);
+  });
+});
+
+describe('latencyByKind (hand-checked)', () => {
+  it('median and 90th percentile per kind, ignoring missing latencies', () => {
+    // halt: 1000, 2000, 3000, 4000, 10000 -> median 3000; p90 at h = 4 x 0.9 = 3.6: 4000 + 0.6 x 6000 = 7600.
+    const rows = [1000, 2000, 3000, 4000, 10000].map((latencyMs) => ({ kind: 'halt', latencyMs }));
+    expect(
+      latencyByKind([...rows, { kind: 'exit', latencyMs: 500 }, { kind: 'exit', latencyMs: null }]),
+    ).toEqual([
+      { kind: 'exit', n: 1, median: 500, p90: 500 },
+      { kind: 'halt', n: 5, median: 3000, p90: 7600 },
+    ]);
   });
 });

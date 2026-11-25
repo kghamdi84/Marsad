@@ -4,7 +4,7 @@
  * daily push cap, then the card in the brief's order and the push text. Code decides; nothing here calls a model.
  * Pure: the caller passes the state (recent alerts, push count) and the settings.
  */
-import { wilson, MIN_CASES } from './stats.js';
+import { wilson, MIN_CASES, quantileSorted } from './stats.js';
 import { toFixedHalfUp } from './ai/template.js';
 
 export const ALERTS_VERSION = 'alerts-1';
@@ -368,4 +368,20 @@ export function pushText(a: AlertInput): { title: string; body: string } {
     ),
     body: clipTo(a.trigger, 140),
   };
+}
+
+/** End-to-end latency by alert kind (source event to stored alert): n, median and 90th percentile, in ms. */
+export function latencyByKind(
+  rows: readonly { kind: string; latencyMs: number | null }[],
+): { kind: string; n: number; median: number; p90: number }[] {
+  const by = new Map<string, number[]>();
+  for (const r of rows)
+    if (r.latencyMs !== null && Number.isFinite(r.latencyMs))
+      by.set(r.kind, [...(by.get(r.kind) ?? []), r.latencyMs]);
+  return [...by.entries()]
+    .map(([kind, xs]) => {
+      const s = [...xs].sort((a, b) => a - b);
+      return { kind, n: s.length, median: quantileSorted(s, 0.5), p90: quantileSorted(s, 0.9) };
+    })
+    .sort((a, b) => a.kind.localeCompare(b.kind));
 }

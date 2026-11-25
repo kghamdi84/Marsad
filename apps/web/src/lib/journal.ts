@@ -1,4 +1,14 @@
-import type { DailyBar, DatedValue, Holding, ThesisStatus } from '@marsad/core';
+import {
+  SCREENSHOTS_PER_TRADE,
+  SCREENSHOT_MAX_BYTES,
+  SCREENSHOT_TYPES,
+  screenshotPath,
+  type DailyBar,
+  type DatedValue,
+  type Holding,
+  type JournalTrade,
+  type ThesisStatus,
+} from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -129,4 +139,122 @@ export async function updateHoldingMeta(
     .update({ sector_etf: meta.sectorEtf, thesis_status: meta.thesisStatus })
     .eq('id', id);
   if (r.error) throw new Error(`holdings: ${r.error.message}`);
+}
+
+function toTrade(x: Record<string, unknown>): JournalTrade {
+  const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    id: Number(x['id']),
+    ticker: String(x['ticker']),
+    side: x['side'] === 'short' ? 'short' : 'long',
+    setup: String(x['setup'] ?? ''),
+    tags: (x['tags'] ?? []) as string[],
+    alertId: x['alert_id'] === null ? null : String(x['alert_id']),
+    entryDate: String(x['entry_date']),
+    entryPrice: Number(x['entry_price']),
+    shares: Number(x['shares']),
+    stop: n(x['stop']),
+    target: n(x['target']),
+    exitDate: x['exit_date'] === null ? null : String(x['exit_date']),
+    exitPrice: n(x['exit_price']),
+    checklist: (x['checklist'] ?? {}) as JournalTrade['checklist'],
+    followed: (x['followed'] ?? {}) as JournalTrade['followed'],
+    notes: String(x['notes'] ?? ''),
+    screenshots: (x['screenshots'] ?? []) as string[],
+  };
+}
+
+/** Trades, newest entry first, and the last 30 days of delivered alerts to link them to. */
+export async function loadTrades(): Promise<{
+  trades: JournalTrade[];
+  alerts: { id: string; ticker: string | null; headline: string; createdAt: string }[];
+}> {
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [t, a] = await Promise.all([
+    client().from('trades').select('*').order('entry_date', { ascending: false }).limit(500),
+    client()
+      .from('alerts')
+      .select('id, ticker, headline, created_at')
+      .neq('decision', 'suppress')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(200),
+  ]);
+  if (t.error) throw new Error(`trades: ${t.error.message}`);
+  if (a.error) throw new Error(`alerts: ${a.error.message}`);
+  return {
+    trades: ((t.data ?? []) as Record<string, unknown>[]).map(toTrade),
+    alerts: ((a.data ?? []) as Record<string, unknown>[]).map((r) => ({
+      id: String(r['id']),
+      ticker: r['ticker'] === null ? null : String(r['ticker']),
+      headline: String(r['headline']),
+      createdAt: String(r['created_at']),
+    })),
+  };
+}
+
+export type NewTrade = Omit<JournalTrade, 'id' | 'exitDate' | 'exitPrice' | 'screenshots'>;
+
+export async function addTrade(x: NewTrade): Promise<void> {
+  const r = await client().from('trades').insert({
+    ticker: x.ticker,
+    side: x.side,
+    setup: x.setup,
+    tags: x.tags,
+    alert_id: x.alertId,
+    entry_date: x.entryDate,
+    entry_price: x.entryPrice,
+    shares: x.shares,
+    stop: x.stop,
+    target: x.target,
+    checklist: x.checklist,
+    followed: x.followed,
+    notes: x.notes,
+  });
+  if (r.error) throw new Error(`trades: ${r.error.message}`);
+}
+
+/** Records the exit and whether it followed the plan. */
+export async function closeTrade(
+  t: JournalTrade,
+  exit: { date: string; price: number; exitedPerPlan: boolean },
+): Promise<void> {
+  const r = await client()
+    .from('trades')
+    .update({
+      exit_date: exit.date,
+      exit_price: exit.price,
+      followed: { ...t.followed, exitedPerPlan: exit.exitedPerPlan },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', t.id);
+  if (r.error) throw new Error(`trades: ${r.error.message}`);
+}
+
+/** Uploads a screenshot to the private bucket under the owner's folder, then lists it on the trade. */
+export async function addScreenshot(t: JournalTrade, file: File): Promise<void> {
+  if (!(SCREENSHOT_TYPES as readonly string[]).includes(file.type))
+    throw new Error('Use a PNG, JPEG or WebP image.');
+  if (file.size > SCREENSHOT_MAX_BYTES) throw new Error('Images can be at most 5 MB.');
+  if (t.screenshots.length >= SCREENSHOTS_PER_TRADE)
+    throw new Error(`At most ${SCREENSHOTS_PER_TRADE} screenshots a trade.`);
+  const { data: user, error: ue } = await client().auth.getUser();
+  if (ue || !user.user) throw new Error('Not signed in.');
+  const path = screenshotPath(user.user.id, t.id, t.screenshots.length + 1, file.type);
+  const up = await client()
+    .storage.from('journal')
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (up.error) throw new Error(`screenshot: ${up.error.message}`);
+  const r = await client()
+    .from('trades')
+    .update({ screenshots: [...t.screenshots, path], updated_at: new Date().toISOString() })
+    .eq('id', t.id);
+  if (r.error) throw new Error(`trades: ${r.error.message}`);
+}
+
+/** A screenshot as a local object URL (the bucket is private; the page's policy allows blob: images). */
+export async function screenshotUrl(path: string): Promise<string> {
+  const r = await client().storage.from('journal').download(path);
+  if (r.error) throw new Error(`screenshot: ${r.error.message}`);
+  return URL.createObjectURL(r.data);
 }

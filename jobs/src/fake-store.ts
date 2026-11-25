@@ -86,6 +86,7 @@ export interface FakeLog {
   }[];
   storedAlerts: StoredAlert[][];
   outcomes: Outcome[][];
+  uploads: { path: string; body: string }[];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -116,6 +117,7 @@ export interface FakeSeed {
   barsFetchedAt?: Record<string, string>;
   holdings?: HoldingRef[];
   scoredAlerts?: ScoredAlert[];
+  exportTables?: Record<string, Record<string, unknown>[]>;
   /** Keys `alertId|horizon` already finished. */
   finishedOutcomes?: string[];
 }
@@ -141,7 +143,15 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'latestRows' in x ||
       'bars' in x ||
       'rules' in x ||
-      'halts' in x);
+      'halts' in x ||
+      'watchlist' in x ||
+      'recentAlerts' in x ||
+      'regimeLabels' in x ||
+      'barsFetchedAt' in x ||
+      'holdings' in x ||
+      'scoredAlerts' in x ||
+      'finishedOutcomes' in x ||
+      'exportTables' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -179,6 +189,7 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     backtestRuns: [],
     storedAlerts: [],
     outcomes: [],
+    uploads: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
@@ -196,6 +207,11 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
     getBarsFetchedAt: (ticker) => Promise.resolve(s.barsFetchedAt?.[ticker] ?? null),
     getOpenHoldings: () => Promise.resolve([...(s.holdings ?? [])]),
+    exportRows: (table) => Promise.resolve([...(s.exportTables?.[table] ?? [])]),
+    uploadExport: (path, body) => {
+      log.uploads.push({ path, body });
+      return Promise.resolve();
+    },
     getAlertsForScoring: (since) =>
       Promise.resolve((s.scoredAlerts ?? []).filter((a) => a.createdAt >= since)),
     getFinishedOutcomeKeys: (ids) =>

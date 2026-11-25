@@ -53,9 +53,21 @@ export async function seedSession(page: Page, aal: 'aal1' | 'aal2') {
  * target sizes are measured as a user scrolls to them.
  */
 export async function axeViolations(page: Page): Promise<string[]> {
+  // Sticky bars cover whatever scrolls under them; for the scan they sit in normal flow (users can scroll any
+  // target out from under the bar, so its overlap at one scroll position is not a target-size defect).
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll<HTMLElement>('.sticky'))
+      el.style.position = 'static';
+  });
   const width = page.viewportSize()?.width ?? 1280;
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
   await page.setViewportSize({ width, height: Math.min(Math.max(height, 400), 12_000) });
+  // Let pending requests finish and the resized layout settle before measuring targets.
+  await page.waitForLoadState('networkidle');
+  await page.evaluate(
+    () =>
+      new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
+  );
   const r = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

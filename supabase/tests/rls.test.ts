@@ -463,6 +463,97 @@ describe('system tables', () => {
       ).rejects.toThrow(/check constraint/);
   });
 
+  it('trades are personal and refuse a half-closed trade or an exit before the entry', async () => {
+    await as(owner2, async (tx) => {
+      await tx.query(
+        `insert into public.trades (ticker, entry_date, entry_price, shares, stop, setup) values ('RKLB', '2026-11-02', 24, 100, 22, 'trend-template-breakout')`,
+      );
+      expect(await count(tx, 'public.trades')).toBe(1);
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.trades')).toBe(0));
+    await as(owner1, async (tx) =>
+      expect(
+        tx.query(
+          `insert into public.trades (ticker, entry_date, entry_price, shares) values ('RKLB', '2026-11-02', 24, 1)`,
+        ),
+      ).rejects.toThrow(),
+    );
+    for (const bad of [
+      `exit_date) values ('RKLB', '2026-11-02', 24, 1, '2026-11-05'`,
+      `exit_date, exit_price) values ('RKLB', '2026-11-02', 24, 1, '2026-11-01', 20`,
+    ])
+      await expect(
+        as(owner2, (tx) =>
+          tx.query(`insert into public.trades (ticker, entry_date, entry_price, shares, ${bad})`),
+        ),
+      ).rejects.toThrow(/check constraint/);
+    await expect(as(anon, (tx) => count(tx, 'public.trades'))).rejects.toThrow(/permission denied/);
+  });
+
+  it('journal screenshots: only the owner with MFA, only in their own folder, only in the private bucket', async () => {
+    const bucket = await db.query<{ public: boolean; file_size_limit: string }>(
+      `select public, file_size_limit::text from storage.buckets where id = 'journal'`,
+    );
+    expect(bucket.rows[0]).toEqual({ public: false, file_size_limit: '5242880' });
+    const put = (name: string) =>
+      `insert into storage.objects (bucket_id, name) values ('journal', '${name}')`;
+    await as(owner2, async (tx) => {
+      await tx.query(put(`${OWNER}/trade-1-1.png`));
+      expect(await count(tx, 'storage.objects')).toBe(1);
+    });
+    // Another user's folder, no MFA, another user, and anon are all refused.
+    await expect(as(owner2, (tx) => tx.query(put(`${OTHER}/trade-1-1.png`)))).rejects.toThrow(
+      /row-level security/,
+    );
+    await expect(as(owner1, (tx) => tx.query(put(`${OWNER}/trade-1-1.png`)))).rejects.toThrow();
+    await expect(as(anon, (tx) => tx.query(put(`${OWNER}/x.png`)))).rejects.toThrow();
+    await db.query(put(`${OWNER}/trade-9-1.png`)); // as the superuser, like a stored object
+    await as(other2, async (tx) => expect(await count(tx, 'storage.objects')).toBe(0));
+    await as(owner1, async (tx) => expect(await count(tx, 'storage.objects')).toBe(0));
+    await as(owner2, async (tx) => expect(await count(tx, 'storage.objects')).toBe(1));
+    await db.query(`delete from storage.objects`);
+  });
+
+  it('theses are personal, append-only, and refuse a missing bear case', async () => {
+    const ins = (bear: string) =>
+      `insert into public.theses (ticker, status, bull, bear, risks, change_view) values ('RKLB', 'intact', 'Bull.', '${bear}', '{Dilution}', '${'x'.repeat(40)}')`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins('y'.repeat(40)));
+      expect(await count(tx, 'public.theses')).toBe(1);
+      await expect(tx.query(`update public.theses set status = 'broken'`)).rejects.toThrow(
+        /permission denied/,
+      );
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.theses')).toBe(0));
+    await expect(as(owner2, (tx) => tx.query(ins('Could go down.')))).rejects.toThrow(
+      /check constraint/,
+    );
+    await expect(as(owner2, (tx) => tx.query(`delete from public.theses`))).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(as(anon, (tx) => count(tx, 'public.theses'))).rejects.toThrow(/permission denied/);
+  });
+
+  it('exports: the owner with MFA reads only their own folder and can write nothing', async () => {
+    await db.query(
+      `insert into storage.objects (bucket_id, name) values ('exports', '${OWNER}/2026-11-29/trades.json'), ('exports', '${OTHER}/2026-11-29/trades.json')`,
+    );
+    await as(owner2, async (tx) => expect(await count(tx, 'storage.objects')).toBe(1));
+    await as(owner1, async (tx) => expect(await count(tx, 'storage.objects')).toBe(0));
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into storage.objects (bucket_id, name) values ('exports', '${OWNER}/2026-12-06/x.json')`,
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await as(owner2, async (tx) => {
+      const r = await tx.query(`delete from storage.objects where bucket_id = 'exports'`);
+      expect(r.affectedRows).toBe(0);
+    });
+    await db.query(`delete from storage.objects`);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

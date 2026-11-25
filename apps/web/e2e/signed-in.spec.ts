@@ -102,3 +102,46 @@ for (const [name, minutesAgo, expected] of [
     await expect(page.getByText('No system alerts yet')).toBeVisible();
   });
 }
+
+test('the status page shows alert latency by kind and lets the owner save a weekly export', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  const OWNER = '00000000-0000-4000-8000-00000000000a';
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  // Halt alerts: 1, 2, 3, 4 and 10 seconds: median 3 s; 90th percentile 4 + 0.6 x 6 = 7.6 s, shown as 8s.
+  await page.route('**/rest/v1/alerts**', (r) =>
+    r.fulfill(
+      json([1000, 2000, 3000, 4000, 10000].map((latency_ms) => ({ kind: 'halt', latency_ms }))),
+    ),
+  );
+  const listed: string[] = [];
+  await page.route('**/storage/v1/object/list/exports', (r) => {
+    const prefix = (r.request().postDataJSON() as { prefix: string }).prefix;
+    listed.push(prefix);
+    return r.fulfill(
+      json(
+        prefix === OWNER
+          ? [{ name: '2026-11-29' }]
+          : [{ name: 'manifest.json' }, { name: 'trades.json' }],
+      ),
+    );
+  });
+  await page.route('**/storage/v1/object/exports/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[{"id":1}]' }),
+  );
+  await page.goto('/status');
+  const row = page.getByRole('row', { name: /^halt/ });
+  await expect(row).toContainText('5');
+  await expect(row).toContainText('3s');
+  await expect(row).toContainText('8s');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: '2026-11-29: trades.json' }).click();
+  expect((await download).suggestedFilename()).toBe('marsad-2026-11-29-trades.json');
+  expect(listed).toEqual([OWNER, `${OWNER}/2026-11-29`]);
+});

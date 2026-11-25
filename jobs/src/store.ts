@@ -7,7 +7,7 @@ import {
   encodeSnapshot,
   MIN_SNAPSHOT_DOLLAR_VOLUME,
 } from './snapshot-codec.js';
-import { etDate } from '@marsad/core';
+import { PERSONAL_EXPORT_TABLES, SHARED_EXPORT_TABLES, etDate } from '@marsad/core';
 import type {
   HoldingRef,
   Outcome,
@@ -149,6 +149,10 @@ export interface Store {
   /** Keys `alertId|horizon` of outcomes already finished. */
   getFinishedOutcomeKeys(alertIds: readonly string[]): Promise<Set<string>>;
   upsertOutcomes(rows: readonly Outcome[], version: string): Promise<number>;
+  /** Every row of an export table (allow-listed), oldest first by its natural order. */
+  exportRows(table: string): Promise<Record<string, unknown>[]>;
+  /** Writes one export file to the private exports bucket (replacing a file of the same path). */
+  uploadExport(path: string, body: string): Promise<void>;
   /** Open holdings of every owner (the app has one), with their row ids. */
   getOpenHoldings(): Promise<HoldingRef[]>;
   /** Regime label of every stored day on or after `from`. */
@@ -1113,6 +1117,30 @@ export function supabaseStore(url: string, secretKey: string): Store {
         { onConflict: 'kind,for_date' },
       );
       if (error) throw new Error(`briefs upsert failed: ${error.message}`);
+    },
+    async exportRows(table) {
+      if (![...PERSONAL_EXPORT_TABLES, ...SHARED_EXPORT_TABLES].includes(table as never))
+        throw new Error(`${table} is not an export table`);
+      const out: Record<string, unknown>[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from(table)
+          .select('*')
+          .range(start, start + 999);
+        if (error) throw new Error(`${table} read failed: ${error.message}`);
+        out.push(...((data ?? []) as Record<string, unknown>[]));
+        if ((data ?? []).length < 1000) break;
+      }
+      return out;
+    },
+    async uploadExport(path, body) {
+      const { error } = await db.storage
+        .from('exports')
+        .upload(path, new Blob([body], { type: 'application/json' }), {
+          contentType: 'application/json',
+          upsert: true,
+        });
+      if (error) throw new Error(`exports upload ${path} failed: ${error.message}`);
     },
     async getAlertsForScoring(since) {
       const { data, error } = await db

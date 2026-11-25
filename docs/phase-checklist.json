@@ -310,8 +310,8 @@
         {
           "id": "2.10",
           "title": "Thesis card with required bear case",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "thesis-1 (ADR 0025): append-only personal thesis cards on each company page; bear case and what would change the view required by app and database; saving sets the open holding's thesis status. Unit, RLS and browser tests. Still to do: the AI draft from cited sources (needs an Anthropic key and caps)."
         },
         {
           "id": "2.11",
@@ -562,14 +562,14 @@
         {
           "id": "5.11",
           "title": "Feed-down and recovery alerts",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Live since Phase 1: the heartbeat raises one stale and one recovered system alert per transition, pauses dependent rules and shows them on the Status page. Still to do: push delivery (Web Push, after the Phase 5 prerequisites)."
         },
         {
           "id": "5.12",
           "title": "Latency metrics",
-          "status": "in_progress",
-          "evidence": "Each stored alert carries its source time and end-to-end latency, shown on its card. Still to do: latency on the status page and live-feed latency (after the prerequisites)."
+          "status": "done",
+          "evidence": "Each alert stores its source time and end-to-end latency (card); the Status page shows median and 90th-percentile latency by alert kind over 30 days, and each source's last latency. Live-feed latency arrives with the Phase 5 prerequisites."
         },
         {
           "id": "5.13",
@@ -696,8 +696,8 @@
         {
           "id": "7.6",
           "title": "Journal with screenshots and Jimmy D adherence score",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "journal-1 (ADR 0024): personal trades table linked to alerts, with tags, notes and up to six screenshots in a private Storage bucket (owner folder, MFA; policy tested offline); Jimmy D adherence score by principle with broken items listed; statistics by setup and adherence against result with 30-case flags. Unit, RLS and browser tests."
         },
         {
           "id": "7.7",
@@ -745,8 +745,8 @@
         {
           "id": "8.4",
           "title": "Weekly exports to Storage",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "exports-1 (ADR 0026): weekly job writes each owner's personal tables and the rule library as JSON with a hashed manifest to a private bucket (owner read-only with MFA; RLS tested); Status page lists and saves them. Job, unit, RLS and browser tests."
         },
         {
           "id": "8.5",
