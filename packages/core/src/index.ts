@@ -58,3 +58,4 @@ export * from './prompts/index.js';
 export * from './catalyst.js';
 export * from './push.js';
 export * from './email-digest.js';
+export * from './option-positions.js';

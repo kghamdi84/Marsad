@@ -378,3 +378,95 @@ test('journal: the latest weekly review, or when the first one is due', async ({
   const review = page.getByRole('region', { name: 'Weekly review, week ending 2026-11-29' });
   await expect(review).toContainText('Mean adherence 86 over 3 trades.');
 });
+
+test('options positions: the stored spread with its risk, exit rules and bear case; a naked call is refused', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  // Fix the date so days to expiry are known: 2026-11-25 to 2026-12-18 is 23 days.
+  await page.clock.setFixedTime(new Date('2026-11-25T15:00:00Z'));
+  const posted: unknown[] = [];
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/option_positions**', (r) => {
+    if (r.request().method() === 'POST') {
+      posted.push(r.request().postDataJSON());
+      return r.fulfill({ status: 201, body: '' });
+    }
+    return r.fulfill(
+      json([
+        {
+          id: 1,
+          underlying: 'NVDA',
+          label: 'Bull call spread',
+          expiry: '2026-12-18',
+          legs: [
+            { type: 'call', strike: 100, qty: 1, price: 5 },
+            { type: 'call', strike: 110, qty: -1, price: 2 },
+          ],
+          opened_on: '2026-11-20',
+          exit_dte: 21,
+          profit_take_pct: 0.5,
+          loss_limit_pct: null,
+          bear_case: 'A data-center miss takes NVDA below 100.',
+        },
+      ]),
+    );
+  });
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    r.fulfill(json([{ date: '2026-11-24', close: 105 }])),
+  );
+  await page.goto('/journal');
+  const s = page.getByRole('region', { name: 'Options positions' });
+  const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread (NVDA)' });
+  // Debit 300, maximum gain 700, breakeven 103; at 105 the spread is worth +200 at expiry.
+  await expect(
+    card.getByText('Debit $300.00. Maximum loss -$300.00; maximum gain $700.00.'),
+  ).toBeVisible();
+  await expect(card.getByText('Breakeven at expiry: 103.00.')).toBeVisible();
+  await expect(card.getByText('23 days to expiry (2026-12-18).')).toBeVisible();
+  await expect(
+    card.getByText('At expiry, if the stock stays at 105.00 (close 2026-11-24): $200.00'),
+  ).toBeVisible();
+  await expect(card.getByText('Value today: unavailable (needs option quotes)')).toBeVisible();
+  await expect(card.getByText('Time exit at 21 days to expiry (now 23).')).toBeVisible();
+  await expect(
+    card.getByText(
+      'Profit take at 50% of the maximum gain ($350.00); needs option quotes to judge.',
+    ),
+  ).toBeVisible();
+  await expect(card.getByText('A data-center miss takes NVDA below 100.')).toBeVisible();
+
+  const form = page.getByRole('form', { name: 'Add an options position' });
+  await form.getByLabel('Underlying ticker').fill('rklb');
+  await form.getByLabel('Name (for example, Bull call spread)').fill('Short call');
+  await form.getByLabel('Expiry (YYYY-MM-DD)').fill('2027-01-15');
+  await form.getByLabel('Side').selectOption('short');
+  await form.getByLabel('Strike').fill('30');
+  await form.getByLabel('Premium per share').fill('1.2');
+  await form.getByLabel('Bear case: what makes this position lose').fill('A squeeze above 30.');
+  await form.getByRole('button', { name: 'Save position' }).click();
+  await expect(
+    form.getByText('The maximum loss is unlimited. Marsad tracks defined-risk positions only.'),
+  ).toBeVisible();
+  expect(posted).toEqual([]);
+
+  // Add a long 35 call: a bear call spread, defined risk.
+  await form.getByRole('button', { name: 'Add a leg' }).click();
+  await form.getByLabel('Strike').nth(1).fill('35');
+  await form.getByLabel('Premium per share').nth(1).fill('0.4');
+  await form.getByRole('button', { name: 'Save position' }).click();
+  await expect(form.getByText('Position saved.')).toBeVisible();
+  expect(posted[0]).toMatchObject({
+    underlying: 'RKLB',
+    label: 'Short call',
+    expiry: '2027-01-15',
+    legs: [
+      { type: 'call', strike: 30, qty: -1, price: 1.2 },
+      { type: 'call', strike: 35, qty: 1, price: 0.4 },
+    ],
+    exit_dte: 21,
+    profit_take_pct: 0.5,
+    loss_limit_pct: null,
+    bear_case: 'A squeeze above 30.',
+  });
+});

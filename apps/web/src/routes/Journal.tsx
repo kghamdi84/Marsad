@@ -22,6 +22,7 @@ import {
   type ThesisStatus,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../components/ui';
+import { OptionPositions } from '../components/journal/OptionPositions';
 import { Trades } from '../components/journal/Trades';
 import { num, td, th, thNum } from '../components/study/Panel';
 import {
@@ -610,6 +611,7 @@ export function Journal() {
       </div>
       <Sizer />
       <Holdings />
+      <OptionPositions />
       <Portfolio />
       <Trades />
       <WeeklyReview />
