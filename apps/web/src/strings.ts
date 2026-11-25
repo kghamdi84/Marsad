@@ -243,6 +243,30 @@ export const t = {
     verdicts: { useful: 'Useful', noise: 'Noise', acted: 'Acted on' } as Record<string, string>,
     saved: 'Saved.',
     at: (when: string) => `Created ${when}.`,
+    scorecard: {
+      title: 'Scorecard',
+      intro:
+        'Each alert\u2019s result after 1, 5 and 20 sessions in the direction it pointed (an exit is right when the price falls), against SPY over the same sessions. Before costs. The +1 hour result needs intraday bars, which the current data plan does not include.',
+      none: 'No scored alerts yet. Outcomes are computed after each evening\u2019s bars; halt alerts make no directional call and are not scored.',
+      pending: (n: number) =>
+        n === 1
+          ? '1 outcome is still waiting for its sessions.'
+          : `${n} outcomes are still waiting for their sessions.`,
+      colRule: 'Rule',
+      colHorizon: 'Sessions',
+      colN: 'n',
+      colWin: 'Win rate (90% interval)',
+      colRet: 'Mean return',
+      colExcess: 'Mean excess over SPY',
+      colExcursion: 'Mean best and worst move',
+      colLevels: 'Stop or target first',
+      insufficient: 'insufficient history',
+      shadow: 'shadow',
+      live: 'live',
+      calibration: 'Quality-score calibration (5 sessions)',
+      noCalibration: 'Not enough scored alerts carry a quality score yet (30 needed).',
+      bin: (low: number, high: number) => `Score ${low} to ${high}`,
+    },
   },
   lab: {
     title: 'Backtest lab',

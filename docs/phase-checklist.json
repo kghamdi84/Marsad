@@ -702,8 +702,8 @@
         {
           "id": "7.7",
           "title": "Scorecard dashboards with calibration",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "scorecard-1 (ADR 0023): alert_outcomes at 1, 5 and 20 sessions (signed by direction, against SPY, excursions, first level touched) from job scorecard after each bars run; per-rule live and shadow summaries with Wilson intervals from 30 cases and calibration by quality-score bins, all recomputed from raw outcomes by a test. +1 hour needs intraday bars (labeled)."
         },
         {
           "id": "7.8",

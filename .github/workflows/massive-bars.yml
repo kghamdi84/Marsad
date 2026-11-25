@@ -42,3 +42,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # The scorecard: each recent alert's outcome after 1, 5 and 20 sessions, from the bars just stored.
+      - name: Score recent alerts
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs scorecard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

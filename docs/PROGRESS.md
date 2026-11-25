@@ -128,6 +128,11 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Phase 7 batch C: the scorecard (2026-11-25)
+
+- **ADR 0023** (`scorecard-1`): every directional alert's outcome after 1, 5 and 20 sessions against SPY, with excursions and the first plan level touched, stored in `alert_outcomes` by the nightly `scorecard` job; the Alerts page summarizes them per rule, live against shadow, with Wilson intervals from 30 cases and quality-score calibration.
+- **Verified**: the Phase 7 done-criterion test recomputes every summary figure from raw outcomes; hand-checked outcomes; mutation-checked; job, RLS and browser tests.
+
 ### Phase 8: security review, accessibility and performance passes, README (2026-11-25)
 
 - **Security** ([SECURITY_REVIEW.md](SECURITY_REVIEW.md)): seven schema guards now fail any migration that opens a table, skips MFA, lets signed-in users write system tables, or adds a view or `SECURITY DEFINER` function to `public`; each guard mutation-checked. Live: sign-ups disabled, email only; strict CSP; COOP and CORP headers added; Actions pinned to commit SHAs with monthly Dependabot. Open: the Supabase Security Advisor (connector lacks permission; Khaled reads it).

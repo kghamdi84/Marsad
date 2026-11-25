@@ -47,3 +47,4 @@ export * from './options.js';
 export * from './exit-alerts.js';
 export * from './exposure.js';
 export * from './rotation.js';
+export * from './scorecard.js';

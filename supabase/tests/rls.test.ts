@@ -108,6 +108,8 @@ beforeAll(async () => {
     insert into public.alerts (id, version, kind, priority, ticker, rule_id, rule_version, rule_status, dedupe_key, decision, headline, push, card, input)
       values ('11111111-1111-4111-8111-111111111111', 'alerts-1', 'halt', 'critical', 'SOFI', 'halts', 1, 'live',
               'halt|SOFI|halts|halt:x', 'push', 'SOFI halted', '{}'::jsonb, '[]'::jsonb, '{}'::jsonb);
+    insert into public.alert_outcomes (alert_id, horizon, version, status, ref_date, end_date, ret)
+      values ('11111111-1111-4111-8111-111111111111', '1d', 'scorecard-1', 'done', date '2026-11-23', date '2026-11-24', 0.01);
     insert into public.rules (id, version, hash, doc) values ('index-trend-filter', 1, 'abcdef12', '{}'::jsonb);
     insert into public.rule_events (rule_id, version, to_status, reason) values ('index-trend-filter', 1, 'draft', 'new version');
     insert into public.backtest_runs (rule_id, version, engine, params, trials, report)
@@ -298,6 +300,7 @@ describe('system tables', () => {
       'rule_events',
       'backtest_runs',
       'alerts',
+      'alert_outcomes',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',
@@ -444,6 +447,18 @@ describe('system tables', () => {
           tx.query(
             `insert into public.holdings (ticker, shares, cost_basis, opened_on, ${col}) values ('RKLB', 1, 1, '2026-10-01', '${bad}')`,
           ),
+        ),
+      ).rejects.toThrow(/check constraint/);
+  });
+
+  it('a finished outcome needs its return and dates; horizons are 1d, 5d or 20d', async () => {
+    for (const values of [
+      `'5d', 'scorecard-1', 'done', null, null, null`,
+      `'2h', 'scorecard-1', 'pending', null, null, null`,
+    ])
+      await expect(
+        db.query(
+          `insert into public.alert_outcomes (alert_id, horizon, version, status, ref_date, end_date, ret) values ('11111111-1111-4111-8111-111111111111', ${values})`,
         ),
       ).rejects.toThrow(/check constraint/);
   });

@@ -87,3 +87,76 @@ test('alerts: before any alert exists the page says so', async ({ page }) => {
   await page.goto('/alerts');
   await expect(page.getByText(/No alerts yet/)).toBeVisible();
 });
+
+test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow, with honest sample sizes', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  // Three live exit-stop alerts: 1-session returns +4%, -2%, +1% (mean +1.00%, 2 of 3 wins), SPY in the same
+  // direction +1%, 0%, -1% (mean excess +1.00%); one shadow alert still pending.
+  const alerts = [1, 2, 3, 4].map((i) => ({
+    id: `0000000${i}-0000-4000-8000-000000000000`,
+    created_at: '2026-11-16T22:40:00Z',
+    kind: 'exit',
+    ticker: 'RKLB',
+    rule_id: 'exit-stop',
+    rule_status: i === 4 ? 'shadow' : 'live',
+    input: {},
+    priority: 'high',
+    decision: 'digest',
+    reasons: [],
+    card: [],
+    latency_ms: null,
+    delivery: {},
+  }));
+  const done = (i: number, ret: number, bench: number) => ({
+    alert_id: `0000000${i}-0000-4000-8000-000000000000`,
+    horizon: '1d',
+    status: 'done',
+    note: null,
+    ref_date: '2026-11-16',
+    end_date: '2026-11-17',
+    ret,
+    bench_ret: bench,
+    excess: ret - bench,
+    mfe: Math.max(ret, 0) + 0.01,
+    mae: Math.min(ret, 0) - 0.01,
+    hit: null,
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/alerts**', (r) => r.fulfill(json(alerts)));
+  await page.route('**/rest/v1/alert_outcomes**', (r) =>
+    r.fulfill(
+      json([
+        done(1, 0.04, 0.01),
+        done(2, -0.02, 0),
+        done(3, 0.01, -0.01),
+        {
+          ...done(4, 0, 0),
+          status: 'pending',
+          ret: null,
+          bench_ret: null,
+          excess: null,
+          mfe: null,
+          mae: null,
+          end_date: null,
+        },
+      ]),
+    ),
+  );
+  await page.goto('/alerts');
+  const card = page.getByRole('region', { name: 'Scorecard' });
+  const row = card.getByRole('row', { name: /^exit-stop \(live\)/ });
+  await expect(row).toContainText('66.7% (insufficient history)');
+  await expect(row).toContainText('▲ +1.00%'); // mean return and mean excess
+  await expect(card.getByRole('row', { name: /shadow/ })).toHaveCount(0); // pending outcomes are not scored
+  await expect(card).toContainText('1 outcome is still waiting for its sessions.');
+  await expect(card).toContainText(
+    'Not enough scored alerts carry a quality score yet (30 needed).',
+  );
+});
