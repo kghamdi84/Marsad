@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, batch E: calendars; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 3, batch F: Watch dashboard; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,13 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch F: Watch dashboard (2026-11-25)
+
+- **ADR 0014** (`watch-1`): the Watch page now has the market strip, the watchlist table, the sector heatmap, Marsad-universe movers, a gap scanner and watchlist news, beside the calendars. End of day only, stated on the page.
+- The breadth job also writes `market_movers_daily` for the last 5 sessions (sector SPDRs and the top 10 gainers and losers among the month's members, bad prints left out).
+- **Security fix**: news links (Study and Watch) are rendered only for https URLs; a vendor `javascript:` URL shows as plain text (tested).
+- **Verified**: hand-checked summaries and movers; breadth job test asserts movers come only from the month's members; browser test with hand-worked percentages, gap and volume ratio.
 
 ### Phase 3 batch E: economic and earnings calendars (2026-11-25)
 

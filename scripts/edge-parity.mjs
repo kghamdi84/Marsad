@@ -308,6 +308,27 @@ const out = {
       estimate: core.estimateNextEarnings(['2025-11-19', '2026-02-25', '2026-11-17'], '2026-11-25'),
     };
   })(),
+  // Watch dashboard numbers (ADR 0014) on synthetic bars and a small synthetic market.
+  watch: (() => {
+    const bars = Array.from({ length: 260 }, (_, i) => ({
+      date: `d${i}`,
+      open: 100 + Math.sin(i) * 3,
+      high: 110,
+      low: 90,
+      close: 100 + Math.sin(i / 3) * 5,
+      volume: 1000 + (i % 7) * 50,
+      vwap: null,
+    }));
+    const series = new Map([
+      ['A', { close: [10, 11], volume: [5, 5] }],
+      ['B', { close: [10, 9], volume: [5, 5] }],
+      ['XLK', { close: [200, 202], volume: [5, 5] }],
+    ]);
+    return {
+      summary: core.tickerSummary(bars),
+      movers: core.marketMovers(['d0', 'd1'], series, new Set(['A', 'B']), 1),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

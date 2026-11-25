@@ -105,6 +105,8 @@ beforeAll(async () => {
       values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
     insert into public.capitulation_plans (trigger_date, version, plan)
       values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
+    insert into public.market_movers_daily (date, version, n, gainers, losers, sectors)
+      values (date '2026-11-24', 'watch-1', 990, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb);
     insert into public.econ_calendar_snapshots (fetched_at, version, range_from, range_to, events)
       values (timestamptz '2026-11-25 23:40:00+00', 'calendar-1', date '2026-11-25', date '2027-01-24', '[]'::jsonb);
     insert into public.earnings_estimate_snapshots (computed_at, version, estimates)
@@ -281,6 +283,7 @@ describe('system tables', () => {
       'capitulation_daily',
       'capitulation_plans',
       'news_topic_days',
+      'market_movers_daily',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',

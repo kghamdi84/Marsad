@@ -336,8 +336,8 @@
         {
           "id": "3.1",
           "title": "Watch dashboard (market strip, watchlist table, heatmap, movers, gap scanner, news, calendar)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "watch-1 (ADR 0014), end of day: market strip (SPY, QQQ, IWM, DIA, GLD bars; VIX, 10-year, WTI, dollar from FRED, each dated); watchlist table (saved list or the starting tickers: close, 1 day, 1 week, 1 month, from 52-week high, volume against 20-day average, link to Study); sector heatmap and Marsad-universe movers from the breadth job (market_movers_daily, bad prints left out); gap scanner (last session's opening gaps; real-time pre-market needs a paid plan, stated); watchlist news clusters (https links only); economic calendar and earnings estimates (3.12). Changes carry sign and arrow, not colour alone. Hand-checked tickerSummary and marketMovers tests; browser test with hand-worked numbers. Still to do: the first live breadth run for movers and sectors; real-time data when a plan is approved."
         },
         {
           "id": "3.2",

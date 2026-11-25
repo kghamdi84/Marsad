@@ -17,6 +17,7 @@ import type {
   EarningsEstimate,
   EconEvent,
   FearGreedDay,
+  MarketMovers,
   StagedPlan,
   TopicDay,
   MarketRow,
@@ -121,6 +122,7 @@ export interface Store {
     version: string,
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
+  upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
   /** UTC dates already stored in news_topic_days. */
   getTopicDates(): Promise<string[]>;
   upsertTopicDays(rows: readonly TopicDay[], fetchedAt: Date): Promise<number>;
@@ -989,6 +991,21 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .from('earnings_estimate_snapshots')
         .insert({ computed_at: at.toISOString(), version, estimates: rows });
       if (error) throw new Error(`earnings_estimate_snapshots insert failed: ${error.message}`);
+    },
+    async upsertMovers(rows) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        date: r.date,
+        version: r.version,
+        n: r.n,
+        gainers: r.gainers,
+        losers: r.losers,
+        sectors: r.sectors,
+        computed_at: new Date().toISOString(),
+      }));
+      const { error } = await db.from('market_movers_daily').upsert(out, { onConflict: 'date' });
+      if (error) throw new Error(`market_movers_daily upsert failed: ${error.message}`);
+      return out.length;
     },
     async getTopicDates() {
       const { data, error } = await db

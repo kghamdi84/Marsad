@@ -90,3 +90,135 @@ test('watch: before the calendar job has run, the page says so', async ({ page }
   await expect(page.getByText(/No calendar yet/)).toBeVisible();
   await expect(page.getByText(/No estimates yet/)).toBeVisible();
 });
+
+// Every ticker gets the same 22 synthetic bars (not market data): closes 100 to 121, the last opening at 123 on 3
+// times the usual volume. By hand: 1 day +0.8% (121/120), 1 week +4.3% (121/116), 1 month +21.0% (121/100), gap
+// +2.50% (123/120), volume 3.0x.
+function syntheticBars() {
+  return Array.from({ length: 22 }, (_, i) => ({
+    date: new Date(Date.UTC(2026, 9, 26 + i)).toISOString().slice(0, 10),
+    open: i === 21 ? 123 : 100 + i,
+    high: 125,
+    low: 99,
+    close: 100 + i,
+    volume: i === 21 ? 300 : 100,
+    vwap: null,
+  })).reverse();
+}
+
+test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and news', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  await page.clock.setFixedTime(new Date('2026-11-25T12:00:00Z'));
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/daily_bars**', (r) => r.fulfill(json(syntheticBars())));
+  await page.route('**/rest/v1/fred_observations**', (r) => {
+    const id = new URL(r.request().url()).searchParams.get('series_id')?.replace(/^eq\./, '');
+    const rows =
+      id === 'VIXCLS'
+        ? [
+            { date: '2026-11-23', value: 22 },
+            { date: '2026-11-20', value: 20 },
+          ]
+        : id === 'DGS10'
+          ? [
+              { date: '2026-11-23', value: 4.15 },
+              { date: '2026-11-20', value: 4.1 },
+            ]
+          : [];
+    return r.fulfill(json(rows));
+  });
+  await page.route('**/rest/v1/market_movers_daily**', (r) =>
+    r.fulfill(
+      json([
+        {
+          date: '2026-11-24',
+          version: 'watch-1',
+          n: 987,
+          gainers: [{ ticker: 'UP1', close: 55, change: 0.12, dollarVolume: 820e6 }],
+          losers: [{ ticker: 'DN1', close: 20, change: -0.08, dollarVolume: 300e6 }],
+          sectors: [
+            { ticker: 'XLK', sector: 'Technology', change: 0.021 },
+            { ticker: 'XLE', sector: 'Energy', change: -0.013 },
+            { ticker: 'XLU', sector: 'Utilities', change: null },
+          ],
+        },
+      ]),
+    ),
+  );
+  await page.route('**/rest/v1/news_articles**', (r) =>
+    r.fulfill(
+      json([
+        {
+          id: 'a1',
+          published_at: '2026-11-24T21:30:00+00:00',
+          publisher: 'Zacks',
+          title: 'NVDA headline',
+          url: 'https://example.com/a1',
+          tickers: ['NVDA'],
+        },
+        {
+          id: 'a2',
+          published_at: '2026-11-24T20:00:00+00:00',
+          publisher: 'Odd',
+          title: 'Unsafe link headline',
+          url: 'javascript:alert(1)',
+          tickers: ['RKLB'],
+        },
+      ]),
+    ),
+  );
+  await page.goto('/');
+
+  const strip = page.getByRole('region', { name: 'Market strip' });
+  await expect(strip.getByRole('listitem').filter({ hasText: 'S&P 500 (SPY)' })).toContainText(
+    '+0.8%',
+  );
+  await expect(strip.getByRole('listitem').filter({ hasText: 'VIX' })).toContainText('+10.0%');
+  await expect(strip.getByRole('listitem').filter({ hasText: '10-year yield' })).toContainText(
+    '+0.05 points',
+  );
+
+  const list = page.getByRole('region', { name: 'Watchlist' });
+  await expect(list.getByText('Showing the starting tickers')).toBeVisible();
+  const nvda = list.getByRole('row', { name: /^NVDA/ });
+  await expect(nvda).toContainText('121.00');
+  await expect(nvda).toContainText('+4.3%');
+  await expect(nvda).toContainText('+21.0%');
+  await expect(nvda).toContainText('3.0x');
+  await expect(nvda.getByRole('link', { name: 'NVDA' })).toHaveAttribute('href', '/study/NVDA');
+
+  const sectors = page.getByRole('region', { name: 'Sector heatmap' });
+  await expect(sectors.getByRole('listitem').filter({ hasText: 'Technology' })).toContainText(
+    '+2.10%',
+  );
+  await expect(sectors.getByRole('listitem').filter({ hasText: 'Energy' })).toContainText('-1.30%');
+  await expect(sectors.getByRole('listitem').filter({ hasText: 'Utilities' })).toContainText(
+    'No data',
+  );
+
+  const movers = page.getByRole('region', { name: 'Movers in the Marsad universe' });
+  await expect(movers.getByText(/among 987 members/)).toBeVisible();
+  await expect(movers.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
+  await expect(movers.getByRole('row', { name: /DN1/ })).toContainText('-8.0%');
+
+  const gaps = page.getByRole('region', { name: 'Gap scanner' });
+  await expect(gaps.getByRole('row').first()).toContainText('+2.50%');
+
+  const news = page.getByRole('region', { name: 'Watchlist news' });
+  await expect(news.getByRole('link', { name: 'NVDA headline' })).toHaveAttribute(
+    'href',
+    'https://example.com/a1',
+  );
+  // A non-https vendor link is shown as text, never as a link.
+  await expect(news.getByText('Unsafe link headline')).toBeVisible();
+  await expect(news.getByRole('link', { name: 'Unsafe link headline' })).toHaveCount(0);
+  if (process.env.SHOT_DIR)
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/watch-dashboard.png`, fullPage: true });
+});
