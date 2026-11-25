@@ -40,3 +40,5 @@ export * from './backtest.js';
 export * from './playbooks.js';
 export * from './lifecycle.js';
 export * from './replay.js';
+export * from './alerts.js';
+export * from './halt-alerts.js';

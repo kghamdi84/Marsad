@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 4, batch C: playbooks, lifecycle, runner, replay and Lab; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 5, batch A: alert pipeline and halt alerts; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -127,6 +127,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
+
+### Phase 5 batch A: alert pipeline, card, halt alerts and feedback (2026-11-25)
+
+- Phase 5's prerequisites (Massive Stocks plan, Supabase Pro) cost money and are Khaled's decision; I did not buy either. Built what needs neither.
+- **ADR 0019** (`alerts-1`): the pipeline (every gate's outcome stored as a reason), the card in the brief's order, push text limits, halt alerts for watched tickers (news halts critical), the `alerts` and personal `alert_feedback` tables, and the Alerts page with one-tap feedback.
+- **Found while testing**: a halt alert's freshness must be the feed's age, not the halt's (a halt seen by a 5-minute job would always look stale); and a later run must never store the same event again, whatever it decides then.
 
 ### Phase 4 batch C: playbooks, lifecycle, runner, replay and the Lab page (2026-11-25)
 

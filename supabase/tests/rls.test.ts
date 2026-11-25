@@ -105,6 +105,9 @@ beforeAll(async () => {
       values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
     insert into public.capitulation_plans (trigger_date, version, plan)
       values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
+    insert into public.alerts (id, version, kind, priority, ticker, rule_id, rule_version, rule_status, dedupe_key, decision, headline, push, card, input)
+      values ('11111111-1111-4111-8111-111111111111', 'alerts-1', 'halt', 'critical', 'SOFI', 'halts', 1, 'live',
+              'halt|SOFI|halts|halt:x', 'push', 'SOFI halted', '{}'::jsonb, '[]'::jsonb, '{}'::jsonb);
     insert into public.rules (id, version, hash, doc) values ('index-trend-filter', 1, 'abcdef12', '{}'::jsonb);
     insert into public.rule_events (rule_id, version, to_status, reason) values ('index-trend-filter', 1, 'draft', 'new version');
     insert into public.backtest_runs (rule_id, version, engine, params, trials, report)
@@ -294,6 +297,7 @@ describe('system tables', () => {
       'rules',
       'rule_events',
       'backtest_runs',
+      'alerts',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',
@@ -360,6 +364,41 @@ describe('system tables', () => {
         `insert into public.capitulation_daily (date, version, state, conditions) values (date '2026-11-24', 'capitulation-1', 'maybe', '[]')`,
       ),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it('alert feedback is personal: the owner with MFA writes and reads it, nobody else sees it', async () => {
+    // Each `as` call is one transaction that is rolled back, so the write and the read share one.
+    await as(owner2, async (tx) => {
+      await tx.query(
+        `insert into public.alert_feedback (alert_id, verdict) values ('11111111-1111-4111-8111-111111111111', 'useful')`,
+      );
+      expect(await count(tx, 'public.alert_feedback')).toBe(1);
+    });
+    await as(other2, async (tx) => {
+      await tx.query(
+        `insert into public.alert_feedback (alert_id, verdict) values ('11111111-1111-4111-8111-111111111111', 'noise')`,
+      );
+      // The other user sees only their own row, never the owner's.
+      const r = await tx.query<{ verdict: string }>('select verdict from public.alert_feedback');
+      expect(r.rows.map((x) => x.verdict)).toEqual(['noise']);
+    });
+    await expect(
+      as(owner1, (tx) =>
+        tx.query(
+          `insert into public.alert_feedback (alert_id, verdict) values ('11111111-1111-4111-8111-111111111111', 'noise')`,
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into public.alert_feedback (alert_id, verdict) values ('11111111-1111-4111-8111-111111111111', 'maybe')`,
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.alert_feedback'))).rejects.toThrow(
+      /permission denied/,
+    );
   });
 
   it('a rule version cannot change; only its status can', async () => {

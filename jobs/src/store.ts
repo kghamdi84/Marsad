@@ -11,8 +11,11 @@ import { etDate } from '@marsad/core';
 import type {
   AnnualSection,
   BreadthDay,
+  AlertInput,
   Brief,
   BreadthInput,
+  CardSection,
+  HaltRow,
   DailyBar,
   RuleDoc,
   RuleStatus,
@@ -127,6 +130,13 @@ export interface Store {
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
   upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  /** Halts whose halt time is on or after `since`. */
+  getRecentHalts(since: string): Promise<HaltRow[]>;
+  /** Tickers on any saved watchlist. */
+  getWatchlistTickers(): Promise<string[]>;
+  /** Dedupe keys and times of alerts created on or after `since`, and how many were pushed. */
+  getRecentAlerts(since: string): Promise<{ key: string; at: string; decision: string }[]>;
+  insertAlerts(rows: readonly StoredAlert[]): Promise<number>;
   /** Full stored daily bars of one ticker, oldest first. */
   getDailyBars(ticker: string): Promise<DailyBar[]>;
   /** Regime label of every stored day on or after `from`. */
@@ -186,6 +196,20 @@ export interface UniverseRow {
   ticker: string;
   rank: number;
   dollarVolume: number;
+}
+
+/** One alert as stored: its input snapshot, decision, card and push text. */
+export interface StoredAlert {
+  version: string;
+  input: AlertInput;
+  key: string;
+  decision: string;
+  reasons: string[];
+  card: CardSection[];
+  push: { title: string; body: string };
+  sourceAt: string | null;
+  createdAt: string;
+  delivery: Record<string, string>;
 }
 
 /** Tables the brief job may read with `latest`. */
@@ -1178,6 +1202,74 @@ export function supabaseStore(url: string, secretKey: string): Store {
         report: row.report,
       });
       if (error) throw new Error(`backtest_runs insert failed: ${error.message}`);
+    },
+    async getRecentHalts(since) {
+      const { data, error } = await db
+        .from('halts')
+        .select(
+          'symbol, halted_at, reason_code, reason_meaning, news_related, resumption_trade_at, last_seen_at',
+        )
+        .gte('halted_at', since)
+        .order('halted_at', { ascending: true })
+        .limit(1000);
+      if (error) throw new Error(`halts read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({
+        symbol: String(r.symbol),
+        haltedAt: new Date(String(r.halted_at)).toISOString(),
+        reasonCode: String(r.reason_code),
+        reasonMeaning: r.reason_meaning === null ? null : String(r.reason_meaning),
+        newsRelated: r.news_related === true,
+        resumptionTradeAt:
+          r.resumption_trade_at === null
+            ? null
+            : new Date(String(r.resumption_trade_at)).toISOString(),
+        lastSeenAt: new Date(String(r.last_seen_at)).toISOString(),
+      }));
+    },
+    async getWatchlistTickers() {
+      const { data, error } = await db.from('watchlist_items').select('ticker').limit(1000);
+      if (error) throw new Error(`watchlist_items read failed: ${error.message}`);
+      return [...new Set((data ?? []).map((r) => String(r.ticker)))];
+    },
+    async getRecentAlerts(since) {
+      const { data, error } = await db
+        .from('alerts')
+        .select('dedupe_key, created_at, decision')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) throw new Error(`alerts read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({
+        key: String(r.dedupe_key),
+        at: new Date(String(r.created_at)).toISOString(),
+        decision: String(r.decision),
+      }));
+    },
+    async insertAlerts(rows) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        created_at: r.createdAt,
+        version: r.version,
+        kind: r.input.kind,
+        priority: r.input.priority,
+        ticker: r.input.ticker ?? null,
+        rule_id: r.input.ruleId,
+        rule_version: r.input.ruleVersion,
+        rule_status: r.input.ruleStatus,
+        dedupe_key: r.key,
+        decision: r.decision,
+        reasons: r.reasons,
+        headline: r.input.headline.slice(0, 120),
+        push: r.push,
+        card: r.card,
+        input: r.input,
+        source_at: r.sourceAt,
+        latency_ms: r.sourceAt === null ? null : Date.parse(r.createdAt) - Date.parse(r.sourceAt),
+        delivery: r.delivery,
+      }));
+      const { error } = await db.from('alerts').insert(out);
+      if (error) throw new Error(`alerts insert failed: ${error.message}`);
+      return out.length;
     },
     async upsertMovers(rows) {
       if (rows.length === 0) return 0;

@@ -3,6 +3,7 @@ import type {
   AnnualSection,
   Bar,
   Brief,
+  HaltRow,
   DailyBar,
   RuleDoc,
   RuleStatus,
@@ -30,6 +31,7 @@ import type {
 } from '@marsad/core';
 import { decodeList, decodeSnapshot, encodeList, encodeSnapshot } from './snapshot-codec.js';
 import type {
+  StoredAlert,
   BreadthRow,
   DailyClose,
   EarningsEstimateRow,
@@ -79,6 +81,7 @@ export interface FakeLog {
     trials: number;
     report: Record<string, unknown>;
   }[];
+  storedAlerts: StoredAlert[][];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -103,6 +106,9 @@ export interface FakeSeed {
   bars?: Record<string, DailyBar[]>;
   regimeLabels?: { date: string; label: string }[];
   rules?: Record<string, { version: number; hash: string; status: RuleStatus }[]>;
+  halts?: HaltRow[];
+  watchlist?: string[];
+  recentAlerts?: { key: string; at: string; decision: string }[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -125,7 +131,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'resultsFilings' in x ||
       'latestRows' in x ||
       'bars' in x ||
-      'rules' in x);
+      'rules' in x ||
+      'halts' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -161,12 +168,21 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     ruleVersions: [],
     ruleEvents: [],
     backtestRuns: [],
+    storedAlerts: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    getRecentHalts: (since) => Promise.resolve((s.halts ?? []).filter((h) => h.haltedAt >= since)),
+    getWatchlistTickers: () => Promise.resolve([...(s.watchlist ?? [])]),
+    getRecentAlerts: (since) =>
+      Promise.resolve((s.recentAlerts ?? []).filter((a) => a.at >= since)),
+    insertAlerts: (rows) => {
+      log.storedAlerts.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
     getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
     getRegimeLabels: (from) =>
       Promise.resolve((s.regimeLabels ?? []).filter((r) => r.date >= from)),
