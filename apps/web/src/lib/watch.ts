@@ -182,6 +182,7 @@ export async function loadBriefs(): Promise<StoredBrief[]> {
   const r = await client()
     .from('briefs')
     .select('kind, for_date, title, sections, delivery, created_at')
+    .in('kind', ['pre-market', 'close-recap'])
     .order('created_at', { ascending: false })
     .limit(2);
   if (r.error) throw new Error(`briefs: ${r.error.message}`);

@@ -128,6 +128,10 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Weekly review from templates (2026-11-25)
+
+- **ADR 0029** (`weekly-review-1`): each Sunday after the export, a review of the week's results and behavior (broken rules named), alerts, feedback and scorecard, written by code, stored as a brief, emailed when Resend is configured, and shown on the Journal page. The Opus prose waits for an Anthropic key.
+
 ### Cost tracker (2026-11-25)
 
 - **ADR 0028** (`costs-1`): the Status page lists every plan's monthly cost (all USD 0 today), AI spend against caps Khaled sets in Preferences (blank caps keep AI off; warning at 80%, templates at the cap), and GitHub Actions minutes estimated from the job log.

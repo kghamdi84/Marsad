@@ -205,6 +205,10 @@ export const t = {
       overlap:
         'ETF overlap needs ETF constituent data, which the current data plans do not include; it arrives with that data.',
     },
+    review: {
+      title: 'Weekly review',
+      none: 'The first weekly review is written on Sunday at 07:10 UTC, after the export.',
+    },
     trades: {
       title: 'Trades and adherence',
       intro:

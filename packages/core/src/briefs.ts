@@ -7,7 +7,7 @@ import { toFixedHalfUp } from './ai/template.js';
 
 export const BRIEF_VERSION = 'brief-1';
 
-export type BriefKind = 'pre-market' | 'close-recap';
+export type BriefKind = 'pre-market' | 'close-recap' | 'weekly-review';
 
 export interface BriefInputs {
   /** US Eastern date the brief is for. */

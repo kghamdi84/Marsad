@@ -149,6 +149,8 @@ export interface Store {
   /** Keys `alertId|horizon` of outcomes already finished. */
   getFinishedOutcomeKeys(alertIds: readonly string[]): Promise<Set<string>>;
   upsertOutcomes(rows: readonly Outcome[], version: string): Promise<number>;
+  /** Stored outcomes of these alerts. */
+  getOutcomes(alertIds: readonly string[]): Promise<Outcome[]>;
   /** Every row of an export table (allow-listed), oldest first by its natural order. */
   exportRows(table: string): Promise<Record<string, unknown>[]>;
   /** Writes one export file to the private exports bucket (replacing a file of the same path). */
@@ -1178,6 +1180,35 @@ export function supabaseStore(url: string, secretKey: string): Store {
           .in('status', ['done', 'unavailable']);
         if (error) throw new Error(`alert_outcomes read failed: ${error.message}`);
         for (const r of data ?? []) out.add(`${String(r.alert_id)}|${String(r.horizon)}`);
+      }
+      return out;
+    },
+    async getOutcomes(alertIds) {
+      const out: Outcome[] = [];
+      const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+      for (let i = 0; i < alertIds.length; i += 200) {
+        const { data, error } = await db
+          .from('alert_outcomes')
+          .select(
+            'alert_id, horizon, status, note, ref_date, end_date, ret, bench_ret, excess, mfe, mae, hit',
+          )
+          .in('alert_id', alertIds.slice(i, i + 200));
+        if (error) throw new Error(`alert_outcomes read failed: ${error.message}`);
+        for (const r of data ?? [])
+          out.push({
+            alertId: String(r.alert_id),
+            horizon: String(r.horizon) as Outcome['horizon'],
+            status: String(r.status) as Outcome['status'],
+            note: r.note === null ? null : String(r.note),
+            refDate: r.ref_date === null ? null : String(r.ref_date),
+            endDate: r.end_date === null ? null : String(r.end_date),
+            ret: n(r.ret),
+            benchRet: n(r.bench_ret),
+            excess: n(r.excess),
+            mfe: n(r.mfe),
+            mae: n(r.mae),
+            hit: (r.hit ?? null) as Outcome['hit'],
+          });
       }
       return out;
     },

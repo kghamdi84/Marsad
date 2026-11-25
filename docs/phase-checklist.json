@@ -708,8 +708,8 @@
         {
           "id": "7.8",
           "title": "Weekly AI review",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "weekly-review-1 (ADR 0029): Sunday job writes the review from templates (results, behavior with broken rules named, alerts and feedback, 5-session scorecard, regime), stored with inputs as a weekly-review brief, emailed when configured, shown on the Journal page. Still to do: the Opus prose (needs an Anthropic key and caps)."
         }
       ]
     },

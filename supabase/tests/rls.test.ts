@@ -557,6 +557,13 @@ describe('system tables', () => {
     await db.query(`delete from storage.objects`);
   });
 
+  it('briefs accept the weekly review kind', async () => {
+    await db.query(
+      `insert into public.briefs (kind, for_date, version, title, push_body, sections, inputs) values ('weekly-review', date '2026-11-29', 'weekly-review-1', 'Weekly review, week ending 2026-11-29', '0 closed.', '[]'::jsonb, '{}'::jsonb)`,
+    );
+    await db.query(`delete from public.briefs where kind = 'weekly-review'`);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

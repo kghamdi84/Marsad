@@ -28,6 +28,7 @@ import {
   addHoldings,
   closeHolding,
   loadHoldings,
+  loadWeeklyReview,
   updateHoldingMeta,
   type BarsByTicker,
   type StoredHolding,
@@ -576,6 +577,30 @@ function Portfolio() {
   );
 }
 
+function WeeklyReview() {
+  const q = useQuery({ queryKey: ['weekly-review'], queryFn: loadWeeklyReview });
+  const x = j.review;
+  return (
+    <section aria-labelledby="weekly-review" className="flex flex-col gap-2">
+      <h2 id="weekly-review" className="font-semibold">
+        {q.data ? q.data.title : x.title}
+      </h2>
+      {q.isError && <ErrorText message={q.error.message} />}
+      {q.data === null && <p className="text-muted">{x.none}</p>}
+      {q.data?.sections.map((s) => (
+        <div key={s.heading}>
+          <h3 className="text-sm font-medium text-muted">{s.heading}</h3>
+          {s.lines.map((l) => (
+            <p key={l} className="text-sm">
+              {l}
+            </p>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function Journal() {
   return (
     <section className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -587,6 +612,7 @@ export function Journal() {
       <Holdings />
       <Portfolio />
       <Trades />
+      <WeeklyReview />
     </section>
   );
 }

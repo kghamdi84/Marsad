@@ -1,7 +1,7 @@
-name: Weekly exports
+name: Weekly exports and review
 
-# Writes Khaled's journal, holdings, theses, watchlists, feedback and the rule library to the private exports
-# bucket each Sunday (ADR 0026), one dated folder per week. Reads and writes only Supabase.
+# Each Sunday: writes Khaled's journal, holdings, theses, watchlists, feedback and the rule library to the private
+# exports bucket (ADR 0026), then the weekly review from templates (ADR 0029), emailed when Resend is configured.
 on:
   schedule:
     - cron: '10 7 * * 0' # 07:10 UTC Sundays
@@ -31,3 +31,11 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Write the weekly review
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs weekly-review
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BRIEF_EMAIL_TO: ${{ secrets.BRIEF_EMAIL_TO }}
