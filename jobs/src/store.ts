@@ -10,6 +10,8 @@ import {
 import { etDate } from '@marsad/core';
 import type {
   HoldingRef,
+  Outcome,
+  ScoredAlert,
   AnnualSection,
   BreadthDay,
   AlertInput,
@@ -142,6 +144,11 @@ export interface Store {
   getDailyBars(ticker: string): Promise<DailyBar[]>;
   /** When the newest stored bar of a ticker was fetched, or null without bars. */
   getBarsFetchedAt(ticker: string): Promise<string | null>;
+  /** Directional-or-not alerts since an instant (suppressed signals left out), for the scorecard. */
+  getAlertsForScoring(since: string): Promise<ScoredAlert[]>;
+  /** Keys `alertId|horizon` of outcomes already finished. */
+  getFinishedOutcomeKeys(alertIds: readonly string[]): Promise<Set<string>>;
+  upsertOutcomes(rows: readonly Outcome[], version: string): Promise<number>;
   /** Open holdings of every owner (the app has one), with their row ids. */
   getOpenHoldings(): Promise<HoldingRef[]>;
   /** Regime label of every stored day on or after `from`. */
@@ -1106,6 +1113,69 @@ export function supabaseStore(url: string, secretKey: string): Store {
         { onConflict: 'kind,for_date' },
       );
       if (error) throw new Error(`briefs upsert failed: ${error.message}`);
+    },
+    async getAlertsForScoring(since) {
+      const { data, error } = await db
+        .from('alerts')
+        .select('id, created_at, kind, ticker, rule_id, rule_status, input')
+        .neq('decision', 'suppress')
+        .gte('created_at', since)
+        .order('created_at', { ascending: true })
+        .limit(5000);
+      if (error) throw new Error(`alerts read failed: ${error.message}`);
+      return (data ?? []).map((r) => {
+        const input = (r.input ?? {}) as {
+          plan?: { stop: number; targets: number[] };
+          qualityScore?: number;
+        };
+        return {
+          id: String(r.id),
+          createdAt: new Date(String(r.created_at)).toISOString(),
+          kind: String(r.kind),
+          ticker: r.ticker === null ? null : String(r.ticker),
+          ruleId: String(r.rule_id),
+          ruleStatus: r.rule_status === 'shadow' ? 'shadow' : 'live',
+          ...(input.plan ? { plan: { stop: input.plan.stop, targets: input.plan.targets } } : {}),
+          ...(typeof input.qualityScore === 'number' ? { qualityScore: input.qualityScore } : {}),
+        };
+      });
+    },
+    async getFinishedOutcomeKeys(alertIds) {
+      const out = new Set<string>();
+      for (let i = 0; i < alertIds.length; i += 200) {
+        const { data, error } = await db
+          .from('alert_outcomes')
+          .select('alert_id, horizon')
+          .in('alert_id', alertIds.slice(i, i + 200))
+          .in('status', ['done', 'unavailable']);
+        if (error) throw new Error(`alert_outcomes read failed: ${error.message}`);
+        for (const r of data ?? []) out.add(`${String(r.alert_id)}|${String(r.horizon)}`);
+      }
+      return out;
+    },
+    async upsertOutcomes(rows, version) {
+      if (rows.length === 0) return 0;
+      const { error } = await db.from('alert_outcomes').upsert(
+        rows.map((o) => ({
+          alert_id: o.alertId,
+          horizon: o.horizon,
+          version,
+          status: o.status,
+          note: o.note,
+          ref_date: o.refDate,
+          end_date: o.endDate,
+          ret: o.ret,
+          bench_ret: o.benchRet,
+          excess: o.excess,
+          mfe: o.mfe,
+          mae: o.mae,
+          hit: o.hit,
+          computed_at: new Date().toISOString(),
+        })),
+        { onConflict: 'alert_id,horizon' },
+      );
+      if (error) throw new Error(`alert_outcomes upsert failed: ${error.message}`);
+      return rows.length;
     },
     async getBarsFetchedAt(ticker) {
       const { data, error } = await db

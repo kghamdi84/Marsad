@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { economicCalendar, estimateNextEarnings } from '@marsad/core';
 import releaseDates from '../../../fixtures/fred/fred-release-dates-2026-11-25.json' with { type: 'json' };
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 // The calendar from the real FRED release dates (recorded 2026-11-25) through the job's own core function.
 const dates = (

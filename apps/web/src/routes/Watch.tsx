@@ -255,7 +255,7 @@ function WatchlistSection({ data }: { data: WatchData }) {
                     <Link
                       to="/study/$ticker"
                       params={{ ticker: tk }}
-                      className="underline underline-offset-2"
+                      className="inline-flex min-h-11 min-w-11 items-center underline underline-offset-2"
                     >
                       {tk}
                     </Link>
@@ -426,7 +426,7 @@ function NewsSection({ data }: { data: WatchData }) {
                     href={first.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium underline underline-offset-2"
+                    className="inline-flex min-h-11 items-center font-medium underline underline-offset-2"
                   >
                     {first.title}
                   </a>

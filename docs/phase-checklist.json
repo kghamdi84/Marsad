@@ -702,8 +702,8 @@
         {
           "id": "7.7",
           "title": "Scorecard dashboards with calibration",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "scorecard-1 (ADR 0023): alert_outcomes at 1, 5 and 20 sessions (signed by direction, against SPY, excursions, first level touched) from job scorecard after each bars run; per-rule live and shadow summaries with Wilson intervals from 30 cases and calibration by quality-score bins, all recomputed from raw outcomes by a test. +1 hour needs intraday bars (labeled)."
         },
         {
           "id": "7.8",
@@ -751,20 +751,20 @@
         {
           "id": "8.5",
           "title": "Security review (RLS audit, advisors, headers, dependency audit)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "docs/SECURITY_REVIEW.md: seven schema guards (policies for authenticated with MFA, personal tables filtered by owner, no system-table writes, no views or security-definer functions, private schema closed to anon), each mutation-checked; live auth settings (sign-ups disabled, email only); live headers plus COOP and CORP added; bundle free of secrets; pnpm audit clean for production; Actions pinned to SHAs with Dependabot. Still to do: Khaled reads the Supabase Security Advisor (connector lacks permission)."
         },
         {
           "id": "8.6",
           "title": "Performance and accessibility passes",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Routes load on demand (landing bundle 524 KB to 265 KB). Every browser test runs on desktop and an iPad-sized touch viewport and ends with an axe WCAG 2.2 A and AA scan, plus a dedicated scan of every page (96 runs pass). Fixed: ticker link target size, chart container role (figure, so the attribution link stays reachable)."
         },
         {
           "id": "8.7",
           "title": "README in Google style",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "README.md rewritten in Google style: what Marsad does and does not do, architecture, layout, develop, testing, scheduled jobs (UTC), security, writing style."
         }
       ]
     },

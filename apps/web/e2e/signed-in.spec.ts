@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 test('an aal1 session is sent to the two-factor check', async ({ page }) => {
   await seedSession(page, 'aal1');

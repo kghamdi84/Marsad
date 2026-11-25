@@ -1,6 +1,8 @@
 /** An in-memory Store for tests. Records every write; `fred` seeds what getFredRange returns. */
 import type {
   HoldingRef,
+  Outcome,
+  ScoredAlert,
   AnnualSection,
   Bar,
   Brief,
@@ -83,6 +85,7 @@ export interface FakeLog {
     report: Record<string, unknown>;
   }[];
   storedAlerts: StoredAlert[][];
+  outcomes: Outcome[][];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -112,6 +115,9 @@ export interface FakeSeed {
   recentAlerts?: { key: string; at: string; decision: string }[];
   barsFetchedAt?: Record<string, string>;
   holdings?: HoldingRef[];
+  scoredAlerts?: ScoredAlert[];
+  /** Keys `alertId|horizon` already finished. */
+  finishedOutcomes?: string[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -172,6 +178,7 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     ruleEvents: [],
     backtestRuns: [],
     storedAlerts: [],
+    outcomes: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
@@ -189,6 +196,16 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
     getBarsFetchedAt: (ticker) => Promise.resolve(s.barsFetchedAt?.[ticker] ?? null),
     getOpenHoldings: () => Promise.resolve([...(s.holdings ?? [])]),
+    getAlertsForScoring: (since) =>
+      Promise.resolve((s.scoredAlerts ?? []).filter((a) => a.createdAt >= since)),
+    getFinishedOutcomeKeys: (ids) =>
+      Promise.resolve(
+        new Set((s.finishedOutcomes ?? []).filter((k) => ids.includes(k.split('|')[0] ?? ''))),
+      ),
+    upsertOutcomes: (rows) => {
+      log.outcomes.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
     getRegimeLabels: (from) =>
       Promise.resolve((s.regimeLabels ?? []).filter((r) => r.date >= from)),
     getRuleVersions: (id) => Promise.resolve([...(s.rules?.[id] ?? [])]),

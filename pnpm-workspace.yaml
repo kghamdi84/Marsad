@@ -5,3 +5,6 @@ packages:
   - jobs
 onlyBuiltDependencies:
   - esbuild
+overrides:
+  # Dev-only accessibility engine for the browser tests; held at a release over a month old.
+  axe-core: 4.14.0

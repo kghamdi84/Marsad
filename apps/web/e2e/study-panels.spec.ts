@@ -5,7 +5,9 @@ import sections from '../../../fixtures/massive/sections-NVDA-risk_factors.json'
 import shortInterest from '../../../fixtures/massive/short-interest-NVDA.json' with { type: 'json' };
 import shortVolume from '../../../fixtures/massive/short-volume-NVDA.json' with { type: 'json' };
 import factsFixture from '../../../fixtures/sec/companyfacts-NVDA-trimmed.json' with { type: 'json' };
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 // Every row below is built from the responses recorded from the live services on 2026-11-24 (fixtures/), reshaped
 // into the columns the database tables use. Nothing is invented except the price bars, which only need to end at 300.

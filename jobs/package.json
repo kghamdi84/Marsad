@@ -17,7 +17,8 @@
     "brief": "tsx src/brief-main.ts",
     "backtest": "tsx src/backtest-main.ts",
     "alerts-halts": "tsx src/halt-alerts-main.ts",
-    "alerts-exits": "tsx src/exit-alerts-main.ts"
+    "alerts-exits": "tsx src/exit-alerts-main.ts",
+    "scorecard": "tsx src/scorecard-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

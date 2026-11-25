@@ -1,4 +1,5 @@
-import type { Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
 
 // A locally forged session. The app decodes the token's aal claim to decide
 // what to show; the database enforces the real check (see supabase/tests).
@@ -44,4 +45,30 @@ export async function seedSession(page: Page, aal: 'aal1' | 'aal2') {
       body: JSON.stringify({ totp: user.factors }),
     }),
   );
+}
+
+/**
+ * WCAG 2.2 A and AA violations axe finds on what the page shows. The sticky tab bar covers whatever sits at the
+ * viewport's lower edge until it is scrolled; a viewport as tall as the page puts the bar after all content, so
+ * target sizes are measured as a user scrolls to them.
+ */
+export async function axeViolations(page: Page): Promise<string[]> {
+  const width = page.viewportSize()?.width ?? 1280;
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width, height: Math.min(Math.max(height, 400), 12_000) });
+  const r = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  return r.violations.map(
+    (v) =>
+      `${v.id}: ${v.nodes.map((n) => `${n.target.join(' ')} (${n.failureSummary ?? ''})`).join(', ')}`,
+  );
+}
+
+/** After each passing test in the file, the page must have no WCAG 2.2 A or AA violations (Phase 8 pass). */
+export function scanAfterEach() {
+  test.afterEach(async ({ page }, info) => {
+    if (info.status !== 'passed') return;
+    expect(await axeViolations(page)).toEqual([]);
+  });
 }

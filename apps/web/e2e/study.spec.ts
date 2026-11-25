@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { seedSession } from './helpers';
+import { seedSession, scanAfterEach } from './helpers';
+
+scanAfterEach();
 
 /** 260 weekday bars ending on `last`, rising 0.5 a day so every average and the trend are defined. */
 function bars(last: string) {
@@ -100,7 +102,7 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
 
   // The chart really draws (canvas elements exist and have size).
   const canvas = page
-    .getByRole('img', { name: /Daily candlestick chart for NVDA, last bar 2026-11-24/ })
+    .getByRole('figure', { name: /Daily candlestick chart for NVDA, last bar 2026-11-24/ })
     .locator('canvas')
     .first();
   await expect(canvas).toBeVisible();
@@ -198,7 +200,7 @@ test('the chart draws under the production Content Security Policy, with no viol
   );
   await page.goto('/study/NVDA');
   const canvas = page
-    .getByRole('img', { name: /Daily candlestick chart/ })
+    .getByRole('figure', { name: /Daily candlestick chart/ })
     .locator('canvas')
     .first();
   await expect(canvas).toBeVisible();

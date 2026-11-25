@@ -24,7 +24,7 @@ export function NewsPanel({ ticker }: { ticker: string }) {
               <li key={c.id} className="rounded-sm border border-line p-3">
                 {/^https:\/\//.test(first.url) ? (
                   <a
-                    className="font-medium underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center font-medium underline underline-offset-4"
                     href={first.url}
                     target="_blank"
                     rel="noopener noreferrer"

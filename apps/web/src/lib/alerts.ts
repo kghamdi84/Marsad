@@ -1,4 +1,4 @@
-import type { CardSection } from '@marsad/core';
+import type { CardSection, HorizonKey, Outcome, ScoredAlert } from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -63,4 +63,57 @@ export async function saveFeedback(alertId: string, verdict: Verdict): Promise<v
     .from('alert_feedback')
     .upsert({ alert_id: alertId, verdict }, { onConflict: 'alert_id,owner_id' });
   if (r.error) throw new Error(`feedback: ${r.error.message}`);
+}
+
+/**
+ * The scorecard's raw inputs: alerts of the last 120 days (suppressed signals left out) and their stored outcomes.
+ * Every summary on the page is computed from these rows in the browser.
+ */
+export async function loadScorecard(): Promise<{ alerts: ScoredAlert[]; outcomes: Outcome[] }> {
+  const since = new Date(Date.now() - 120 * 86_400_000).toISOString();
+  const [a, o] = await Promise.all([
+    client()
+      .from('alerts')
+      .select('id, created_at, kind, ticker, rule_id, rule_status, input')
+      .neq('decision', 'suppress')
+      .gte('created_at', since)
+      .limit(2000),
+    client()
+      .from('alert_outcomes')
+      .select(
+        'alert_id, horizon, status, note, ref_date, end_date, ret, bench_ret, excess, mfe, mae, hit',
+      )
+      .limit(6000),
+  ]);
+  if (a.error) throw new Error(`alerts: ${a.error.message}`);
+  if (o.error) throw new Error(`alert_outcomes: ${o.error.message}`);
+  const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    alerts: ((a.data ?? []) as Record<string, unknown>[]).map((r) => {
+      const input = (r['input'] ?? {}) as { qualityScore?: number };
+      return {
+        id: String(r['id']),
+        createdAt: String(r['created_at']),
+        kind: String(r['kind']),
+        ticker: r['ticker'] === null ? null : String(r['ticker']),
+        ruleId: String(r['rule_id']),
+        ruleStatus: r['rule_status'] === 'shadow' ? 'shadow' : 'live',
+        ...(typeof input.qualityScore === 'number' ? { qualityScore: input.qualityScore } : {}),
+      };
+    }),
+    outcomes: ((o.data ?? []) as Record<string, unknown>[]).map((r) => ({
+      alertId: String(r['alert_id']),
+      horizon: String(r['horizon']) as HorizonKey,
+      status: String(r['status']) as Outcome['status'],
+      note: r['note'] === null ? null : String(r['note']),
+      refDate: r['ref_date'] === null ? null : String(r['ref_date']),
+      endDate: r['end_date'] === null ? null : String(r['end_date']),
+      ret: n(r['ret']),
+      benchRet: n(r['bench_ret']),
+      excess: n(r['excess']),
+      mfe: n(r['mfe']),
+      mae: n(r['mae']),
+      hit: (r['hit'] ?? null) as Outcome['hit'],
+    })),
+  };
 }
