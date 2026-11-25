@@ -27,3 +27,4 @@ export * from './ai/template.js';
 export * from './adapters/index.js';
 export * from './riskfactors.js';
 export * from './regime.js';
+export * from './breadth.js';
