@@ -45,3 +45,5 @@ const releases =
 emit('fred-releases', `${base}${listPath}`, list.status, {
   releases: releases.map((r) => ({ id: r.id, name: r.name, press_release: r.press_release })),
 });
+
+export {};
