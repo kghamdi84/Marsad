@@ -696,8 +696,8 @@
         {
           "id": "7.6",
           "title": "Journal with screenshots and Jimmy D adherence score",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "journal-1 (ADR 0024): personal trades table linked to alerts, with tags, notes and up to six screenshots in a private Storage bucket (owner folder, MFA; policy tested offline); Jimmy D adherence score by principle with broken items listed; statistics by setup and adherence against result with 30-case flags. Unit, RLS and browser tests."
         },
         {
           "id": "7.7",

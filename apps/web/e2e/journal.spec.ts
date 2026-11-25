@@ -15,25 +15,26 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
   await seedSession(page, 'aal2');
   await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
   await page.goto('/journal');
-  await page.getByLabel('Ticker').fill('rklb');
-  await page.getByLabel('Account size (USD)').fill('50000');
-  await page.getByLabel('Risk per trade (%)').fill('0.5');
-  await page.getByLabel('Limit price').fill('24.15');
-  await page.getByLabel('Stop', { exact: true }).fill('22.15');
-  await page.getByLabel('Targets (separate with spaces)').fill('28.15 30.15');
+  const sizer = page.getByRole('region', { name: 'Pre-trade checklist and position sizer' });
+  await sizer.getByLabel('Ticker').fill('rklb');
+  await sizer.getByLabel('Account size (USD)').fill('50000');
+  await sizer.getByLabel('Risk per trade (%)').fill('0.5');
+  await sizer.getByLabel('Limit price').fill('24.15');
+  await sizer.getByLabel('Stop', { exact: true }).fill('22.15');
+  await sizer.getByLabel('Targets (separate with spaces)').fill('28.15 30.15');
   // USD 250 at risk over a 2.00 stop distance: 125 shares, USD 3,018.75 (6.0% of the account); 2.0R and 3.0R.
   await expect(
-    page.getByText(
+    sizer.getByText(
       '125 shares; risk USD 250.00 if the stop fills; position USD 3018.75 (6.0% of the account).',
     ),
   ).toBeVisible();
-  await expect(page.getByText('Reward to risk: 2.0R, 3.0R.')).toBeVisible();
-  await expect(page.getByTestId('sahm-ticket')).toHaveText(
+  await expect(sizer.getByText('Reward to risk: 2.0R, 3.0R.')).toBeVisible();
+  await expect(sizer.getByTestId('sahm-ticket')).toHaveText(
     'BUY 125 RKLB LIMIT 24.15, STOP 22.15, GTC',
   );
-  const copy = page.getByRole('button', { name: 'Copy Sahm order ticket' });
+  const copy = sizer.getByRole('button', { name: 'Copy Sahm order ticket' });
   await expect(copy).toBeDisabled();
-  for (const box of await page.getByRole('checkbox').all()) await box.check();
+  for (const box of await sizer.getByRole('checkbox').all()) await box.check();
   await expect(copy).toBeEnabled();
 });
 
@@ -220,4 +221,137 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
 
   await page.getByLabel('Thesis').selectOption('broken');
   await expect.poll(() => patched).toEqual({ sector_etf: 'XLI', thesis_status: 'broken' });
+});
+
+test('journal: trades with adherence, statistics by setup, logging, exits and private screenshots', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  const OWNER = '00000000-0000-4000-8000-00000000000a';
+  // A 1 x 1 PNG.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const all5 = {
+    cleanSetup: true,
+    notExtended: true,
+    riskDefined: true,
+    profitPlan: true,
+    bearCaseRead: true,
+  };
+  const trades = [
+    {
+      id: 1,
+      ticker: 'RKLB',
+      side: 'long',
+      setup: 'trend-template-breakout',
+      tags: [],
+      alert_id: null,
+      entry_date: '2026-11-02',
+      entry_price: 24,
+      shares: 100,
+      stop: 22,
+      target: 30,
+      exit_date: '2026-11-10',
+      exit_price: 28,
+      checklist: all5,
+      followed: { stopPlaced: true, sizedBySizer: true, exitedPerPlan: true, noEmotion: false },
+      notes: 'Took profits at the plan.',
+      screenshots: [`${OWNER}/trade-1-1.png`],
+    },
+    {
+      id: 2,
+      ticker: 'SOFI',
+      side: 'long',
+      setup: '',
+      tags: [],
+      alert_id: null,
+      entry_date: '2026-11-20',
+      entry_price: 18,
+      shares: 50,
+      stop: 17,
+      target: null,
+      exit_date: null,
+      exit_price: null,
+      checklist: {},
+      followed: {},
+      notes: '',
+      screenshots: [],
+    },
+  ];
+  const writes: { method: string; url: string; body: unknown }[] = [];
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/trades**', (r) => {
+    const m = r.request().method();
+    if (m === 'GET')
+      return r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(trades),
+      });
+    writes.push({ method: m, url: r.request().url(), body: r.request().postDataJSON() });
+    return r.fulfill({ status: m === 'POST' ? 201 : 204, body: '' });
+  });
+  await page.route('**/storage/v1/object/**', (r) => {
+    const m = r.request().method();
+    if (m === 'GET') return r.fulfill({ status: 200, contentType: 'image/png', body: png });
+    writes.push({ method: m, url: r.request().url(), body: null });
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ Key: 'journal/x', Id: 'x' }),
+    });
+  });
+  await page.goto('/journal');
+  const section = page.getByRole('region', { name: 'Trades and adherence' });
+  // RKLB: (28 - 24) / (24 - 22) = 2R, USD 400; 10 items, noEmotion not honored: 9 of 10 = 90.
+  const rklb = section.getByRole('listitem').filter({ hasText: 'RKLB' });
+  await expect(rklb).toContainText('Result ▲ +2.00R, USD ▲ +400.00.');
+  await expect(rklb).toContainText('Adherence 90 (9 of 10 items).');
+  await expect(rklb).toContainText('No chasing, no revenge trade, no moving the stop away.');
+  await expect(rklb.getByRole('img', { name: 'Screenshot 1 of the RKLB trade' })).toBeVisible();
+  // SOFI is open, unnamed, nothing ticked: 0 of 9.
+  const sofi = section.getByRole('listitem').filter({ hasText: 'SOFI' });
+  await expect(sofi).toContainText('Adherence 0 (0 of 9 items).');
+  await expect(section.getByRole('row', { name: /^All trades/ })).toContainText('1 (1)');
+  await expect(section).toContainText('Each group needs 30 closed trades');
+
+  await sofi.getByLabel('Add a screenshot (PNG, JPEG or WebP, up to 5 MB)').setInputFiles({
+    name: 'chart.png',
+    mimeType: 'image/png',
+    buffer: png,
+  });
+  await expect
+    .poll(() => writes.find((w) => w.url.includes('/storage/'))?.url ?? '')
+    .toContain(`/journal/${OWNER}/trade-2-1.png`);
+  await expect
+    .poll(() => writes.find((w) => w.method === 'PATCH')?.body)
+    .toMatchObject({ screenshots: [`${OWNER}/trade-2-1.png`] });
+
+  await sofi.getByLabel('Exit price').fill('19.5');
+  await sofi.getByLabel('The exit followed the plan.').check();
+  await sofi.getByRole('button', { name: 'Record exit' }).click();
+  await expect
+    .poll(() => writes.filter((w) => w.method === 'PATCH').at(-1)?.body)
+    .toMatchObject({ exit_price: 19.5, followed: { exitedPerPlan: true } });
+
+  const form = page.getByRole('form', { name: 'Log a trade' });
+  await form.getByLabel('Ticker').fill('nvda');
+  await form.getByLabel('Entry price').fill('180');
+  await form.getByLabel('Shares', { exact: true }).fill('10');
+  await form.getByLabel('Setup (playbook or your own name)').fill('trend-template-breakout');
+  await form.getByLabel('The stop was placed in Sahm when the order filled.').check();
+  await form.getByRole('button', { name: 'Save trade' }).click();
+  await expect
+    .poll(() => writes.find((w) => w.method === 'POST' && w.url.includes('/rest/v1/trades'))?.body)
+    .toMatchObject({
+      ticker: 'NVDA',
+      entry_price: 180,
+      shares: 10,
+      setup: 'trend-template-breakout',
+      followed: { stopPlaced: true },
+    });
 });

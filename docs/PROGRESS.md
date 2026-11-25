@@ -128,6 +128,11 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Phase 7 batch D: trade journal and adherence (2026-11-25)
+
+- **ADR 0024** (`journal-1`): trades placed in Sahm, linked to alerts, with tags, notes and private screenshots; the Jimmy D adherence score by principle with every broken item named; statistics by setup and whether high adherence paid (with 30-trade flags).
+- **Verified**: hand-checked adherence, R and statistics; RLS tests for trades and the Storage policy (owner folder, MFA, others refused); browser test for logging, exits, upload and display. Browser suite now 100 runs (desktop and iPad), each with a WCAG scan; the scan waits for the layout to settle (one intermittent result fixed).
+
 ### Phase 7 batch C: the scorecard (2026-11-25)
 
 - **ADR 0023** (`scorecard-1`): every directional alert's outcome after 1, 5 and 20 sessions against SPY, with excursions and the first plan level touched, stored in `alert_outcomes` by the nightly `scorecard` job; the Alerts page summarizes them per rule, live against shadow, with Wilson intervals from 30 cases and quality-score calibration.
