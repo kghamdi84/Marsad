@@ -9,6 +9,7 @@ import {
   toFixedHalfUp,
 } from '@marsad/core';
 import { num, td, th, thNum } from '../components/study/Panel';
+import { Scenarios } from '../components/alerts/Scenarios';
 import {
   loadAlerts,
   loadScorecard,
@@ -190,6 +191,7 @@ export function Alerts() {
         {a.showSuppressed}
       </label>
       <Scorecard />
+      <Scenarios />
       {q.isPending && <p className="text-muted">{t.loading}</p>}
       {q.isError && (
         <p role="alert" className="text-down">

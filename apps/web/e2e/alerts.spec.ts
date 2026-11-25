@@ -160,3 +160,71 @@ test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow
     'Not enough scored alerts carry a quality score yet (30 needed).',
   );
 });
+
+test('catalyst scenarios: a written scenario is listed; saving needs a trigger and a plan', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  let posted: unknown = null;
+  const stored = [
+    {
+      id: 7,
+      name: 'NVDA CEO returns',
+      tickers: ['NVDA'],
+      keywords: ['ceo'],
+      eight_k_items: ['5.02'],
+      form4_codes: [],
+      news_min_tier: 2,
+      halts: false,
+      move_pct: null,
+      volume_ratio: null,
+      plan_entry: 'Watch for a first range break that holds VWAP.',
+      chase_guard_pct: 0.1,
+      plan_invalidation: 'Below the pre-market low.',
+      plan_size: 'half',
+      expires_on: '2026-12-31',
+      active: true,
+    },
+  ];
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/catalyst_scenarios**', (r) => {
+    if (r.request().method() === 'POST') {
+      posted = r.request().postDataJSON();
+      return r.fulfill({ status: 201, body: '' });
+    }
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(stored),
+    });
+  });
+  await page.goto('/alerts');
+  const section = page.getByRole('region', { name: 'Catalyst scenarios' });
+  const item = section.getByRole('listitem').filter({ hasText: 'NVDA CEO returns' });
+  await expect(item).toContainText('Triggers: 8-K item 5.02; news at tier 2 or better.');
+  await expect(item).toContainText('No entry beyond a 10.0% move.');
+  await expect(item).toContainText('Active, expires 2026-12-31.');
+
+  const form = section.getByRole('form', { name: 'Write a scenario' });
+  await form.getByLabel('Name').fill('SOFI charter news');
+  await form.getByLabel('Tickers (separate with commas)').fill('sofi');
+  await form.getByLabel('Planned entry').fill('Only on a retest.');
+  await form.getByLabel('Invalidation').fill('Close below the gap.');
+  await form.getByLabel('Expires (YYYY-MM-DD)').fill('2027-01-31');
+  await form.getByRole('button', { name: 'Save scenario' }).click();
+  await expect(form.getByRole('alert')).toContainText('at least one trigger');
+  expect(posted).toBeNull();
+  await form.getByLabel('8-K items (commas, for example 5.02)').fill('8.01, 1.01');
+  await form.getByRole('button', { name: 'Save scenario' }).click();
+  await expect
+    .poll(() => posted)
+    .toMatchObject({
+      name: 'SOFI charter news',
+      tickers: ['SOFI'],
+      eight_k_items: ['8.01', '1.01'],
+      chase_guard_pct: 0.1,
+      expires_on: '2027-01-31',
+    });
+});

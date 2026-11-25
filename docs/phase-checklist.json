@@ -574,8 +574,8 @@
         {
           "id": "5.13",
           "title": "Catalyst watch with confirmation rules and chase guards",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "catalyst-1 (ADR 0030): personal scenarios written on the Alerts page; the nightly catalyst-watch job matches 8-K items, Form 4 codes, tiered news with keywords, halts and moves with volume; tier-1 or two independent tier-2 sources confirm (else unconfirmed); the chase guard is applied in the plan; analog counts in the bear case; recorded as shadow alerts. Unit, job, RLS and browser tests. Still to do: live matching and delivery after the Phase 5 prerequisites."
         },
         {
           "id": "5.14",

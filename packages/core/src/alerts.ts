@@ -56,8 +56,9 @@ export interface AlertInput {
   dollarVolume?: number;
   plan?: {
     entry: string;
-    stop: number;
-    targets: number[];
+    /** Absent for a written plan without a price level (a catalyst scenario). */
+    stop?: number;
+    targets?: number[];
     invalidation: string;
   };
   risk: RiskRow[];
@@ -311,7 +312,11 @@ export function renderCard(a: AlertInput): CardSection[] {
       heading: 'Plan',
       lines: [
         `Entry: ${a.plan.entry}`,
-        `Stop ${toFixedHalfUp(a.plan.stop, 2)}; targets ${a.plan.targets.map((x) => toFixedHalfUp(x, 2)).join(', ')}.`,
+        ...(a.plan.stop !== undefined
+          ? [
+              `Stop ${toFixedHalfUp(a.plan.stop, 2)}; targets ${(a.plan.targets ?? []).map((x) => toFixedHalfUp(x, 2)).join(', ')}.`,
+            ]
+          : []),
         `Invalidation: ${a.plan.invalidation}`,
       ],
     });

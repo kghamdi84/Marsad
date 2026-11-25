@@ -157,6 +157,10 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Catalyst watch on end-of-day data (2026-11-25)
+
+- **ADR 0030** (`catalyst-1`): Khaled writes scenarios on the Alerts page; each evening the catalyst-watch job matches them against the day's 8-Ks, Form 4s, tiered news, halts and moves. Tier 1 or two independent tier-2 sources confirm; the chase guard is applied in the plan ("no entry" beyond it); analog counts show in the bear case. Matches are recorded as shadow alerts until live data exists.
+
 ### Chart markers and versioned prompts (2026-11-25)
 
 - Company chart: insider open-market purchases (placed on the session the Form 4 became public, never the trade date), trading halts and Marsad's alerts now appear as markers (2.1 done).
