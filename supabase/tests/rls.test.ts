@@ -134,7 +134,39 @@ beforeAll(async () => {
     insert into public.system_alerts (event, source, headline, trigger, policy_version)
       values ('stale', 'nasdaq_halts', 'Nasdaq trade halts stale, silent for 40 min', 'test', 'test');
   `);
+  // Production starts in password mode (ADR 0039). Every test below proves the strict mode (aal2 required)
+  // unless it switches back with asPasswordMode.
+  const mode = await db.query<{ require_mfa: boolean }>(
+    'select require_mfa from private.auth_policy',
+  );
+  passwordModeShipped = mode.rows.length === 1 && mode.rows[0]!.require_mfa === false;
+  await db.exec('update private.auth_policy set require_mfa = true');
 });
+
+let passwordModeShipped = false;
+
+/** Like as(), with the switch turned to password mode inside the same rolled-back transaction. */
+async function asPasswordMode<T>(
+  session: Session,
+  fn: (tx: Transaction) => Promise<T>,
+): Promise<T> {
+  let result: T | undefined;
+  let failure: unknown;
+  await db.transaction(async (tx) => {
+    await tx.exec('update private.auth_policy set require_mfa = false');
+    const claims = JSON.stringify({ sub: session.sub, aal: session.aal, role: session.role });
+    await tx.query(`select set_config('request.jwt.claims', $1, true)`, [claims]);
+    await tx.exec(`set local role ${session.role}`);
+    try {
+      result = await fn(tx);
+    } catch (e) {
+      failure = e;
+    }
+    await tx.rollback();
+  });
+  if (failure) throw failure;
+  return result as T;
+}
 
 afterAll(async () => {
   await db.close();
@@ -710,6 +742,56 @@ describe('system tables', () => {
     await expect(as(owner2, (tx) => count(tx, 'private.app_owners'))).rejects.toThrow(
       /permission denied/,
     );
+  });
+});
+
+describe('password mode (ADR 0039)', () => {
+  const other1: Session = { sub: OTHER, aal: 'aal1', role: 'authenticated' };
+
+  it('ships switched to password mode', () => {
+    expect(passwordModeShipped).toBe(true);
+  });
+
+  it('the owner signed in with a password (aal1) reads their own rows and the system tables', async () => {
+    await asPasswordMode(owner1, async (tx) => {
+      expect(await count(tx, 'public.user_settings')).toBe(1);
+      expect(await count(tx, 'public.watchlist_items')).toBe(2);
+      expect(await count(tx, 'public.job_runs')).toBe(1);
+      expect(await count(tx, 'public.alerts')).toBe(1);
+    });
+  });
+
+  it('another account signed in with a password still reads nothing of the owner', async () => {
+    await asPasswordMode(other1, async (tx) => {
+      expect(await count(tx, 'public.job_runs')).toBe(0);
+      expect(await count(tx, 'public.alerts')).toBe(0);
+      const r = await tx.query<{ owner_id: string }>('select owner_id from public.watchlist_items');
+      expect(r.rows.every((x) => x.owner_id === OTHER)).toBe(true);
+    });
+  });
+
+  it('a session with no assurance level (a forged or anon-shaped token) gets nothing', async () => {
+    await asPasswordMode({ sub: OWNER, role: 'authenticated' }, async (tx) => {
+      expect(await count(tx, 'public.user_settings')).toBe(0);
+      expect(await count(tx, 'public.job_runs')).toBe(0);
+    });
+  });
+
+  it('the anon role still has no access', async () => {
+    await expect(asPasswordMode(anon, (tx) => count(tx, 'public.job_runs'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('signed-in users cannot read or change the switch', async () => {
+    await expect(
+      asPasswordMode(owner1, (tx) => tx.query('select * from private.auth_policy')),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      asPasswordMode(owner1, (tx) =>
+        tx.query('update private.auth_policy set require_mfa = false'),
+      ),
+    ).rejects.toThrow(/permission denied/);
   });
 });
 

@@ -26,7 +26,8 @@
     "digest": "tsx src/digest-main.ts",
     "quality": "tsx src/quality-main.ts",
     "holders": "tsx src/holders-main.ts",
-    "etf": "tsx src/etf-main.ts"
+    "etf": "tsx src/etf-main.ts",
+    "set-password": "tsx src/set-password-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

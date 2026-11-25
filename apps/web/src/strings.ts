@@ -27,6 +27,13 @@ export const t = {
       `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
     useDifferentEmail: 'Use a different email',
     noAccount: 'Sign-ups are closed. Only the existing account can sign in.',
+    passwordLabel: 'Password',
+    signInPassword: 'Sign in',
+    signingIn: 'Signing in',
+    badCredentials:
+      'The email or password is wrong. To set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
+    useLink: 'Email me a sign-in link instead',
+    usePassword: 'Sign in with a password instead',
   },
   mfa: {
     enrollTitle: 'Set up two-factor authentication',

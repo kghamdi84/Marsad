@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { gateFor, type Aal, type Gate } from './gate';
+import { REQUIRE_MFA } from './policy';
 
 interface State {
   loading: boolean;
@@ -60,7 +61,7 @@ export function useAuthGate(): { gate: Gate; email: string | null; refresh: () =
   }, [refresh]);
 
   return {
-    gate: gateFor({ configured: supabase !== null, ...s }),
+    gate: gateFor({ configured: supabase !== null, requireMfa: REQUIRE_MFA, ...s }),
     email: s.email,
     refresh: () => void refresh(),
   };

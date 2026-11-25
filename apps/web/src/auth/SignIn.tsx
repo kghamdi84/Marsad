@@ -13,9 +13,22 @@ function initialError(): string | null {
 export function SignIn() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [password, setPassword] = useState('');
+  // Password first (ADR 0039); the emailed link stays as a fallback.
+  const [step, setStep] = useState<'password' | 'email' | 'code'>('password');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
+
+  async function signInWithPassword(e: FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (error)
+      setError(error.code === 'invalid_credentials' ? t.signIn.badCredentials : error.message);
+  }
 
   async function sendLink(e: FormEvent) {
     e.preventDefault();
@@ -52,7 +65,35 @@ export function SignIn() {
 
   return (
     <Panel title={t.signIn.title}>
-      {step === 'email' ? (
+      {step === 'password' ? (
+        <form onSubmit={signInWithPassword} className="flex flex-col gap-4">
+          <Field
+            id="email"
+            label={t.signIn.emailLabel}
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Field
+            id="password"
+            label={t.signIn.passwordLabel}
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button type="submit" disabled={busy}>
+            {busy ? t.signIn.signingIn : t.signIn.signInPassword}
+          </Button>
+          <LinkButton type="button" onClick={() => setStep('email')}>
+            {t.signIn.useLink}
+          </LinkButton>
+          <p className="text-sm text-muted">{t.signIn.noAccount}</p>
+        </form>
+      ) : step === 'email' ? (
         <form onSubmit={sendLink} className="flex flex-col gap-4">
           <Field
             id="email"
@@ -66,7 +107,9 @@ export function SignIn() {
           <Button type="submit" disabled={busy}>
             {busy ? t.signIn.sending : t.signIn.sendLink}
           </Button>
-          <p className="text-sm text-muted">{t.signIn.noAccount}</p>
+          <LinkButton type="button" onClick={() => setStep('password')}>
+            {t.signIn.usePassword}
+          </LinkButton>
         </form>
       ) : (
         <form onSubmit={verify} className="flex flex-col gap-4">

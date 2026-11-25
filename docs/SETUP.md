@@ -62,6 +62,14 @@ In the Supabase project (`hwdwivilqdydmxhycapy`):
 
 Note: the built-in Supabase email sender is rate limited (a few emails per hour) and meant for testing. It is enough for one person signing in. A custom SMTP sender is set up in Phase 5 along with email digests.
 
+## Step 2b. Set or change your password (no email needed)
+
+Marsad signs in with email and password while it is being tested (ADR 0039). The password is set by a GitHub workflow, so no email is sent and the password never appears in chat or logs.
+
+1. In GitHub, open the repository, tap **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Name `MARSAD_PASSWORD`; value: a password of at least 10 characters that you use nowhere else. Tap **Add secret**. (To change it later, tap the secret, then **Update secret**.)
+2. Tap **Actions**, choose **Set password**, tap **Run workflow**, then **Run workflow** again. It finishes in about a minute with "password set".
+3. In Marsad, sign in with your email and that password, and let iCloud Keychain save it.
+
 ## Step 3. Link the Netlify site to GitHub (done)
 
 Claude created the site `marsad-k84` in team **GIG** and set `VITE_SUPABASE_URL`. Khaled linked it to `kghamdi84/Marsad`, branch `main`, on 2026-11-23, with build command `pnpm --filter @marsad/web build` and publish directory `apps/web/dist` (the same values as `netlify.toml`).
