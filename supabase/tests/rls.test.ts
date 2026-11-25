@@ -99,6 +99,12 @@ beforeAll(async () => {
       values ('universe-1', date '2026-11-02', 'NVDA', 1, 30000000000);
     insert into public.breadth_daily (date, version, members, with_change, advancers, decliners, unchanged, up_volume, down_volume, above50, n50, above200, n200, new_highs, new_lows, n252, suspect)
       values (date '2026-11-24', 'breadth-1', 1000, 990, 600, 380, 10, 3e9, 1e9, 450, 900, 300, 800, 40, 15, 700, 0);
+    insert into public.fear_greed_daily (date, version, composite, label, available, components)
+      values (date '2026-11-23', 'fear-greed-1', 41.9, 'fear', 5, '[]'::jsonb);
+    insert into public.capitulation_daily (date, version, state, conditions)
+      values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
+    insert into public.capitulation_plans (trigger_date, version, plan)
+      values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
     insert into public.news_articles (id, published_at, publisher, title, url)
       values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
     insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
@@ -265,6 +271,9 @@ describe('system tables', () => {
       'ticker_type_snapshots',
       'universe_members',
       'breadth_daily',
+      'fear_greed_daily',
+      'capitulation_daily',
+      'capitulation_plans',
       'news_articles',
       'short_interest',
       'short_volume',
@@ -308,6 +317,25 @@ describe('system tables', () => {
     await expect(
       db.query(
         `insert into public.universe_members (version, month_start, ticker, rank, dollar_volume) values ('universe-1', date '2026-11-02', 'bad ticker', 2, 1)`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it('the composite and capitulation tables reject out-of-range values and unknown states', async () => {
+    const fg = (composite: string, label: string, available: number) =>
+      db.query(
+        `insert into public.fear_greed_daily (date, version, composite, label, available, components)
+         values (date '2026-11-24', 'fear-greed-1', ${composite}, ${label}, ${available}, '[]')`,
+      );
+    await expect(fg('101', "'extreme-greed'", 5)).rejects.toThrow(/check constraint/);
+    await expect(fg('40', "'panic'", 5)).rejects.toThrow(/check constraint/);
+    await expect(fg('40', "'fear'", 8)).rejects.toThrow(/check constraint/);
+    // A label without a composite (or the reverse) is refused.
+    await expect(fg('null', "'fear'", 3)).rejects.toThrow(/check constraint/);
+    await expect(fg('40', 'null', 5)).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.capitulation_daily (date, version, state, conditions) values (date '2026-11-24', 'capitulation-1', 'maybe', '[]')`,
       ),
     ).rejects.toThrow(/check constraint/);
   });

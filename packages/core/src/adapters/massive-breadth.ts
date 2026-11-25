@@ -49,7 +49,22 @@ export function fetchGroupedDaily(
       }
       return { value: out, asOf: new Date(`${date}T21:00:00Z`) };
     },
+    undefined,
+    closedMarket,
   );
+}
+
+/**
+ * A market holiday (for example 2024-11-28, Thanksgiving) comes back with zero records and no `results` field.
+ * Only a successful status with a count of exactly zero counts as closed; anything else stays an error.
+ */
+export function closedMarket(json: unknown): boolean {
+  if (typeof json !== 'object' || json === null) return false;
+  const b = json as Record<string, unknown>;
+  const ok = b['status'] === 'OK' || b['status'] === 'DELAYED';
+  const zero =
+    b['resultsCount'] === 0 || (b['resultsCount'] === undefined && b['queryCount'] === 0);
+  return ok && zero && !('results' in b);
 }
 
 /** Path and query of a vendor `next_url`, without any key, for the next page through the same client. */

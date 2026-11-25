@@ -11,7 +11,11 @@ import { etDate } from '@marsad/core';
 import type {
   AnnualSection,
   BreadthDay,
+  BreadthInput,
   BreadthSignals,
+  CapitulationDay,
+  FearGreedDay,
+  StagedPlan,
   MarketRow,
   ShareChange,
   Bar,
@@ -91,6 +95,15 @@ export interface Store {
   upsertUniverse(version: string, rows: readonly UniverseRow[]): Promise<number>;
   upsertBreadthDays(rows: readonly BreadthRow[]): Promise<number>;
   replaceEventStats(ruleVersion: string, rows: readonly EventStatRow[]): Promise<number>;
+  /** Breadth fields the sentiment job reads, on or after `from`, oldest first. */
+  getBreadthInputs(from: string): Promise<SentimentBreadthRow[]>;
+  /** Stored daily bars (date, low, close) of one ticker, oldest first. */
+  getDailyCloses(ticker: string): Promise<DailyClose[]>;
+  /** The stored recession level of every regime day on or after `from`, oldest first. */
+  getRecessionLevels(from: string): Promise<{ date: string; level: string }[]>;
+  upsertFearGreedDays(rows: readonly FearGreedDay[]): Promise<number>;
+  upsertCapitulationDays(rows: readonly CapitulationDay[]): Promise<number>;
+  upsertCapitulationPlans(rows: readonly StagedPlan[]): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -111,6 +124,15 @@ export interface UniverseRow {
   ticker: string;
   rank: number;
   dollarVolume: number;
+}
+
+/** The breadth fields the composite and the capitulation watch read. */
+export type SentimentBreadthRow = BreadthInput & { above50: number; n50: number };
+
+export interface DailyClose {
+  date: string;
+  low: number;
+  close: number;
 }
 
 /** One breadth day with its series-level signals. */
@@ -804,6 +826,110 @@ export function supabaseStore(url: string, secretKey: string): Store {
         if (error) throw new Error(`breadth_daily upsert failed: ${error.message}`);
       }
       return rows.length;
+    },
+    async getBreadthInputs(from) {
+      const out: SentimentBreadthRow[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('breadth_daily')
+          .select('date, new_highs, new_lows, n252, mcclellan_summation, above50, n50')
+          .gte('date', from)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`breadth_daily read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({
+            date: r.date as string,
+            newHighs: Number(r.new_highs),
+            newLows: Number(r.new_lows),
+            n252: Number(r.n252),
+            mcclellanSummation:
+              r.mcclellan_summation === null ? null : Number(r.mcclellan_summation),
+            above50: Number(r.above50),
+            n50: Number(r.n50),
+          });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async getDailyCloses(ticker) {
+      const out: DailyClose[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('daily_bars')
+          .select('date, low, close')
+          .eq('ticker', ticker)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`daily_bars read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({ date: r.date as string, low: Number(r.low), close: Number(r.close) });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async getRecessionLevels(from) {
+      const out: { date: string; level: string }[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('regime_daily')
+          .select('date, recession_level')
+          .gte('date', from)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`regime_daily read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({ date: r.date as string, level: String(r.recession_level) });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async upsertFearGreedDays(rows) {
+      for (let i = 0; i < rows.length; i += 500) {
+        const chunk = rows.slice(i, i + 500).map((r) => ({
+          date: r.date,
+          version: r.version,
+          composite: r.composite,
+          label: r.label,
+          available: r.available,
+          components: r.components,
+          computed_at: new Date().toISOString(),
+        }));
+        const { error } = await db.from('fear_greed_daily').upsert(chunk, { onConflict: 'date' });
+        if (error) throw new Error(`fear_greed_daily upsert failed: ${error.message}`);
+      }
+      return rows.length;
+    },
+    async upsertCapitulationDays(rows) {
+      for (let i = 0; i < rows.length; i += 500) {
+        const chunk = rows.slice(i, i + 500).map((r) => ({
+          date: r.date,
+          version: r.version,
+          state: r.state,
+          conditions: r.conditions,
+          computed_at: new Date().toISOString(),
+        }));
+        const { error } = await db.from('capitulation_daily').upsert(chunk, { onConflict: 'date' });
+        if (error) throw new Error(`capitulation_daily upsert failed: ${error.message}`);
+      }
+      return rows.length;
+    },
+    async upsertCapitulationPlans(rows) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((p) => ({
+        trigger_date: p.triggerDate,
+        version: p.version,
+        plan: p,
+        computed_at: new Date().toISOString(),
+      }));
+      const { error } = await db
+        .from('capitulation_plans')
+        .upsert(out, { onConflict: 'trigger_date' });
+      if (error) throw new Error(`capitulation_plans upsert failed: ${error.message}`);
+      return out.length;
     },
     async upsertRegimeDays(rows) {
       let written = 0;

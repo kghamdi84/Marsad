@@ -15,7 +15,8 @@ const ETF = ['E1', 'E2'];
 
 function groupedFor(date: string): Reply {
   if (date === HOLIDAY)
-    return { status: 200, body: { status: 'OK', resultsCount: 0, results: [] } };
+    // A holiday as Massive returns it: zero records and no results field (2024-11-28).
+    return { status: 200, body: { status: 'OK', queryCount: 0, resultsCount: 0, adjusted: false } };
   const k = Math.round(
     (Date.parse(`${date}T00:00:00Z`) - Date.parse('2026-01-01T00:00:00Z')) / 86_400_000,
   );

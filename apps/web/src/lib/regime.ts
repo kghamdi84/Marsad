@@ -1,4 +1,14 @@
-import type { BreadthDay, Obs, RecessionSignal, RegimeInputs } from '@marsad/core';
+import type {
+  BreadthDay,
+  CapitulationState,
+  ComponentReading,
+  Condition,
+  FearGreedLabel,
+  Obs,
+  RecessionSignal,
+  RegimeInputs,
+  StagedPlan,
+} from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -44,6 +54,29 @@ export interface StoredBreadthDay extends BreadthDay {
   mcclellanSummation: number | null;
 }
 
+export interface StoredFearGreedDay {
+  date: string;
+  version: string;
+  composite: number | null;
+  label: FearGreedLabel | null;
+  available: number;
+  components: ComponentReading[];
+}
+
+export interface StoredCapitulation {
+  /** The newest day. */
+  latest: {
+    date: string;
+    version: string;
+    state: CapitulationState;
+    conditions: Condition[];
+  } | null;
+  /** The newest day the watch was on, if ever. */
+  lastOn: string | null;
+  /** The newest episode's staged-entry plan. */
+  plan: StagedPlan | null;
+}
+
 export interface RegimeData {
   /** The past year of stored days, oldest first. */
   days: StoredRegimeDay[];
@@ -53,6 +86,9 @@ export interface RegimeData {
   /** The trailing year of each panel series, oldest first. */
   series: Record<string, Obs[]>;
   gpr: Obs[];
+  /** The last 30 composite days, oldest first. */
+  fearGreed: StoredFearGreedDay[];
+  capitulation: StoredCapitulation;
 }
 
 /** FRED series shown in the panels. */
@@ -95,6 +131,19 @@ export async function loadRegime(): Promise<RegimeData> {
       .limit(252),
     client().from('breadth_daily').select('*').order('date', { ascending: false }).limit(260),
     client().from('gpr_daily').select('date, gprd').order('date', { ascending: false }).limit(260),
+    client().from('fear_greed_daily').select('*').order('date', { ascending: false }).limit(30),
+    client().from('capitulation_daily').select('*').order('date', { ascending: false }).limit(1),
+    client()
+      .from('capitulation_daily')
+      .select('date')
+      .eq('state', 'on')
+      .order('date', { ascending: false })
+      .limit(1),
+    client()
+      .from('capitulation_plans')
+      .select('plan')
+      .order('trigger_date', { ascending: false })
+      .limit(1),
     ...PANEL_SERIES.map((id) => recent(id)),
   ]);
   const days = (check(daysR, 'regime_daily') as Record<string, unknown>[])
@@ -114,9 +163,14 @@ export async function loadRegime(): Promise<RegimeData> {
       };
     })
     .reverse();
-  const [breadthR, gprR, ...seriesList] = rest as unknown as [
-    { data: unknown; error: { message: string } | null },
-    { data: unknown; error: { message: string } | null },
+  type R = { data: unknown; error: { message: string } | null };
+  const [breadthR, gprR, fgR, capR, capOnR, planR, ...seriesList] = rest as unknown as [
+    R,
+    R,
+    R,
+    R,
+    R,
+    R,
     ...Obs[][],
   ];
   const nn = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
@@ -150,6 +204,33 @@ export async function loadRegime(): Promise<RegimeData> {
   const gpr = (check(gprR as never, 'gpr_daily') as Record<string, unknown>[])
     .map((r) => ({ date: String(r['date']), value: n(r['gprd']) }))
     .reverse();
+  const fearGreed: StoredFearGreedDay[] = (
+    check(fgR as never, 'fear_greed_daily') as Record<string, unknown>[]
+  )
+    .map((r) => ({
+      date: String(r['date']),
+      version: String(r['version']),
+      composite: nn(r['composite']),
+      label: (r['label'] ?? null) as FearGreedLabel | null,
+      available: n(r['available']),
+      components: (r['components'] ?? []) as ComponentReading[],
+    }))
+    .reverse();
+  const capRow = (check(capR as never, 'capitulation_daily') as Record<string, unknown>[])[0];
+  const onRow = (check(capOnR as never, 'capitulation_daily') as Record<string, unknown>[])[0];
+  const planRow = (check(planR as never, 'capitulation_plans') as Record<string, unknown>[])[0];
+  const capitulation: StoredCapitulation = {
+    latest: capRow
+      ? {
+          date: String(capRow['date']),
+          version: String(capRow['version']),
+          state: String(capRow['state']) as CapitulationState,
+          conditions: (capRow['conditions'] ?? []) as Condition[],
+        }
+      : null,
+    lastOn: onRow ? String(onRow['date']) : null,
+    plan: planRow ? (planRow['plan'] as StagedPlan) : null,
+  };
   const series: Record<string, Obs[]> = {};
   PANEL_SERIES.forEach((id, i) => (series[id] = seriesList[i] ?? []));
 
@@ -173,5 +254,5 @@ export async function loadRegime(): Promise<RegimeData> {
         dataTo: String(r['data_to']),
       }))
     : [];
-  return { days, breadth, stats, series, gpr };
+  return { days, breadth, stats, series, gpr, fearGreed, capitulation };
 }

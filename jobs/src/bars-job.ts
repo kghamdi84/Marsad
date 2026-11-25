@@ -1,4 +1,5 @@
 import {
+  BAR_ONLY_TICKERS,
   STARTING_TICKERS,
   buildCalendar,
   etDate,
@@ -32,7 +33,7 @@ const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
  */
 export async function runBarsJob(deps: BarsJobDeps): Promise<JobRunRecord> {
   const { store, now, http, cfg } = deps;
-  const tickers = deps.tickers ?? STARTING_TICKERS;
+  const tickers = deps.tickers ?? [...STARTING_TICKERS, ...BAR_ONLY_TICKERS];
   const run = await runJob(
     'massive-bars',
     async () => {

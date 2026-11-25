@@ -245,6 +245,45 @@ const out = {
       adjusted: adjusted.get('X'),
     };
   })(),
+  // Fear and Greed composite on the real FRED fixtures and the seeded synthetic market (ADR 0011), the capitulation
+  // watch on the brief's example, and a staged plan on the synthetic SPY bars.
+  fearGreed: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/feargreed/synthetic-feargreed.json'), 'utf8'),
+    );
+    const fredCsv = (id) =>
+      JSON.parse(readFileSync(join(root, `fixtures/fred/fredgraph-${id}.json`), 'utf8'))
+        .body.trim()
+        .split('\n')
+        .slice(1)
+        .map((l) => l.split(','))
+        .filter(([, v]) => v !== '' && v !== '.')
+        .map(([date, v]) => ({ date, value: Number(v) }));
+    const pairs = (p) => p.map(([date, value]) => ({ date, value }));
+    const days = core.fearGreedHistory({
+      sp500: fredCsv('SP500'),
+      vix: fredCsv('VIXCLS'),
+      highYield: fredCsv('BAMLH0A0HYM2'),
+      investmentGrade: fredCsv('BAMLC0A0CM'),
+      breadth: f.breadth,
+      spy: pairs(f.spy),
+      ief: pairs(f.ief),
+    });
+    const spy = f.spy.map(([date, close]) => ({ date, low: close, close }));
+    return {
+      days: days.slice(-40),
+      count: days.length,
+      capitulation: core.capitulationDay({
+        date: '2026-11-23',
+        vix: 35.9,
+        above50: 90,
+        n50: 1000,
+        composite: 6,
+        recession: 'low',
+      }),
+      plan: core.stagedPlan(spy.at(-61).date, spy, new Map()),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

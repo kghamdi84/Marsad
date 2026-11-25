@@ -2,6 +2,10 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BREADTH_VERSION,
+  CAPITULATION_RULES,
+  COMPONENT_SOURCES,
+  type ComponentKey,
+  type Condition,
   UNIVERSE_VERSION,
   breadthReading,
   currentRun,
@@ -12,7 +16,12 @@ import {
   type RecessionSignal,
 } from '@marsad/core';
 import { num, td, th, thNum } from '../components/study/Panel';
-import { loadRegime, type RegimeData, type StoredEventStat } from '../lib/regime';
+import {
+  loadRegime,
+  type RegimeData,
+  type StoredEventStat,
+  type StoredFearGreedDay,
+} from '../lib/regime';
 import { t } from '../strings';
 
 const r = t.regime;
@@ -298,6 +307,208 @@ function BreadthSection({ data }: { data: RegimeData }) {
   );
 }
 
+function componentValue(key: ComponentKey, v: number): string {
+  switch (key) {
+    case 'momentum':
+    case 'volatility':
+    case 'safeHaven':
+      return pct(v);
+    case 'strength':
+      return `${pct(v)} of members`;
+    case 'breadth':
+      return signed(v, 1);
+    case 'putCall':
+      return fixed(v, 2);
+    case 'junk':
+      return `${fixed(v, 2)} points`;
+  }
+}
+
+function FearGreedSection({ data }: { data: RegimeData }) {
+  const f = r.fearGreed;
+  const withComposite = data.fearGreed.filter((d) => d.composite !== null);
+  const last = withComposite.at(-1);
+  const newest = data.fearGreed.at(-1);
+  if (!last || last.composite === null)
+    return (
+      <Section id="fear-greed" title={f.title}>
+        <p className="text-sm text-muted">{f.intro}</p>
+        <p className="text-muted">{f.none}</p>
+        {newest && <p className="text-sm text-muted">{f.newer(newest.date, newest.available)}</p>}
+      </Section>
+    );
+  const monthAgo: StoredFearGreedDay | undefined = withComposite.at(-22);
+  return (
+    <Section id="fear-greed" title={f.title}>
+      <p className="text-sm text-muted">{f.intro}</p>
+      <p className="text-2xl font-semibold" data-testid="fear-greed-value">
+        {f.headline(Math.round(last.composite), f.labels[last.label ?? ''] ?? '')}
+      </p>
+      <p className="text-sm">
+        {f.count(last.available)}. {f.asOf(last.date, last.version)}
+      </p>
+      {newest && newest.date !== last.date && (
+        <p className="text-sm text-muted">{f.newer(newest.date, newest.available)}</p>
+      )}
+      {monthAgo?.composite != null && (
+        <p className="text-sm text-muted">
+          {f.monthAgo(Math.round(monthAgo.composite), monthAgo.date)}
+        </p>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={th}>{f.colComponent}</th>
+              <th className={thNum}>{f.colValue}</th>
+              <th className={thNum}>{f.colScore}</th>
+              <th className={th}>{f.colSource}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {last.components.map((c) => (
+              <tr key={c.key}>
+                <td className={td}>{f.names[c.key] ?? c.key}</td>
+                <td className={`${td} ${num}`}>
+                  {c.value === null ? r.noData : componentValue(c.key, c.value)}
+                </td>
+                <td className={`${td} ${num}`}>
+                  {c.score === null ? (
+                    <span className="text-muted">{f.reasons[c.reason ?? 'no-data']}</span>
+                  ) : (
+                    <>
+                      {Math.round(c.score)}
+                      <span className="block text-xs text-muted">{f.windowNote(c.window)}</span>
+                    </>
+                  )}
+                </td>
+                <td className={td}>
+                  <span className="text-xs text-muted">{COMPONENT_SOURCES[c.key]}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted">{f.bands}</p>
+      <p className="text-xs text-muted">{f.method}</p>
+    </Section>
+  );
+}
+
+function conditionValue(c: Condition): string {
+  if (c.value === null) return r.noData;
+  if (c.key === 'recession') return r.recession.level[String(c.value)] ?? String(c.value);
+  if (c.key === 'breadth') return `${fixed(Number(c.value), 1)}%`;
+  if (c.key === 'composite') return fixed(Number(c.value), 1);
+  return fixed(Number(c.value), 2);
+}
+
+function CapitulationSection({ data }: { data: RegimeData }) {
+  const k = r.capitulation;
+  const latest = data.capitulation.latest;
+  const plan = data.capitulation.plan;
+  const proxy = (h: number) =>
+    data.stats.find((x) => x.condition === 'vix-30-recession-not-high' && x.horizon === h);
+  if (!latest)
+    return (
+      <Section id="capitulation" title={k.title}>
+        <p className="text-sm text-muted">{k.intro}</p>
+        <p className="text-muted">{k.none}</p>
+      </Section>
+    );
+  const showPlan = plan !== null && !plan.expired;
+  return (
+    <Section id="capitulation" title={k.title}>
+      <p className="text-sm text-muted">{k.intro}</p>
+      <p className="text-2xl font-semibold" data-testid="capitulation-state">
+        {k.state[latest.state]}
+      </p>
+      <p className="text-sm">
+        {k.asOf(latest.date, latest.version)}{' '}
+        {data.capitulation.lastOn ? k.lastOn(data.capitulation.lastOn) : k.neverOn}
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={th}>{k.colCondition}</th>
+              <th className={thNum}>{k.colValue}</th>
+              <th className={th}>{k.colRule}</th>
+              <th className={th}>{k.colMet}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {latest.conditions.map((c) => (
+              <tr key={c.key}>
+                <td className={td}>{k.names[c.key] ?? c.key}</td>
+                <td className={`${td} ${num}`}>{conditionValue(c)}</td>
+                <td className={td}>
+                  {k.needs(
+                    c.key,
+                    CAPITULATION_RULES.vixMin,
+                    CAPITULATION_RULES.above50MaxPct,
+                    CAPITULATION_RULES.compositeMax,
+                  )}
+                </td>
+                <td className={td}>{k.met[String(c.met)]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {showPlan && (
+        <div className="flex flex-col gap-2 rounded-sm border border-line p-3">
+          <h3 className="font-semibold">{k.planTitle(plan.triggerDate)}</h3>
+          <p className="text-sm text-muted">{k.planIntro}</p>
+          <ol className="flex list-decimal flex-col gap-1 ps-5 text-sm">
+            {plan.tranches.map((tr) => (
+              <li key={tr.step}>
+                {k.steps[tr.step]?.(tr.level === null ? r.noData : fixed(tr.level, 2))}{' '}
+                <span className="text-muted">
+                  {tr.status === 'met' && tr.date
+                    ? k.status.met(tr.date)
+                    : k.status[tr.status === 'met' ? 'waiting' : tr.status]}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {plan.pausedOn && <p className="text-sm">{k.paused(plan.pausedOn)}</p>}
+          {plan.reviewOn && <p className="text-sm">{k.review(plan.reviewOn)}</p>}
+          <p className="text-sm">{k.exit}</p>
+          <p className="text-sm">{k.bearCase}</p>
+        </div>
+      )}
+      <p className="text-sm">{k.history}</p>
+      <ul className="text-sm">
+        {HORIZONS.map((h) => {
+          const x = proxy(h);
+          return (
+            <li key={h}>
+              {r.study.horizon(h)}:{' '}
+              {!x
+                ? r.noData
+                : x.sufficient && x.median !== null && x.q1 !== null && x.q3 !== null
+                  ? r.study.cell(pct(x.median), pct(x.q1), pct(x.q3), x.n)
+                  : r.study.insufficient(x.n)}
+            </li>
+          );
+        })}
+      </ul>
+      {!showPlan && <p className="text-xs text-muted">{k.bearCase}</p>}
+      <p className="text-xs text-muted">{k.screen}</p>
+      <p className="text-xs text-muted">
+        {k.rules(
+          CAPITULATION_RULES.vixMin,
+          CAPITULATION_RULES.above50MaxPct,
+          CAPITULATION_RULES.minMembers,
+          CAPITULATION_RULES.compositeMax,
+        )}
+      </p>
+    </Section>
+  );
+}
+
 const CONDITIONS = [
   'stress',
   'bear',
@@ -305,6 +516,7 @@ const CONDITIONS = [
   'bull-calm',
   'bull-correction',
   'vix-30',
+  'vix-30-recession-not-high',
   'all-days',
 ];
 const HORIZONS = [21, 63, 126];
@@ -316,7 +528,13 @@ function StudySection({ data }: { data: RegimeData }) {
     data.stats.find((x) => x.condition === c && x.horizon === h);
   const any = data.stats[0] as StoredEventStat;
   const name = (c: string) =>
-    c === 'vix-30' ? s.vix30 : c === 'all-days' ? s.allDays : (r.labels[c] ?? c);
+    c === 'vix-30'
+      ? s.vix30
+      : c === 'vix-30-recession-not-high'
+        ? s.proxy
+        : c === 'all-days'
+          ? s.allDays
+          : (r.labels[c] ?? c);
   return (
     <Section id="study" title={s.title}>
       <p className="text-sm text-muted">{s.note(any.dataFrom, any.dataTo)}</p>
@@ -380,6 +598,8 @@ export function Regime() {
           <LabelSection data={q.data} />
           <RecessionSection data={q.data} />
           <BreadthSection data={q.data} />
+          <FearGreedSection data={q.data} />
+          <CapitulationSection data={q.data} />
           <StudySection data={q.data} />
           <Section id="volatility" title={v.title}>
             <SnapshotTable

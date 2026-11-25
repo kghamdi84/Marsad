@@ -439,6 +439,7 @@ export const t = {
       insufficient: (n: number) =>
         `Insufficient history: ${n} episode${n === 1 ? '' : 's'}, 30 needed`,
       vix30: 'VIX at or above 30',
+      proxy: 'VIX at or above 30, recession filter not high',
       allDays: 'All days (benchmark)',
       depth:
         'With 10 years of S&P 500 data most labels have fewer than 30 independent episodes. A longer price history would need a paid data plan or a proxy index; see ADR 0009.',
@@ -471,6 +472,108 @@ export const t = {
         `Source: Massive grouped daily (end of day, unadjusted, splits applied by Marsad). Rules ${versions}.`,
       suspect: (n: number) =>
         `${n} member${n === 1 ? '' : 's'} left out today: a one-day move over 50% with no split.`,
+    },
+    fearGreed: {
+      title: 'Fear and Greed composite',
+      intro:
+        'Marsad\u2019s own reading, after CNN\u2019s published method: seven components, each scored 0 to 100 by where today\u2019s value sits among its last 504 sessions (2 years), then averaged. High is greed, low is fear.',
+      none: 'No day has enough components yet (4 of 7 are needed). It fills in after the breadth backfill and two years of SPY and IEF bars.',
+      headline: (value: number, label: string) => `${value}, ${label}`,
+      count: (available: number) => `${available} of 7 components available`,
+      asOf: (date: string, version: string) => `As of the close on ${date}. Rules ${version}.`,
+      newer: (date: string, available: number) =>
+        `${date} has only ${available} of 7 components so far; it fills in when its sources update.`,
+      monthAgo: (value: number, date: string) => `A month ago (${date}): ${value}.`,
+      labels: {
+        'extreme-fear': 'Extreme fear',
+        fear: 'Fear',
+        neutral: 'Neutral',
+        greed: 'Greed',
+        'extreme-greed': 'Extreme greed',
+      } as Record<string, string>,
+      bands:
+        'Bands: 0 to 24 extreme fear, 25 to 44 fear, 45 to 55 neutral, 56 to 75 greed, 76 to 100 extreme greed.',
+      colComponent: 'Component',
+      colValue: 'Value today',
+      colScore: 'Score (0 to 100)',
+      colSource: 'Source',
+      names: {
+        momentum: 'Market momentum: S&P 500 against its 125-day average',
+        strength: 'Stock price strength: net new 52-week highs',
+        breadth: 'Breadth: McClellan volume summation',
+        putCall: 'Put/call ratio, 5-day average',
+        junk: 'Junk bond demand: high-yield minus investment-grade spread',
+        volatility: 'Volatility: VIX against its 50-day average',
+        safeHaven: 'Safe-haven demand: SPY minus IEF, 20-day returns',
+      } as Record<string, string>,
+      reasons: {
+        'no-source': 'Not available: needs an options data plan.',
+        'no-data': 'No value for this day.',
+        'short-history': 'Not counted: fewer than 252 sessions of history.',
+      } as Record<string, string>,
+      windowNote: (n: number) => `percentile over ${n} sessions`,
+      method:
+        'A component counts only with a value for that day; nothing is carried forward. Prices are price returns. Stock price strength needs a 52-week measure plus a year of its own history, so it joins about two years after breadth starts (around December 2026).',
+    },
+    capitulation: {
+      title: 'Capitulation watch',
+      intro:
+        'Fires at the close when all four conditions hold. It is context for a long-term decision, not a signal to act on alone. Marsad never places orders.',
+      state: {
+        on: 'On',
+        off: 'Off',
+        unavailable: 'Not enough data',
+      } as Record<string, string>,
+      none: 'Not computed yet. The sentiment job runs after the FRED and breadth jobs.',
+      asOf: (date: string, version: string) => `As of the close on ${date}. Rules ${version}.`,
+      lastOn: (date: string) => `Last on: ${date}.`,
+      neverOn: 'Not on in the stored history.',
+      colCondition: 'Condition',
+      colValue: 'Value',
+      colRule: 'Needs',
+      colMet: 'Met',
+      needs: (key: string, vix: number, pct: number, composite: number) =>
+        ({
+          vix: `at or above ${vix}`,
+          breadth: `at most ${pct}%`,
+          composite: `at most ${composite}`,
+          recession: 'not high',
+        })[key] ?? key,
+      met: { true: 'Yes', false: 'No', null: 'No data' } as Record<string, string>,
+      names: {
+        vix: 'VIX close',
+        breadth: 'Marsad universe above its 50-day average',
+        composite: 'Fear and Greed composite',
+        recession: 'Recession filter',
+      } as Record<string, string>,
+      planTitle: (date: string) => `Staged-entry plan for index ETFs (episode from ${date})`,
+      planIntro:
+        'Conditions for adding in thirds. You decide whether and when to act, and place any order yourself in Sahm.',
+      steps: {
+        1: (level: string) => `One third at the trigger close (SPY ${level}).`,
+        2: (level: string) =>
+          `One third on a successful retest: SPY comes back within 2% of the selloff low (${level}) at least 5 sessions after it and closes at or above it.`,
+        3: (level: string) => `One third on a SPY close above its 50-day average (now ${level}).`,
+      } as Record<number, (level: string) => string>,
+      status: {
+        met: (date: string) => `Met on ${date}.`,
+        waiting: 'Waiting.',
+        paused: 'Paused: the recession filter turned high.',
+        expired: 'Expired: 126 sessions passed.',
+      },
+      paused: (date: string) =>
+        `Paused since ${date}: the recession filter read high, so the remaining thirds are not due. Review what you hold.`,
+      review: (date: string) =>
+        `Review: SPY closed more than 10% below the trigger close on ${date}. The bear case may be playing out.`,
+      exit: 'Exit conditions: stop adding if the recession filter turns high; review every holding if SPY closes more than 10% below the trigger close; the plan expires after 126 sessions.',
+      bearCase:
+        'Bear case: in 2008 the VIX stayed above 35 for weeks while the decline continued, and in 2022 the market made new lows months after its March volatility spike. Staging limits the damage if this is one of those episodes.',
+      history:
+        'Marsad event study, the longer-history proxy: VIX close at or above 30 with the recession filter not high.',
+      screen:
+        'The quality-at-discount screen this watch should refresh is not built yet (a later phase).',
+      rules: (vix: number, pct: number, members: number, composite: number) =>
+        `Rules: VIX at or above ${vix}; at most ${pct}% of the universe above its 50-day average (with at least ${members} members that have 50 sessions); composite at or below ${composite}; recession filter not high. ADR 0011.`,
     },
     volatility: {
       title: 'Volatility and its term structure',

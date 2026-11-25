@@ -57,6 +57,31 @@ describe('grouped daily (real response for 2026-11-24, unadjusted, trimmed to 12
     const r = await fetchGroupedDaily(http, cfg, '2026-11-26');
     expect(r.ok && r.data.value).toEqual([]);
   });
+  it('a holiday reply without a results field is a closed market (the 2024-11-28 failure)', async () => {
+    // The first live backfill stopped on Thanksgiving: zero records and no `results` field.
+    const { http } = setup(() => ({
+      status: 200,
+      body: { adjusted: false, queryCount: 0, resultsCount: 0, status: 'OK', request_id: 'r' },
+    }));
+    const r = await fetchGroupedDaily(http, cfg, '2024-11-28');
+    expect(r.ok && r.data.value).toEqual([]);
+  });
+
+  it('a missing results field is still an error unless the count is exactly zero', async () => {
+    for (const body of [
+      { status: 'OK' },
+      { status: 'OK', resultsCount: 12 },
+      { status: 'ERROR', resultsCount: 0 },
+      { status: 'OK', resultsCount: '0' },
+    ]) {
+      const { http } = setup(() => ({ status: 200, body }));
+      const r = await fetchGroupedDaily(http, cfg, '2024-11-28');
+      expect(r, JSON.stringify(body)).toMatchObject({ ok: false, kind: 'invalid-response' });
+      // The error names the fields that were there, never their values.
+      expect(r.ok ? '' : r.message).toContain('fields: ');
+    }
+  });
+
   it('rejects a row without a close instead of storing a gap as zero', async () => {
     const { http } = setup(() => ({ status: 200, body: { results: [{ T: 'X', v: 1 }] } }));
     expect(await fetchGroupedDaily(http, cfg, '2026-11-24')).toMatchObject({

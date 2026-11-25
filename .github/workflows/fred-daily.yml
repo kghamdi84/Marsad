@@ -1,8 +1,9 @@
 name: FRED daily
 
 # Downloads the FRED series Marsad uses and stores them in Supabase, then recomputes the regime label and the
-# recession filter from them (ADR 0009). The regime step runs even if a FRED series failed, and fails loudly itself
-# when the stored S&P 500 is more than 5 days old.
+# recession filter from them (ADR 0009), then the Fear and Greed composite and the capitulation watch (ADR 0011).
+# The later steps run even if a FRED series failed; each fails loudly itself when its newest input is more than
+# 5 days old.
 on:
   schedule:
     - cron: '30 23 * * *' # 23:30 UTC daily, after FRED's evening updates
@@ -36,6 +37,12 @@ jobs:
       - name: Recompute the regime from the stored series
         if: ${{ !cancelled() }}
         run: pnpm --filter @marsad/jobs regime
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Recompute the Fear and Greed composite and the capitulation watch
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs sentiment
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

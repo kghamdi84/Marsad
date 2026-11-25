@@ -83,7 +83,7 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
       for (const d of missing.slice(0, deps.maxNewSessions ?? missing.length)) {
         const r = await fetchGroupedDaily(http, cfg, d);
         if (!r.ok) {
-          failed.push(`grouped ${d}: ${r.display} (${r.kind})`);
+          failed.push(`grouped ${d}: ${r.display} (${r.kind}: ${r.message})`);
           break; // keep the order: the next run continues from here
         }
         const rows = r.data.value ?? [];
@@ -100,7 +100,7 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
         const etf = cs.ok ? await fetchTickersOfType(http, cfg, 'ETF', asOf) : cs;
         if (!cs.ok || !etf.ok) {
           const bad = !cs.ok ? cs : etf;
-          if (!bad.ok) failed.push(`tickers ${asOf}: ${bad.display} (${bad.kind})`);
+          if (!bad.ok) failed.push(`tickers ${asOf}: ${bad.display} (${bad.kind}: ${bad.message})`);
           continue;
         }
         await store.saveTickerTypeSnapshot(asOf, cs.data.value ?? [], etf.data.value ?? []);
@@ -124,7 +124,7 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
             })),
             now(),
           );
-        else failed.push(`splits since ${since}: ${s.display} (${s.kind})`);
+        else failed.push(`splits since ${since}: ${s.display} (${s.kind}: ${s.message})`);
       }
 
       // 4. Recompute everything from what is stored.

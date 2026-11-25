@@ -45,6 +45,8 @@ export async function massiveCall<T>(
   parse: (items: unknown[]) => { value: T; asOf: Date } | null,
   /** Sees the whole response body, for fields outside `results` such as a paging `next_url`. */
   onBody?: (json: unknown) => void,
+  /** True when a body without a `results` array is a genuine empty answer (for example a market holiday). */
+  emptyWithoutResults?: (json: unknown) => boolean,
 ): Promise<AdapterResult<T>> {
   const url = `${cfg.baseUrl ?? DEFAULT_BASE}${path}`;
   const res = await http.get(url, {
@@ -59,8 +61,13 @@ export async function massiveCall<T>(
     return failure('Massive', 'invalid-response', 'response was not JSON');
   }
   onBody?.(json);
-  const items = rows(json);
-  if (items === null) return failure('Massive', 'invalid-response', 'no results array');
+  const items = rows(json) ?? (emptyWithoutResults?.(json) ? [] : null);
+  if (items === null) {
+    // Field names only (never values), so a new response shape can be diagnosed from the job log.
+    const keys =
+      typeof json === 'object' && json !== null ? Object.keys(json).sort().join(', ') : typeof json;
+    return failure('Massive', 'invalid-response', `no results array (fields: ${keys})`);
+  }
   const parsed = parse(items);
   if (parsed === null)
     return failure('Massive', 'invalid-response', 'results did not match the expected fields');
