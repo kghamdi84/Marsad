@@ -1,4 +1,4 @@
-import type { Obs, RecessionSignal, RegimeInputs } from '@marsad/core';
+import type { BreadthDay, Obs, RecessionSignal, RegimeInputs } from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -37,9 +37,18 @@ export interface StoredEventStat {
   dataTo: string;
 }
 
+export interface StoredBreadthDay extends BreadthDay {
+  advanceAvg10: number | null;
+  zweigThrust: boolean;
+  mcclellanOscillator: number | null;
+  mcclellanSummation: number | null;
+}
+
 export interface RegimeData {
   /** The past year of stored days, oldest first. */
   days: StoredRegimeDay[];
+  /** The past year of Marsad universe breadth, oldest first. */
+  breadth: StoredBreadthDay[];
   stats: StoredEventStat[];
   /** The trailing year of each panel series, oldest first. */
   series: Record<string, Obs[]>;
@@ -84,6 +93,7 @@ export async function loadRegime(): Promise<RegimeData> {
       )
       .order('date', { ascending: false })
       .limit(252),
+    client().from('breadth_daily').select('*').order('date', { ascending: false }).limit(260),
     client().from('gpr_daily').select('date, gprd').order('date', { ascending: false }).limit(260),
     ...PANEL_SERIES.map((id) => recent(id)),
   ]);
@@ -104,10 +114,39 @@ export async function loadRegime(): Promise<RegimeData> {
       };
     })
     .reverse();
-  const [gprR, ...seriesList] = rest as [
+  const [breadthR, gprR, ...seriesList] = rest as unknown as [
+    { data: unknown; error: { message: string } | null },
     { data: unknown; error: { message: string } | null },
     ...Obs[][],
   ];
+  const nn = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+  const breadth: StoredBreadthDay[] = (
+    check(breadthR as never, 'breadth_daily') as Record<string, unknown>[]
+  )
+    .map((r) => ({
+      date: String(r['date']),
+      version: String(r['version']),
+      members: n(r['members']),
+      withChange: n(r['with_change']),
+      advancers: n(r['advancers']),
+      decliners: n(r['decliners']),
+      unchanged: n(r['unchanged']),
+      upVolume: n(r['up_volume']),
+      downVolume: n(r['down_volume']),
+      above50: n(r['above50']),
+      n50: n(r['n50']),
+      above200: n(r['above200']),
+      n200: n(r['n200']),
+      newHighs: n(r['new_highs']),
+      newLows: n(r['new_lows']),
+      n252: n(r['n252']),
+      suspect: n(r['suspect']),
+      advanceAvg10: nn(r['advance_avg10']),
+      zweigThrust: r['zweig_thrust'] === true,
+      mcclellanOscillator: nn(r['mcclellan_oscillator']),
+      mcclellanSummation: nn(r['mcclellan_summation']),
+    }))
+    .reverse();
   const gpr = (check(gprR as never, 'gpr_daily') as Record<string, unknown>[])
     .map((r) => ({ date: String(r['date']), value: n(r['gprd']) }))
     .reverse();
@@ -134,5 +173,5 @@ export async function loadRegime(): Promise<RegimeData> {
         dataTo: String(r['data_to']),
       }))
     : [];
-  return { days, stats, series, gpr };
+  return { days, breadth, stats, series, gpr };
 }

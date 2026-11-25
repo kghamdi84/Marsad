@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, regime batch A).
+Last updated 2026-11-25 (Phase 3, breadth batch B).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch B: Marsad universe and breadth (2026-11-25)
+
+- **ADR 0010** defines the universe (top 1,000 US common stocks and ETFs by 20-session dollar volume, rebuilt monthly from data before the rebuild, point-in-time ticker lists so delisted names count) and breadth (above the 50- and 200-day averages, 52-week highs and lows, advancers and decliners with volume, the Zweig thrust, a McClellan-style volume oscillator).
+- **Data**: confirmed with the project key that the free plan's grouped daily returns the whole market (12,650 tickers) in one call. Each session is stored unadjusted and compressed; splits from the stored all-market split history are applied when reading, so a split never looks like a crash and stored data never changes.
+- **Verified**: core matches an independent Python implementation on a seeded synthetic market with a halt, a bad print, a late listing, a flat line and a Zweig thrust (all universes and all 308 days); every rule mutation-checked; Node and Deno identical; adapters tested on real recorded responses; job tests for resume after a failure, the per-run cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor.
+- **Found while building**: the test HTTP helper's clock never advanced, so a test making more than 100 calls spun forever (fixed: a wait now moves its virtual clock); and the job reported a confusing "no ticker lists" error after a failed fetch instead of the real failure (fixed).
+- **After merge**: run "Massive universe breadth" by hand once. The first run fills 2 years (about 520 sessions and the ticker lists, about 2 hours); other Massive jobs wait meanwhile. The page shows breadth after that.
 
 ### Live: regime (2026-11-25, PR #23 merged as `54e9c4a`)
 

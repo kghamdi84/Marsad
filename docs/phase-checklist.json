@@ -342,14 +342,14 @@
         {
           "id": "3.2",
           "title": "Universe construction (top 1,000 by dollar volume, monthly, point-in-time)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "ADR 0010, universe-1: top 1,000 US common stocks and ETFs by 20-session dollar volume, rebuilt on the first session of each month from the sessions before it (never the rebuild day), eligibility from point-in-time ticker lists by type (quarterly), stored per month in universe_members. Data: each session's grouped daily, unadjusted, stored compressed in market_snapshots; splits applied from the stored all-market split history. Core rankUniverse and breadthHistory match an independent Python implementation on a seeded synthetic market (all universes, all 308 days); mutation-checked; adapters tested on real responses recorded with the project key. Still to do: the first live run (the 2-year backfill, about 2 hours) after merge."
         },
         {
           "id": "3.3",
           "title": "Breadth",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "breadth-1 (ADR 0010): above the 50- and 200-day averages, 252-session highs and lows, advancers and decliners with volume, bad-print guard after split adjustment, 10-day advancing share, Zweig breadth thrust, McClellan-style volume oscillator and summation; breadth_daily table; Regime page panel labelled 'Marsad universe breadth', each measure with how many members it rests on, the month-ago value, source and as-of date. Breadth job (massive-breadth.yml, weekday mornings) resumable, one call a day after the backfill; job tests cover resume, the cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor. Still to do: the live backfill and a check of the real numbers against known market episodes."
         },
         {
           "id": "3.4",
@@ -385,7 +385,7 @@
           "id": "3.9",
           "title": "Regime classifier with event-study statistics",
           "status": "in_progress",
-          "evidence": "Regime label regime-1 and event studies event-study-1 (ADR 0009): stress, bear, recovery, bull calm, bull correction from the S&P 500 trend, drawdown, VIX and VIX3M. The first draft's recovery rule labelled 30% of all days and was tightened (documented). Day-by-day match with an independent Python implementation over 2,512 sessions (2016 to 2026); known days labelled as history remembers them. New tables regime_daily (each day with its inputs and rule versions, so the label is reproducible from stored data, tested) and regime_event_stats; regime job runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old. Event study: non-overlapping episodes, n, median, quartiles and an all-days benchmark; fewer than 30 episodes shows 'insufficient history', which is most labels with 10 years of free S&P 500 data. Still to do: the Zweig breadth thrust and capitulation context (need breadth), and the live check of the page. Live 2026-11-25: regime-daily stored 2,512 days on main (latest 2026-11-23: stress; recession filter elevated)."
+          "evidence": "Regime label regime-1 and event studies event-study-1 (ADR 0009): stress, bear, recovery, bull calm, bull correction from the S&P 500 trend, drawdown, VIX and VIX3M. The first draft's recovery rule labelled 30% of all days and was tightened (documented). Day-by-day match with an independent Python implementation over 2,512 sessions (2016 to 2026); known days labelled as history remembers them. New tables regime_daily (each day with its inputs and rule versions, so the label is reproducible from stored data, tested) and regime_event_stats; regime job runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old. Event study: non-overlapping episodes, n, median, quartiles and an all-days benchmark; fewer than 30 episodes shows 'insufficient history', which is most labels with 10 years of free S&P 500 data. Zweig breadth thrust computed with breadth (3.3) and shown on the Regime page. Still to do: capitulation context and the live check of the page. Live 2026-11-25: regime-daily stored 2,512 days on main (latest 2026-11-23: stress; recession filter elevated)."
         },
         {
           "id": "3.10",

@@ -3,9 +3,11 @@ import synthetic from '../../../fixtures/breadth/synthetic-breadth.json';
 import {
   BREADTH_RULES,
   BREADTH_VERSION,
+  adjustForSplits,
   advanceShare,
   breadthHistory,
   breadthOn,
+  breadthReading,
   breadthSignals,
   monthStarts,
   rankUniverse,
@@ -227,5 +229,94 @@ describe('the whole history against an independent Python implementation (synthe
         else expect(x[k]).toBeCloseTo(want, 9);
       }
     });
+  });
+});
+
+describe('split adjustment of raw snapshots', () => {
+  const dates = ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04'];
+  it('a 2-for-1 split on 06-03 halves earlier closes and doubles earlier volumes, and leaves the rest alone', () => {
+    const raw = new Map<string, TickerSeries>([
+      ['NVDA', { close: [200, 202, 101, 102], volume: [10, 10, 20, 20] }],
+      ['AAPL', { close: [5, 6, 7, 8], volume: [1, 1, 1, 1] }],
+    ]);
+    const adj = adjustForSplits(dates, raw, [
+      { ticker: 'NVDA', executionDate: '2026-06-03', splitFrom: 1, splitTo: 2 },
+    ]);
+    expect(adj.get('NVDA')).toEqual({ close: [100, 101, 101, 102], volume: [20, 20, 20, 20] });
+    expect(adj.get('AAPL')).toBe(raw.get('AAPL')); // untouched, not copied
+    // With the adjustment the 06-03 move is +0%, not a 50% crash that would be read as a bad print or a new low.
+  });
+  it('a 1-for-10 reverse split multiplies earlier closes by 10; two splits multiply; a gap stays a gap', () => {
+    const raw = new Map<string, TickerSeries>([
+      ['RVS', { close: [1, null, 10, 11], volume: [1000, null, 100, 100] }],
+    ]);
+    const adj = adjustForSplits(dates, raw, [
+      { ticker: 'RVS', executionDate: '2026-06-03', splitFrom: 10, splitTo: 1 },
+      { ticker: 'RVS', executionDate: '2026-06-04', splitFrom: 1, splitTo: 2 },
+    ]);
+    // Session 0 is before both: x10 then x0.5 = x5. Session 2 is before only the second: x0.5.
+    expect(adj.get('RVS')).toEqual({ close: [5, null, 5, 11], volume: [200, null, 200, 100] });
+  });
+  it('ignores a malformed ratio instead of dividing by zero', () => {
+    const raw = new Map<string, TickerSeries>([
+      ['X', { close: [1, 2, 3, 4], volume: [1, 1, 1, 1] }],
+    ]);
+    const adj = adjustForSplits(dates, raw, [
+      { ticker: 'X', executionDate: '2026-06-03', splitFrom: 0, splitTo: 2 },
+    ]);
+    expect(adj.get('X')).toEqual(raw.get('X'));
+  });
+});
+
+describe('the headline reading of a breadth day', () => {
+  it('percentages out of the members with enough history, net new highs and the up-volume share', () => {
+    const r = breadthReading({
+      date: '2026-11-24',
+      version: BREADTH_VERSION,
+      members: 1000,
+      withChange: 990,
+      advancers: 600,
+      decliners: 380,
+      unchanged: 10,
+      upVolume: 3e9,
+      downVolume: 1e9,
+      above50: 450,
+      n50: 900, // 50%
+      above200: 300,
+      n200: 800, // 37.5%
+      newHighs: 40,
+      newLows: 15,
+      n252: 700,
+      suspect: 0,
+    });
+    expect(r).toEqual({
+      date: '2026-11-24',
+      pctAbove50: 50,
+      pctAbove200: 37.5,
+      netNewHighs: 25,
+      upVolumePct: 75,
+    });
+  });
+  it('no member with the history gives null, not 0%', () => {
+    const r = breadthReading({
+      date: 'x',
+      version: BREADTH_VERSION,
+      members: 0,
+      withChange: 0,
+      advancers: 0,
+      decliners: 0,
+      unchanged: 0,
+      upVolume: 0,
+      downVolume: 0,
+      above50: 0,
+      n50: 0,
+      above200: 0,
+      n200: 0,
+      newHighs: 0,
+      newLows: 0,
+      n252: 0,
+      suspect: 0,
+    });
+    expect([r.pctAbove50, r.pctAbove200, r.upVolumePct]).toEqual([null, null, null]);
   });
 });

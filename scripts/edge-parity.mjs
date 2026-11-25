@@ -225,6 +225,26 @@ const out = {
       ),
     };
   })(),
+  // Universe breadth on the seeded synthetic market (ADR 0010), with its signals and a split adjustment.
+  breadth: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/breadth/synthetic-breadth.json'), 'utf8'),
+    );
+    const series = new Map(Object.entries(f.series));
+    const eligible = new Set(f.eligible);
+    const h = core.breadthHistory(f.dates, series, () => eligible, f.size);
+    const adjusted = core.adjustForSplits(
+      f.dates.slice(0, 4),
+      new Map([['X', { close: [10, 10, 5, 5], volume: [1, 1, 2, 2] }]]),
+      [{ ticker: 'X', executionDate: f.dates[2], splitFrom: 1, splitTo: 2 }],
+    );
+    return {
+      universes: h.universes,
+      days: h.days,
+      signals: core.breadthSignals(h.days),
+      adjusted: adjusted.get('X'),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

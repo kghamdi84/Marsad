@@ -1,5 +1,5 @@
 /**
- * Entry point for the Massive jobs (run by GitHub Actions): `reference`, `reconcile`, `bars`, `news`, `study` or `sections`.
+ * Entry point for the Massive jobs (run by GitHub Actions): `reference`, `reconcile`, `bars`, `news`, `study`, `sections` or `breadth`.
  * Reads MASSIVE_API_KEY, SUPABASE_URL and SUPABASE_SECRET_KEY from the environment; never logs them.
  */
 import {
@@ -11,6 +11,7 @@ import {
   type MassiveConfig,
 } from '@marsad/core';
 import { runBarsJob } from './bars-job.js';
+import { runBreadthJob } from './breadth-job.js';
 import { runNewsJob } from './news-job.js';
 import { runSectionsJob } from './sections-job.js';
 import { runStudyDataJob } from './study-data-job.js';
@@ -25,7 +26,7 @@ function need(name: string): string {
 }
 
 const which = process.argv[2];
-const MODES = ['reference', 'reconcile', 'bars', 'news', 'study', 'sections'] as const;
+const MODES = ['reference', 'reconcile', 'bars', 'news', 'study', 'sections', 'breadth'] as const;
 type Mode = (typeof MODES)[number];
 if (!MODES.includes(which as Mode)) throw new Error(`usage: massive-main.ts ${MODES.join('|')}`);
 
@@ -63,6 +64,7 @@ const jobs = {
   news: () => runNewsJob({ http, cfg, store, now }),
   study: () => runStudyDataJob({ http, cfg, store, now }),
   sections: () => runSectionsJob({ http, cfg, store, now }),
+  breadth: () => runBreadthJob({ http, cfg, store, now }),
 } satisfies Record<Mode, () => Promise<unknown>>;
 const run = await jobs[which as Mode]();
 console.log(

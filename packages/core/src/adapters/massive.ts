@@ -43,6 +43,8 @@ export async function massiveCall<T>(
   endpoint: string,
   cacheTtlMs: number,
   parse: (items: unknown[]) => { value: T; asOf: Date } | null,
+  /** Sees the whole response body, for fields outside `results` such as a paging `next_url`. */
+  onBody?: (json: unknown) => void,
 ): Promise<AdapterResult<T>> {
   const url = `${cfg.baseUrl ?? DEFAULT_BASE}${path}`;
   const res = await http.get(url, {
@@ -56,6 +58,7 @@ export async function massiveCall<T>(
   } catch {
     return failure('Massive', 'invalid-response', 'response was not JSON');
   }
+  onBody?.(json);
   const items = rows(json);
   if (items === null) return failure('Massive', 'invalid-response', 'no results array');
   const parsed = parse(items);

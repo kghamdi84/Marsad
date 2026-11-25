@@ -437,6 +437,35 @@ export const t = {
       depth:
         'With 10 years of S&P 500 data most labels have fewer than 30 independent episodes. A longer price history would need a paid data plan or a proxy index; see ADR 0009.',
     },
+    breadth: {
+      title: 'Marsad universe breadth',
+      intro:
+        'The 1,000 most traded US common stocks and ETFs (by 20-day dollar volume), rebuilt at the start of each month from data before it. This is Marsad\u2019s own universe, not official index breadth.',
+      none: 'No breadth has been computed yet. The first run of the breadth job fills 2 years of history.',
+      asOf: (date: string, members: number) => `As of the close on ${date}, ${members} members.`,
+      above50: 'Above their 50-day average',
+      above200: 'Above their 200-day average',
+      outOf: (n: number) => `out of ${n.toLocaleString('en-US')} with enough history`,
+      netHighs: 'New 52-week highs minus lows',
+      highsLows: (h: number, l: number) => `${h} highs, ${l} lows`,
+      advDec: 'Advancers and decliners',
+      advDecValue: (a: number, d: number) => `${a} up, ${d} down`,
+      upVolume: 'Share of volume in advancing names',
+      avg10: '10-day average advancing share',
+      mcclellan: 'McClellan volume oscillator (summation)',
+      zweig: 'Zweig breadth thrust',
+      zweigLast: (date: string) => `Last fired ${date}.`,
+      zweigNone: 'Not fired in the stored history.',
+      zweigRule:
+        'Fires when the 10-day average advancing share rises from below 0.40 to above 0.615 within 10 sessions.',
+      monthAgo: (pct: string) => `a month ago ${pct}`,
+      warmup:
+        'The free plan gives 2 years of history, so the 200-day and 52-week measures need most of the first year to warm up; the counts show how many members they rest on.',
+      source: (versions: string) =>
+        `Source: Massive grouped daily (end of day, unadjusted, splits applied by Marsad). Rules ${versions}.`,
+      suspect: (n: number) =>
+        `${n} member${n === 1 ? '' : 's'} left out today: a one-day move over 50% with no split.`,
+    },
     volatility: {
       title: 'Volatility and its term structure',
       vix: 'VIX',

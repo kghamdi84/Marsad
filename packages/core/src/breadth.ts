@@ -292,3 +292,73 @@ export function breadthHistory(
   }
   return { universes, days };
 }
+
+/** A share-count change: on `executionDate` and after, prices trade on the new basis (split_to shares per split_from). */
+export interface ShareChange {
+  ticker: string;
+  executionDate: string;
+  splitFrom: number;
+  splitTo: number;
+}
+
+/**
+ * Puts raw (unadjusted) closes and volumes on today's share basis: every session before a split's execution date has
+ * its close multiplied by from / to and its volume by to / from, for every later split (stock dividends included).
+ * Raw snapshots never change, so the result depends only on what is stored, and a split cannot look like a crash.
+ */
+export function adjustForSplits(
+  dates: readonly string[],
+  raw: ReadonlyMap<string, TickerSeries>,
+  changes: readonly ShareChange[],
+): Map<string, TickerSeries> {
+  const byTicker = new Map<string, ShareChange[]>();
+  for (const c of changes) {
+    if (!(c.splitFrom > 0 && c.splitTo > 0)) continue;
+    byTicker.set(c.ticker, [...(byTicker.get(c.ticker) ?? []), c]);
+  }
+  const out = new Map<string, TickerSeries>();
+  for (const [ticker, s] of raw) {
+    const list = byTicker.get(ticker);
+    if (!list) {
+      out.set(ticker, s);
+      continue;
+    }
+    const close = [...s.close];
+    const volume = [...s.volume];
+    for (let i = 0; i < dates.length; i++) {
+      let factor = 1; // price multiplier for session i
+      for (const c of list)
+        if ((dates[i] as string) < c.executionDate) factor *= c.splitFrom / c.splitTo;
+      if (factor === 1) continue;
+      const c0 = close[i];
+      const v0 = volume[i];
+      if (c0 !== null && c0 !== undefined) close[i] = c0 * factor;
+      if (v0 !== null && v0 !== undefined) volume[i] = v0 / factor;
+    }
+    out.set(ticker, { close, volume });
+  }
+  return out;
+}
+
+export interface BreadthReading {
+  date: string;
+  /** Percent of members above their 50- and 200-session averages; null with no member that has the history. */
+  pctAbove50: number | null;
+  pctAbove200: number | null;
+  /** New 252-session highs minus new lows. */
+  netNewHighs: number;
+  /** Percent of the day's up and down volume that was up volume. */
+  upVolumePct: number | null;
+}
+
+/** The headline numbers of one breadth day, in percent. */
+export function breadthReading(d: BreadthDay): BreadthReading {
+  const pct = (a: number, n: number) => (n === 0 ? null : (100 * a) / n);
+  return {
+    date: d.date,
+    pctAbove50: pct(d.above50, d.n50),
+    pctAbove200: pct(d.above200, d.n200),
+    netNewHighs: d.newHighs - d.newLows,
+    upVolumePct: pct(d.upVolume, d.upVolume + d.downVolume),
+  };
+}
