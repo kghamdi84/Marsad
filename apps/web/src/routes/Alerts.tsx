@@ -31,7 +31,7 @@ function AlertCard({ row }: { row: StoredAlertRow }) {
   const when = new Date(row.createdAt);
   const [header, ...rest] = row.card;
   return (
-    <li className="flex flex-col gap-2 rounded-sm border border-line p-3">
+    <li id={`alert-${row.id}`} className="flex flex-col gap-2 rounded-sm border border-line p-3">
       {header && (
         <div>
           <h2 className="font-semibold">{header.heading}</h2>

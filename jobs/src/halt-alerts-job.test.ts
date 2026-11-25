@@ -42,7 +42,7 @@ describe('runHaltAlertsJob', () => {
     expect(rows[0]?.input.context.regime).toBe('stress');
     expect(rows[0]?.push.title.length).toBeLessThanOrEqual(60);
     expect(rows[0]?.sourceAt).toBe('2026-11-25T19:34:30.000Z');
-    expect(rows[0]?.delivery['push']).toContain('not-configured');
+    expect(rows[0]?.delivery['push']).toBe('pending');
   });
 
   it('a saved watchlist adds tickers; a later run stores no duplicates', async () => {

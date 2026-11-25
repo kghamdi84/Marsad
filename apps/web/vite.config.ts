@@ -11,7 +11,7 @@ export default defineConfig({
       // No update prompt exists, so a waiting worker would keep serving a stale build.
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
-      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png', 'push-sw.js'],
       manifest: {
         name: 'Marsad',
         short_name: 'Marsad',
@@ -37,6 +37,8 @@ export default defineConfig({
         // Never cache API traffic: stale market data must not look live.
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [],
+        // Push and notification-click handlers (ADR 0031).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

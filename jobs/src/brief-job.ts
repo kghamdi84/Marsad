@@ -201,7 +201,9 @@ export async function runBriefJob(deps: BriefJobDeps): Promise<JobRunRecord> {
           email = `failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200);
         }
       }
-      const delivery = { kind, email, push: 'not-configured (Phase 5)', at: at.toISOString() };
+      // A rerun keeps the push state already recorded, so the dispatcher never pushes the same brief twice.
+      const priorPush = (prior?.['delivery'] as Record<string, string> | undefined)?.['push'];
+      const delivery = { kind, email, push: priorPush ?? 'pending', at: at.toISOString() };
       await store.saveBrief(brief, inputs, delivery);
       if (email.startsWith('failed')) throw new Error(`Brief stored, but the email ${email}`);
       return {

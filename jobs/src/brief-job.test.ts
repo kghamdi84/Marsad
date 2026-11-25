@@ -68,7 +68,11 @@ describe('runBriefJob', () => {
     expect(run.status).toBe('ok');
     const saved = log.briefs[0];
     expect(saved?.brief.title).toBe('Pre-market brief, Wed 2026-11-25');
-    expect(saved?.delivery).toMatchObject({ kind: 'pre-market', email: 'not-configured' });
+    expect(saved?.delivery).toMatchObject({
+      kind: 'pre-market',
+      email: 'not-configured',
+      push: 'pending',
+    });
     const lines = saved?.brief.sections.flatMap((s) => s.lines) ?? [];
     expect(lines).toContain('Fear and Greed composite 42, fear (5 of 7 components, 2026-11-24).');
     expect(lines).toContain('08:30 ET GDP (high impact).');
@@ -150,6 +154,25 @@ describe('runBriefJob', () => {
       },
     });
     expect(calls).toBe(0);
+  });
+
+  it('a rerun keeps the recorded push state, so the same brief is never pushed twice', async () => {
+    const { store, log } = fakeStore({
+      ...seed,
+      latestRows: {
+        ...latestRows,
+        'briefs|for_date=2026-11-25': [
+          { delivery: { kind: 'close-recap', email: 'sent', push: 'sent to 1 of 1 device' } },
+        ],
+      },
+    });
+    await runBriefJob({
+      store,
+      now: () => new Date('2026-11-25T22:55:00Z'),
+      kind: 'close-recap',
+      tickers: [],
+    });
+    expect(log.briefs[0]?.delivery['push']).toBe('sent to 1 of 1 device');
   });
 
   it('briefText has no em dash', () => {

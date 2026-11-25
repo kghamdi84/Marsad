@@ -157,6 +157,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Web Push to the iPad Home Screen app (2026-11-25)
+
+- **ADR 0031** (`push-1`): push alerts, system alerts (feed down and recovered) and briefs are queued as pending and sent by a dispatcher step at the end of every workflow that creates them (no new schedule, no extra runs). Keys are created on the Status page; the private key goes only into the GitHub secret `VAPID_PRIVATE_KEY`. Late notifications say how late; anything past its limit (2 hours for alerts) is recorded as not sent. Devices the push service drops are stopped and shown.
+- **Verified**: 33 core tests (RFC 4648 vectors, age and late boundaries, endpoint allow list), 12 job tests (send once, claim race, expiry, missing secret, key mismatch, 410 disables a device, the SEC 2 P-256 generator point as a key vector), RLS test (owner only, known push hosts only), 3 browser tests on desktop and iPad (no request carries the private key; the browser's key pair matches what the job derives), and an offline check that web-push builds an aes128gcm request with our key.
+- **Waiting on Khaled**: SETUP step 10 (add Marsad to the Home Screen, create keys, add the secret, turn on the iPad, run the test).
+
 ### Catalyst watch on end-of-day data (2026-11-25)
 
 - **ADR 0030** (`catalyst-1`): Khaled writes scenarios on the Alerts page; each evening the catalyst-watch job matches them against the day's 8-Ks, Form 4s, tiered news, halts and moves. Tier 1 or two independent tier-2 sources confirm; the chase guard is applied in the plan ("no entry" beyond it); analog counts show in the bear case. Matches are recorded as shadow alerts until live data exists.

@@ -21,13 +21,16 @@
     "scorecard": "tsx src/scorecard-main.ts",
     "exports": "tsx src/exports-main.ts",
     "weekly-review": "tsx src/weekly-review-main.ts",
-    "catalyst": "tsx src/catalyst-main.ts"
+    "catalyst": "tsx src/catalyst-main.ts",
+    "push": "tsx src/push-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",
-    "@supabase/supabase-js": "^2.119.2"
+    "@supabase/supabase-js": "^2.119.2",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
+    "@types/web-push": "3.6.4",
     "tsx": "^4.23.15"
   }
 }

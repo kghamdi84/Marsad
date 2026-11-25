@@ -42,7 +42,7 @@ export async function alertContext(store: Store): Promise<{ vix?: Reading; regim
 /**
  * Runs alert inputs through the pipeline (ADR 0019) and stores each new event once, with its input snapshot,
  * decision and reasons. An event already stored (by key) is never stored again by a later run, whatever the
- * pipeline would decide now. Delivery is recorded as not configured until Web Push exists.
+ * pipeline would decide now. Push decisions are stored as pending for the Web Push dispatcher.
  */
 export async function pipelineAndStore(
   store: Store,
@@ -76,8 +76,9 @@ export async function pipelineAndStore(
       push: pushText(input),
       sourceAt,
       createdAt: at.toISOString(),
+      // Only push decisions wait for the Web Push dispatcher (ADR 0031); the rest are never pushed.
       delivery: {
-        push: 'not-configured (Web Push arrives with Phase 5 delivery)',
+        push: r.decision === 'push' ? 'pending' : `not sent (${r.decision})`,
         email: 'not-configured',
       },
     });

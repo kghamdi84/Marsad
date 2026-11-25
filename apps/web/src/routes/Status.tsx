@@ -17,6 +17,7 @@ import {
 import { downloadExport, listExports } from '../lib/exports';
 import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
 import { supabase } from '../lib/supabase';
+import { Notifications } from '../components/status/Notifications';
 import { t } from '../strings';
 
 interface SourceRow {
@@ -520,6 +521,8 @@ export function Status() {
       </div>
 
       <Costs />
+
+      <Notifications />
 
       <Preferences />
 

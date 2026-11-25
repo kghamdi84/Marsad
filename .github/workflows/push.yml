@@ -1,0 +1,36 @@
+name: Web Push
+
+# The Web Push dispatcher (ADR 0031). It normally runs as the last step of every workflow that can create an
+# alert, a system alert or a brief (halts every 5 minutes on weekdays, health, bars, briefs, the weekly review),
+# so it has no schedule of its own and adds no extra runs. Run it here by hand to send pending items now, or with
+# "Send a test notification" set to true to check that every device receives one.
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: Send a test notification
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Send push notifications
+        run: pnpm --filter @marsad/jobs push
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_TEST: ${{ inputs.test && '1' || '0' }}

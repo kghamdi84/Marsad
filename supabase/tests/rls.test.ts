@@ -579,6 +579,46 @@ describe('system tables', () => {
     );
   });
 
+  it('push subscriptions belong to the app owner and only point at known push services', async () => {
+    const key = 'B'.padEnd(87, 'A');
+    const ins = (endpoint: string, p256dh = key) =>
+      `insert into public.push_subscriptions (endpoint, p256dh, auth, device) values ('${endpoint}', '${p256dh}', '${'C'.repeat(22)}', 'iPad')`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins('https://web.push.apple.com/QAbc'));
+      expect(await count(tx, 'public.push_subscriptions')).toBe(1);
+    });
+    // Signed in with MFA but not the app owner: cannot subscribe, sees nothing.
+    await expect(
+      as(other2, (tx) => tx.query(ins('https://fcm.googleapis.com/fcm/send/x'))),
+    ).rejects.toThrow();
+    await as(other2, async (tx) => expect(await count(tx, 'public.push_subscriptions')).toBe(0));
+    await expect(as(owner1, (tx) => count(tx, 'public.push_subscriptions'))).resolves.toBe(0);
+    for (const bad of [
+      'http://web.push.apple.com/x',
+      'https://evil.example/web.push.apple.com/',
+      'https://push.apple.com.evil.example/x',
+      'https://notpush.apple.com/x',
+    ])
+      await expect(as(owner2, (tx) => tx.query(ins(bad)))).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner2, (tx) => tx.query(ins('https://web.push.apple.com/other', 'short'))),
+    ).rejects.toThrow(/check constraint/);
+    await expect(as(anon, (tx) => count(tx, 'public.push_subscriptions'))).rejects.toThrow(
+      /permission denied/,
+    );
+    await as(owner2, async (tx) => {
+      await tx.query(`update public.user_settings set push_public_key = '${key}'`);
+      await expect(
+        tx.query(`update public.user_settings set push_public_key = 'not-a-key'`),
+      ).rejects.toThrow(/check constraint/);
+    });
+    const d = await db.query<{ delivery: unknown }>(
+      `insert into public.system_alerts (event, source, headline, trigger, policy_version) values ('stale', 'x', 'h', 't', 'p') returning delivery`,
+    );
+    expect(d.rows[0]?.delivery).toEqual({});
+    await db.query(`delete from public.system_alerts where source = 'x'`);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

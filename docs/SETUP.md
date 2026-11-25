@@ -142,6 +142,19 @@ The pre-market brief and close recap are built every trading day and shown on th
 4. Add one more secret: name `BRIEF_EMAIL_TO`, value the same email you signed up to Resend with. Until you verify a domain, Resend only delivers to that address.
 5. Tell Claude "email secrets added". Claude runs the brief once and checks the delivery log.
 
+## Step 10. Notifications on your iPad (free)
+
+Alerts, system alerts and briefs can arrive as notifications. iPadOS sends them only to web apps on the Home Screen.
+
+1. On your iPad, open Marsad in **Safari**, tap **Share**, then **Add to Home Screen**, then **Add**. From now on, open Marsad from the Home Screen icon.
+2. In Marsad, sign in, tap **Status**, scroll to **Notifications** and tap **Create keys**. A private key appears once. Tap **Copy private key**.
+3. In GitHub: the repository, **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Name `VAPID_PRIVATE_KEY`, paste the key, tap **Add secret**.
+4. Back in Marsad (**Status**, **Notifications**), tap **Turn on for this device**, then **Allow**. The device appears in the list. Repeat this step on any other device.
+5. To test: in GitHub, tap **Actions**, choose **Web Push**, then **Run workflow**, set **Send a test notification** to true and tap **Run workflow**. A test notification arrives within a few minutes.
+6. Tell Claude "push secret added". Claude checks the delivery log.
+
+If notifications stop: on the iPad, open **Settings**, **Notifications**, **Marsad** and turn on **Allow Notifications**; then check the device's state on the Status page.
+
 ## Costs so far
 
 | Item                                      | Monthly cost | Approved                  |
