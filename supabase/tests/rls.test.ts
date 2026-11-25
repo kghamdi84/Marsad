@@ -564,6 +564,21 @@ describe('system tables', () => {
     await db.query(`delete from public.briefs where kind = 'weekly-review'`);
   });
 
+  it('catalyst scenarios are personal and need at least one trigger and a plan', async () => {
+    const ins = (triggers: string) =>
+      `insert into public.catalyst_scenarios (name, tickers, ${triggers ? 'eight_k_items, ' : ''}plan_entry, chase_guard_pct, plan_invalidation, expires_on) values ('NVDA CEO returns', '{NVDA}', ${triggers ? `'${triggers}', ` : ''}'Wait for VWAP.', 0.1, 'Below the low.', '2026-12-31')`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins('{5.02}'));
+      expect(await count(tx, 'public.catalyst_scenarios')).toBe(1);
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.catalyst_scenarios')).toBe(0));
+    await expect(as(owner2, (tx) => tx.query(ins('')))).rejects.toThrow(/check constraint/);
+    await expect(as(owner1, (tx) => tx.query(ins('{5.02}')))).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.catalyst_scenarios'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

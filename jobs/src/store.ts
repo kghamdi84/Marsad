@@ -9,6 +9,8 @@ import {
 } from './snapshot-codec.js';
 import { PERSONAL_EXPORT_TABLES, SHARED_EXPORT_TABLES, etDate } from '@marsad/core';
 import type {
+  CatalystEvent,
+  CatalystScenario,
   HoldingRef,
   Outcome,
   ScoredAlert,
@@ -157,6 +159,12 @@ export interface Store {
   uploadExport(path: string, body: string): Promise<void>;
   /** Open holdings of every owner (the app has one), with their row ids. */
   getOpenHoldings(): Promise<HoldingRef[]>;
+  /** Active catalyst scenarios not expired before `today` (every owner; the app has one). */
+  getActiveScenarios(today: string): Promise<CatalystScenario[]>;
+  /** Filings, Form 4 transactions and news since an instant, as catalyst events, plus halts. */
+  getCatalystEvents(since: string): Promise<CatalystEvent[]>;
+  /** Stored 8-K filings carrying any of these items for these tickers (the analog count). */
+  countEightKAnalogs(tickers: readonly string[], items: readonly string[]): Promise<number>;
   /** Regime label of every stored day on or after `from`. */
   getRegimeLabels(from: string): Promise<{ date: string; label: string }[]>;
   getRuleVersions(id: string): Promise<{ version: number; hash: string; status: RuleStatus }[]>;
@@ -1155,9 +1163,11 @@ export function supabaseStore(url: string, secretKey: string): Store {
       if (error) throw new Error(`alerts read failed: ${error.message}`);
       return (data ?? []).map((r) => {
         const input = (r.input ?? {}) as {
-          plan?: { stop: number; targets: number[] };
+          plan?: { stop?: number; targets?: number[] };
           qualityScore?: number;
         };
+        // Only a plan with a price stop can be scored for stop or target first; a written catalyst plan cannot.
+        const stop = input.plan?.stop;
         return {
           id: String(r.id),
           createdAt: new Date(String(r.created_at)).toISOString(),
@@ -1165,7 +1175,9 @@ export function supabaseStore(url: string, secretKey: string): Store {
           ticker: r.ticker === null ? null : String(r.ticker),
           ruleId: String(r.rule_id),
           ruleStatus: r.rule_status === 'shadow' ? 'shadow' : 'live',
-          ...(input.plan ? { plan: { stop: input.plan.stop, targets: input.plan.targets } } : {}),
+          ...(typeof stop === 'number'
+            ? { plan: { stop, targets: input.plan?.targets ?? [] } }
+            : {}),
           ...(typeof input.qualityScore === 'number' ? { qualityScore: input.qualityScore } : {}),
         };
       });
@@ -1246,6 +1258,126 @@ export function supabaseStore(url: string, secretKey: string): Store {
       if (error) throw new Error(`daily_bars read failed: ${error.message}`);
       const r = (data ?? [])[0];
       return r ? new Date(String(r.fetched_at)).toISOString() : null;
+    },
+    async getActiveScenarios(today) {
+      const { data, error } = await db
+        .from('catalyst_scenarios')
+        .select('*')
+        .eq('active', true)
+        .gte('expires_on', today)
+        .limit(200);
+      if (error) throw new Error(`catalyst_scenarios read failed: ${error.message}`);
+      const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+      return (data ?? []).map((r) => ({
+        id: Number(r.id),
+        name: String(r.name),
+        tickers: (r.tickers ?? []) as string[],
+        keywords: (r.keywords ?? []) as string[],
+        triggers: {
+          eightKItems: (r.eight_k_items ?? []) as string[],
+          form4Codes: (r.form4_codes ?? []) as string[],
+          newsMinTier: n(r.news_min_tier) as 1 | 2 | 3 | 4 | null,
+          halts: r.halts === true,
+          movePct: n(r.move_pct),
+          volumeRatio: n(r.volume_ratio),
+        },
+        plan: {
+          entry: String(r.plan_entry),
+          chaseGuardPct: Number(r.chase_guard_pct),
+          invalidation: String(r.plan_invalidation),
+          size: String(r.plan_size ?? ''),
+        },
+        expiresOn: String(r.expires_on),
+      }));
+    },
+    async getCatalystEvents(since) {
+      const instruments = await this.getInstruments();
+      const tickerOf = new Map(instruments.map((i) => [i.cik, i.ticker]));
+      const [f, ins, nw, halts] = await Promise.all([
+        db
+          .from('filings')
+          .select('accession, cik, form, filing_date, accepted_at, items')
+          .in('form', ['8-K', '8-K/A'])
+          .gte('filing_date', since.slice(0, 10))
+          .limit(2000),
+        db
+          .from('insider_filings')
+          .select('accession, issuer_cik, owner_name, filed_at, insider_transactions(code)')
+          .eq('status', 'ok')
+          .gte('filed_at', since)
+          .limit(2000),
+        db
+          .from('news_articles')
+          .select('id, published_at, publisher, title, tickers')
+          .gte('published_at', since)
+          .limit(2000),
+        this.getRecentHalts(since),
+      ]);
+      for (const [what, r] of [
+        ['filings', f],
+        ['insider_filings', ins],
+        ['news_articles', nw],
+      ] as const)
+        if (r.error) throw new Error(`${what} read failed: ${r.error.message}`);
+      const events: CatalystEvent[] = [];
+      for (const r of f.data ?? []) {
+        const ticker = tickerOf.get(String(r.cik));
+        if (!ticker) continue;
+        events.push({
+          kind: '8-K',
+          ticker,
+          at: new Date(String(r.accepted_at ?? `${String(r.filing_date)}T12:00:00Z`)).toISOString(),
+          items: (r.items ?? []) as string[],
+          accession: String(r.accession),
+        });
+      }
+      for (const r of ins.data ?? []) {
+        const ticker = tickerOf.get(String(r.issuer_cik));
+        if (!ticker) continue;
+        const codes = new Set(
+          ((r.insider_transactions ?? []) as { code: string }[]).map((t) => t.code),
+        );
+        for (const code of codes)
+          events.push({
+            kind: 'form4',
+            ticker,
+            at: new Date(String(r.filed_at)).toISOString(),
+            code,
+            owner: String(r.owner_name ?? ''),
+            accession: String(r.accession),
+          });
+      }
+      for (const r of nw.data ?? [])
+        events.push({
+          kind: 'news',
+          tickers: (r.tickers ?? []) as string[],
+          at: new Date(String(r.published_at)).toISOString(),
+          title: String(r.title),
+          publisher: String(r.publisher),
+          id: String(r.id),
+        });
+      for (const h of halts)
+        events.push({
+          kind: 'halt',
+          ticker: h.symbol,
+          at: h.haltedAt,
+          reason: h.reasonMeaning ? `${h.reasonCode} (${h.reasonMeaning})` : h.reasonCode,
+        });
+      return events;
+    },
+    async countEightKAnalogs(tickers, items) {
+      if (items.length === 0) return 0;
+      const instruments = await this.getInstruments();
+      const ciks = instruments.filter((i) => tickers.includes(i.ticker)).map((i) => i.cik);
+      if (ciks.length === 0) return 0;
+      const { count, error } = await db
+        .from('filings')
+        .select('accession', { count: 'exact', head: true })
+        .in('cik', ciks)
+        .in('form', ['8-K', '8-K/A'])
+        .overlaps('items', [...items]);
+      if (error) throw new Error(`filings count failed: ${error.message}`);
+      return count ?? 0;
     },
     async getOpenHoldings() {
       const { data, error } = await db

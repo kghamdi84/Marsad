@@ -49,3 +49,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # The catalyst watch: Khaled's scenarios against the day's filings, Form 4s, news, halts and moves.
+      - name: Check catalyst scenarios
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs catalyst
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

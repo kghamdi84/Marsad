@@ -1,5 +1,7 @@
 /** An in-memory Store for tests. Records every write; `fred` seeds what getFredRange returns. */
 import type {
+  CatalystEvent,
+  CatalystScenario,
   HoldingRef,
   Outcome,
   ScoredAlert,
@@ -116,6 +118,9 @@ export interface FakeSeed {
   recentAlerts?: { key: string; at: string; decision: string }[];
   barsFetchedAt?: Record<string, string>;
   holdings?: HoldingRef[];
+  scenarios?: CatalystScenario[];
+  catalystEvents?: CatalystEvent[];
+  eightKAnalogs?: number;
   scoredAlerts?: ScoredAlert[];
   exportTables?: Record<string, Record<string, unknown>[]>;
   outcomes?: Outcome[];
@@ -153,7 +158,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'scoredAlerts' in x ||
       'finishedOutcomes' in x ||
       'exportTables' in x ||
-      'outcomes' in x);
+      'outcomes' in x ||
+      'scenarios' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -209,6 +215,11 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
     getBarsFetchedAt: (ticker) => Promise.resolve(s.barsFetchedAt?.[ticker] ?? null),
     getOpenHoldings: () => Promise.resolve([...(s.holdings ?? [])]),
+    getActiveScenarios: (today) =>
+      Promise.resolve((s.scenarios ?? []).filter((x) => x.expiresOn >= today)),
+    getCatalystEvents: (since) =>
+      Promise.resolve((s.catalystEvents ?? []).filter((e) => e.at >= since)),
+    countEightKAnalogs: () => Promise.resolve(s.eightKAnalogs ?? 0),
     exportRows: (table) => Promise.resolve([...(s.exportTables?.[table] ?? [])]),
     uploadExport: (path, body) => {
       log.uploads.push({ path, body });
