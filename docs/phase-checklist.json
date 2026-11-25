@@ -428,8 +428,8 @@
         {
           "id": "4.1",
           "title": "Rule DSL and evaluator in core",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "rule-dsl-1 (ADR 0016): JSON rule documents (entry, exit, stop by percent or ATR, time stop; all, any, not; comparisons and crosses of bar fields, sma, ema, highest, lowest, return, rsi, atr, rvol and products), a validator with readable messages, canonical form and content hash for versions, and an evaluator that reads only completed bars. Hand-checked cases; a property test changes every bar after 50 random cut points and finds no earlier signal changed; mutation-checked (one survivor found, test added). Node and Deno identical."
         },
         {
           "id": "4.2",
@@ -452,8 +452,8 @@
         {
           "id": "4.5",
           "title": "Bootstrap intervals, trial counting, deflated Sharpe",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "stats-1 (ADR 0016): Wilson interval, seeded percentile bootstrap, Sharpe, deflated Sharpe ratio (Bailey and Lopez de Prado 2014), maximum drawdown, trade statistics with the 30-case rule; known answers from scipy 1.18, statsmodels 0.15 and numpy 2.5 within 1e-9 (bootstrap exact on the same seeded draws); mutation-checked. Still to do: trial counting stored per rule (backtester and lifecycle tables)."
         },
         {
           "id": "4.6",

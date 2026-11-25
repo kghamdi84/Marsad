@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, batch G: briefs; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 4, batch A: statistics and rule language; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,16 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Live results after the Phase 3 merges (2026-11-25, about 10:20 UTC)
+
+- FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
+- Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
+
+### Phase 4 batch A: statistics and the rule language (2026-11-25)
+
+- **ADR 0016**: `stats-1` (normal distribution, Wilson, seeded bootstrap, Sharpe, deflated Sharpe, drawdown, trade statistics) checked against scipy, statsmodels and numpy; `rule-dsl-1` (JSON rules, validator, content hash, completed-bar evaluator) with a look-ahead property test.
+- Mutation checks: 11 mutations; one survived (a cross starting from exactly on the line), a test was added and it is now caught.
 
 ### Phase 3 batch G: pre-market brief and close recap (2026-11-25)
 
