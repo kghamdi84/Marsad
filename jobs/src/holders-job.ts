@@ -69,7 +69,7 @@ export async function runHoldersJob(deps: HoldersJobDeps): Promise<JobRunRecord>
       if (!list.ok) throw new Error(`SEC ticker list: ${list.display}`);
       const names = new Map((list.data.value ?? []).map((c) => [c.ticker, c.name]));
       const companies = (deps.tickers ?? STARTING_STOCKS).flatMap((t) => {
-        const name = names.get(t);
+        const name = names.get(t) ?? names.get(t.replace(/\./g, '-'));
         return name ? [{ ticker: t, key: companyKey(name) }] : [];
       });
       const zip = await source.download(newest);

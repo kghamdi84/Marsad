@@ -123,6 +123,20 @@ describe('runQualityJob on real SEC frames', () => {
     expect(m.saved).toEqual([]);
   });
 
+  it('finds the SEC record of a share class written with a dot (BRK.B is BRK-B at the SEC)', async () => {
+    const m = memoryStore(['BRK.B']);
+    const list = {
+      ...(tickers as Record<string, unknown>),
+      brk: { cik_str: 1067983, ticker: 'BRK-B', title: 'BERKSHIRE HATHAWAY INC' },
+    };
+    const { http } = routedHttp(NOW, [
+      ['company_tickers.json', { status: 200, body: list }],
+      ...frameRoutes,
+    ]);
+    await runQualityJob({ http, sec, store: m.store, now: () => NOW });
+    expect((m.saved[0]?.run as { noCik: number }).noCik).toBe(0);
+  });
+
   it('says so when no universe is stored yet', async () => {
     const m = memoryStore(null);
     const { http } = routedHttp(NOW, []);
