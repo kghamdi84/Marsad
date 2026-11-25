@@ -415,6 +415,33 @@ const out = {
       replay: core.replayDay(f.rule, f.bars, f.bars[200].date),
     };
   })(),
+  // Alert pipeline, card and halt alerts (ADR 0019).
+  alerts: (() => {
+    const now = new Date('2026-11-25T19:35:00Z');
+    const inputs = core.haltAlerts(
+      {
+        symbol: 'SOFI',
+        haltedAt: '2026-11-25T19:32:05Z',
+        reasonCode: 'T1',
+        reasonMeaning: 'News pending',
+        newsRelated: true,
+        resumptionTradeAt: '2026-11-25T19:47:00Z',
+        lastSeenAt: '2026-11-25T19:34:30Z',
+      },
+      { regime: 'stress' },
+      now,
+    );
+    return inputs.map((i) => ({
+      decision: core.runPipeline(
+        i,
+        core.DEFAULT_ALERT_SETTINGS,
+        { recent: [], pushesToday: 0 },
+        now,
+      ),
+      card: core.renderCard(i),
+      push: core.pushText(i),
+    }));
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

@@ -520,14 +520,14 @@
         {
           "id": "5.4",
           "title": "Signal-to-alert pipeline (gates, dedupe, cooldowns, priorities, quiet hours, caps)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "alerts-1 (ADR 0019): the pipeline in core (freshness by priority, shadow, liquidity, chase guard, event risk, toggles, snooze, dedupe by day or event, cooldown, quiet hours in local time, daily push cap, critical bypass), each step stored as a reason; 13 unit tests. Still to do: live rule signals (after the Phase 5 prerequisites) and the digest sender."
         },
         {
           "id": "5.5",
           "title": "Alert card renderer",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "renderCard and pushText (ADR 0019): the brief's card order, risk by horizon with n and 90% Wilson intervals or insufficient history or n/a, 60 and 140 character push limits; Alerts page renders stored cards (browser test)."
         },
         {
           "id": "5.6",
@@ -550,14 +550,14 @@
         {
           "id": "5.9",
           "title": "Feedback buttons",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "alert_feedback (personal, MFA, one per alert; RLS test that only its owner sees it) and one-tap Useful, Noise and Acted on buttons on each card (browser test checks the write)."
         },
         {
           "id": "5.10",
           "title": "Shadow mode",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "The pipeline logs shadow-rule signals as decision 'shadow' (stored, never delivered); lifecycle gates in ADR 0018. Still to do: running shadow rules on live data."
         },
         {
           "id": "5.11",
@@ -568,8 +568,8 @@
         {
           "id": "5.12",
           "title": "Latency metrics",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Each stored alert carries its source time and end-to-end latency, shown on its card. Still to do: latency on the status page and live-feed latency (after the prerequisites)."
         },
         {
           "id": "5.13",
@@ -580,8 +580,8 @@
         {
           "id": "5.14",
           "title": "Halt alerts",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Halt alerts (ADR 0019) for watched tickers from the Nasdaq halts feed: halts and resumptions as events, news halts critical (tier-1 exchange notice), one stored row per event, a step in the halts workflow. Still to do: delivery (Web Push, Telegram or email)."
         }
       ]
     },

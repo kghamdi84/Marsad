@@ -126,6 +126,26 @@ export const t = {
       none: 'No news stored for the watchlist yet.',
     },
   },
+  alerts: {
+    title: 'Alerts',
+    intro:
+      'Every signal Marsad judged, with the decision and its reasons. Few, clean, complete: each alert keeps its inputs, rule version and delivery log.',
+    showSuppressed: 'Show suppressed signals too',
+    none: 'No alerts yet. Halt alerts for watched tickers start with the next halts run; rule alerts start when rules go live.',
+    decision: {
+      push: 'Pushed',
+      digest: 'Held for the digest',
+      shadow: 'Shadow (logged, not delivered)',
+      suppress: 'Suppressed',
+    } as Record<string, string>,
+    why: 'Why',
+    latency: (seconds: string) => `End-to-end latency ${seconds} s.`,
+    delivery: (push: string) => `Delivery: ${push}.`,
+    feedback: 'Feedback',
+    verdicts: { useful: 'Useful', noise: 'Noise', acted: 'Acted on' } as Record<string, string>,
+    saved: 'Saved.',
+    at: (when: string) => `Created ${when}.`,
+  },
   lab: {
     title: 'Backtest lab',
     intro:

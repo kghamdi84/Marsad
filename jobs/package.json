@@ -15,7 +15,8 @@
     "sentiment": "tsx src/sentiment-main.ts",
     "calendar": "tsx src/calendar-main.ts",
     "brief": "tsx src/brief-main.ts",
-    "backtest": "tsx src/backtest-main.ts"
+    "backtest": "tsx src/backtest-main.ts",
+    "alerts-halts": "tsx src/halt-alerts-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",
