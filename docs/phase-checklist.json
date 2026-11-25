@@ -751,8 +751,8 @@
         {
           "id": "8.5",
           "title": "Security review (RLS audit, advisors, headers, dependency audit)",
-          "status": "in_progress",
-          "evidence": "docs/SECURITY_REVIEW.md: seven schema guards (policies for authenticated with MFA, personal tables filtered by owner, no system-table writes, no views or security-definer functions, private schema closed to anon), each mutation-checked; live auth settings (sign-ups disabled, email only); live headers plus COOP and CORP added; bundle free of secrets; pnpm audit clean for production; Actions pinned to SHAs with Dependabot. Still to do: Khaled reads the Supabase Security Advisor (connector lacks permission)."
+          "status": "done",
+          "evidence": "docs/SECURITY_REVIEW.md: seven schema guards (policies for authenticated with MFA, personal tables filtered by owner, no system-table writes, no views or security-definer functions, private schema closed to anon), each mutation-checked; live auth settings (sign-ups disabled, email only); live headers plus COOP and CORP added; bundle free of secrets; pnpm audit clean for production; Actions pinned to SHAs with Dependabot.  Supabase Security Advisor read 2026-11-25: no errors; leaked-password warning does not apply (no passwords; Pro-only feature); RLS-without-policy on private.app_owners intended; six unindexed foreign keys indexed (20261225000000_fk_indexes.sql); auth settings confirmed (sign-ups off, TOTP MFA on). See docs/SECURITY_REVIEW.md."
         },
         {
           "id": "8.6",

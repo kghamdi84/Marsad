@@ -157,6 +157,11 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Khaled's setup, step by step (2026-11-25)
+
+- Email: RESEND_API_KEY and BRIEF_EMAIL_TO added as GitHub secrets (by Khaled's browser assistant); first real send is tonight's close recap.
+- Supabase advisors read: no security errors; six unindexed foreign keys indexed (`20261225000000_fk_indexes.sql`); auth settings confirmed. Checklist 8.5 done.
+
 ### Live SEC run and the 13F CUSIP fix (2026-11-25)
 
 - Weekly SEC data on main: quality screen ok (1,000 universe, 335 eligible, 13 passed); 13F holders ok for all 10 stocks (3,830,274 lines read); ETF holdings ok (SPY as of 2026-09-30, 504 lines, 376 matched; QQQ 2026-06-30; DIA 2026-07-31).
