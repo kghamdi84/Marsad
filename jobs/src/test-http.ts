@@ -11,7 +11,15 @@ export function routedHttp(
   routes: readonly (readonly [fragment: string, reply: Reply | ((url: string) => Reply)])[],
 ): { http: HttpClient; urls: string[] } {
   const urls: string[] = [];
-  const clock: Clock = { now: () => at.getTime(), sleep: () => Promise.resolve() };
+  // A virtual clock: waiting (the rate limiter or a retry) moves it forward, so a long run never spins forever.
+  let t = at.getTime();
+  const clock: Clock = {
+    now: () => t,
+    sleep: (ms) => {
+      t += ms;
+      return Promise.resolve();
+    },
+  };
   const fetch: FetchLike = (url) => {
     urls.push(url);
     const hit = routes.find(([fragment]) => url.includes(fragment));

@@ -81,7 +81,7 @@ export function assessSources(
 }
 
 /** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
-export const SOURCE_POLICY_VERSION = '2026-11-27.1';
+export const SOURCE_POLICY_VERSION = '2026-11-30.1';
 
 export interface SystemAlert {
   kind: 'system';
@@ -217,6 +217,14 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     label: 'Massive short data and dividends',
     dependentRules: ['group:short-data'],
     maxSilenceSec: { 'pre-market': 432000, regular: 432000, 'after-hours': 432000, closed: 432000 },
+    required: false,
+  },
+  {
+    source: 'massive_breadth',
+    label: 'Massive grouped daily (universe breadth)',
+    dependentRules: ['group:breadth', 'group:regime'],
+    // A daily job after the close on weekdays: a long weekend plus a missed run is about 4 days.
+    maxSilenceSec: { 'pre-market': 345600, regular: 345600, 'after-hours': 345600, closed: 345600 },
     required: false,
   },
   {

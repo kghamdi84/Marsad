@@ -1,7 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
+import {
+  SNAPSHOT_ENCODING,
+  decodeList,
+  decodeSnapshot,
+  encodeList,
+  encodeSnapshot,
+  MIN_SNAPSHOT_DOLLAR_VOLUME,
+} from './snapshot-codec.js';
 import { etDate } from '@marsad/core';
 import type {
   AnnualSection,
+  BreadthDay,
+  BreadthSignals,
+  MarketRow,
+  ShareChange,
   Bar,
   CompanyRef,
   DividendRow,
@@ -63,6 +75,21 @@ export interface Store {
   upsertDividends(rows: readonly DividendRow[], fetchedAt: Date): Promise<number>;
   upsertAnnualSections(rows: readonly AnnualSection[], fetchedAt: Date): Promise<number>;
   upsertRegimeDays(rows: readonly RegimeRow[]): Promise<number>;
+  /** Every stored market snapshot date, with whether the market was closed that day. */
+  getSnapshotDates(): Promise<{ date: string; closed: boolean }[]>;
+  saveSnapshot(date: string, rows: readonly MarketRow[], fetchedAt: Date): Promise<number>;
+  /** Snapshots on or after `from`, oldest first, decoded. Closed days are left out. */
+  loadSnapshots(from: string): Promise<{ date: string; rows: MarketRow[] }[]>;
+  getTickerTypeSnapshots(): Promise<{ asOf: string; cs: string[]; etf: string[] }[]>;
+  saveTickerTypeSnapshot(
+    asOf: string,
+    cs: readonly string[],
+    etf: readonly string[],
+  ): Promise<void>;
+  /** All stored splits executed on or after `from` (every ticker). */
+  getShareChanges(from: string): Promise<ShareChange[]>;
+  upsertUniverse(version: string, rows: readonly UniverseRow[]): Promise<number>;
+  upsertBreadthDays(rows: readonly BreadthRow[]): Promise<number>;
   replaceEventStats(ruleVersion: string, rows: readonly EventStatRow[]): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
@@ -78,6 +105,16 @@ export interface Store {
     snapshots: readonly Record<string, unknown>[],
   ): Promise<number>;
 }
+
+export interface UniverseRow {
+  monthStart: string;
+  ticker: string;
+  rank: number;
+  dollarVolume: number;
+}
+
+/** One breadth day with its series-level signals. */
+export type BreadthRow = BreadthDay & Omit<BreadthSignals, 'date'>;
 
 /** One stored regime day: the label, its inputs and the recession filter, with both rule versions. */
 export interface RegimeRow {
@@ -615,6 +652,158 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .upsert(out, { onConflict: 'cik,section,period_end' });
       if (error) throw new Error(`annual_sections upsert failed: ${error.message}`);
       return out.length;
+    },
+    async getSnapshotDates() {
+      const out: { date: string; closed: boolean }[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('market_snapshots')
+          .select('date, encoding')
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`market_snapshots read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows) out.push({ date: r.date as string, closed: r.encoding === 'closed' });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async saveSnapshot(date, rows, fetchedAt) {
+      const closed = rows.length === 0;
+      const enc = closed ? { payload: '', tickers: 0 } : encodeSnapshot(rows);
+      const { error } = await db.from('market_snapshots').upsert(
+        {
+          date,
+          adjusted: false,
+          tickers: enc.tickers,
+          min_dollar_volume: MIN_SNAPSHOT_DOLLAR_VOLUME,
+          encoding: closed ? 'closed' : SNAPSHOT_ENCODING,
+          payload: enc.payload,
+          fetched_at: fetchedAt.toISOString(),
+        },
+        { onConflict: 'date' },
+      );
+      if (error) throw new Error(`market_snapshots upsert failed: ${error.message}`);
+      return enc.tickers;
+    },
+    async loadSnapshots(from) {
+      const out: { date: string; rows: MarketRow[] }[] = [];
+      // About 100 KB a row, so a few dozen rows per request.
+      for (let start = 0; ; start += 50) {
+        const { data, error } = await db
+          .from('market_snapshots')
+          .select('date, encoding, payload')
+          .gte('date', from)
+          .neq('encoding', 'closed')
+          .order('date', { ascending: true })
+          .range(start, start + 49);
+        if (error) throw new Error(`market_snapshots read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows) {
+          if (r.encoding !== SNAPSHOT_ENCODING)
+            throw new Error(
+              `market_snapshots ${String(r.date)}: unknown encoding ${String(r.encoding)}`,
+            );
+          out.push({ date: r.date as string, rows: decodeSnapshot(r.payload as string) });
+        }
+        if (rows.length < 50) break;
+      }
+      return out;
+    },
+    async getTickerTypeSnapshots() {
+      const { data, error } = await db
+        .from('ticker_type_snapshots')
+        .select('as_of, payload')
+        .order('as_of', { ascending: true });
+      if (error) throw new Error(`ticker_type_snapshots read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({
+        asOf: r.as_of as string,
+        ...decodeList(r.payload as string),
+      }));
+    },
+    async saveTickerTypeSnapshot(asOf, cs, etf) {
+      const { error } = await db.from('ticker_type_snapshots').upsert(
+        {
+          as_of: asOf,
+          common_stocks: cs.length,
+          etfs: etf.length,
+          encoding: SNAPSHOT_ENCODING,
+          payload: encodeList({ cs, etf }),
+          fetched_at: new Date().toISOString(),
+        },
+        { onConflict: 'as_of' },
+      );
+      if (error) throw new Error(`ticker_type_snapshots upsert failed: ${error.message}`);
+    },
+    async getShareChanges(from) {
+      const out: ShareChange[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('splits')
+          .select('ticker, execution_date, split_from, split_to')
+          .gte('execution_date', from)
+          .order('execution_date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`splits read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({
+            ticker: r.ticker as string,
+            executionDate: r.execution_date as string,
+            splitFrom: Number(r.split_from),
+            splitTo: Number(r.split_to),
+          });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async upsertUniverse(version, rows) {
+      for (let i = 0; i < rows.length; i += 1000) {
+        const chunk = rows.slice(i, i + 1000).map((r) => ({
+          version,
+          month_start: r.monthStart,
+          ticker: r.ticker,
+          rank: r.rank,
+          dollar_volume: r.dollarVolume,
+        }));
+        const { error } = await db
+          .from('universe_members')
+          .upsert(chunk, { onConflict: 'version,month_start,ticker' });
+        if (error) throw new Error(`universe_members upsert failed: ${error.message}`);
+      }
+      return rows.length;
+    },
+    async upsertBreadthDays(rows) {
+      for (let i = 0; i < rows.length; i += 500) {
+        const chunk = rows.slice(i, i + 500).map((r) => ({
+          date: r.date,
+          version: r.version,
+          members: r.members,
+          with_change: r.withChange,
+          advancers: r.advancers,
+          decliners: r.decliners,
+          unchanged: r.unchanged,
+          up_volume: r.upVolume,
+          down_volume: r.downVolume,
+          above50: r.above50,
+          n50: r.n50,
+          above200: r.above200,
+          n200: r.n200,
+          new_highs: r.newHighs,
+          new_lows: r.newLows,
+          n252: r.n252,
+          suspect: r.suspect,
+          advance_avg10: r.advanceAvg10,
+          zweig_thrust: r.zweigThrust,
+          volume_ratio: r.volumeRatio,
+          mcclellan_oscillator: r.mcclellanOscillator,
+          mcclellan_summation: r.mcclellanSummation,
+          computed_at: new Date().toISOString(),
+        }));
+        const { error } = await db.from('breadth_daily').upsert(chunk, { onConflict: 'date' });
+        if (error) throw new Error(`breadth_daily upsert failed: ${error.message}`);
+      }
+      return rows.length;
     },
     async upsertRegimeDays(rows) {
       let written = 0;

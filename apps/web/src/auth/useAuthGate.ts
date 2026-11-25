@@ -23,11 +23,17 @@ export function useAuthGate(): { gate: Gate; email: string | null; refresh: () =
     if (!supabase) return;
     const { data } = await supabase.auth.getSession();
     const session = data.session;
-    // Remove the one-time ?code= from a sign-in link once it has been exchanged.
+    // Remove what a sign-in link leaves in the address bar: tokens or an error in the fragment,
+    // or a one-time ?code= (older links), so nothing sensitive stays in history.
     const url = new URL(window.location.href);
-    if (session && url.searchParams.has('code')) {
+    const leftover =
+      /(?:^|&)(?:access_token|refresh_token|error|error_code|error_description)=/.test(
+        url.hash.slice(1),
+      ) || url.searchParams.has('code');
+    if (leftover) {
       url.searchParams.delete('code');
-      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      for (const k of ['error', 'error_code', 'error_description']) url.searchParams.delete(k);
+      window.history.replaceState(null, '', url.pathname + url.search);
     }
     if (!session) {
       setS({ loading: false, hasSession: false, email: null, currentLevel: null, nextLevel: null });

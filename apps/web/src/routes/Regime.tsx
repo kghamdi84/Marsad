@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
+  BREADTH_VERSION,
+  UNIVERSE_VERSION,
+  breadthReading,
   currentRun,
   seriesDifference,
   seriesSnapshot,
@@ -218,6 +221,83 @@ function RecessionSection({ data }: { data: RegimeData }) {
   );
 }
 
+function BreadthSection({ data }: { data: RegimeData }) {
+  const b = r.breadth;
+  const last = data.breadth.at(-1);
+  if (!last)
+    return (
+      <Section id="breadth" title={b.title}>
+        <p className="text-sm text-muted">{b.intro}</p>
+        <p className="text-muted">{b.none}</p>
+      </Section>
+    );
+  const now = breadthReading(last);
+  const monthAgoDay = data.breadth.at(-22);
+  const before = monthAgoDay ? breadthReading(monthAgoDay) : null;
+  const lastThrust = [...data.breadth].reverse().find((d) => d.zweigThrust);
+  const pctText = (v: number | null) => (v === null ? r.noData : `${fixed(v, 1)}%`);
+  return (
+    <Section id="breadth" title={b.title}>
+      <p className="text-sm text-muted">{b.intro}</p>
+      <p className="text-sm">{b.asOf(last.date, last.members)}</p>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-muted">{b.above50}</dt>
+          <dd className="text-lg font-medium">{pctText(now.pctAbove50)}</dd>
+          <dd className="text-xs text-muted">
+            {b.outOf(last.n50)}
+            {before?.pctAbove50 != null ? `; ${b.monthAgo(pctText(before.pctAbove50))}` : ''}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{b.above200}</dt>
+          <dd className="text-lg font-medium">{pctText(now.pctAbove200)}</dd>
+          <dd className="text-xs text-muted">
+            {b.outOf(last.n200)}
+            {before?.pctAbove200 != null ? `; ${b.monthAgo(pctText(before.pctAbove200))}` : ''}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{b.netHighs}</dt>
+          <dd className="text-lg font-medium">{signed(now.netNewHighs, 0)}</dd>
+          <dd className="text-xs text-muted">
+            {b.highsLows(last.newHighs, last.newLows)}; {b.outOf(last.n252)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{b.advDec}</dt>
+          <dd className="text-lg font-medium">{b.advDecValue(last.advancers, last.decliners)}</dd>
+          <dd className="text-xs text-muted">
+            {b.upVolume}: {pctText(now.upVolumePct)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{b.avg10}</dt>
+          <dd className="text-lg font-medium">
+            {last.advanceAvg10 === null ? r.noData : fixed(last.advanceAvg10, 3)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">{b.mcclellan}</dt>
+          <dd className="text-lg font-medium">
+            {last.mcclellanOscillator === null
+              ? r.noData
+              : `${signed(last.mcclellanOscillator, 3)} (${last.mcclellanSummation === null ? '' : signed(last.mcclellanSummation, 2)})`}
+          </dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="text-muted">{b.zweig}</dt>
+          <dd className="font-medium">{lastThrust ? b.zweigLast(lastThrust.date) : b.zweigNone}</dd>
+          <dd className="text-xs text-muted">{b.zweigRule}</dd>
+        </div>
+      </dl>
+      {last.suspect > 0 && <p className="text-sm text-muted">{b.suspect(last.suspect)}</p>}
+      <p className="text-xs text-muted">{b.warmup}</p>
+      <p className="text-xs text-muted">{b.source(`${UNIVERSE_VERSION}, ${BREADTH_VERSION}`)}</p>
+    </Section>
+  );
+}
+
 const CONDITIONS = [
   'stress',
   'bear',
@@ -299,6 +379,7 @@ export function Regime() {
         <>
           <LabelSection data={q.data} />
           <RecessionSection data={q.data} />
+          <BreadthSection data={q.data} />
           <StudySection data={q.data} />
           <Section id="volatility" title={v.title}>
             <SnapshotTable

@@ -18,13 +18,16 @@ import type {
   SystemAlert,
   UpcomingRow,
 } from '@marsad/core';
+import { decodeList, decodeSnapshot, encodeList, encodeSnapshot } from './snapshot-codec.js';
 import type {
+  BreadthRow,
   EventStatRow,
   InsiderCandidate,
   InsiderResult,
   RegimeRow,
   SourceStatusUpdate,
   Store,
+  UniverseRow,
 } from './store.js';
 
 export interface FakeLog {
@@ -44,6 +47,9 @@ export interface FakeLog {
   dividends: DividendRow[][];
   annualSections: AnnualSection[][];
   regimeDays: RegimeRow[][];
+  universe: { version: string; rows: UniverseRow[] }[];
+  breadth: BreadthRow[][];
+  snapshotsSaved: string[];
   eventStats: { ruleVersion: string; rows: EventStatRow[] }[];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -75,6 +81,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'insiderCandidates' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
+  const snapshots = new Map<string, string>();
+  const typeSnapshots = new Map<string, string>();
   const log: FakeLog = {
     gpr: [],
     fred: [],
@@ -92,6 +100,9 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     dividends: [],
     annualSections: [],
     regimeDays: [],
+    universe: [],
+    breadth: [],
+    snapshotsSaved: [],
     eventStats: [],
     runs: [],
     statuses: [],
@@ -164,6 +175,55 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     upsertAnnualSections: (r: readonly AnnualSection[]) => {
       log.annualSections.push([...r]);
       return Promise.resolve(r.length);
+    },
+    getSnapshotDates: () =>
+      Promise.resolve(
+        [...snapshots.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, payload]) => ({ date, closed: payload === '' })),
+      ),
+    saveSnapshot: (date, rows) => {
+      const enc = rows.length === 0 ? { payload: '', tickers: 0 } : encodeSnapshot(rows);
+      snapshots.set(date, enc.payload);
+      log.snapshotsSaved.push(date);
+      return Promise.resolve(enc.tickers);
+    },
+    loadSnapshots: (from) =>
+      Promise.resolve(
+        [...snapshots.entries()]
+          .filter(([d, p]) => d >= from && p !== '')
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, payload]) => ({ date, rows: decodeSnapshot(payload) })),
+      ),
+    getTickerTypeSnapshots: () =>
+      Promise.resolve(
+        [...typeSnapshots.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([asOf, p]) => ({ asOf, ...decodeList(p) })),
+      ),
+    saveTickerTypeSnapshot: (asOf, cs, etf) => {
+      typeSnapshots.set(asOf, encodeList({ cs, etf }));
+      return Promise.resolve();
+    },
+    getShareChanges: (from) =>
+      Promise.resolve(
+        log.splits
+          .flat()
+          .filter((x) => x.executionDate >= from)
+          .map((x) => ({
+            ticker: x.ticker,
+            executionDate: x.executionDate,
+            splitFrom: x.splitFrom,
+            splitTo: x.splitTo,
+          })),
+      ),
+    upsertUniverse: (version, rows) => {
+      log.universe.push({ version, rows: [...rows] });
+      return Promise.resolve(rows.length);
+    },
+    upsertBreadthDays: (rows) => {
+      log.breadth.push([...rows]);
+      return Promise.resolve(rows.length);
     },
     upsertRegimeDays: (r: readonly RegimeRow[]) => {
       log.regimeDays.push([...r]);

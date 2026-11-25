@@ -7,7 +7,7 @@ test('signed-out visitors see only the sign-in screen', async ({ page }) => {
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 });
 
-test('sending a code never asks Supabase to create a user', async ({ page }) => {
+test('requesting a sign-in link never asks Supabase to create a user', async ({ page }) => {
   let body: Record<string, unknown> | null = null;
   await page.route('**/auth/v1/otp**', async (route) => {
     body = route.request().postDataJSON() as Record<string, unknown>;
@@ -15,13 +15,12 @@ test('sending a code never asks Supabase to create a user', async ({ page }) => 
   });
   await page.goto('/');
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Send code' }).click();
-  await expect(page.getByLabel('Code from the email')).toBeVisible();
-  await expect(page.getByText('Open its link on this device')).toBeVisible();
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await expect(page.getByLabel('Sign-in link or code')).toBeVisible();
+  await expect(page.getByText('Tap Sign in in that email')).toBeVisible();
   expect(body).toMatchObject({ email: 'owner@example.com', create_user: false });
-  // PKCE: the request carries a code challenge, so a link only works in this browser.
-  expect(body).toHaveProperty('code_challenge');
-  expect(body).toMatchObject({ code_challenge_method: 's256' });
+  // Implicit flow: no code challenge, so the link works in whichever browser opens it.
+  expect(body).toMatchObject({ code_challenge: null });
 });
 
 test('a rejected code shows the error text', async ({ page }) => {
@@ -41,31 +40,64 @@ test('a rejected code shows the error text', async ({ page }) => {
   );
   await page.goto('/');
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Send code' }).click();
-  await page.getByLabel('Code from the email').fill('123456');
-  await page.getByRole('button', { name: 'Verify code' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByLabel('Sign-in link or code').fill('123456');
+  await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('alert')).toContainText('expired');
 });
 
-test('opening the emailed sign-in link exchanges it and asks for the second factor', async ({
-  page,
-}) => {
+const linkUser = {
+  id: '00000000-0000-4000-8000-00000000000a',
+  aud: 'authenticated',
+  role: 'authenticated',
+  email: 'owner@example.com',
+  factors: [{ id: 'f1', factor_type: 'totp', status: 'verified', friendly_name: 'Marsad' }],
+};
+
+function aal1Token() {
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  const user = {
-    id: '00000000-0000-4000-8000-00000000000a',
-    aud: 'authenticated',
-    role: 'authenticated',
-    email: 'owner@example.com',
-    factors: [{ id: 'f1', factor_type: 'totp', status: 'verified', friendly_name: 'Marsad' }],
+  return {
+    exp,
+    token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: linkUser.id, role: 'authenticated', aal: 'aal1', exp })}.sig`,
   };
-  const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: user.id, role: 'authenticated', aal: 'aal1', exp })}.sig`;
-  let exchange: Record<string, unknown> | null = null;
+}
+
+async function mockUserAndFactors(page: import('@playwright/test').Page) {
+  await page.route('**/auth/v1/user**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(linkUser) }),
+  );
+  await page.route('**/auth/v1/factors**', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ totp: linkUser.factors }),
+    }),
+  );
+}
+
+test('opening the emailed link in any browser signs in and asks for the second factor', async ({
+  page,
+}) => {
+  const { token, exp } = aal1Token();
+  await mockUserAndFactors(page);
+  // A fresh browser that never asked for the email (as when the mail app opens Safari).
+  await page.goto(
+    `/#access_token=${token}&expires_at=${exp}&expires_in=3600&refresh_token=r&token_type=bearer&type=magiclink`,
+  );
+  await expect(page.getByRole('heading', { name: 'Two-factor check' })).toBeVisible();
+  // The tokens are removed from the address bar.
+  expect(new URL(page.url()).hash).toBe('');
+});
+
+test('pasting the copied sign-in link verifies its token here', async ({ page }) => {
+  const { token, exp } = aal1Token();
+  let verifyBody: Record<string, unknown> | null = null;
   await page.route('**/auth/v1/otp**', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
   );
-  await page.route('**/auth/v1/token?grant_type=pkce', async (r) => {
-    exchange = r.request().postDataJSON() as Record<string, unknown>;
+  await page.route('**/auth/v1/verify**', async (r) => {
+    verifyBody = r.request().postDataJSON() as Record<string, unknown>;
     await r.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -75,30 +107,46 @@ test('opening the emailed sign-in link exchanges it and asks for the second fact
         token_type: 'bearer',
         expires_in: 3600,
         expires_at: exp,
-        user,
+        user: linkUser,
       }),
     });
   });
-  await page.route('**/auth/v1/user**', (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(user) }),
-  );
-  await page.route('**/auth/v1/factors**', (r) =>
-    r.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ totp: user.factors }),
-    }),
-  );
-
-  // Request the email in this browser (stores the PKCE verifier), then open the link.
+  await mockUserAndFactors(page);
   await page.goto('/');
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Send code' }).click();
-  await expect(page.getByLabel('Code from the email')).toBeVisible();
-  await page.goto('/?code=one-time-auth-code');
-
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page
+    .getByLabel('Sign-in link or code')
+    .fill(
+      'https://e2e-test-project.supabase.co/auth/v1/verify?token=abc123hash&type=magiclink&redirect_to=https://marsad-k84.netlify.app/',
+    );
+  await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Two-factor check' })).toBeVisible();
-  expect(exchange).toMatchObject({ auth_code: 'one-time-auth-code' });
-  expect(exchange).toHaveProperty('code_verifier');
-  expect(new URL(page.url()).searchParams.has('code')).toBe(false);
+  expect(verifyBody).toMatchObject({ token_hash: 'abc123hash', type: 'magiclink' });
+});
+
+test('pasting something else says so without calling Supabase', async ({ page }) => {
+  let verifyCalls = 0;
+  await page.route('**/auth/v1/otp**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+  );
+  await page.route('**/auth/v1/verify**', (r) => {
+    verifyCalls += 1;
+    return r.fulfill({ status: 500, body: '{}' });
+  });
+  await page.goto('/');
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await page.getByLabel('Sign-in link or code').fill('https://example.com/not-the-link');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('alert')).toContainText('not the sign-in link');
+  expect(verifyCalls).toBe(0);
+});
+
+test('a failed link shows its reason on the sign-in screen', async ({ page }) => {
+  await page.goto(
+    '/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',
+  );
+  await expect(page.getByRole('alert')).toContainText('Email link is invalid or has expired');
+  await expect(page.getByRole('alert')).toContainText('Request a new one');
 });

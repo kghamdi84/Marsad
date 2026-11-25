@@ -1,12 +1,15 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import {
   baselineStudy,
+  breadthHistory,
+  breadthSignals,
   eventStudy,
   recessionFilter,
   regimeHistory,
   type MacroSeries,
   type Obs,
 } from '@marsad/core';
+import synthetic from '../../../fixtures/breadth/synthetic-breadth.json' with { type: 'json' };
 import gprFixture from '../../../fixtures/gpr-daily-recent.json' with { type: 'json' };
 import hy from '../../../fixtures/fred/fredgraph-BAMLH0A0HYM2.json' with { type: 'json' };
 import ig from '../../../fixtures/fred/fredgraph-BAMLC0A0CM.json' with { type: 'json' };
@@ -104,6 +107,39 @@ function statRows() {
   return out;
 }
 
+/** Breadth rows from the seeded synthetic market (not market data: real breadth needs the first backfill run). */
+function breadthRows() {
+  type Raw = { close: (number | null)[]; volume: (number | null)[] };
+  const series = new Map(Object.entries(synthetic.series as Record<string, Raw>));
+  const eligible = new Set(synthetic.eligible);
+  const h = breadthHistory(synthetic.dates, series, () => eligible, synthetic.size);
+  const sig = breadthSignals(h.days);
+  return h.days.map((d, i) => ({
+    date: d.date,
+    version: d.version,
+    members: d.members,
+    with_change: d.withChange,
+    advancers: d.advancers,
+    decliners: d.decliners,
+    unchanged: d.unchanged,
+    up_volume: d.upVolume,
+    down_volume: d.downVolume,
+    above50: d.above50,
+    n50: d.n50,
+    above200: d.above200,
+    n200: d.n200,
+    new_highs: d.newHighs,
+    new_lows: d.newLows,
+    n252: d.n252,
+    suspect: d.suspect,
+    advance_avg10: sig[i]?.advanceAvg10 ?? null,
+    zweig_thrust: sig[i]?.zweigThrust ?? false,
+    volume_ratio: sig[i]?.volumeRatio ?? null,
+    mcclellan_oscillator: sig[i]?.mcclellanOscillator ?? null,
+    mcclellan_summation: sig[i]?.mcclellanSummation ?? null,
+  }));
+}
+
 async function mock(page: Page) {
   await seedSession(page, 'aal2');
   await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
@@ -112,6 +148,7 @@ async function mock(page: Page) {
   await page.route('**/rest/v1/**', (r) => json(r, []));
   await page.route('**/rest/v1/regime_daily**', (r) => json(r, [...regimeRows()].reverse()));
   await page.route('**/rest/v1/regime_event_stats**', (r) => json(r, statRows()));
+  await page.route('**/rest/v1/breadth_daily**', (r) => json(r, [...breadthRows()].reverse()));
   await page.route('**/rest/v1/fred_observations**', (r) => {
     const id = new URL(r.request().url()).searchParams.get('series_id')?.replace(/^eq\./, '') ?? '';
     const rows = (fred[id] ?? []).slice(-260).reverse();
@@ -167,6 +204,22 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(study.getByRole('row', { name: /VIX at or above 30/ })).toContainText(
     'Insufficient history',
   );
+
+  // Breadth, labelled as Marsad's own universe (synthetic data here: the last synthetic day is 2026-04-08, with 6 of 12
+  // above the 50-day and 8 of 12 above the 200-day, and one Zweig thrust in the series).
+  const breadth = page.getByRole('region', { name: 'Marsad universe breadth' });
+  await expect(breadth.getByText(/not official index breadth/)).toBeVisible();
+  await expect(breadth.getByText('As of the close on 2026-04-08, 12 members.')).toBeVisible();
+  const item = (label: string) =>
+    breadth
+      .locator('div')
+      .filter({ has: page.getByText(label, { exact: true }) })
+      .last();
+  await expect(item('Above their 50-day average')).toContainText('50.0%');
+  await expect(item('Above their 200-day average')).toContainText('66.7%');
+  await expect(breadth.getByText(/out of 12 with enough history/).first()).toBeVisible();
+  await expect(breadth.getByText(/^Last fired \d{4}-\d{2}-\d{2}\.$/)).toBeVisible();
+  await expect(breadth.getByText(/Source: Massive grouped daily/)).toBeVisible();
 
   // Every panel names its source and gives the date of each value.
   const vol = page.getByRole('region', { name: 'Volatility and its term structure' });

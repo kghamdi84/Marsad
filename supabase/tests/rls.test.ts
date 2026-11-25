@@ -91,6 +91,14 @@ beforeAll(async () => {
       values (date '2026-11-23', 'regime-1', 'stress', 'backwardation', '{}'::jsonb, 'recession-1', 'elevated', '{}'::jsonb);
     insert into public.regime_event_stats (rule_version, condition, horizon, n, sufficient, data_from, data_to)
       values ('regime-1', 'stress', 63, 16, false, date '2016-11-25', date '2026-11-23');
+    insert into public.market_snapshots (date, tickers, min_dollar_volume, encoding, payload)
+      values (date '2026-11-24', 1, 1000000, 'gzip-base64-json-v1', 'x');
+    insert into public.ticker_type_snapshots (as_of, common_stocks, etfs, encoding, payload)
+      values (date '2026-10-02', 1, 1, 'gzip-base64-json-v1', 'x');
+    insert into public.universe_members (version, month_start, ticker, rank, dollar_volume)
+      values ('universe-1', date '2026-11-02', 'NVDA', 1, 30000000000);
+    insert into public.breadth_daily (date, version, members, with_change, advancers, decliners, unchanged, up_volume, down_volume, above50, n50, above200, n200, new_highs, new_lows, n252, suspect)
+      values (date '2026-11-24', 'breadth-1', 1000, 990, 600, 380, 10, 3e9, 1e9, 450, 900, 300, 800, 40, 15, 700, 0);
     insert into public.news_articles (id, published_at, publisher, title, url)
       values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
     insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
@@ -201,7 +209,7 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(12); // five seeded sources plus massive_reference, massive_bars, the four Study sources and massive_sections
+      expect(await count(tx, 'public.source_status')).toBe(13); // five seeded sources plus massive_reference, massive_bars, the four Study sources, massive_sections and massive_breadth
     });
   });
 
@@ -253,6 +261,10 @@ describe('system tables', () => {
       'annual_sections',
       'regime_daily',
       'regime_event_stats',
+      'market_snapshots',
+      'ticker_type_snapshots',
+      'universe_members',
+      'breadth_daily',
       'news_articles',
       'short_interest',
       'short_volume',
@@ -278,6 +290,24 @@ describe('system tables', () => {
     await expect(
       db.query(
         `insert into public.insider_holdings (accession, line, table_kind) values ('0001696841-26-000016', 9, 'other')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it('the breadth tables refuse an adjusted snapshot, a rank above 1,000 and a malformed ticker', async () => {
+    await expect(
+      db.query(
+        `insert into public.market_snapshots (date, adjusted, tickers, min_dollar_volume, encoding, payload) values (date '2026-11-25', true, 1, 1, 'e', 'x')`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.universe_members (version, month_start, ticker, rank, dollar_volume) values ('universe-1', date '2026-11-02', 'AAPL', 1001, 1)`,
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(
+        `insert into public.universe_members (version, month_start, ticker, rank, dollar_volume) values ('universe-1', date '2026-11-02', 'bad ticker', 2, 1)`,
       ),
     ).rejects.toThrow(/check constraint/);
   });
