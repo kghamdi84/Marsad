@@ -142,6 +142,10 @@ The pre-market brief and close recap are built every trading day and shown on th
 4. Add one more secret: name `BRIEF_EMAIL_TO`, value the same email you signed up to Resend with. Until you verify a domain, Resend only delivers to that address.
 5. Tell Claude "email secrets added". Claude runs the brief once and checks the delivery log.
 
+The same two secrets also send an email copy of every critical and system alert, and a digest of alerts held back by quiet hours or the daily push limit (with the pre-market brief and the close recap). Nothing else is needed.
+
+Optional, only if you want password-reset emails from your own address: Resend needs a domain you own (Resend, **Domains**, **Add Domain**). Then in Supabase: **Authentication**, **Emails**, **SMTP Settings**, turn on **Enable custom SMTP**, and fill in the host, port, user name and password shown on Resend's SMTP page (the password is a Resend API key). Marsad works without this.
+
 ## Step 10. Notifications on your iPad (free)
 
 Alerts, system alerts and briefs can arrive as notifications. iPadOS sends them only to web apps on the Home Screen.

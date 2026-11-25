@@ -544,8 +544,8 @@
         {
           "id": "5.8",
           "title": "Email digests and custom SMTP",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "digest-1 (ADR 0032): critical push alerts and every system alert are queued for an email copy (full stored card, ET and UTC, card link; up to 24 h late, labeled) sent right after the Web Push dispatcher; alerts held by quiet hours, the cap, digest priority or event risk are queued for one digest email after the pre-market brief and the close recap (oldest first, why each was held, 20 in full and the rest named; older than 48 h expired; a failed send keeps them pending). Same once-only claim as push. Verified: 6 core tests (hand-checked ET in winter and summer), 8 job tests, writer tests for critical and quiet-hours alerts. Still to do: Khaled adds the Resend secrets (SETUP step 9) and the first live email. Custom SMTP for Supabase Auth is optional and documented in SETUP step 9."
         },
         {
           "id": "5.9",

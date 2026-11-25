@@ -197,6 +197,19 @@ describe('runSentimentJob on a market that capitulates on its last days', () => 
     expect(a?.input.risk.at(-1)).toEqual({ horizon: 'long', losses: 0, n: 2 });
   });
 
+  it('during quiet hours the alert is held for the next digest, not pushed or mailed', async () => {
+    // 23:00 UTC is 02:00 in Riyadh, inside the default quiet hours (23:00 to 07:00).
+    const { store, log } = fakeStore(seed);
+    await runSentimentJob({ store, now: () => new Date('2026-07-16T23:00:00Z') });
+    const a = log.storedAlerts.flat()[0];
+    expect(a?.decision).toBe('digest');
+    expect(a?.delivery).toEqual({
+      push: 'not sent (digest)',
+      email: 'not sent (not critical)',
+      digest: 'pending',
+    });
+  });
+
   it('never alerts on an old trigger', async () => {
     // Still on, but the trigger (2026-07-15) is 6 days old: history, not news.
     const { store, log } = fakeStore(seed);

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { PushItem } from '@marsad/core';
+import type { CardSection, PushItem, StoredAlertText } from '@marsad/core';
+import type { DeliveryField, EmailStore, EmailTable, PendingEmail } from './email-job.js';
 import type { PendingPush, PushStore, PushTable } from './push-job.js';
 
 type Row = Record<string, unknown>;
@@ -105,6 +106,76 @@ export function supabasePushStore(url: string, secretKey: string): Omit<PushStor
           };
       const { error } = await db.from('push_subscriptions').update(patch).eq('id', id);
       if (error) throw new Error(`push_subscriptions update failed: ${error.message}`);
+    },
+  };
+}
+
+/** Email copies and the digest (ADR 0032), with the same once-only claim as push. */
+export function supabaseEmailStore(url: string, secretKey: string): Omit<EmailStore, 'recordRun'> {
+  const db = createClient(url, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const pending = async (table: EmailTable, field: DeliveryField, cols: string): Promise<Row[]> => {
+    const { data, error } = await db
+      .from(table)
+      .select(cols)
+      .eq(`delivery->>${field}`, 'pending')
+      .order('created_at', { ascending: true })
+      .limit(200);
+    if (error) throw new Error(`${table} pending ${field} read failed: ${error.message}`);
+    return (data ?? []) as unknown as Row[];
+  };
+  const delivery = (r: Row) => (r['delivery'] ?? {}) as Record<string, string>;
+  const alertText = (r: Row): StoredAlertText => ({
+    id: String(r['id']),
+    createdAt: String(r['created_at']),
+    kind: String(r['kind']),
+    priority: String(r['priority']),
+    headline: String(r['headline']),
+    card: (r['card'] ?? []) as CardSection[],
+    reasons: (r['reasons'] ?? []) as string[],
+  });
+  const ALERT_COLS = 'id, created_at, kind, priority, headline, card, reasons, delivery';
+  return {
+    async getPendingEmail() {
+      const out: PendingEmail[] = [];
+      for (const r of await pending('alerts', 'email', ALERT_COLS))
+        out.push({ table: 'alerts', alert: alertText(r), delivery: delivery(r) });
+      for (const r of await pending(
+        'system_alerts',
+        'email',
+        'id, created_at, event, source, headline, trigger, paused_rules, delivery',
+      ))
+        out.push({
+          table: 'system_alerts',
+          alert: {
+            id: String(r['id']),
+            createdAt: String(r['created_at']),
+            event: r['event'] as 'stale' | 'recovered' | 'mismatch',
+            source: String(r['source']),
+            headline: String(r['headline']),
+            trigger: String(r['trigger']),
+            pausedRules: (r['paused_rules'] ?? []) as string[],
+          },
+          delivery: delivery(r),
+        });
+      return out.sort((a, b) => Date.parse(a.alert.createdAt) - Date.parse(b.alert.createdAt));
+    },
+    async getPendingDigest() {
+      return (await pending('alerts', 'digest', ALERT_COLS)).map((r) => ({
+        alert: alertText(r),
+        delivery: delivery(r),
+      }));
+    },
+    async setDelivery(table, id, field, expect, next) {
+      const { data, error } = await db
+        .from(table)
+        .update({ delivery: next })
+        .eq('id', id)
+        .eq(`delivery->>${field}`, expect)
+        .select('id');
+      if (error) throw new Error(`${table} delivery update failed: ${error.message}`);
+      return (data ?? []).length === 1;
     },
   };
 }

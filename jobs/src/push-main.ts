@@ -1,13 +1,16 @@
 /**
  * Entry point for the Web Push dispatcher (ADR 0031), run as the last step of every workflow that can create an
- * alert, a system alert or a brief. Reads SUPABASE_URL, SUPABASE_SECRET_KEY and, when set, VAPID_PRIVATE_KEY;
- * never logs them. With PUSH_TEST=1 it sends one test message to every device instead.
+ * alert, a system alert or a brief, followed by email copies of critical alerts (ADR 0032). Reads SUPABASE_URL,
+ * SUPABASE_SECRET_KEY and, when set, VAPID_PRIVATE_KEY, RESEND_API_KEY and BRIEF_EMAIL_TO; never logs them. With
+ * PUSH_TEST=1 it sends one test message to every device instead.
  */
 import webpush from 'web-push';
+import { resendSender } from './email.js';
+import { runCriticalEmailJob } from './email-job.js';
 import type { PushSender } from './push-job.js';
 import { runPushJob } from './push-job.js';
 import { vapidPublicKeyFor } from './push-keys.js';
-import { supabasePushStore } from './push-store.js';
+import { supabaseEmailStore, supabasePushStore } from './push-store.js';
 import { supabaseStore } from './store.js';
 
 function need(name: string): string {
@@ -47,8 +50,9 @@ if (privateKey !== null) {
   };
 }
 
+const { recordRun } = supabaseStore(url, key);
 const run = await runPushJob({
-  store: { ...supabasePushStore(url, key), recordRun: supabaseStore(url, key).recordRun },
+  store: { ...supabasePushStore(url, key), recordRun },
   sender,
   secretPublicKey,
   now: () => new Date(),
@@ -57,4 +61,17 @@ const run = await runPushJob({
 console.log(
   `${run.job}: ${run.status}, rows ${run.rows_written ?? 0}, ${run.latency_ms} ms${run.error ? `, error: ${run.error}` : ''}${run.details ? ` details: ${JSON.stringify(run.details)}` : ''}`,
 );
-if (run.status === 'error') process.exitCode = 1;
+// Email copies of critical and system alerts (ADR 0032), not in the test run.
+const email =
+  process.env['PUSH_TEST'] === '1'
+    ? null
+    : await runCriticalEmailJob({
+        store: { ...supabaseEmailStore(url, key), recordRun },
+        send: resendSender(),
+        now: () => new Date(),
+      });
+if (email)
+  console.log(
+    `${email.job}: ${email.status}, rows ${email.rows_written ?? 0}${email.error ? `, error: ${email.error}` : ''} details: ${JSON.stringify(email.details)}`,
+  );
+if (run.status === 'error' || email?.status === 'error') process.exitCode = 1;

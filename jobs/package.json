@@ -22,7 +22,8 @@
     "exports": "tsx src/exports-main.ts",
     "weekly-review": "tsx src/weekly-review-main.ts",
     "catalyst": "tsx src/catalyst-main.ts",
-    "push": "tsx src/push-main.ts"
+    "push": "tsx src/push-main.ts",
+    "digest": "tsx src/digest-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",
