@@ -139,7 +139,9 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 ### Live data after the breadth backfill (2026-11-25, 11:53 UTC)
 
 - Breadth backfill (run 45588953591) succeeded in 2 h 4 min; the sentiment step then computed 3,240 days. Fear and Greed composite: 4, extreme fear, on 2026-11-23 from 4 of 7 components (476 breadth days, 501 SPY bars, no IEF bars yet). Capitulation watch: off on 2026-11-24.
-- The topics backfill started at 11:53 UTC; the bars job (IEF, GLD, ITA, IYT, the 11 sector ETFs, then exit alerts and the scorecard) is queued behind it. The FRED workflow (composite with the bond component) runs after that.
+- Topics backfill (run 45591767980) succeeded, 11:53 to 12:00 UTC. Bars job (run 45609668241) succeeded, 12:00 to 12:06, now including IEF, GLD, ITA, IYT and the 11 sector ETFs; its new steps ran on live data: `alerts-exits` ok (0 holdings yet), `scorecard` ok (0 alerts yet).
+- FRED workflow (run 45611030574) green on every step for the first time: regime stress on 2026-11-23 (recession filter elevated, 2,512 sessions); Fear and Greed composite 4, extreme fear, from 5 of 7 components (the bond component now has 501 IEF bars); capitulation watch off on 2026-11-24; calendars 20 events, next GDP on 2026-11-25. The nightly failure emails stop.
+- Open for Khaled: Dependabot PR #40 (5 GitHub Actions updates) is left for review rather than merged unread.
 
 ### Shariah screening aid (2026-11-25)
 
