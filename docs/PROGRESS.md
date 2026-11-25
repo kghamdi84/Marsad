@@ -157,6 +157,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Email copies of critical alerts and the alert digest (2026-11-25)
+
+- **ADR 0032** (`digest-1`): every critical push alert and system alert also arrives by email with its full card; alerts held back by quiet hours or the daily push limit are collected into one digest email after the pre-market brief and the close recap. Same once-only delivery claim as push; nothing older than 24 hours (copies) or 48 hours (digest) is mailed as news.
+- **Verified**: 6 core and 8 job tests plus writer tests; unit suite all green.
+- **Waiting on Khaled**: the Resend secrets (SETUP step 9) turn on briefs, copies and digests together.
+
 ### Web Push to the iPad Home Screen app (2026-11-25)
 
 - **ADR 0031** (`push-1`): push alerts, system alerts (feed down and recovered) and briefs are queued as pending and sent by a dispatcher step at the end of every workflow that creates them (no new schedule, no extra runs). Keys are created on the Status page; the private key goes only into the GitHub secret `VAPID_PRIVATE_KEY`. Late notifications say how late; anything past its limit (2 hours for alerts) is recorded as not sent. Devices the push service drops are stopped and shown.

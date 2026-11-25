@@ -76,10 +76,15 @@ export async function pipelineAndStore(
       push: pushText(input),
       sourceAt,
       createdAt: at.toISOString(),
-      // Only push decisions wait for the Web Push dispatcher (ADR 0031); the rest are never pushed.
+      // Only push decisions wait for the Web Push dispatcher (ADR 0031); critical ones also get an email copy, and
+      // alerts held back go to the next digest (ADR 0032).
       delivery: {
         push: r.decision === 'push' ? 'pending' : `not sent (${r.decision})`,
-        email: 'not-configured',
+        email:
+          r.decision === 'push' && input.priority === 'critical'
+            ? 'pending'
+            : 'not sent (not critical)',
+        ...(r.decision === 'digest' ? { digest: 'pending' } : {}),
       },
     });
   }

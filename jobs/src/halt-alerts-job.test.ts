@@ -43,6 +43,9 @@ describe('runHaltAlertsJob', () => {
     expect(rows[0]?.push.title.length).toBeLessThanOrEqual(60);
     expect(rows[0]?.sourceAt).toBe('2026-11-25T19:34:30.000Z');
     expect(rows[0]?.delivery['push']).toBe('pending');
+    // Critical and pushed: an email copy is queued too (ADR 0032); nothing goes to the digest.
+    expect(rows[0]?.delivery['email']).toBe('pending');
+    expect(rows[0]?.delivery['digest']).toBeUndefined();
   });
 
   it('a saved watchlist adds tickers; a later run stores no duplicates', async () => {
