@@ -1,0 +1,71 @@
+{
+  "recordedAt": "2026-11-25T17:20:20.650Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax/USD/CY2025.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "ccp": "CY2025",
+    "uom": "USD",
+    "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+    "description": "Amount, excluding tax collected from customer, of revenue from satisfaction of performance obligation by transferring promised good or service to customer. Tax collected from customer is tax assessed by governmental authority that is both imposed on and concurrent with specific revenue-producing transaction, including, but not limited to, sales, use, value added and excise.",
+    "pts": 2722,
+    "data": [
+      {
+        "accn": "0000037996-26-000015",
+        "cik": 37996,
+        "entityName": "Ford Motor Co",
+        "loc": "US-MI",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 187267000000
+      },
+      {
+        "accn": "0000050863-26-000011",
+        "cik": 50863,
+        "entityName": "INTEL CORPORATION",
+        "loc": "US-CA",
+        "start": "2024-12-29",
+        "end": "2025-12-27",
+        "val": 52853000000
+      },
+      {
+        "accn": "0000104169-26-000055",
+        "cik": 104169,
+        "entityName": "Walmart Inc.",
+        "loc": "US-AR",
+        "start": "2025-02-01",
+        "end": "2026-01-31",
+        "val": 706413000000
+      },
+      {
+        "accn": "0000200406-26-000016",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "start": "2024-12-30",
+        "end": "2025-12-28",
+        "val": 94193000000
+      },
+      {
+        "accn": "0000320193-26-000026",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "start": "2024-09-29",
+        "end": "2025-09-27",
+        "val": 416161000000
+      },
+      {
+        "accn": "0001193125-26-323660",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "start": "2024-07-01",
+        "end": "2025-06-30",
+        "val": 281724000000
+      }
+    ],
+    "totalRows": 2722
+  }
+}

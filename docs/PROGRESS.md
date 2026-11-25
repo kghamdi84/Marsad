@@ -157,6 +157,11 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Quality at a discount and the 10-K business text (2026-11-25)
+
+- **ADR 0035** (`quality-1`): a weekly screen of the Marsad universe from free SEC XBRL frames: quality (gross profits over assets, return on assets, low accruals, low leverage) and value (earnings yield, book-to-market) as percentiles; passing companies shown on the Regime page with every exclusion counted and every fallback figure named. Real frames recorded 2026-11-25.
+- The company page shows the 10-K business description as filed (2.5).
+
 ### Options positions on the Journal page (2026-11-25)
 
 - **ADR 0034** (`options-pos-1`): defined-risk options positions placed in Sahm are entered by hand with their exit rules and bear case; code shows the maximum loss and gain, breakevens, days to expiry and the result at expiry at the last close, flags the time exit and assignment risk, and says plainly that today's value needs option quotes.

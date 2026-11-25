@@ -443,3 +443,85 @@ test('regime: before the job has run, the page says so', async ({ page }) => {
   await page.goto('/regime');
   await expect(page.getByText('No regime has been computed yet.', { exact: false })).toBeVisible();
 });
+
+test('regime: the quality screen lists passing companies with its counts and caveats', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  const body = (x: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(x),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(body([])));
+  await page.route('**/rest/v1/quality_screen_runs**', (r) =>
+    r.fulfill(
+      body([
+        {
+          as_of: '2026-11-29',
+          version: 'quality-1',
+          fiscal_year: 2025,
+          price_date: '2026-11-27',
+          universe: 1000,
+          no_cik: 41,
+          eligible: 512,
+          passed: 1,
+          excluded: {
+            'no-gross-profit': 160,
+            'not-profitable': 220,
+            'negative-equity': 30,
+            'missing-data': 30,
+            'no-price': 7,
+          },
+          insufficient: null,
+        },
+      ]),
+    ),
+  );
+  await page.route('**/rest/v1/quality_screen?**', (r) =>
+    r.fulfill(
+      body([
+        {
+          rank: 1,
+          ticker: 'JNJ',
+          name: 'JOHNSON & JOHNSON',
+          passes: true,
+          quality: 81.4,
+          value: 66.2,
+          metrics: {
+            grossProfitability: 0.321,
+            roa: 0.1346,
+            earningsYield: 0.0585,
+            bookToMarket: 0.178,
+            leverage: 0.59,
+            accruals: 0.0114,
+          },
+          notes: [],
+        },
+      ]),
+    ),
+  );
+  await page.goto('/regime');
+  const s = page.getByRole('region', { name: 'Quality at a discount' });
+  await expect(
+    s.getByText('Capitulation watch is off: shown for study, not as a signal.'),
+  ).toBeVisible();
+  await expect(
+    s.getByText(
+      'Screened 2026-11-29: fiscal 2025 figures from SEC filings, closes of 2026-11-27. 512 of 1000 companies had every input; 1 pass.',
+    ),
+  ).toBeVisible();
+  await expect(
+    s.getByText(/Left out: 41 without an SEC record, 160 reporting no gross profit/),
+  ).toBeVisible();
+  const row = s.getByRole('row', { name: /JNJ/ });
+  // 0.321 is 32.1%; 0.1346 is 13.5% (half up); quality 81.4 shows as 81.
+  await expect(row).toContainText('81');
+  await expect(row).toContainText('66');
+  await expect(row).toContainText('32.1%');
+  await expect(row).toContainText('13.5%');
+  await expect(row).toContainText('5.9%');
+  await expect(row).toContainText('0.18');
+  await expect(s.getByRole('link', { name: 'JNJ' })).toHaveAttribute('href', '/study/JNJ');
+  await expect(s.getByText(/not a recommendation/)).toBeVisible();
+});

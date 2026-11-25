@@ -1,0 +1,80 @@
+{
+  "recordedAt": "2026-11-25T17:20:22.451Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/ProfitLoss/USD/CY2025.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "ProfitLoss",
+    "ccp": "CY2025",
+    "uom": "USD",
+    "label": "Net Income (Loss), Including Portion Attributable to Noncontrolling Interest",
+    "description": "The consolidated profit or loss for the period, net of income taxes, including the portion attributable to the noncontrolling interest.",
+    "pts": 2983,
+    "data": [
+      {
+        "accn": "0001628280-26-010047",
+        "cik": 21344,
+        "entityName": "COCA COLA CO",
+        "loc": "US-GA",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 13137000000
+      },
+      {
+        "accn": "0000034088-26-000045",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 29764000000
+      },
+      {
+        "accn": "0000037996-26-000015",
+        "cik": 37996,
+        "entityName": "Ford Motor Co",
+        "loc": "US-MI",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": -8162000000
+      },
+      {
+        "accn": "0000050863-26-000011",
+        "cik": 50863,
+        "entityName": "INTEL CORPORATION",
+        "loc": "US-CA",
+        "start": "2024-12-29",
+        "end": "2025-12-27",
+        "val": 26000000
+      },
+      {
+        "accn": "0000078003-26-000026",
+        "cik": 78003,
+        "entityName": "PFIZER INC",
+        "loc": "US-NY",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 7812000000
+      },
+      {
+        "accn": "0000104169-26-000055",
+        "cik": 104169,
+        "entityName": "Walmart Inc.",
+        "loc": "US-AR",
+        "start": "2025-02-01",
+        "end": "2026-01-31",
+        "val": 22270000000
+      },
+      {
+        "accn": "0000732717-26-000120",
+        "cik": 732717,
+        "entityName": "AT&T INC.",
+        "loc": "US-TX",
+        "start": "2025-01-01",
+        "end": "2025-12-31",
+        "val": 23386000000
+      }
+    ],
+    "totalRows": 2983
+  }
+}

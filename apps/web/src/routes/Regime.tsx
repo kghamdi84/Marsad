@@ -24,6 +24,7 @@ import {
   type StoredEventStat,
   type StoredFearGreedDay,
 } from '../lib/regime';
+import { QualityScreen } from '../components/regime/QualityScreen';
 import { t } from '../strings';
 
 const r = t.regime;
@@ -707,6 +708,7 @@ export function Regime() {
           <BreadthSection data={q.data} />
           <FearGreedSection data={q.data} />
           <CapitulationSection data={q.data} />
+          <QualityScreen capitulationOn={q.data.capitulation.latest?.state === 'on'} />
           <GeopoliticsSection data={q.data} />
           <StudySection data={q.data} />
           <Section id="volatility" title={v.title}>

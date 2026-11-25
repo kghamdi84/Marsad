@@ -986,6 +986,38 @@ export const t = {
       method:
         'A component counts only with a value for that day; nothing is carried forward. Prices are price returns. Stock price strength needs a 52-week measure plus a year of its own history, so it joins about two years after breadth starts (around December 2026).',
     },
+    quality: {
+      title: 'Quality at a discount',
+      intro:
+        'Profitable companies with strong balance sheets that also look cheap: quality is gross profits over assets (Novy-Marx, 2013), return on assets, low accruals and low leverage (Asness, Frazzini and Pedersen, 2019); value is the earnings yield and book-to-market (Graham). Each is a percentile within the Marsad universe; a company passes at quality 70 or more and value 50 or more.',
+      active:
+        'Capitulation watch is on: this is the list the brief pairs with staged entries. Study each name before any decision.',
+      inactive: 'Capitulation watch is off: shown for study, not as a signal.',
+      none: 'The screen has not run yet. It runs every Sunday.',
+      noPrice: 'no stored close',
+      summary: (
+        asOf: string,
+        year: number,
+        priceDate: string,
+        universe: number,
+        eligible: number,
+        passed: number,
+      ) =>
+        `Screened ${asOf}: fiscal ${year} figures from SEC filings, closes of ${priceDate}. ${eligible} of ${universe} companies had every input; ${passed} pass.`,
+      excluded: (noCik: number, noGp: number, loss: number, negEq: number, missing: number) =>
+        `Left out: ${noCik} without an SEC record, ${noGp} reporting no gross profit (banks and most insurers), ${loss} unprofitable, ${negEq} with negative equity, ${missing} with missing figures or no close.`,
+      nonePassed: 'No company passes both bars this week.',
+      colTicker: 'Company',
+      colQuality: 'Quality',
+      colValue: 'Value',
+      colGp: 'Gross profit / assets',
+      colRoa: 'Return on assets',
+      colEy: 'Earnings yield',
+      colBm: 'Book / price',
+      colNotes: 'Figures used',
+      caveats:
+        'Market value uses the latest close times shares from the year-end filing, so later buybacks or issuance are not reflected. Figures are as reported for the full fiscal year; a quarter since then is not included. A screen is a starting point for study, not a recommendation.',
+    },
     capitulation: {
       title: 'Capitulation watch',
       intro:
