@@ -40,9 +40,24 @@ export function publishedOn(seriesId: string, obsDate: string): string {
   }
 }
 
+/**
+ * How many observations of a series had been published on `asOf`. Series are in date order and publication is
+ * later for later dates, so a binary search finds the count without scanning the whole series for every day.
+ */
+export function publishedCount(seriesId: string, series: readonly Obs[], asOf: string): number {
+  let lo = 0;
+  let hi = series.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (publishedOn(seriesId, (series[mid] as Obs).date) <= asOf) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 /** Observations of a series that had been published on `asOf`, in date order. */
 export function publishedBy(seriesId: string, series: readonly Obs[], asOf: string): Obs[] {
-  return series.filter((o) => publishedOn(seriesId, o.date) <= asOf);
+  return series.slice(0, publishedCount(seriesId, series, asOf));
 }
 
 /** Largest gap, in calendar days, between the newest published value and `asOf` before a series counts as stale. */
@@ -108,7 +123,8 @@ function unavailable(id: SignalId, source: string): RecessionSignal {
 }
 
 function sahmSignal(series: MacroSeries, asOf: string): RecessionSignal {
-  const obs = publishedBy('SAHMREALTIME', series['SAHMREALTIME'] ?? [], asOf).at(-1);
+  const all = series['SAHMREALTIME'] ?? [];
+  const obs = all[publishedCount('SAHMREALTIME', all, asOf) - 1];
   if (!fresh('SAHMREALTIME', obs, asOf)) return unavailable('sahm', 'SAHMREALTIME');
   return {
     id: 'sahm',
@@ -121,10 +137,11 @@ function sahmSignal(series: MacroSeries, asOf: string): RecessionSignal {
 }
 
 function curveSignal(series: MacroSeries, asOf: string): RecessionSignal {
-  const obs = publishedBy('T10Y3M', series['T10Y3M'] ?? [], asOf);
-  const last = obs.at(-1);
+  const all = series['T10Y3M'] ?? [];
+  const k = publishedCount('T10Y3M', all, asOf);
+  const last = all[k - 1];
   if (!fresh('T10Y3M', last, asOf)) return unavailable('curve', 'T10Y3M');
-  const window = obs.slice(-RECESSION_THRESHOLDS.curveLookbackSessions);
+  const window = all.slice(Math.max(0, k - RECESSION_THRESHOLDS.curveLookbackSessions), k);
   const inverted = window.filter((o) => o.value < 0).length;
   const triggered = last.value < 0 || inverted >= RECESSION_THRESHOLDS.curveInvertedSessions;
   return {
@@ -138,10 +155,11 @@ function curveSignal(series: MacroSeries, asOf: string): RecessionSignal {
 }
 
 function creditSignal(series: MacroSeries, asOf: string): RecessionSignal {
-  const obs = publishedBy('BAMLH0A0HYM2', series['BAMLH0A0HYM2'] ?? [], asOf);
-  const last = obs.at(-1);
+  const all = series['BAMLH0A0HYM2'] ?? [];
+  const k = publishedCount('BAMLH0A0HYM2', all, asOf);
+  const last = all[k - 1];
   if (!fresh('BAMLH0A0HYM2', last, asOf)) return unavailable('credit', 'BAMLH0A0HYM2');
-  const earlier = obs[obs.length - 1 - RECESSION_THRESHOLDS.hyChangeSessions];
+  const earlier = all[k - 1 - RECESSION_THRESHOLDS.hyChangeSessions];
   const change = earlier ? last.value - earlier.value : null;
   const triggered =
     last.value >= RECESSION_THRESHOLDS.hySpreadLevel ||
@@ -157,7 +175,10 @@ function creditSignal(series: MacroSeries, asOf: string): RecessionSignal {
 }
 
 function claimsSignal(series: MacroSeries, asOf: string): RecessionSignal {
-  const obs = publishedBy('ICSA', series['ICSA'] ?? [], asOf);
+  const all = series['ICSA'] ?? [];
+  // Only the last year and a month matter: 52 weeks of 4-week averages before the newest one.
+  const k = publishedCount('ICSA', all, asOf);
+  const obs = all.slice(Math.max(0, k - 60), k);
   const last = obs.at(-1);
   const weeks = RECESSION_THRESHOLDS.claimsWeeks;
   if (!fresh('ICSA', last, asOf) || obs.length < weeks + 4) return unavailable('claims', 'ICSA');
@@ -179,7 +200,8 @@ function claimsSignal(series: MacroSeries, asOf: string): RecessionSignal {
 }
 
 function nfciSignal(series: MacroSeries, asOf: string): RecessionSignal {
-  const obs = publishedBy('NFCI', series['NFCI'] ?? [], asOf).at(-1);
+  const all = series['NFCI'] ?? [];
+  const obs = all[publishedCount('NFCI', all, asOf) - 1];
   if (!fresh('NFCI', obs, asOf)) return unavailable('nfci', 'NFCI');
   return {
     id: 'nfci',
