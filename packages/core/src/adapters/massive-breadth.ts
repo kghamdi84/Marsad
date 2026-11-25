@@ -81,7 +81,7 @@ export function nextPagePath(nextUrl: unknown): string | null {
 }
 
 /** Fetches a paged endpoint, following `next_url`, each page once. Stops at the first failure, which it returns. */
-async function paged<T>(
+export async function paged<T>(
   http: HttpClient,
   cfg: MassiveConfig,
   firstPath: string,

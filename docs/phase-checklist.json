@@ -366,8 +366,8 @@
         {
           "id": "3.6",
           "title": "GPR and EPU",
-          "status": "in_progress",
-          "evidence": "Panel done: the daily GPR (Caldara and Iacoviello) and daily EPU (Baker, Bloom and Davis, FRED USEPUINDXD) with latest, change, 1-year percentile, date and source; a percentile resting on fewer than 252 days says so. Still to do: GPR and EPU in the regime context lines and the geopolitical panel (3.11)."
+          "status": "done",
+          "evidence": "Panel done: the daily GPR (Caldara and Iacoviello) and daily EPU (Baker, Bloom and Davis, FRED USEPUINDXD) with latest, change, 1-year percentile, date and source; a percentile resting on fewer than 252 days says so. GPR and EPU now also appear as one context line under the regime label (their 1-year percentiles), and beside the topic counts in the geopolitical panel (3.11)."
         },
         {
           "id": "3.7",
@@ -396,8 +396,8 @@
         {
           "id": "3.11",
           "title": "Geopolitical panel",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "topics-1 (ADR 0012): documented keyword rules sort market-wide Massive news (about 500 articles a day, investment press) into conflict, sanctions, tariffs, elections, central banks and energy; daily counts and 3 sample headlines per topic in news_topic_days (articles not stored); last 7 days against the weekly average of the 4 weeks before, share of articles and ratio. Beside them: WTI oil, the broad dollar, the 10-year yield (FRED) and GLD, ITA, IYT (Massive bars, added to the bars job). Rules checked against 23 real articles hand-labelled; job tests cover paging (key stripped from next_url), resume and failure. Still to do: the first live run, and AI topic tagging as topics-2 once the API key exists."
         },
         {
           "id": "3.12",

@@ -285,6 +285,7 @@ describe('the default policies fit the job schedules (a false alarm every mornin
       'massive_study',
       'massive_sections',
       'massive_breadth',
+      'massive_topics',
     ])
       expect(
         DEFAULT_SOURCE_POLICIES.some((p) => p.source === s),

@@ -7,3 +7,4 @@ export * from './sec-facts.js';
 export * from './massive-study.js';
 export * from './massive-sections.js';
 export * from './massive-breadth.js';
+export * from './massive-news.js';

@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, batch C: Fear and Greed composite and capitulation watch).
+Last updated 2026-11-25 (Phase 3, batch D: geopolitical panel; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch D: geopolitical panel (2026-11-25)
+
+- Khaled boarded a flight and asked me to keep building, merging and deploying everything that needs no approval. I do not buy plans, add secrets, delete data or force-push.
+- **ADR 0012** (`topics-1`): keyword rules for six topics on market-wide Massive news, daily counts in `news_topic_days`, the last 7 days against the 4 weeks before. Beside them: oil, the dollar, the 10-year yield (FRED), GLD, ITA, IYT (bars). GPR and EPU percentiles also appear under the regime label (3.6 done).
+- **Verified**: 23 real articles hand-labelled (my first tally of the day count was wrong by one tariff and one energy article; the per-article labels were right); hand-written cases for figurative wars, sanctions, elections and central banks; job tests for paging without the key, resume and failure; browser test with hand-worked ratios; headline links rendered only for https URLs.
 
 ### Phase 3 batch C: Fear and Greed composite and capitulation watch (2026-11-25)
 

@@ -6,6 +6,7 @@ import type {
   CompanyRef,
   FearGreedDay,
   StagedPlan,
+  TopicDay,
   DividendRow,
   FinancialFact,
   NewsArticle,
@@ -59,6 +60,7 @@ export interface FakeLog {
   fearGreed: FearGreedDay[][];
   capitulation: CapitulationDay[][];
   plans: StagedPlan[][];
+  topicDays: TopicDay[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -75,6 +77,7 @@ export interface FakeSeed {
   breadthInputs?: SentimentBreadthRow[];
   dailyCloses?: Record<string, DailyClose[]>;
   recessionLevels?: { date: string; level: string }[];
+  topicDates?: string[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -92,7 +95,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'insiderCandidates' in x ||
       'breadthInputs' in x ||
       'dailyCloses' in x ||
-      'recessionLevels' in x);
+      'recessionLevels' in x ||
+      'topicDates' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -121,11 +125,17 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     fearGreed: [],
     capitulation: [],
     plans: [],
+    topicDays: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    getTopicDates: () => Promise.resolve([...(s.topicDates ?? [])]),
+    upsertTopicDays: (rows) => {
+      log.topicDays.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
     getBreadthInputs: (from) =>
       Promise.resolve((s.breadthInputs ?? []).filter((r) => r.date >= from)),
     getDailyCloses: (ticker) => Promise.resolve(s.dailyCloses?.[ticker] ?? []),

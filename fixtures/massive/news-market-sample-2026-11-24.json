@@ -1,0 +1,331 @@
+{
+ "recordedAt": "2026-11-25",
+ "source": "massive",
+ "endpoint": "/v2/reference/news?published_utc.gte=2026-11-18T00:00:00Z&limit=1000&order=desc&sort=published_utc",
+ "note": "23 real market-wide articles from 2026-11-23 and 2026-11-24, read with the project key through the Massive MCP and put back in the API's response shape; descriptions trimmed, ids shortened and URLs replaced. expectedTopics is hand-labelled from each text against ADR 0012's rules.",
+ "body": {
+  "status": "OK",
+  "count": 23,
+  "results": [
+   {
+    "id": "c63f20e4-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "This AI Chip Stock Just Crashed 38% on a Memory Shortage Warning. Its Filings Flagged the Risk Months Ago",
+    "author": null,
+    "published_utc": "2026-11-24T23:27:08Z",
+    "article_url": "https://example.invalid/article/c63f20e4",
+    "tickers": [],
+    "description": "Ambarella stock plummeted 38% after warning that a worldwide memory shortage is severely impacting demand for its edge AI chips."
+   },
+   {
+    "id": "c4854487-fixture",
+    "publisher": {
+     "name": "GlobeNewswire Inc."
+    },
+    "title": "Thanksgiving Cargo Theft Doubles from 2021 as Verisk CargoNet Warns of Fraudulent Hires and Data Center Hardware Being Targeted",
+    "author": null,
+    "published_utc": "2026-11-24T19:00:00Z",
+    "article_url": "https://example.invalid/article/c4854487",
+    "tickers": [],
+    "description": "Verisk CargoNet reports 252 cargo theft incidents during Thanksgiving periods from 2021-2025, with 2025 seeing 58 incidents."
+   },
+   {
+    "id": "9fce2535-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "3 Stocks to Watch From the Transport Equipment & Leasing Industry",
+    "author": null,
+    "published_utc": "2026-11-24T16:44:00Z",
+    "article_url": "https://example.invalid/article/9fce2535",
+    "tickers": [],
+    "description": "The Transportation Equipment and Leasing industry faces macroeconomic headwinds including inflation, tariffs, and supply-chain disruptions, but AI adoption is enhancing operational efficiency."
+   },
+   {
+    "id": "077a7dbd-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Can Elevated Oil Prices Drive Equinor's Upstream Profitability Higher?",
+    "author": null,
+    "published_utc": "2026-11-24T16:28:00Z",
+    "article_url": "https://example.invalid/article/077a7dbd",
+    "tickers": [],
+    "description": "Equinor is well-positioned to benefit from elevated crude oil prices expected to remain near $100 per barrel through end-2026."
+   },
+   {
+    "id": "caa05cde-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "APA Leads Alaska Oil Lease Sales as Bids Hit a 12-Year High",
+    "author": null,
+    "published_utc": "2026-11-24T16:26:00Z",
+    "article_url": "https://example.invalid/article/caa05cde",
+    "tickers": [],
+    "description": "APA Corporation secured 224 tracts across Alaska's North Slope and Beaufort Sea in recent lease sales, with winning bids exceeding $31.7 million (89% of total proceeds)."
+   },
+   {
+    "id": "55470a2e-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Pre-Markets in Red After Yesterday's Massive Rally",
+    "author": null,
+    "published_utc": "2026-11-24T15:03:00Z",
+    "article_url": "https://example.invalid/article/55470a2e",
+    "tickers": [],
+    "description": "Markets remain near break-even year-to-date following NVIDIA's CEO reinstatement after a brief ouster related to alleged AI chip theft to China. The U.S. is preparing new tariffs on exports, while housing prices remain steady at +2.1% in September."
+   },
+   {
+    "id": "5a16c209-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "CHRD vs. EOG: Which Oil Stock is the Better Bet Right Now?",
+    "author": null,
+    "published_utc": "2026-11-24T14:27:00Z",
+    "article_url": "https://example.invalid/article/5a16c209",
+    "tickers": [],
+    "description": "Chord Energy (CHRD) has outperformed EOG Resources (EOG) year-to-date. Both companies benefit from elevated oil prices and maintain strong balance sheets with low debt exposure."
+   },
+   {
+    "id": "7cb7fcb3-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Are Oils-Energy Stocks Lagging  Imperial Oil (IMO) This Year?",
+    "author": null,
+    "published_utc": "2026-11-24T14:10:02Z",
+    "article_url": "https://example.invalid/article/7cb7fcb3",
+    "tickers": [],
+    "description": "Imperial Oil (IMO) has returned 32.9% year-to-date, outperforming the Oils-Energy sector average of 20.6%."
+   },
+   {
+    "id": "8aab7e30-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Here's Why Upbound Group (UPBD) is a Strong Growth Stock",
+    "author": null,
+    "published_utc": "2026-11-24T13:45:03Z",
+    "article_url": "https://example.invalid/article/8aab7e30",
+    "tickers": [],
+    "description": "Energy stocks benefit from rising earnings estimates, while new U.S. tariffs on China and other Asian/European exports create uncertainty. Retail faces headwinds from elevated fuel costs impacting consumer finances."
+   },
+   {
+    "id": "a6933034-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "4 Dividend-Paying Auto Stocks to Consider as Fed Rate Hike Looms",
+    "author": null,
+    "published_utc": "2026-11-24T12:38:00Z",
+    "article_url": "https://example.invalid/article/a6933034",
+    "tickers": [],
+    "description": "With persistent inflation and expectations of another Fed rate hike, dividend-paying auto stocks are gaining investor attention."
+   },
+   {
+    "id": "956d80da-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "Nvidia Turmoil: How Big Is the Risk for CoreWeave?",
+    "author": null,
+    "published_utc": "2026-11-24T10:10:02Z",
+    "article_url": "https://example.invalid/article/956d80da",
+    "tickers": [],
+    "description": "CoreWeave faces potential risks from Nvidia's recent turmoil. Investors remain concerned about the sustainability of AI infrastructure spending and potential policy shifts under Democratic leadership."
+   },
+   {
+    "id": "d1a1b029-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "Jensen Huang Just Killed Hopes For a Fed Rate Pause. Will Kevin Warsh Crush the Stock Market Recovery on Dec. 9?",
+    "author": null,
+    "published_utc": "2026-11-24T08:45:02Z",
+    "article_url": "https://example.invalid/article/d1a1b029",
+    "tickers": [],
+    "description": "Market expectations now show zero probability of the Fed holding rates steady at its December 9 meeting, with a 4.9% chance of a 50-basis-point hike."
+   },
+   {
+    "id": "200a1c51-fixture",
+    "publisher": {
+     "name": "GlobeNewswire Inc."
+    },
+    "title": "Greenland Energy (GLND) Shareholder Alert: Johnson Fistel Investigates Following Report Questioning Oil Reserves and Drilling Timeline",
+    "author": null,
+    "published_utc": "2026-11-23T19:11:00Z",
+    "article_url": "https://example.invalid/article/200a1c51",
+    "tickers": [],
+    "description": "Johnson Fistel is investigating Greenland Energy Company (NASDAQ: GLND) for potential securities law violations following a report that questioned the company's oil reserve estimates."
+   },
+   {
+    "id": "1310dd82-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "Warren Buffett's Successor, Greg Abel, Just Sent a Massive Warning to the Market",
+    "author": null,
+    "published_utc": "2026-11-23T18:30:02Z",
+    "article_url": "https://example.invalid/article/1310dd82",
+    "tickers": [],
+    "description": "The reduction of positions in Bank of America and Capital One, amid rising interest rates, suggests Abel expects economic volatility ahead."
+   },
+   {
+    "id": "61dbbb5d-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "4 Textile-Apparel Stocks to Watch as Industry Momentum Builds",
+    "author": null,
+    "published_utc": "2026-11-23T15:46:00Z",
+    "article_url": "https://example.invalid/article/61dbbb5d",
+    "tickers": [],
+    "description": "The Zacks Textile-Apparel industry is benefiting from improved store traffic. However, rising costs, tariffs, and geopolitical tensions pose challenges."
+   },
+   {
+    "id": "ad94a9d5-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Mexco Energy Q2 Earnings Rise Y/Y on Higher Oil Prices, Costs Climb",
+    "author": null,
+    "published_utc": "2026-11-23T14:04:00Z",
+    "article_url": "https://example.invalid/article/ad94a9d5",
+    "tickers": [],
+    "description": "Mexco Energy Corporation (MXC) reported Q2 FY2027 earnings with operating revenues up 30%, driven by higher oil and natural gas prices and increased production."
+   },
+   {
+    "id": "7b1e7aee-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "Stock Market Sell-Off: Warren Buffett's \"Be Greedy\" Rule Has a Catch Most Investors Forget",
+    "author": null,
+    "published_utc": "2026-11-23T13:51:01Z",
+    "article_url": "https://example.invalid/article/7b1e7aee",
+    "tickers": [],
+    "description": "The article explains that while Warren Buffett's famous advice to 'be greedy when others are fearful' is sound, most investors overlook critical conditions that made it work for him."
+   },
+   {
+    "id": "7185b9be-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Are Oils-Energy Stocks Lagging  Canadian Natural Resources Limited (CNQ) This Year?",
+    "author": null,
+    "published_utc": "2026-11-23T13:40:03Z",
+    "article_url": "https://example.invalid/article/7185b9be",
+    "tickers": [],
+    "description": "Canadian Natural Resources (CNQ) has outperformed the Oils-Energy sector year-to-date, gaining 31.1% compared to the sector average of 20.8%."
+   },
+   {
+    "id": "841dbeb8-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "Proto Labs: 3 Key Takeaways for Long-Term Investors",
+    "author": null,
+    "published_utc": "2026-11-24T23:25:48Z",
+    "article_url": "https://example.invalid/article/841dbeb8",
+    "tickers": [],
+    "description": "Proto Labs reported Q3 2026 record revenue of $154.3 million, up 14% year-over-year, with strong growth in CNC machining (22%) and expanding strategic customer relationships."
+   },
+   {
+    "id": "a50a5180-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Constellation Energy Corporation (CEG) Upgraded to Buy: Here's What You Should Know",
+    "author": null,
+    "published_utc": "2026-11-24T16:00:04Z",
+    "article_url": "https://example.invalid/article/a50a5180",
+    "tickers": [],
+    "description": "Constellation Energy Corporation (CEG) has been upgraded to Zacks Rank #2 (Buy) due to rising earnings estimates."
+   },
+   {
+    "id": "55ac0c07-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Stock Market News for Nov 24, 2026",
+    "author": null,
+    "published_utc": "2026-11-24T08:08:00Z",
+    "article_url": "https://example.invalid/article/55ac0c07",
+    "tickers": [],
+    "description": "U.S. stock markets surged on Monday following NVIDIA's reinstatement of CEO Jensen Huang. The Dow Jones, Nasdaq, and S&P 500 all closed significantly higher."
+   },
+   {
+    "id": "8407873c-fixture",
+    "publisher": {
+     "name": "The Motley Fool"
+    },
+    "title": "As Tech Stocks Crash, Is Berkshire Hathaway a Safe-Haven Investment?",
+    "author": null,
+    "published_utc": "2026-11-23T21:59:02Z",
+    "article_url": "https://example.invalid/article/8407873c",
+    "tickers": [],
+    "description": "Berkshire Hathaway's stock has risen 16% over the past three months while tech stocks fell 11%, suggesting investors are shifting to safer value stocks."
+   },
+   {
+    "id": "a6bebd23-fixture",
+    "publisher": {
+     "name": "Zacks Investment Research"
+    },
+    "title": "Should Value Investors Buy Ovintiv (OVV) Stock?",
+    "author": null,
+    "published_utc": "2026-11-23T13:40:02Z",
+    "article_url": "https://example.invalid/article/a6bebd23",
+    "tickers": [],
+    "description": "Ovintiv (OVV) is presented as an attractive value investment opportunity, featuring a Zacks Rank #2 (Buy) rating and an A grade for Value."
+   }
+  ]
+ },
+ "expectedTopics": {
+  "c63f20e4-fixture": [],
+  "c4854487-fixture": [],
+  "9fce2535-fixture": [
+   "tariffs"
+  ],
+  "077a7dbd-fixture": [
+   "energy"
+  ],
+  "caa05cde-fixture": [],
+  "55470a2e-fixture": [
+   "tariffs"
+  ],
+  "5a16c209-fixture": [
+   "energy"
+  ],
+  "7cb7fcb3-fixture": [],
+  "8aab7e30-fixture": [
+   "tariffs"
+  ],
+  "a6933034-fixture": [
+   "centralBanks"
+  ],
+  "956d80da-fixture": [],
+  "d1a1b029-fixture": [
+   "centralBanks"
+  ],
+  "200a1c51-fixture": [],
+  "1310dd82-fixture": [],
+  "61dbbb5d-fixture": [
+   "tariffs"
+  ],
+  "ad94a9d5-fixture": [
+   "energy"
+  ],
+  "7b1e7aee-fixture": [],
+  "7185b9be-fixture": [],
+  "841dbeb8-fixture": [],
+  "a50a5180-fixture": [],
+  "55ac0c07-fixture": [],
+  "8407873c-fixture": [],
+  "a6bebd23-fixture": []
+ }
+}

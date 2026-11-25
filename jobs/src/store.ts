@@ -16,6 +16,7 @@ import type {
   CapitulationDay,
   FearGreedDay,
   StagedPlan,
+  TopicDay,
   MarketRow,
   ShareChange,
   Bar,
@@ -104,6 +105,9 @@ export interface Store {
   upsertFearGreedDays(rows: readonly FearGreedDay[]): Promise<number>;
   upsertCapitulationDays(rows: readonly CapitulationDay[]): Promise<number>;
   upsertCapitulationPlans(rows: readonly StagedPlan[]): Promise<number>;
+  /** UTC dates already stored in news_topic_days. */
+  getTopicDates(): Promise<string[]>;
+  upsertTopicDays(rows: readonly TopicDay[], fetchedAt: Date): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
   updateSourceStatus(update: SourceStatusUpdate): Promise<void>;
   /** Last message time of every source in `source_status`. */
@@ -929,6 +933,29 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .from('capitulation_plans')
         .upsert(out, { onConflict: 'trigger_date' });
       if (error) throw new Error(`capitulation_plans upsert failed: ${error.message}`);
+      return out.length;
+    },
+    async getTopicDates() {
+      const { data, error } = await db
+        .from('news_topic_days')
+        .select('date')
+        .order('date', { ascending: true })
+        .limit(1000);
+      if (error) throw new Error(`news_topic_days read failed: ${error.message}`);
+      return (data ?? []).map((r) => r.date as string);
+    },
+    async upsertTopicDays(rows, fetchedAt) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        date: r.date,
+        version: r.version,
+        total: r.total,
+        counts: r.counts,
+        samples: r.samples,
+        fetched_at: fetchedAt.toISOString(),
+      }));
+      const { error } = await db.from('news_topic_days').upsert(out, { onConflict: 'date' });
+      if (error) throw new Error(`news_topic_days upsert failed: ${error.message}`);
       return out.length;
     },
     async upsertRegimeDays(rows) {

@@ -24,6 +24,7 @@ const healthy = [
   beat('massive_study', 3600),
   beat('massive_sections', 3600),
   beat('massive_breadth', 3600),
+  beat('massive_topics', 3600),
   beat('gpr', 3600),
 ];
 

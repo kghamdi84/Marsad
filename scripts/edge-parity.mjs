@@ -284,6 +284,15 @@ const out = {
       plan: core.stagedPlan(spy.at(-61).date, spy, new Map()),
     };
   })(),
+  // Geopolitical topic counts on the real news sample (ADR 0012).
+  topics: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/massive/news-market-sample-2026-11-24.json'), 'utf8'),
+    );
+    const articles = core.parseNewsItems(f.body.results);
+    const day = core.topicDay('2026-11-24', articles);
+    return { day, summary: core.topicSummary([day], '2026-11-24') };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
