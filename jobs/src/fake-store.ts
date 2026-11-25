@@ -3,6 +3,9 @@ import type {
   AnnualSection,
   Bar,
   Brief,
+  DailyBar,
+  RuleDoc,
+  RuleStatus,
   CapitulationDay,
   CompanyRef,
   EconEvent,
@@ -68,6 +71,14 @@ export interface FakeLog {
   econCalendars: { from: string; to: string; events: EconEvent[] }[];
   movers: MarketMovers[][];
   briefs: { brief: Brief; inputs: unknown; delivery: Record<string, string> }[];
+  ruleVersions: { id: string; version: number; hash: string; doc: RuleDoc }[];
+  ruleEvents: { id: string; version: number; from: RuleStatus; to: RuleStatus; reason: string }[];
+  backtestRuns: {
+    ruleId: string;
+    version: number;
+    trials: number;
+    report: Record<string, unknown>;
+  }[];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -89,6 +100,9 @@ export interface FakeSeed {
   resultsFilings?: { cik: string; date: string }[];
   /** Rows `latest` returns, by table (and by "column=value" filter when given), newest first. */
   latestRows?: Record<string, Record<string, unknown>[]>;
+  bars?: Record<string, DailyBar[]>;
+  regimeLabels?: { date: string; label: string }[];
+  rules?: Record<string, { version: number; hash: string; status: RuleStatus }[]>;
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -109,7 +123,9 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'recessionLevels' in x ||
       'topicDates' in x ||
       'resultsFilings' in x ||
-      'latestRows' in x);
+      'latestRows' in x ||
+      'bars' in x ||
+      'rules' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -142,12 +158,36 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     econCalendars: [],
     movers: [],
     briefs: [],
+    ruleVersions: [],
+    ruleEvents: [],
+    backtestRuns: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
+    getRegimeLabels: (from) =>
+      Promise.resolve((s.regimeLabels ?? []).filter((r) => r.date >= from)),
+    getRuleVersions: (id) => Promise.resolve([...(s.rules?.[id] ?? [])]),
+    insertRuleVersion: (row) => {
+      log.ruleVersions.push({ id: row.id, version: row.version, hash: row.hash, doc: row.doc });
+      return Promise.resolve();
+    },
+    setRuleStatus: (id, version, from, to, reason) => {
+      log.ruleEvents.push({ id, version, from, to, reason });
+      return Promise.resolve();
+    },
+    saveBacktestRun: (row) => {
+      log.backtestRuns.push({
+        ruleId: row.ruleId,
+        version: row.version,
+        trials: row.trials,
+        report: row.report,
+      });
+      return Promise.resolve();
+    },
     latest: (table, columns, _orderBy, limit) => {
       const filter = columns.split('|')[1];
       const rows = s.latestRows?.[filter ? `${table}|${filter}` : table] ?? [];

@@ -400,6 +400,21 @@ const out = {
       wf: core.walkForward([f.rule], f.bars, 'SYN', split),
     };
   })(),
+  // Playbooks, lifecycle gates and replay (ADR 0018).
+  lab: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/backtest/sma-cross-known.json'), 'utf8'),
+    );
+    return {
+      hashes: core.PLAYBOOKS.filter((p) => p.rule).map((p) => core.ruleHash(p.rule)),
+      gate: core.backtestGate({ n: 40, expectancy: 0.01, ci90: { low: 0.002, high: 0.02 } }),
+      demote: core.demotionCheck(
+        Array.from({ length: 30 }, () => 0.001),
+        0.002,
+      ),
+      replay: core.replayDay(f.rule, f.bars, f.bars[200].date),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

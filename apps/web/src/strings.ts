@@ -47,6 +47,7 @@ export const t = {
     alerts: 'Alerts',
     journal: 'Journal',
     status: 'Status',
+    lab: 'Lab',
     signOut: 'Sign out',
     primary: 'Main sections',
   },
@@ -124,6 +125,51 @@ export const t = {
       title: 'Watchlist news',
       none: 'No news stored for the watchlist yet.',
     },
+  },
+  lab: {
+    title: 'Backtest lab',
+    intro:
+      'The seeded playbooks, each with its evidence and sources, tested by Marsad on stored data. A playbook earns live status only through these tests, never through its citation: published anomalies tend to weaken (McLean and Pontiff, 2016).',
+    rating: {
+      strong: 'Strong',
+      moderate: 'Moderate',
+      weak: 'Weak',
+      'weak-to-moderate': 'Weak to moderate',
+    } as Record<string, string>,
+    horizon: {
+      scalp: 'Scalp',
+      swing: 'Swing',
+      'swing-to-long': 'Swing to long term',
+      long: 'Long term',
+    } as Record<string, string>,
+    status: {
+      draft: 'Draft',
+      backtested: 'Backtested',
+      shadow: 'Shadow',
+      live: 'Live',
+      demoted: 'Demoted',
+      none: 'Not run yet',
+    } as Record<string, string>,
+    meta: (n: number, rating: string, horizon: string, status: string) =>
+      `Playbook ${n}. Evidence: ${rating}. Horizon: ${horizon}. Status: ${status}.`,
+    notTestable: (why: string) => `Not testable yet: ${why}`,
+    sources: 'Sources',
+    rule: 'Rule (JSON, version stored with a content hash)',
+    lastRun: (at: string, tickers: string) => `Last run ${at} on ${tickers}.`,
+    noRun: 'Not run yet. The backtest lab runs each Sunday and by hand.',
+    trades: (all: number, oos: number) =>
+      `${all} trades in all; ${oos} out of sample (walk-forward, holdout untouched).`,
+    expectancy: (v: string, lo: string, hi: string) =>
+      `Out-of-sample expectancy ${v} per trade (90% interval ${lo} to ${hi}).`,
+    insufficient: (n: number) =>
+      `Insufficient history: ${n} out-of-sample trades, 30 needed for any percentage.`,
+    winRate: (v: string) => `Win rate ${v}.`,
+    drawdown: (dd: string, mc: string) => `Maximum drawdown ${dd}; Monte Carlo worst 5% ${mc}.`,
+    benchmark: (t: string, v: string) => `${t} over the same dates: ${v}.`,
+    gate: (reason: string) => `Gate to backtested: ${reason}.`,
+    costs: (c: number, s: number, f: number) =>
+      `Costs per side: commission ${c}, slippage ${s}, currency ${f} basis points.`,
+    leftOut: 'Left out, and why',
   },
   calendar: {
     title: 'Economic calendar',

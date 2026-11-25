@@ -14,7 +14,8 @@
     "regime": "tsx src/regime-main.ts",
     "sentiment": "tsx src/sentiment-main.ts",
     "calendar": "tsx src/calendar-main.ts",
-    "brief": "tsx src/brief-main.ts"
+    "brief": "tsx src/brief-main.ts",
+    "backtest": "tsx src/backtest-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

@@ -13,6 +13,9 @@ import type {
   BreadthDay,
   Brief,
   BreadthInput,
+  DailyBar,
+  RuleDoc,
+  RuleStatus,
   BreadthSignals,
   CapitulationDay,
   EarningsEstimate,
@@ -124,6 +127,34 @@ export interface Store {
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
   upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  /** Full stored daily bars of one ticker, oldest first. */
+  getDailyBars(ticker: string): Promise<DailyBar[]>;
+  /** Regime label of every stored day on or after `from`. */
+  getRegimeLabels(from: string): Promise<{ date: string; label: string }[]>;
+  getRuleVersions(id: string): Promise<{ version: number; hash: string; status: RuleStatus }[]>;
+  insertRuleVersion(row: {
+    id: string;
+    version: number;
+    hash: string;
+    doc: RuleDoc;
+    source: 'playbook' | 'user';
+  }): Promise<void>;
+  setRuleStatus(
+    id: string,
+    version: number,
+    from: RuleStatus,
+    to: RuleStatus,
+    reason: string,
+    evidence: Record<string, unknown>,
+  ): Promise<void>;
+  saveBacktestRun(row: {
+    ruleId: string;
+    version: number;
+    engine: string;
+    params: Record<string, unknown>;
+    trials: number;
+    report: Record<string, unknown>;
+  }): Promise<void>;
   /** The newest rows of one allow-listed table, newest first (the brief job's reads). */
   latest(
     table: LatestTable,
@@ -1046,6 +1077,107 @@ export function supabaseStore(url: string, secretKey: string): Store {
         { onConflict: 'kind,for_date' },
       );
       if (error) throw new Error(`briefs upsert failed: ${error.message}`);
+    },
+    async getDailyBars(ticker) {
+      const out: DailyBar[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('daily_bars')
+          .select('date, open, high, low, close, volume, vwap')
+          .eq('ticker', ticker)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`daily_bars read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows)
+          out.push({
+            date: r.date as string,
+            open: Number(r.open),
+            high: Number(r.high),
+            low: Number(r.low),
+            close: Number(r.close),
+            volume: Number(r.volume),
+            vwap: r.vwap === null ? null : Number(r.vwap),
+          });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async getRegimeLabels(from) {
+      const out: { date: string; label: string }[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('regime_daily')
+          .select('date, label')
+          .gte('date', from)
+          .order('date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`regime_daily read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows) out.push({ date: r.date as string, label: String(r.label) });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async getRuleVersions(id) {
+      const { data, error } = await db
+        .from('rules')
+        .select('version, hash, status')
+        .eq('id', id)
+        .order('version', { ascending: true });
+      if (error) throw new Error(`rules read failed: ${error.message}`);
+      return (data ?? []).map((r) => ({
+        version: Number(r.version),
+        hash: String(r.hash),
+        status: r.status as RuleStatus,
+      }));
+    },
+    async insertRuleVersion(row) {
+      const { error } = await db.from('rules').insert({
+        id: row.id,
+        version: row.version,
+        hash: row.hash,
+        doc: row.doc,
+        source: row.source,
+      });
+      if (error) throw new Error(`rules insert failed: ${error.message}`);
+      const ev = await db.from('rule_events').insert({
+        rule_id: row.id,
+        version: row.version,
+        from_status: null,
+        to_status: 'draft',
+        reason: 'new version',
+      });
+      if (ev.error) throw new Error(`rule_events insert failed: ${ev.error.message}`);
+    },
+    async setRuleStatus(id, version, from, to, reason, evidence) {
+      const { error } = await db
+        .from('rules')
+        .update({ status: to })
+        .eq('id', id)
+        .eq('version', version)
+        .eq('status', from);
+      if (error) throw new Error(`rules status update failed: ${error.message}`);
+      const ev = await db.from('rule_events').insert({
+        rule_id: id,
+        version,
+        from_status: from,
+        to_status: to,
+        reason,
+        evidence,
+      });
+      if (ev.error) throw new Error(`rule_events insert failed: ${ev.error.message}`);
+    },
+    async saveBacktestRun(row) {
+      const { error } = await db.from('backtest_runs').insert({
+        rule_id: row.ruleId,
+        version: row.version,
+        engine: row.engine,
+        params: row.params,
+        trials: row.trials,
+        report: row.report,
+      });
+      if (error) throw new Error(`backtest_runs insert failed: ${error.message}`);
     },
     async upsertMovers(rows) {
       if (rows.length === 0) return 0;

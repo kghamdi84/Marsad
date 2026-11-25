@@ -1,0 +1,34 @@
+name: Backtest lab
+
+# Runs every playbook rule through the backtester on stored bars each Sunday and by hand (ADR 0018): stores new rule
+# versions, backtest runs with their reports, and moves a draft to backtested only when the out-of-sample gate
+# passes. Reads only the database.
+on:
+  schedule:
+    - cron: '20 6 * * 0' # 06:20 UTC Sundays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backtest-lab
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the backtests
+        run: pnpm --filter @marsad/jobs backtest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

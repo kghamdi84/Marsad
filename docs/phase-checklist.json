@@ -434,8 +434,8 @@
         {
           "id": "4.2",
           "title": "Seeded playbook library with evidence ratings and sources",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "ADR 0018: the brief's eleven playbooks with ratings, sources, horizons and summaries; three expressed as rule-dsl-1 rules (index trend filter, ETF time-series momentum, trend-template breakout), the other eight with the exact reason they cannot be tested yet; the leave-out list with reasons; shown on the Lab page. Tests check numbering, sources, rule validity and reasons."
         },
         {
           "id": "4.3",
@@ -452,8 +452,8 @@
         {
           "id": "4.5",
           "title": "Bootstrap intervals, trial counting, deflated Sharpe",
-          "status": "in_progress",
-          "evidence": "stats-1 (ADR 0016): Wilson interval, seeded percentile bootstrap, Sharpe, deflated Sharpe ratio (Bailey and Lopez de Prado 2014), maximum drawdown, trade statistics with the 30-case rule; known answers from scipy 1.18, statsmodels 0.15 and numpy 2.5 within 1e-9 (bootstrap exact on the same seeded draws); mutation-checked. Walk-forward counts every variant as a trial and feeds the trial count and the variance of training Sharpes to the deflated Sharpe ratio. Still to do: store trial counts per rule with the lifecycle tables."
+          "status": "done",
+          "evidence": "stats-1 (ADR 0016) plus trial counting: walk-forward counts every variant as a trial for the deflated Sharpe ratio, and each stored backtest run records its trial count (backtest_runs.trials)."
         },
         {
           "id": "4.6",
@@ -464,20 +464,20 @@
         {
           "id": "4.7",
           "title": "Rule lifecycle",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "ADR 0018: pure gates (backtested: 30 out-of-sample trades, positive expectancy, 90% interval above zero; live: 20 trading days and 15 shadow signals; demoted: last 30 live signals below the backtest's lower bound) and allowed moves; rules table where a trigger refuses any change to a version's content (RLS test), rule_events log; the runner moves drafts only when the gate passes and never touches live rules (job test)."
         },
         {
           "id": "4.8",
           "title": "GitHub Actions runners",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "backtest-lab.yml (Sundays 06:20 UTC and by hand): new version only on a changed content hash, walk-forward backtests on stored bars, runs stored with parameters, costs, seed and trial count. Job tests for versioning, live rules untouched, and short histories skipped."
         },
         {
           "id": "4.9",
           "title": "Replay mode",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "replayDay (ADR 0018): re-runs a rule on stored bars up to one date and lists each comparison with its values; matches the evaluator on every tested day and is unchanged when later bars change."
         }
       ]
     },

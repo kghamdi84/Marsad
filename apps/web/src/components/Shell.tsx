@@ -39,6 +39,16 @@ export function Shell() {
         <Clock localZone={DEFAULT_LOCAL_ZONE} />
         <div className="flex items-center">
           <Link
+            to="/lab"
+            className="flex min-h-11 items-center px-3 text-muted hover:text-fg"
+            activeProps={{
+              className: 'text-fg underline underline-offset-4',
+              'aria-current': 'page',
+            }}
+          >
+            {t.nav.lab}
+          </Link>
+          <Link
             to="/status"
             className="flex min-h-11 items-center px-3 text-muted hover:text-fg"
             activeProps={{
