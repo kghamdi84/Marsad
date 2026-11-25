@@ -159,7 +159,7 @@ function FilingsTable({ data }: { data: StudyData }) {
                 <td className={td}>
                   {link ? (
                     <a
-                      className="underline underline-offset-4"
+                      className="inline-flex min-h-11 items-center underline underline-offset-4"
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -250,7 +250,10 @@ export function StudyCompany() {
   return (
     <section className="mx-auto flex max-w-5xl flex-col gap-6">
       <div>
-        <Link to="/study" className="text-sm text-muted underline underline-offset-4">
+        <Link
+          to="/study"
+          className="inline-flex min-h-11 items-center text-sm text-muted underline underline-offset-4"
+        >
           {t.study.back}
         </Link>
         <h1 className="text-xl font-semibold">

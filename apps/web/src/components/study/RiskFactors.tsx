@@ -158,7 +158,7 @@ function Comparison({ cik }: { cik: string }) {
       </p>
       <p className="flex flex-wrap gap-x-4 text-sm">
         <a
-          className="underline underline-offset-4"
+          className="inline-flex min-h-11 items-center underline underline-offset-4"
           href={pair.newer.filingUrl}
           target="_blank"
           rel="noopener noreferrer"
@@ -166,7 +166,7 @@ function Comparison({ cik }: { cik: string }) {
           {r.viewNewer}
         </a>
         <a
-          className="underline underline-offset-4"
+          className="inline-flex min-h-11 items-center underline underline-offset-4"
           href={pair.older.filingUrl}
           target="_blank"
           rel="noopener noreferrer"

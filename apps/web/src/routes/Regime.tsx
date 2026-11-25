@@ -176,7 +176,7 @@ function GeopoliticsSection({ data }: { data: RegimeData }) {
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline underline-offset-2"
+                        className="inline-flex min-h-11 items-center underline underline-offset-2"
                       >
                         {s.title}
                       </a>
