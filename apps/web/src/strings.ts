@@ -613,8 +613,8 @@ export const t = {
       lag: (period: string) =>
         `Disclosure lag: positions on ${period}, filed up to 45 days later. Funds below the reporting threshold, short positions and non-US holders are not included.`,
       cusips: (list: string) => `Counted under CUSIP ${list}.`,
-      leftOut: (options: number, amendments: number, other: number) =>
-        `Left out: ${options} option lines, ${amendments} amended reports, ${other} lines for an older quarter.`,
+      leftOut: (options: number, amendments: number, other: number, minor: number) =>
+        `Left out: ${options} option lines, ${amendments} amended reports, ${other} lines for an older quarter, ${minor} lines under a CUSIP that appears on under 1% of the lines (most likely filer errors).`,
       colRank: 'Rank',
       colFiler: 'Filer',
       colShares: 'Shares',

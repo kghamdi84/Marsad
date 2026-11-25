@@ -20,3 +20,7 @@ Checklist 2.3 and 2.4 ask for 13F holders with a lag label. The data vendor serv
 - Amendments that add holdings are left out rather than merged; the count says how many.
 - A company whose name does not match its issuer name in 13F filings gets no list; the run details name it.
 - Quarter-over-quarter changes per filer are possible once a second quarter is stored; not built.
+
+## Addendum (2026-11-25): holders-2, filer-error CUSIPs
+
+The first live run (data set June to August 2026) counted NVIDIA under 10 CUSIPs. Besides 67066G104 it included the same CUSIP in lower case, NVIDIA option codes (67066G904, 67066G954) on lines with no put or call flag, and other issuers' CUSIPs (for example Oracle's 68389X105) on lines whose issuer name was NVIDIA: filer errors. holders-2 compares CUSIPs in upper case and counts a CUSIP only when it carries at least 1% of the company's common-share lines; the rest are left out and counted ("minor CUSIP" lines, shown on the page). Real share classes keep their place: in the recorded sample Rocket Lab's pre-redomicile CUSIP 773122106 is on 13 of 46 lines. The job reads a stored data set again when its lists were made under an older version.

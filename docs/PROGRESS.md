@@ -157,6 +157,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Live SEC run and the 13F CUSIP fix (2026-11-25)
+
+- Weekly SEC data on main: quality screen ok (1,000 universe, 335 eligible, 13 passed); 13F holders ok for all 10 stocks (3,830,274 lines read); ETF holdings ok (SPY as of 2026-09-30, 504 lines, 376 matched; QQQ 2026-06-30; DIA 2026-07-31).
+- The run showed filer-error CUSIPs counted for NVIDIA (another issuer's CUSIP, option codes, lower case). holders-2 (ADR 0037 addendum) keeps only CUSIPs on at least 1% of the lines and counts the rest; the job rereads the data set under the new version.
+- The Status page's "Adapter arrives in Phase 1" note for live Massive prices is replaced by the real reason (Phase 5 plan).
+
 ### ETF overlap and look-through (2026-11-25)
 
 - **ADR 0038** (`etf-1`): holdings of SPY, QQQ and DIA from their newest public SEC N-PORT reports, loaded weekly; the Journal shows the overlap between the funds and, for each stock held directly, the dollars also held through those funds, with the report dates and the N-PORT lag. Overlaps match an independent Python calculation on the real reports. Checklist 7.3 done; IWM not covered (multi-fund trust).

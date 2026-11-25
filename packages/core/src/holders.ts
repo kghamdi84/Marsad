@@ -3,7 +3,14 @@
  * INFOTABLE, SUBMISSION and COVERPAGE files and hands the matching rows here. 13F reports long positions as of a
  * quarter end, filed up to 45 days later, so every list carries its period and the disclosure lag.
  */
-export const HOLDERS_VERSION = 'holders-1';
+export const HOLDERS_VERSION = 'holders-2';
+
+/**
+ * A CUSIP counts only when it carries at least this share of a company's common-share lines. Real share classes and
+ * pre-redomicile CUSIPs carry many lines (Rocket Lab's old CUSIP: 13 of 46 in the recorded sample); a filer's typo
+ * (another company's CUSIP, an option code) carries one or two, and is left out and counted (holders-2).
+ */
+export const MIN_CUSIP_LINE_SHARE = 0.01;
 
 const SUFFIXES = new Set([
   'INC',
@@ -109,7 +116,14 @@ export interface HolderList {
   cusips: { cusip: string; issuer: string; lines: number }[];
   top: Holder[];
   /** Lines left out and why. */
-  leftOut: { options: number; otherPeriod: number; amendments: number; notCommon: number };
+  leftOut: {
+    options: number;
+    otherPeriod: number;
+    amendments: number;
+    notCommon: number;
+    /** Lines under a CUSIP used by under 1% of the lines: most likely filer errors. */
+    minorCusip: number;
+  };
 }
 
 /** "30-JUN-2026" -> "2026-06-30"; null for anything else. */
@@ -135,14 +149,15 @@ export function secDate(s: string): string | null {
 
 /**
  * Holders of one company for the newest quarter in the rows: original 13F-HR reports only (amendments are left out
- * and counted), common-share lines only, summed per filer, largest first.
+ * and counted), common-share lines only, under CUSIPs that carry at least 1% of those lines, summed per filer,
+ * largest first.
  */
 export function holderList(
   rows: readonly InfoRow[],
   filers: ReadonlyMap<string, Filer>,
   topN = 20,
 ): HolderList | null {
-  const leftOut = { options: 0, otherPeriod: 0, amendments: 0, notCommon: 0 };
+  const leftOut = { options: 0, otherPeriod: 0, amendments: 0, notCommon: 0, minorCusip: 0 };
   const periods = new Map<string, number>();
   for (const r of rows) {
     const f = filers.get(r.accession);
@@ -153,6 +168,7 @@ export function holderList(
   if (!period) return null;
   const byFiler = new Map<string, Holder>();
   const cusips = new Map<string, { cusip: string; issuer: string; lines: number }>();
+  const kept: { r: InfoRow; f: Filer; cusip: string }[] = [];
   for (const r of rows) {
     const f = filers.get(r.accession);
     if (!f || f.type !== '13F-HR') continue;
@@ -172,9 +188,20 @@ export function holderList(
       leftOut.notCommon++;
       continue;
     }
-    const c = cusips.get(r.cusip) ?? { cusip: r.cusip, issuer: r.issuer, lines: 0 };
+    // CUSIPs are case-insensitive; filers write both 67066G104 and 67066g104.
+    const cusip = r.cusip.trim().toUpperCase();
+    const c = cusips.get(cusip) ?? { cusip, issuer: r.issuer, lines: 0 };
     c.lines++;
-    cusips.set(r.cusip, c);
+    cusips.set(cusip, c);
+    kept.push({ r, f, cusip });
+  }
+  const minLines = kept.length * MIN_CUSIP_LINE_SHARE;
+  for (const [k, c] of cusips) if (c.lines < minLines) cusips.delete(k);
+  for (const { r, f, cusip } of kept) {
+    if (!cusips.has(cusip)) {
+      leftOut.minorCusip++;
+      continue;
+    }
     const h = byFiler.get(f.cik) ?? {
       cik: f.cik,
       name: f.name,
