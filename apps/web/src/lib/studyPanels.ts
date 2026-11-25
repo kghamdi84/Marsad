@@ -385,6 +385,68 @@ export async function loadEarningsFilings(cik: string): Promise<EarningsFiling[]
   }));
 }
 
+export interface HoldersView {
+  period: string;
+  filers: number;
+  totalShares: number;
+  totalValueUsd: number;
+  cusips: { cusip: string; issuer: string; lines: number }[];
+  leftOut: { options: number; amendments: number; otherPeriod: number };
+  top: {
+    rank: number;
+    name: string;
+    shares: number;
+    share: number;
+    valueUsd: number;
+    filingDate: string | null;
+  }[];
+}
+
+/** The newest stored 13F holder list of a ticker, or null. */
+export async function loadHolders(ticker: string): Promise<HoldersView | null> {
+  const head = check(
+    await client()
+      .from('holders_13f_lists')
+      .select('period, filers, total_shares, total_value_usd, cusips, left_out')
+      .eq('ticker', ticker)
+      .order('period', { ascending: false })
+      .limit(1),
+    'holders_13f_lists',
+  ) as Record<string, unknown>[];
+  const h = head[0];
+  if (!h) return null;
+  const rows = check(
+    await client()
+      .from('holders_13f')
+      .select('rank, filer_name, shares, share, value_usd, filing_date')
+      .eq('ticker', ticker)
+      .eq('period', String(h['period']))
+      .order('rank')
+      .limit(20),
+    'holders_13f',
+  ) as Record<string, unknown>[];
+  return {
+    period: String(h['period']),
+    filers: Number(h['filers']),
+    totalShares: Number(h['total_shares']),
+    totalValueUsd: Number(h['total_value_usd']),
+    cusips: (h['cusips'] ?? []) as HoldersView['cusips'],
+    leftOut: (h['left_out'] ?? {
+      options: 0,
+      amendments: 0,
+      otherPeriod: 0,
+    }) as HoldersView['leftOut'],
+    top: rows.map((r) => ({
+      rank: Number(r['rank']),
+      name: String(r['filer_name']),
+      shares: Number(r['shares']),
+      share: Number(r['share']),
+      valueUsd: Number(r['value_usd']),
+      filingDate: r['filing_date'] === null ? null : String(r['filing_date']),
+    })),
+  };
+}
+
 export interface QuarterlySection {
   accession: string;
   filingDate: string;

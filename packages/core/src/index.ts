@@ -61,3 +61,4 @@ export * from './email-digest.js';
 export * from './option-positions.js';
 export * from './quality.js';
 export * from './tenq.js';
+export * from './holders.js';

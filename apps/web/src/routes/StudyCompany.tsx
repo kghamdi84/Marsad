@@ -22,6 +22,7 @@ import { Financials } from '../components/study/Financials';
 import { Insiders } from '../components/study/Insiders';
 import { NewsPanel } from '../components/study/NewsPanel';
 import { Business } from '../components/study/Business';
+import { Holders13F } from '../components/study/Holders13F';
 import { QuarterlyRiskFactors } from '../components/study/QuarterlyRiskFactors';
 import { RiskFactors } from '../components/study/RiskFactors';
 import { ShortData } from '../components/study/ShortData';
@@ -372,6 +373,7 @@ export function StudyCompany() {
       {q.data?.company && <Business cik={q.data.company.cik} />}
       {q.data?.company && <RiskFactors cik={q.data.company.cik} />}
       {q.data?.company && <QuarterlyRiskFactors cik={q.data.company.cik} />}
+      {q.data?.company && <Holders13F ticker={q.data.ticker} />}
       {q.data?.company && (
         <Earnings cik={q.data.company.cik} bars={q.data.bars} splits={q.data.splits} />
       )}
