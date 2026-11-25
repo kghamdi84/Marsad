@@ -605,8 +605,8 @@
         {
           "id": "6.2",
           "title": "IV rank and percentile",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-1 (ADR 0021): IV rank and IV percentile functions, hand-checked. Still to do: daily ATM IV history (needs the options plan)."
         },
         {
           "id": "6.3",
@@ -617,8 +617,8 @@
         {
           "id": "6.4",
           "title": "Expected move",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-1: expected move from the ATM straddle mid (hand-checked) and Black-Scholes-Merton prices, greeks and implied volatility against scipy within 1e-9. Still to do: straddle quotes (needs the options plan)."
         },
         {
           "id": "6.5",
@@ -647,8 +647,8 @@
         {
           "id": "6.9",
           "title": "Strategy helper with computed payoffs and liquidity guard",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-1: payoffs at expiry, maximum loss and gain, breakevens and the defined-risk flag (hand-checked spreads, iron condor, naked positions), and the liquidity guard (spread at most 10% of the mid, open interest at least 100). Still to do: the strategy helper page with live chains (needs the options plan)."
         }
       ]
     },

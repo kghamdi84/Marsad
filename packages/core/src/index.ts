@@ -43,3 +43,4 @@ export * from './replay.js';
 export * from './alerts.js';
 export * from './halt-alerts.js';
 export * from './portfolio.js';
+export * from './options.js';

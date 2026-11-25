@@ -459,6 +459,22 @@ const out = {
       'ticker,shares,cost_basis,opened_on,stop,targets,trend_break\nRKLB,125,24.15,2026-10-01,23.70,26.40;28,sma50',
     ),
   },
+  // Options math (ADR 0021).
+  options: (() => {
+    const x = { s: 100, k: 105, t: 0.25, r: 0.04, q: 0.01, sigma: 0.3, type: 'call' };
+    const p = core.bsPrice(x);
+    return {
+      price: p,
+      greeks: core.bsGreeks(x),
+      iv: core.impliedVol(p, { s: 100, k: 105, t: 0.25, r: 0.04, q: 0.01, type: 'call' }),
+      condor: core.payoffSummary([
+        { type: 'put', strike: 90, qty: 1, price: 0.5 },
+        { type: 'put', strike: 95, qty: -1, price: 1.25 },
+        { type: 'call', strike: 105, qty: -1, price: 1.25 },
+        { type: 'call', strike: 110, qty: 1, price: 0.5 },
+      ]),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
