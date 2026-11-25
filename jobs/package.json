@@ -11,7 +11,8 @@
     "sec": "tsx src/sec-main.ts",
     "halts": "tsx src/halts-main.ts",
     "health": "tsx src/health-main.ts",
-    "regime": "tsx src/regime-main.ts"
+    "regime": "tsx src/regime-main.ts",
+    "sentiment": "tsx src/sentiment-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

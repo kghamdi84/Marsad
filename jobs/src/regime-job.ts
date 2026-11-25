@@ -32,6 +32,9 @@ export const REGIME_SERIES = [
   'SAHMREALTIME',
 ] as const;
 
+/** The event-study condition the capitulation watch shows for history (ADR 0011). */
+export const CAPITULATION_PROXY = 'vix-30-recession-not-high';
+
 /** A newest S&P 500 close older than this many calendar days fails the run: silence must not look like calm. */
 export const MAX_SP500_AGE_DAYS = 5;
 
@@ -121,6 +124,17 @@ export async function runRegimeJob(deps: RegimeJobDeps): Promise<JobRunRecord> {
         sp500.map((o) => (vixBy.get(o.date) ?? 0) >= 30),
       );
       stats.push(...statRows('vix-30', vix30.byHorizon, vix30.episodes, from, to));
+      // The capitulation watch's longer-history proxy (ADR 0011): VIX at or above 30 while the recession filter
+      // is known and not high. An unavailable filter does not count.
+      const recBy = new Map(rows.map((r) => [r.date, r.recessionLevel]));
+      const proxy = eventStudy(
+        sp500,
+        sp500.map((o) => {
+          const level = recBy.get(o.date);
+          return (vixBy.get(o.date) ?? 0) >= 30 && (level === 'low' || level === 'elevated');
+        }),
+      );
+      stats.push(...statRows(CAPITULATION_PROXY, proxy.byHorizon, proxy.episodes, from, to));
       stats.push(...statRows('all-days', baselineStudy(sp500), [], from, to));
       await store.replaceEventStats(REGIME_RULE_VERSION, stats);
 

@@ -2,7 +2,10 @@
 import type {
   AnnualSection,
   Bar,
+  CapitulationDay,
   CompanyRef,
+  FearGreedDay,
+  StagedPlan,
   DividendRow,
   FinancialFact,
   NewsArticle,
@@ -21,10 +24,12 @@ import type {
 import { decodeList, decodeSnapshot, encodeList, encodeSnapshot } from './snapshot-codec.js';
 import type {
   BreadthRow,
+  DailyClose,
   EventStatRow,
   InsiderCandidate,
   InsiderResult,
   RegimeRow,
+  SentimentBreadthRow,
   SourceStatusUpdate,
   Store,
   UniverseRow,
@@ -51,6 +56,9 @@ export interface FakeLog {
   breadth: BreadthRow[][];
   snapshotsSaved: string[];
   eventStats: { ruleVersion: string; rows: EventStatRow[] }[];
+  fearGreed: FearGreedDay[][];
+  capitulation: CapitulationDay[][];
+  plans: StagedPlan[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -64,6 +72,9 @@ export interface FakeSeed {
   health?: Record<string, 'stale' | 'recovered'>;
   instruments?: { cik: string; ticker: string }[];
   insiderCandidates?: InsiderCandidate[];
+  breadthInputs?: SentimentBreadthRow[];
+  dailyCloses?: Record<string, DailyClose[]>;
+  recessionLevels?: { date: string; level: string }[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -78,7 +89,10 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'holidays' in x ||
       'health' in x ||
       'instruments' in x ||
-      'insiderCandidates' in x);
+      'insiderCandidates' in x ||
+      'breadthInputs' in x ||
+      'dailyCloses' in x ||
+      'recessionLevels' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -104,11 +118,31 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     breadth: [],
     snapshotsSaved: [],
     eventStats: [],
+    fearGreed: [],
+    capitulation: [],
+    plans: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    getBreadthInputs: (from) =>
+      Promise.resolve((s.breadthInputs ?? []).filter((r) => r.date >= from)),
+    getDailyCloses: (ticker) => Promise.resolve(s.dailyCloses?.[ticker] ?? []),
+    getRecessionLevels: (from) =>
+      Promise.resolve((s.recessionLevels ?? []).filter((r) => r.date >= from)),
+    upsertFearGreedDays: (rows) => {
+      log.fearGreed.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
+    upsertCapitulationDays: (rows) => {
+      log.capitulation.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
+    upsertCapitulationPlans: (rows) => {
+      log.plans.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
     upsertGprDays: (days) => {
       log.gpr.push([...days]);
       return Promise.resolve(days.length);

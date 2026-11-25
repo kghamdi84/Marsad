@@ -360,8 +360,8 @@
         {
           "id": "3.5",
           "title": "Fear and Greed composite with visible components",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "fear-greed-1 (ADR 0011): seven components after CNN's method (momentum, stock price strength, breadth, put/call, junk bond demand, volatility, safe-haven demand), each the mid-rank percentile of its own last 504 values (at least 252), averaged when at least 4 are available, with CNN's bands. Put/call has no source on the current plans (shown as such). Every day stores each component's raw value, score and window (fear_greed_daily). Matches an independent Python implementation on the real FRED downloads plus a seeded synthetic market for every one of 3,239 days (222 with a composite) to 1e-8; every rule mutation-checked; Node and Deno identical. Regime page panel shows the value, the label, 'n of 7', each component with its value, score, window and source. Still to do: the first live run after merge, and a check of the live reading against CNN's published value (optional cross-check in the brief)."
         },
         {
           "id": "3.6",
@@ -390,8 +390,8 @@
         {
           "id": "3.10",
           "title": "Capitulation watch",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "capitulation-1 (ADR 0011): VIX at or above 30, at most 15% of the Marsad universe above its 50-day average (at least 500 members), composite at or below 15, recession filter not high; on, off, or unavailable (never off for lack of data). Staged-entry plan in thirds (trigger close, retest of the selloff low, close above the 50-day average), paused if the recession filter turns high, review flag at 10% below the trigger, 126-session expiry, with exit conditions and the bear case; capitulation_daily and capitulation_plans tables. Longer-history proxy event study (VIX at or above 30 with the filter not high): 9 episodes at 63 sessions since 2016, shown as insufficient history. Hand-checked plan scenarios, mutation-checked. Still to do: the regime alert when it turns on (needs the delivery channel, 3.13) and the quality-at-discount screen (later phase)."
         },
         {
           "id": "3.11",

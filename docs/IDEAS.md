@@ -22,3 +22,6 @@ Captured during work so they are not built early.
 - Phase 2: show a transaction's own timeliness flag (the filer marks a trade "L" for late) and the nature of ownership on trades (a sale through a family trust is indirect); both are in the documents and not yet stored.
 - Phase 3/4: the regime-1 label changes 316 times over 2,512 sessions (about 32 times a year), mostly around VIX 30 and the VIX/VIX3M crossing. A confirmation rule (for example two closes in a row) would steady it; any such change is a new rule version and counts as a trial in Phase 4.
 - Phase 3: a longer event-study history (Massive Stocks Advanced for SPY since the 2000s, or the Nasdaq Composite as a labelled proxy) once Khaled decides; ADR 0009 lists the options.
+
+- Put/call ratio for the Fear and Greed composite (7 of 7) once an options plan is approved (Phase 5 builds put/call ratios anyway).
+- Cross-check Marsad's composite against CNN's published Fear and Greed reading, if its terms allow (the brief lists it as optional).

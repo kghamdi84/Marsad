@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, breadth batch B).
+Last updated 2026-11-25 (Phase 3, batch C: Fear and Greed composite and capitulation watch).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch C: Fear and Greed composite and capitulation watch (2026-11-25)
+
+- **ADR 0011** defines `fear-greed-1` (seven components after CNN's method, percentile over 504 sessions, at least 4 of 7) and `capitulation-1` (VIX at least 30, at most 15% above the 50-day average, composite at most 15, recession filter not high; staged plan in thirds with pause, review, expiry, exit conditions and the bear case).
+- **Data**: put/call has no source on the current plans, so the reading is at most 6 of 7 (5 of 7 until stock price strength has a year of its own history, around December 2026). IEF is added to the bars job (one call a day) for the safe-haven component.
+- **Verified**: the composite matches an independent Python implementation on the real FRED downloads plus a seeded synthetic market for all 3,239 days to 1e-8; 17 rule mutations all caught (three needed new tests, added); hand-checked staged-plan scenarios (my first hand arithmetic was wrong in three places, the code was right); the capitulation proxy's 10 episodes checked against an independent scan (the 13 VIX-at-30 episodes minus the three in the 2020 to 2021 Sahm-rule period); RLS 22 passed; Node and Deno identical.
+- **Jobs**: `sentiment-daily` runs after the FRED workflow (23:30 UTC) and after the breadth workflow (10:40 UTC), reads only stored data, and fails loudly when the newest composite is more than 5 days old.
+- **Not yet**: the "Capitulation watch ON" alert needs the delivery channel (3.13); the quality-at-discount screen is a later phase.
 
 ### Sign-in fix (2026-11-25)
 

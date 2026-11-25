@@ -64,10 +64,37 @@ describe('runRegimeJob on the real FRED history', () => {
     // Reproducible from what is stored: the stored inputs give the stored label again.
     const again = classifyRegime(last?.inputs as unknown as RegimeInputs, false);
     expect(again.label).toBe(last?.label);
-    // 5 labels, VIX at or above 30, and all days, each at 21, 63 and 126 sessions.
+    // 5 labels, VIX at or above 30, the capitulation proxy, and all days, each at 21, 63 and 126 sessions.
     const stats = log.eventStats[0];
     expect(stats?.ruleVersion).toBe('regime-1');
-    expect(stats?.rows).toHaveLength(21);
+    expect(stats?.rows).toHaveLength(24);
+    // The proxy: every episode starts on a day with VIX at or above 30 and a stored recession level that is not
+    // high or unavailable; it is a subset of the VIX-at-30 days.
+    const proxy63 = stats?.rows.find(
+      (r) => r.condition === 'vix-30-recession-not-high' && r.horizon === 63,
+    );
+    const vixBy = new Map(fred.VIXCLS.map((o) => [o.date, o.value]));
+    const levelBy = new Map(days.map((d) => [d.date, d.recessionLevel]));
+    expect(proxy63?.episodes.length).toBeGreaterThan(0);
+    for (const e of proxy63?.episodes ?? []) {
+      expect(vixBy.get(e)).toBeGreaterThanOrEqual(30);
+      expect(['low', 'elevated']).toContain(levelBy.get(e));
+    }
+    // Checked against an independent scan of the fixtures: the 13 VIX-at-30 episodes minus 2020-06-11, 2020-10-26
+    // and 2021-01-27, when the real-time Sahm rule had the filter at high. 2026-11-20 has no 63 sessions after it.
+    expect(proxy63?.episodes).toEqual([
+      '2018-02-05',
+      '2018-12-21',
+      '2020-02-27',
+      '2021-12-01',
+      '2022-04-26',
+      '2022-09-26',
+      '2024-08-05',
+      '2025-04-03',
+      '2026-03-27',
+      '2026-11-20',
+    ]);
+    expect(proxy63).toMatchObject({ n: 9, sufficient: false });
     const stress63 = stats?.rows.find((r) => r.condition === 'stress' && r.horizon === 63);
     expect(stress63).toMatchObject({
       n: 16,

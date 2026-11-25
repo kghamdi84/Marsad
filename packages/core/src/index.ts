@@ -28,3 +28,5 @@ export * from './adapters/index.js';
 export * from './riskfactors.js';
 export * from './regime.js';
 export * from './breadth.js';
+export * from './feargreed.js';
+export * from './capitulation.js';

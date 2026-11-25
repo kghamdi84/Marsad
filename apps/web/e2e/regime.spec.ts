@@ -3,13 +3,20 @@ import {
   baselineStudy,
   breadthHistory,
   breadthSignals,
+  capitulationDay,
+  capitulationHistory,
   eventStudy,
+  fearGreedHistory,
+  stagedPlan,
   recessionFilter,
   regimeHistory,
+  type BreadthInput,
   type MacroSeries,
   type Obs,
+  type RecessionLevel,
 } from '@marsad/core';
 import synthetic from '../../../fixtures/breadth/synthetic-breadth.json' with { type: 'json' };
+import fgSynthetic from '../../../fixtures/feargreed/synthetic-feargreed.json' with { type: 'json' };
 import gprFixture from '../../../fixtures/gpr-daily-recent.json' with { type: 'json' };
 import hy from '../../../fixtures/fred/fredgraph-BAMLH0A0HYM2.json' with { type: 'json' };
 import ig from '../../../fixtures/fred/fredgraph-BAMLC0A0CM.json' with { type: 'json' };
@@ -103,6 +110,19 @@ function statRows() {
     spx.map((o) => (vixBy.get(o.date) ?? 0) >= 30),
   );
   push('vix-30', v30.byHorizon, v30.episodes);
+  // Every day's recession level, as the regime job computes it (regimeRows serves only the last year).
+  const levels = new Map(
+    spx.map((o) => [o.date, recessionFilter(fred as MacroSeries, o.date).level]),
+  );
+  const proxy = eventStudy(
+    spx,
+    spx.map(
+      (o) =>
+        (vixBy.get(o.date) ?? 0) >= 30 &&
+        ['low', 'elevated'].includes(levels.get(o.date) ?? 'unavailable'),
+    ),
+  );
+  push('vix-30-recession-not-high', proxy.byHorizon, proxy.episodes);
   push('all-days', baselineStudy(spx), []);
   return out;
 }
@@ -140,6 +160,38 @@ function breadthRows() {
   }));
 }
 
+// The composite from the real FRED downloads plus the seeded synthetic breadth, SPY and IEF (the same inputs as
+// the core known-answer test), computed by the job's own core function.
+const pairs = (p: [string, number][]): Obs[] => p.map(([date, value]) => ({ date, value }));
+function fearGreedDays() {
+  return fearGreedHistory({
+    sp500: fred['SP500'] ?? [],
+    vix: fred['VIXCLS'] ?? [],
+    highYield: fred['BAMLH0A0HYM2'] ?? [],
+    investmentGrade: fred['BAMLC0A0CM'] ?? [],
+    breadth: fgSynthetic.breadth as BreadthInput[],
+    spy: pairs(fgSynthetic.spy as [string, number][]),
+    ief: pairs(fgSynthetic.ief as [string, number][]),
+  });
+}
+function fearGreedRows() {
+  return fearGreedDays().map((d) => ({ ...d }));
+}
+function capitulationRows() {
+  const days = fearGreedDays();
+  const levels = new Map(
+    regimeRows().map((r) => [r.date as string, r.recession_level as RecessionLevel]),
+  );
+  const b = fgSynthetic.breadth as (BreadthInput & { above50: number; n50: number })[];
+  return capitulationHistory(
+    days.map((d) => d.date),
+    fred['VIXCLS'] ?? [],
+    new Map(b.map((x) => [x.date, { above50: x.above50, n50: x.n50 }])),
+    new Map(days.map((d) => [d.date, d.composite])),
+    levels,
+  );
+}
+
 async function mock(page: Page) {
   await seedSession(page, 'aal2');
   await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
@@ -149,6 +201,14 @@ async function mock(page: Page) {
   await page.route('**/rest/v1/regime_daily**', (r) => json(r, [...regimeRows()].reverse()));
   await page.route('**/rest/v1/regime_event_stats**', (r) => json(r, statRows()));
   await page.route('**/rest/v1/breadth_daily**', (r) => json(r, [...breadthRows()].reverse()));
+  await page.route('**/rest/v1/fear_greed_daily**', (r) =>
+    json(r, [...fearGreedRows()].reverse().slice(0, 30)),
+  );
+  await page.route('**/rest/v1/capitulation_daily**', (r) => {
+    const onOnly = new URL(r.request().url()).searchParams.get('state') === 'eq.on';
+    const rows = capitulationRows().filter((d) => !onOnly || d.state === 'on');
+    return json(r, rows.reverse().slice(0, 1));
+  });
   await page.route('**/rest/v1/fred_observations**', (r) => {
     const id = new URL(r.request().url()).searchParams.get('series_id')?.replace(/^eq\./, '') ?? '';
     const rows = (fred[id] ?? []).slice(-260).reverse();
@@ -201,7 +261,7 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(study.getByRole('row', { name: /All days/ })).toContainText('n 119');
   await expect(study.getByText(/Data 2016-11-25 to 2026-11-23/)).toBeVisible();
   await expect(study.getByRole('columnheader', { name: '6 months (126 sessions)' })).toBeVisible();
-  await expect(study.getByRole('row', { name: /VIX at or above 30/ })).toContainText(
+  await expect(study.getByRole('row', { name: /^VIX at or above 30 / })).toContainText(
     'Insufficient history',
   );
 
@@ -238,8 +298,76 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
     'of 20 days only',
   );
   await expect(unc.getByText(/Caldara and Iacoviello/)).toBeVisible();
+  // The composite on 2026-11-23: 41.88 from the independent implementation, so 42, fear, with 5 of 7 components.
+  const fg = page.getByRole('region', { name: 'Fear and Greed composite' });
+  await expect(fg.getByTestId('fear-greed-value')).toHaveText('42, Fear');
+  await expect(fg.getByText(/5 of 7 components available/)).toBeVisible();
+  await expect(fg.getByText(/As of the close on 2026-11-23\. Rules fear-greed-1\./)).toBeVisible();
+  await expect(fg.getByRole('row', { name: /Put\/call ratio/ })).toContainText(
+    'Not available: needs an options data plan.',
+  );
+  await expect(fg.getByRole('row', { name: /Stock price strength/ })).toContainText(
+    'fewer than 252 sessions',
+  );
+  await expect(fg.getByRole('row', { name: /^Volatility/ })).toContainText('FRED VIXCLS');
+  await expect(fg.getByText(/Bands: 0 to 24 extreme fear/)).toBeVisible();
+
+  // The capitulation watch on 2026-11-23: VIX 26.62 is under 30, so it is off, with every condition shown.
+  const cap = page.getByRole('region', { name: 'Capitulation watch' });
+  await expect(cap.getByTestId('capitulation-state')).toHaveText('Off');
+  await expect(cap.getByRole('row', { name: /VIX close/ })).toContainText('26.62');
+  await expect(cap.getByRole('row', { name: /VIX close/ })).toContainText('No');
+  await expect(cap.getByText('Not on in the stored history.', { exact: false })).toBeVisible();
+  await expect(cap.getByText(/Bear case: in 2008/)).toBeVisible();
+  await expect(
+    cap.getByText(/3 months \(63 sessions\): Insufficient history: 9 episodes/),
+  ).toBeVisible();
+  await expect(cap.getByText(/quality-at-discount screen/)).toBeVisible();
+  await expect(
+    study.getByRole('row', { name: /VIX at or above 30, recession filter not high/ }),
+  ).toContainText('Insufficient history: 9 episodes');
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/regime.png`, fullPage: true });
+});
+
+test('regime: capitulation on, with its staged plan, exits and bear case', async ({ page }) => {
+  await mock(page);
+  // The brief's example reading, built by the core function, and a plan on the synthetic SPY bars (not market data)
+  // whose trigger is 60 sessions before the last bar.
+  const day = capitulationDay({
+    date: '2026-11-23',
+    vix: 35.9,
+    above50: 90,
+    n50: 1000,
+    composite: 6,
+    recession: 'low',
+  });
+  const spy = (fgSynthetic.spy as [string, number][]).map(([date, close]) => ({
+    date,
+    low: close,
+    close,
+  }));
+  const trigger = spy.at(-61)?.date as string;
+  const plan = stagedPlan(trigger, spy, new Map());
+  const json = (route: Route, body: unknown) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  await page.route('**/rest/v1/capitulation_daily**', (r) => json(r, [day]));
+  await page.route('**/rest/v1/capitulation_plans**', (r) => json(r, [{ plan }]));
+  await page.goto('/regime');
+  const cap = page.getByRole('region', { name: 'Capitulation watch' });
+  await expect(cap.getByTestId('capitulation-state')).toHaveText('On');
+  await expect(cap.getByRole('row', { name: /Marsad universe above/ })).toContainText('9.0%');
+  await expect(cap.getByRole('row', { name: /Fear and Greed composite/ })).toContainText('Yes');
+  await expect(cap.getByText(`Last on: 2026-11-23.`)).toBeVisible();
+  await expect(
+    cap.getByRole('heading', {
+      name: `Staged-entry plan for index ETFs (episode from ${trigger})`,
+    }),
+  ).toBeVisible();
+  await expect(cap.getByText(/One third at the trigger close/)).toContainText(`Met on ${trigger}.`);
+  await expect(cap.getByText(/place any order yourself in Sahm/)).toBeVisible();
+  await expect(cap.getByText(/^Exit conditions:/)).toBeVisible();
+  await expect(cap.getByText(/^Bear case: in 2008/)).toBeVisible();
 });
 
 test('regime: before the job has run, the page says so', async ({ page }) => {
