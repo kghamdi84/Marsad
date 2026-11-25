@@ -157,6 +157,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Chart markers and versioned prompts (2026-11-25)
+
+- Company chart: insider open-market purchases (placed on the session the Form 4 became public, never the trade date), trading halts and Marsad's alerts now appear as markers (2.1 done).
+- Prompt registry (2.11, ADR 0007): four versioned prompts with evaluation cases graded offline by the same verifier as production; a wrong figure, an uncited sentence, a reversed direction and an instruction planted in a document are all rejected. Ready for the day an Anthropic key exists.
+- Phase 3 items proven by today's live runs are closed (3.1, 3.2, 3.5, 3.11, 3.12); 3.3 waits for an outside spot check of past episodes.
+
 ### Phase 7 batch D: trade journal and adherence (2026-11-25)
 
 - **ADR 0024** (`journal-1`): trades placed in Sahm, linked to alerts, with tags, notes and private screenshots; the Jimmy D adherence score by principle with every broken item named; statistics by setup and whether high adherence paid (with 30-trade flags).

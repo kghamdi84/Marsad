@@ -733,3 +733,21 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
   await expect(aid).toContainText('Sahm’s own Shariah label takes precedence.');
   await expect(aid).toContainText('Business activity is not screened');
 });
+
+test('chart markers: a halt on its session and an after-close alert on the next session', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/halts**', (r) =>
+    json(r, [
+      { halted_at: '2026-11-17T19:32:05+00:00', reason_code: 'T1', reason_meaning: 'News pending' },
+    ]),
+  );
+  await page.route('**/rest/v1/alerts**', (r) =>
+    json(r, [{ created_at: '2026-11-18T22:40:00+00:00', headline: 'NVDA test alert' }]),
+  );
+  await page.goto('/study/NVDA');
+  // 19:32 UTC is 14:32 ET, during the session; 22:40 UTC is 17:40 ET, after the close.
+  await expect(page.getByText('2026-11-17: Halt: T1 (News pending)')).toBeVisible();
+  await expect(page.getByText('2026-11-19: Alert: NVDA test alert')).toBeVisible();
+});

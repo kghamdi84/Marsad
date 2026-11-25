@@ -256,8 +256,8 @@
         {
           "id": "2.1",
           "title": "Company page chart with indicators and event markers (Lightweight Charts, attribution kept)",
-          "status": "in_progress",
-          "evidence": "Live: massive-bars run 45454512012 ok (14 tickers, 7,000 rows, 500 bars each, 146 s; latest bar 2026-11-23 because the 24th was mid-session and partial days are never stored). Study page /study/$ticker: candlesticks with SMA 50, SMA 200, EMA 20, RSI 14 and volume, summary with provenance and a STALE label when the latest bar is older than the last finished session, 8-K and split markers placed point-in-time. Lightweight Charts attribution kept; a hash-pinned CSP entry was needed for its logo style (ADR 0002), covered by an e2e test under the real CSP. Dividend markers added (ex-dividend date, below the bar). Still to do: markers for earnings, insider buys, halts and alerts received. Update 2026-11-24: earnings releases (8-Ks with Item 2.02, rated high) also mark the chart for older reports, because results 8-Ks are asked for on their own instead of from the page's newest-200 filings list (PR #19). Markers now: 8-Ks of high or medium materiality (earnings included), splits, dividends. Still missing from the brief's list: insider buys, halts and alerts received (alerts need Phase 5). Insider buys and halts are offline-buildable and not started."
+          "status": "done",
+          "evidence": "Live: massive-bars run 45454512012 ok (14 tickers, 7,000 rows, 500 bars each, 146 s; latest bar 2026-11-23 because the 24th was mid-session and partial days are never stored). Study page /study/$ticker: candlesticks with SMA 50, SMA 200, EMA 20, RSI 14 and volume, summary with provenance and a STALE label when the latest bar is older than the last finished session, 8-K and split markers placed point-in-time. Lightweight Charts attribution kept; a hash-pinned CSP entry was needed for its logo style (ADR 0002), covered by an e2e test under the real CSP. Dividend markers added (ex-dividend date, below the bar). Still to do: markers for earnings, insider buys, halts and alerts received. Update 2026-11-24: earnings releases (8-Ks with Item 2.02, rated high) also mark the chart for older reports, because results 8-Ks are asked for on their own instead of from the page's newest-200 filings list (PR #19). Markers now: 8-Ks of high or medium materiality (earnings included), splits, dividends. Still missing from the brief's list: insider buys, halts and alerts received (alerts need Phase 5). Insider buys and halts are offline-buildable and not started. Update 2026-11-25: insider open-market purchases (on the session the Form 4 became public, grouped by session), trading halts and Marsad's alerts now mark the chart too (core buildEventMarkers; unit tests for point-in-time placement; browser test)."
         },
         {
           "id": "2.2",
@@ -316,8 +316,8 @@
         {
           "id": "2.11",
           "title": "Versioned prompts with evaluation fixtures",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Prompt registry in packages/core/src/prompts (ADR 0007): filing-summary, thesis-draft, weekly-review and topic-tag at version 1, each with exact model strings, static cached system prompts and evaluation cases graded offline by the production verifier plus prompt checks (sections, required bear case, no advice, allowed labels); a planted document instruction and a planted wrong figure are rejected. buildMessages puts wrapped documents first, facts, then the untrusted-text notice."
         }
       ]
     },
@@ -336,20 +336,20 @@
         {
           "id": "3.1",
           "title": "Watch dashboard (market strip, watchlist table, heatmap, movers, gap scanner, news, calendar)",
-          "status": "in_progress",
-          "evidence": "watch-1 (ADR 0014), end of day: market strip (SPY, QQQ, IWM, DIA, GLD bars; VIX, 10-year, WTI, dollar from FRED, each dated); watchlist table (saved list or the starting tickers: close, 1 day, 1 week, 1 month, from 52-week high, volume against 20-day average, link to Study); sector heatmap and Marsad-universe movers from the breadth job (market_movers_daily, bad prints left out); gap scanner (last session's opening gaps; real-time pre-market needs a paid plan, stated); watchlist news clusters (https links only); economic calendar and earnings estimates (3.12). Changes carry sign and arrow, not colour alone. Hand-checked tickerSummary and marketMovers tests; browser test with hand-worked numbers. Still to do: the first live breadth run for movers and sectors; real-time data when a plan is approved."
+          "status": "done",
+          "evidence": "watch-1 (ADR 0014), end of day: market strip (SPY, QQQ, IWM, DIA, GLD bars; VIX, 10-year, WTI, dollar from FRED, each dated); watchlist table (saved list or the starting tickers: close, 1 day, 1 week, 1 month, from 52-week high, volume against 20-day average, link to Study); sector heatmap and Marsad-universe movers from the breadth job (market_movers_daily, bad prints left out); gap scanner (last session's opening gaps; real-time pre-market needs a paid plan, stated); watchlist news clusters (https links only); economic calendar and earnings estimates (3.12). Changes carry sign and arrow, not colour alone. Hand-checked tickerSummary and marketMovers tests; browser test with hand-worked numbers. Still to do: the first live breadth run for movers and sectors; real-time data when a plan is approved. Live 2026-11-25: breadth run 45588953591 stored movers and sector changes for 2026-11-24; the page reads them (end-of-day scope; intraday data is Phase 5)."
         },
         {
           "id": "3.2",
           "title": "Universe construction (top 1,000 by dollar volume, monthly, point-in-time)",
-          "status": "in_progress",
-          "evidence": "ADR 0010, universe-1: top 1,000 US common stocks and ETFs by 20-session dollar volume, rebuilt on the first session of each month from the sessions before it (never the rebuild day), eligibility from point-in-time ticker lists by type (quarterly), stored per month in universe_members. Data: each session's grouped daily, unadjusted, stored compressed in market_snapshots; splits applied from the stored all-market split history. Core rankUniverse and breadthHistory match an independent Python implementation on a seeded synthetic market (all universes, all 308 days); mutation-checked; adapters tested on real responses recorded with the project key. Still to do: the first live run (the 2-year backfill, about 2 hours) after merge."
+          "status": "done",
+          "evidence": "ADR 0010, universe-1: top 1,000 US common stocks and ETFs by 20-session dollar volume, rebuilt on the first session of each month from the sessions before it (never the rebuild day), eligibility from point-in-time ticker lists by type (quarterly), stored per month in universe_members. Data: each session's grouped daily, unadjusted, stored compressed in market_snapshots; splits applied from the stored all-market split history. Core rankUniverse and breadthHistory match an independent Python implementation on a seeded synthetic market (all universes, all 308 days); mutation-checked; adapters tested on real responses recorded with the project key. Live 2026-11-25: run 45588953591 built 23 monthly point-in-time universes over 501 sessions (2 h 4 min)."
         },
         {
           "id": "3.3",
           "title": "Breadth",
           "status": "in_progress",
-          "evidence": "breadth-1 (ADR 0010): above the 50- and 200-day averages, 252-session highs and lows, advancers and decliners with volume, bad-print guard after split adjustment, 10-day advancing share, Zweig breadth thrust, McClellan-style volume oscillator and summation; breadth_daily table; Regime page panel labelled 'Marsad universe breadth', each measure with how many members it rests on, the month-ago value, source and as-of date. Breadth job (massive-breadth.yml, weekday mornings) resumable, one call a day after the backfill; job tests cover resume, the cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor. Still to do: the live backfill and a check of the real numbers against known market episodes."
+          "evidence": "breadth-1 (ADR 0010): above the 50- and 200-day averages, 252-session highs and lows, advancers and decliners with volume, bad-print guard after split adjustment, 10-day advancing share, Zweig breadth thrust, McClellan-style volume oscillator and summation; breadth_daily table; Regime page panel labelled 'Marsad universe breadth', each measure with how many members it rests on, the month-ago value, source and as-of date. Breadth job (massive-breadth.yml, weekday mornings) resumable, one call a day after the backfill; job tests cover resume, the cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor. Still to do: the live backfill and a check of the real numbers against known market episodes. Live 2026-11-25: 476 breadth days stored; 2026-11-24: 419 of 976 members above the 200-day average, 442 of 994 above the 50-day. Still to do: a spot check of past episodes against an outside source."
         },
         {
           "id": "3.4",
@@ -360,8 +360,8 @@
         {
           "id": "3.5",
           "title": "Fear and Greed composite with visible components",
-          "status": "in_progress",
-          "evidence": "fear-greed-1 (ADR 0011): seven components after CNN's method (momentum, stock price strength, breadth, put/call, junk bond demand, volatility, safe-haven demand), each the mid-rank percentile of its own last 504 values (at least 252), averaged when at least 4 are available, with CNN's bands. Put/call has no source on the current plans (shown as such). Every day stores each component's raw value, score and window (fear_greed_daily). Matches an independent Python implementation on the real FRED downloads plus a seeded synthetic market for every one of 3,239 days (222 with a composite) to 1e-8; every rule mutation-checked; Node and Deno identical. Regime page panel shows the value, the label, 'n of 7', each component with its value, score, window and source. Still to do: the first live run after merge, and a check of the live reading against CNN's published value (optional cross-check in the brief)."
+          "status": "done",
+          "evidence": "fear-greed-1 (ADR 0011): seven components after CNN's method (momentum, stock price strength, breadth, put/call, junk bond demand, volatility, safe-haven demand), each the mid-rank percentile of its own last 504 values (at least 252), averaged when at least 4 are available, with CNN's bands. Put/call has no source on the current plans (shown as such). Every day stores each component's raw value, score and window (fear_greed_daily). Matches an independent Python implementation on the real FRED downloads plus a seeded synthetic market for every one of 3,239 days (222 with a composite) to 1e-8; every rule mutation-checked; Node and Deno identical. Regime page panel shows the value, the label, 'n of 7', each component with its value, score, window and source. Still to do: the first live run after merge, and a check of the live reading against CNN's published value (optional cross-check in the brief). Live 2026-11-25: FRED run 45611030574 computed 3,240 days; 2026-11-23 composite 4 (extreme fear) from 5 of 7 components, the bond component now fed by 501 IEF bars. The CNN cross-check is optional in the brief and not done."
         },
         {
           "id": "3.6",
@@ -396,14 +396,14 @@
         {
           "id": "3.11",
           "title": "Geopolitical panel",
-          "status": "in_progress",
-          "evidence": "topics-1 (ADR 0012): documented keyword rules sort market-wide Massive news (about 500 articles a day, investment press) into conflict, sanctions, tariffs, elections, central banks and energy; daily counts and 3 sample headlines per topic in news_topic_days (articles not stored); last 7 days against the weekly average of the 4 weeks before, share of articles and ratio. Beside them: WTI oil, the broad dollar, the 10-year yield (FRED) and GLD, ITA, IYT (Massive bars, added to the bars job). Rules checked against 23 real articles hand-labelled; job tests cover paging (key stripped from next_url), resume and failure. Still to do: the first live run, and AI topic tagging as topics-2 once the API key exists."
+          "status": "done",
+          "evidence": "topics-1 (ADR 0012): documented keyword rules sort market-wide Massive news (about 500 articles a day, investment press) into conflict, sanctions, tariffs, elections, central banks and energy; daily counts and 3 sample headlines per topic in news_topic_days (articles not stored); last 7 days against the weekly average of the 4 weeks before, share of articles and ratio. Beside them: WTI oil, the broad dollar, the 10-year yield (FRED) and GLD, ITA, IYT (Massive bars, added to the bars job). Rules checked against 23 real articles hand-labelled; job tests cover paging (key stripped from next_url), resume and failure. Still to do: the first live run, and AI topic tagging as topics-2 once the API key exists. Live 2026-11-25: topics run 45591767980 stored 35 days from 554 articles. AI topic tagging (topics-2) waits for the Anthropic key (IDEAS)."
         },
         {
           "id": "3.12",
           "title": "Economic and earnings calendars",
-          "status": "in_progress",
-          "evidence": "calendar-1 (ADR 0013): FRED release dates (paged; ten tracked releases matched by id and name, verified against FRED's real release list) with usual ET times and impact, plus FOMC statements from the Federal Reserve calendar (2026 and 2027); watchlist earnings estimated from each company's own 8-K item 2.02 filings (same quarter last year plus 52 weeks), always labelled estimated, with overdue marking. Append-only snapshots; Watch page shows the next 14 days with ET and local time and a countdown for today, and the earnings estimates. Real FRED fixtures recorded through the Record fixtures workflow; calendar matched by hand on 2026-11-25 to 2026-12-31 (19 events); browser test checks 08:30 ET as 16:30 Riyadh and 14:00 EST as 22:00. Massive earnings calendars are not on the plan. Still to do: the first live run (tonight's FRED workflow)."
+          "status": "done",
+          "evidence": "calendar-1 (ADR 0013): FRED release dates (paged; ten tracked releases matched by id and name, verified against FRED's real release list) with usual ET times and impact, plus FOMC statements from the Federal Reserve calendar (2026 and 2027); watchlist earnings estimated from each company's own 8-K item 2.02 filings (same quarter last year plus 52 weeks), always labelled estimated, with overdue marking. Append-only snapshots; Watch page shows the next 14 days with ET and local time and a countdown for today, and the earnings estimates. Real FRED fixtures recorded through the Record fixtures workflow; calendar matched by hand on 2026-11-25 to 2026-12-31 (19 events); browser test checks 08:30 ET as 16:30 Riyadh and 14:00 EST as 22:00. Massive earnings calendars are not on the plan. Live 2026-11-25: FRED run 45611030574 stored 20 events in the next 60 days (next: GDP on 2026-11-25) and earnings estimates for all 10 watchlist companies."
         },
         {
           "id": "3.13",

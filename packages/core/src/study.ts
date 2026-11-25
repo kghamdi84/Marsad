@@ -131,7 +131,8 @@ export function snapToBar(
   return lastDate === null ? null : found;
 }
 
-export type MarkerKind = 'high-8k' | 'medium-8k' | 'split' | 'dividend';
+export type MarkerKind =
+  'high-8k' | 'medium-8k' | 'split' | 'dividend' | 'insider-buy' | 'halt' | 'alert';
 
 export interface ChartMarker {
   /** The bar date the marker sits on. */
@@ -174,18 +175,71 @@ export interface DividendEvent {
   currency: string;
 }
 
+/** An open-market purchase from a Form 4 (code P), placed on the day the filing became public. */
+export interface InsiderBuyEvent {
+  filedAt: string;
+  owner: string;
+  valueUsd: number | null;
+  /** True when the filing says the trade was under a 10b5-1 plan. */
+  plan10b5: boolean | null;
+}
+
+export interface HaltEvent {
+  haltedAt: string;
+  reason: string;
+}
+
+export interface AlertEvent {
+  createdAt: string;
+  headline: string;
+}
+
 /**
- * Markers for the chart: 8-Ks of high or medium materiality, splits and dividends (on the ex-dividend date,
- * the first day the stock trades without the dividend). Form 4 and low-materiality 8-Ks stay in the filings
- * list, because hundreds of markers would hide the price.
+ * Markers for the chart: 8-Ks of high or medium materiality, splits, dividends (on the ex-dividend date, the
+ * first day the stock trades without the dividend), insider open-market purchases (on the session the Form 4
+ * became public, never the earlier trade date), trading halts and Marsad's own alerts. Other Form 4s and
+ * low-materiality 8-Ks stay in the filings list, because hundreds of markers would hide the price.
  */
 export function buildEventMarkers(
   filings: readonly FilingEvent[],
   splits: readonly SplitEvent[],
   barDates: readonly string[],
   dividends: readonly DividendEvent[] = [],
+  more: {
+    insiderBuys?: readonly InsiderBuyEvent[];
+    halts?: readonly HaltEvent[];
+    alerts?: readonly AlertEvent[];
+  } = {},
 ): ChartMarker[] {
   const out: ChartMarker[] = [];
+  // Insider purchases: one marker a session, with the number of owners and the total value.
+  const buys = new Map<string, InsiderBuyEvent[]>();
+  for (const b of more.insiderBuys ?? []) {
+    const date = snapToBar(barDates, b.filedAt, b.filedAt.slice(0, 10));
+    if (date === null) continue;
+    buys.set(date, [...(buys.get(date) ?? []), b]);
+  }
+  for (const [date, list] of buys) {
+    const owners = new Set(list.map((b) => b.owner)).size;
+    const total = Math.round(list.reduce((a, b) => a + (b.valueUsd ?? 0), 0));
+    const planned = list.every((b) => b.plan10b5 === true) ? ' (10b5-1 plan)' : '';
+    out.push({
+      date,
+      kind: 'insider-buy',
+      label: `Insider buy: ${owners} owner${owners === 1 ? '' : 's'}, $${total.toLocaleString('en-US')}${planned}`,
+      materiality: null,
+    });
+  }
+  for (const h of more.halts ?? []) {
+    const date = snapToBar(barDates, h.haltedAt, h.haltedAt.slice(0, 10));
+    if (date !== null)
+      out.push({ date, kind: 'halt', label: `Halt: ${h.reason}`, materiality: null });
+  }
+  for (const a of more.alerts ?? []) {
+    const date = snapToBar(barDates, a.createdAt, a.createdAt.slice(0, 10));
+    if (date !== null)
+      out.push({ date, kind: 'alert', label: `Alert: ${a.headline}`, materiality: null });
+  }
   for (const f of filings) {
     if (f.form !== '8-K' && f.form !== '8-K/A') continue;
     const d = describeEightK(f.items);

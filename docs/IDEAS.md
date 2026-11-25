@@ -32,3 +32,4 @@ Captured during work so they are not built early.
 - Rotation alerts (Phase 7): push the rotation suggestion when the thesis card gives thesis status a history.
 
 - Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.
+- AI topic tagging for the geopolitical panel (topics-2) once the Anthropic key and caps exist; the keyword rules stay as the fallback.

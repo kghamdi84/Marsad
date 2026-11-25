@@ -24,7 +24,12 @@ import { NewsPanel } from '../components/study/NewsPanel';
 import { RiskFactors } from '../components/study/RiskFactors';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
-import { loadDividends, loadEarningsFilings } from '../lib/studyPanels';
+import {
+  loadChartEvents,
+  loadDividends,
+  loadEarningsFilings,
+  loadInsiders,
+} from '../lib/studyPanels';
 import { ThesisCard } from '../components/study/ThesisCard';
 import { t } from '../strings';
 
@@ -216,6 +221,18 @@ export function StudyCompany() {
     queryFn: () => loadEarningsFilings(cik as string),
     enabled: cik !== undefined,
   });
+  // Halts, Marsad's alerts and insider purchases mark the chart too; each loads on its own, and the insiders query
+  // shares its cache with the Insiders panel.
+  const events = useQuery({
+    queryKey: ['chart-events', ticker],
+    queryFn: () => loadChartEvents(ticker as string),
+    enabled: ticker !== null,
+  });
+  const insiders = useQuery({
+    queryKey: ['insiders', cik],
+    queryFn: () => loadInsiders(cik as string),
+    enabled: cik !== undefined,
+  });
   const markers = useMemo(
     () =>
       q.data
@@ -224,9 +241,30 @@ export function StudyCompany() {
             q.data.splits,
             q.data.bars.map((b) => b.date),
             dividends.data ?? [],
+            {
+              // Open-market purchases only (code P), original filings, placed when they became public.
+              insiderBuys: (insiders.data?.rows ?? []).flatMap((r) =>
+                r.code === 'P' &&
+                !r.isAmendment &&
+                r.table === 'non-derivative' &&
+                r.acquiredDisposed === 'A' &&
+                r.filedAt
+                  ? [
+                      {
+                        filedAt: r.filedAt,
+                        owner: r.ownerName,
+                        valueUsd: r.valueUsd,
+                        plan10b5: r.plan10b5,
+                      },
+                    ]
+                  : [],
+              ),
+              halts: events.data?.halts ?? [],
+              alerts: events.data?.alerts ?? [],
+            },
           )
         : [],
-    [q.data, dividends.data, results.data],
+    [q.data, dividends.data, results.data, insiders.data, events.data],
   );
 
   if (ticker === null)
