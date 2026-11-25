@@ -8,9 +8,11 @@ import {
   fetchGroupedDaily,
   fetchSplitsSince,
   fetchTickersOfType,
+  marketMovers,
   runJob,
   type HttpClient,
   type JobRunRecord,
+  type MarketMovers,
   type MassiveConfig,
   type TickerSeries,
 } from '@marsad/core';
@@ -190,6 +192,16 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
       );
       await store.upsertUniverse(UNIVERSE_VERSION, universe);
       const written = await store.upsertBreadthDays(rows);
+
+      // Movers and the sector heatmap for the last 5 sessions (ADR 0014), from the month's universe.
+      const movers: MarketMovers[] = [];
+      for (let i = Math.max(1, dates.length - 5); i < dates.length; i++) {
+        const d = dates[i] as string;
+        const u = [...h.universes].reverse().find((x) => x.date <= d);
+        if (!u) continue;
+        movers.push(marketMovers(dates, series, new Set(u.members.map((m) => m.ticker)), i));
+      }
+      await store.upsertMovers(movers);
 
       const last = rows.at(-1);
       if (failed.length > 0)

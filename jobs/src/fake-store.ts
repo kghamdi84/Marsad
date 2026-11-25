@@ -6,6 +6,7 @@ import type {
   CompanyRef,
   EconEvent,
   FearGreedDay,
+  MarketMovers,
   StagedPlan,
   TopicDay,
   DividendRow,
@@ -64,6 +65,7 @@ export interface FakeLog {
   plans: StagedPlan[][];
   topicDays: TopicDay[][];
   econCalendars: { from: string; to: string; events: EconEvent[] }[];
+  movers: MarketMovers[][];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -133,12 +135,17 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     plans: [],
     topicDays: [],
     econCalendars: [],
+    movers: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    upsertMovers: (rows) => {
+      log.movers.push([...rows]);
+      return Promise.resolve(rows.length);
+    },
     getResultsFilingDates: () => Promise.resolve([...(s.resultsFilings ?? [])]),
     saveEconCalendar: (_at, _version, from, to, events) => {
       log.econCalendars.push({ from, to, events: [...events] });

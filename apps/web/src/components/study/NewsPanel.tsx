@@ -22,14 +22,19 @@ export function NewsPanel({ ticker }: { ticker: string }) {
             const when = new Date(c.earliest);
             return (
               <li key={c.id} className="rounded-sm border border-line p-3">
-                <a
-                  className="font-medium underline underline-offset-4"
-                  href={first.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {first.title}
-                </a>
+                {/^https:\/\//.test(first.url) ? (
+                  <a
+                    className="font-medium underline underline-offset-4"
+                    href={first.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {first.title}
+                  </a>
+                ) : (
+                  // A vendor link that is not https (for example javascript:) is shown as text, never as a link.
+                  <span className="font-medium">{first.title}</span>
+                )}
                 <p className="text-sm text-muted">
                   {etDate(when)} {dualClock(when, DEFAULT_LOCAL_ZONE).label} | {first.publisher}
                   {c.outlets.length > 1

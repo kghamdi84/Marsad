@@ -55,7 +55,64 @@ export const t = {
     title: 'Watch',
     intro:
       'Today and the days ahead. Marsad watches and explains; you decide and place every order in Sahm.',
-    more: 'The market strip, watchlist, heatmap, movers, gap scanner and news join this page next.',
+    endOfDay:
+      'End-of-day data (free plans): every number is from the last completed session, with its date. Real-time quotes need a paid plan.',
+    strip: {
+      title: 'Market strip',
+      names: {
+        SPY: 'S&P 500 (SPY)',
+        QQQ: 'Nasdaq 100 (QQQ)',
+        IWM: 'Russell 2000 (IWM)',
+        DIA: 'Dow (DIA)',
+        GLD: 'Gold (GLD)',
+        VIXCLS: 'VIX',
+        DGS10: '10-year yield',
+        DCOILWTICO: 'WTI oil',
+        DTWEXBGS: 'Dollar (broad)',
+      } as Record<string, string>,
+      points: (v: string) => `${v} points`,
+      source:
+        'Sources: Massive daily bars (ETFs); FRED (VIX, 10-year yield, WTI oil, broad dollar).',
+    },
+    list: {
+      title: 'Watchlist',
+      defaultNote: 'Showing the starting tickers; no saved watchlist yet.',
+      colTicker: 'Ticker',
+      colClose: 'Close',
+      col1d: '1 day',
+      col5d: '1 week',
+      col1m: '1 month',
+      colHigh: 'From 52-week high',
+      colVolume: 'Volume against 20-day average',
+      colDate: 'As of',
+      times: (v: string) => `${v}x`,
+      source: 'Source: Massive daily bars, split-adjusted. Click a ticker to study it.',
+    },
+    sectors: {
+      title: 'Sector heatmap',
+      none: 'No sector data yet. It comes from the breadth job (after its first full run).',
+      asOf: (date: string) => `Day change of the Select Sector SPDRs on ${date}.`,
+      source: 'Source: Massive grouped daily (end of day), splits applied by Marsad.',
+    },
+    movers: {
+      title: 'Movers in the Marsad universe',
+      none: 'No movers yet. They come from the breadth job (after its first full run).',
+      asOf: (date: string, n: number) =>
+        `${date}, among ${n.toLocaleString('en-US')} members of the Marsad universe (the 1,000 most traded US stocks and ETFs). Moves over 50% are left out as likely bad prints.`,
+      gainers: 'Biggest gainers',
+      losers: 'Biggest losers',
+      dollarVolume: (v: string) => `USD ${v} traded`,
+    },
+    gaps: {
+      title: 'Gap scanner',
+      intro:
+        'Opening gaps at the last session (open against the previous close), for the watchlist and the strip ETFs, largest first. Pre-market gaps in real time need a paid plan.',
+      none: 'No gaps to show: no daily bars stored yet.',
+    },
+    news: {
+      title: 'Watchlist news',
+      none: 'No news stored for the watchlist yet.',
+    },
   },
   calendar: {
     title: 'Economic calendar',

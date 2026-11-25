@@ -124,6 +124,14 @@ describe('runBreadthJob', () => {
     const days = log.breadth[0] ?? [];
     expect(days.reduce((s, d) => s + d.suspect, 0)).toBe(0);
     expect(log.statuses[0]).toMatchObject({ source: 'massive_breadth', state: 'live' });
+    // Movers for the last 5 sessions, from November's members only; no sector ETF trades in this market.
+    const movers = log.movers[0] ?? [];
+    expect(movers.map((m) => m.date)).toEqual(sessions.slice(-5));
+    const nov = new Set(months.filter((m) => m.monthStart === '2026-11-02').map((m) => m.ticker));
+    for (const m of movers)
+      for (const x of [...m.gainers, ...m.losers]) expect(nov.has(x.ticker), x.ticker).toBe(true);
+    expect(movers.at(-1)?.n).toBe(5);
+    expect(movers.at(-1)?.sectors.every((x) => x.change === null)).toBe(true);
   });
 
   it('a second run fetches nothing it already has: only the recent splits again', async () => {
