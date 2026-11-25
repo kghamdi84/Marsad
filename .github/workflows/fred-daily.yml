@@ -46,3 +46,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Refresh the economic and earnings calendars
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs calendar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}

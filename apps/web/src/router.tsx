@@ -5,6 +5,7 @@ import { Regime } from './routes/Regime';
 import { Status } from './routes/Status';
 import { Study } from './routes/Study';
 import { StudyCompany } from './routes/StudyCompany';
+import { Watch } from './routes/Watch';
 import { t } from './strings';
 
 const root = createRootRoute({ component: Shell });
@@ -17,7 +18,7 @@ const page = (path: string, title: string, phase: number) =>
   });
 
 const routeTree = root.addChildren([
-  page('/', t.nav.watch, 3),
+  createRoute({ getParentRoute: () => root, path: '/', component: Watch }),
   createRoute({ getParentRoute: () => root, path: '/study', component: Study }),
   createRoute({ getParentRoute: () => root, path: '/study/$ticker', component: StudyCompany }),
   createRoute({ getParentRoute: () => root, path: '/regime', component: Regime }),

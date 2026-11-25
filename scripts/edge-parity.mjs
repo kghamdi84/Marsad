@@ -293,6 +293,21 @@ const out = {
     const day = core.topicDay('2026-11-24', articles);
     return { day, summary: core.topicSummary([day], '2026-11-24') };
   })(),
+  // Economic calendar on the real FRED release dates and an earnings estimate (ADR 0013).
+  calendar: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/fred/fred-release-dates-2026-11-25.json'), 'utf8'),
+    );
+    const dates = f.body.release_dates.map((d) => ({
+      releaseId: d.release_id,
+      releaseName: d.release_name,
+      date: d.date,
+    }));
+    return {
+      events: core.economicCalendar(dates, '2026-11-25', '2027-01-24'),
+      estimate: core.estimateNextEarnings(['2025-11-19', '2026-02-25', '2026-11-17'], '2026-11-25'),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
