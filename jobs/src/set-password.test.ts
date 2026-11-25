@@ -16,13 +16,31 @@ describe('set password (ADR 0039)', () => {
     expect(pickAccount(users, ' owner@example.com ')).toEqual({ id: 'a' });
   });
 
-  it('changes nothing when no account or several accounts match', () => {
-    expect(pickAccount([{ id: 'b', email: 'other@example.com' }], 'owner@example.com')).toEqual({
-      error: expect.stringMatching(/No Marsad account/) as unknown,
+  it('uses the only account when the project has one, whatever its email (sign-ups are closed)', () => {
+    expect(pickAccount([{ id: 'b', email: 'someone@yahoo.com' }], 'owner@gmail.com')).toEqual({
+      id: 'b',
+    });
+    expect(pickAccount([{ id: 'b', email: 'someone@yahoo.com' }], null)).toEqual({ id: 'b' });
+  });
+
+  it('changes nothing when there is no account, or several and none or several match', () => {
+    expect(pickAccount([], 'owner@example.com')).toEqual({
+      error: expect.stringMatching(/no account/) as unknown,
+    });
+    const two = [
+      { id: 'a', email: 'x@example.com' },
+      { id: 'b', email: 'y@example.com' },
+    ];
+    expect(pickAccount(two, 'owner@example.com')).toEqual({
+      error: expect.stringMatching(/none has/) as unknown,
+    });
+    expect(pickAccount(two, null)).toEqual({
+      error: expect.stringMatching(/no email/) as unknown,
     });
     const twice = [
       { id: 'a', email: 'owner@example.com' },
       { id: 'c', email: 'OWNER@example.com' },
+      { id: 'd', email: 'z@example.com' },
     ];
     expect(pickAccount(twice, 'owner@example.com')).toEqual({
       error: expect.stringMatching(/More than one/) as unknown,
