@@ -130,7 +130,7 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     page.getByText('Earnings against estimates, surprise and implied move'),
   ).toBeVisible();
   // Not built yet says so, with the reason, rather than leaving a gap.
-  await expect(page.getByText('13F holders', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
   // Quarterly risk factors are built now (ADR 0036): their own section, loaded when opened.
   await expect(
     page.getByRole('heading', { name: 'Risk factors, quarter over quarter (10-Q)' }),

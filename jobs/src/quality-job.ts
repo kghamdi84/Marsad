@@ -76,7 +76,8 @@ export async function runQualityJob(deps: QualityJobDeps): Promise<JobRunRecord>
         frames[spec.concept] = new Map((r.data.value ?? []).map((x) => [x.cik, x.value]));
       }
       const companies = universe.tickers.flatMap((t) => {
-        const c = byTicker.get(t);
+        // Massive writes share classes with a dot (BRK.B), the SEC list with a dash (BRK-B).
+        const c = byTicker.get(t) ?? byTicker.get(t.replace(/\./g, '-'));
         return c ? [{ ticker: t, cik: c.cik, name: c.name }] : [];
       });
       const noCik = universe.tickers.length - companies.length;

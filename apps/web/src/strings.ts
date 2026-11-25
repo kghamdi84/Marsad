@@ -241,8 +241,28 @@ export const t = {
       scenariosTitle: 'Stress scenarios (approximations)',
       corrTitle: 'Highly correlated pairs (126 sessions, 0.8 or more)',
       corrNone: 'No pair at 0.8 or more.',
-      overlap:
-        'ETF overlap needs ETF constituent data, which the current data plans do not include; it arrives with that data.',
+    },
+    etf: {
+      title: 'ETF look-through and overlap',
+      intro:
+        'Holdings of SPY, QQQ and DIA from their newest public SEC Form N-PORT reports. Look-through shows how many dollars of each stock you hold directly also sit inside the funds you hold.',
+      none: 'No ETF holdings stored yet. The weekly SEC job loads them on Sunday.',
+      report: (etf: string, date: string, n: number, matched: number) =>
+        `${etf}: holdings as of ${date} (${n} lines, ${matched} matched to a ticker).`,
+      overlapTitle: 'Overlap between funds',
+      colPair: 'Funds',
+      colOverlap: 'Overlap',
+      and: 'and',
+      lookTitle: 'Your look-through exposure',
+      noFunds: 'You hold none of SPY, QQQ or DIA, so there is nothing to look through.',
+      noShared: (funds: string) =>
+        `None of the stocks you hold directly are matched inside ${funds}.`,
+      colTicker: 'Ticker',
+      colDirect: 'Direct (USD)',
+      colVia: 'Through funds (USD)',
+      colTotal: 'Total (USD)',
+      footnote:
+        'Source: SEC EDGAR Form NPORT-P, formula etf-1. Public N-PORT reports are quarterly and published up to 60 days after the month they describe, so weights are as of the report date, not today. Overlap is the sum, over shared securities by CUSIP, of the smaller weight. IWM is not covered (its trust files for many funds).',
     },
     review: {
       title: 'Weekly review',
@@ -581,6 +601,27 @@ export const t = {
       view: '10-K on SEC',
       textLabel: 'Business description as filed',
     },
+    holders: {
+      title: 'Institutional holders (13F)',
+      intro:
+        'Long positions that investment managers with over 100 million dollars report on Form 13F, from the SEC quarterly data sets. Positions are as of the quarter end and are filed up to 45 days later, so this list is always at least six weeks old.',
+      open: 'Show the holders',
+      loading: 'Loading the 13F list',
+      none: 'No 13F list is stored for this company yet. The SEC job loads each new quarterly data set.',
+      summary: (period: string, filers: number, shares: string, value: string) =>
+        `Positions as of ${period}: ${filers} filers reported ${shares} shares worth ${value}.`,
+      lag: (period: string) =>
+        `Disclosure lag: positions on ${period}, filed up to 45 days later. Funds below the reporting threshold, short positions and non-US holders are not included.`,
+      cusips: (list: string) => `Counted under CUSIP ${list}.`,
+      leftOut: (options: number, amendments: number, other: number) =>
+        `Left out: ${options} option lines, ${amendments} amended reports, ${other} lines for an older quarter.`,
+      colRank: 'Rank',
+      colFiler: 'Filer',
+      colShares: 'Shares',
+      colShare: 'Share of reported',
+      colValue: 'Value (USD)',
+      colFiled: 'Filed',
+    },
     quarterly: {
       title: 'Risk factors, quarter over quarter (10-Q)',
       intro:
@@ -814,11 +855,6 @@ export const t = {
         name: 'Valuation percentiles against the 5-year history',
         state: 'Requires a higher Massive plan',
         why: 'A 5-year price history is beyond the free plan, which allows 2 years of daily bars. Statements come from SEC filings instead.',
-      },
-      {
-        name: '13F holders',
-        state: 'Not built',
-        why: 'Funds report holdings up to 45 days after quarter end. The vendor serves 13F filings by the fund that filed them, not by the stock, so a list of holders of this company needs the SEC quarterly 13F data sets, which are not loaded.',
       },
     ],
   },

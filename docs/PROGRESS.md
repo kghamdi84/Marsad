@@ -157,6 +157,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### ETF overlap and look-through (2026-11-25)
+
+- **ADR 0038** (`etf-1`): holdings of SPY, QQQ and DIA from their newest public SEC N-PORT reports, loaded weekly; the Journal shows the overlap between the funds and, for each stock held directly, the dollars also held through those funds, with the report dates and the N-PORT lag. Overlaps match an independent Python calculation on the real reports. Checklist 7.3 done; IWM not covered (multi-fund trust).
+
+### 13F institutional holders (2026-11-25)
+
+- **ADR 0037** (`holders-1`): each stock's institutional holders from the free SEC Form 13F data sets, streamed weekly, with the period, the 45-day lag, the top 20 filers and every CUSIP counted (Rocket Lab appears under two). Checklist 2.3 and 2.4 done.
+
 ### Quality at a discount and the 10-K business text (2026-11-25)
 
 - **ADR 0035** (`quality-1`): a weekly screen of the Marsad universe from free SEC XBRL frames: quality (gross profits over assets, return on assets, low accruals, low leverage) and value (earnings yield, book-to-market) as percentiles; passing companies shown on the Regime page with every exclusion counted and every fallback figure named. Real frames recorded 2026-11-25.

@@ -431,6 +431,68 @@ function sectionRows(): Json[] {
   }));
 }
 
+test('13F holders: the period, the lag, the top filers and the CUSIPs counted', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/holders_13f_lists**', (r) =>
+    json(r, [
+      {
+        period: '2026-06-30',
+        filers: 2,
+        total_shares: 1000,
+        total_value_usd: 2500000000,
+        cusips: [
+          { cusip: '773121108', issuer: 'ROCKET LAB CORP', lines: 2 },
+          { cusip: '773122106', issuer: 'ROCKET LAB USA INC', lines: 1 },
+        ],
+        left_out: { options: 3, amendments: 1, otherPeriod: 0 },
+      },
+    ]),
+  );
+  await page.route('**/rest/v1/holders_13f?**', (r) =>
+    json(r, [
+      {
+        rank: 1,
+        filer_name: 'Fund One',
+        shares: 800,
+        share: 0.8,
+        value_usd: 2000000000,
+        filing_date: '2026-08-10',
+      },
+      {
+        rank: 2,
+        filer_name: 'Fund Two',
+        shares: 200,
+        share: 0.2,
+        value_usd: 500000000,
+        filing_date: '2026-08-12',
+      },
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Institutional holders (13F)' });
+  await panel.getByText('Show the holders').click();
+  await expect(
+    panel.getByText(
+      'Positions as of 2026-06-30: 2 filers reported 1,000 shares worth $2.50 billion.',
+    ),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(/^Disclosure lag: positions on 2026-06-30, filed up to 45 days later/),
+  ).toBeVisible();
+  const first = panel.getByRole('row', { name: /Fund One/ });
+  await expect(first).toContainText('800');
+  await expect(first).toContainText('80.0%');
+  await expect(first).toContainText('$2.00 billion');
+  await expect(
+    panel.getByText(
+      /Counted under CUSIP 773121108 \(ROCKET LAB CORP\), 773122106 \(ROCKET LAB USA INC\)/,
+    ),
+  ).toBeVisible();
+  await expect(panel.getByText(/Left out: 3 option lines, 1 amended reports/)).toBeVisible();
+});
+
 test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and the comparison', async ({
   page,
 }) => {

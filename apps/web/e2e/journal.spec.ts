@@ -470,3 +470,79 @@ test('options positions: the stored spread with its risk, exit rules and bear ca
     bear_case: 'A squeeze above 30.',
   });
 });
+
+test('ETF look-through: stocks held directly and through SPY and QQQ, and the overlap of the funds', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  // NVDA 10 x 100 = 1,000 direct; SPY 20 x 500 = 10,000 at 7.5% NVDA = 750; QQQ 10 x 400 = 4,000 at 8% = 320.
+  // Overlap: min(7.5%, 8%) + min(7%, 9%) = 14.5%.
+  const price: Record<string, number> = { NVDA: 100, SPY: 500, QQQ: 400 };
+  const holding = (id: number, ticker: string, shares: number) => ({
+    id,
+    ticker,
+    shares,
+    cost_basis: price[ticker],
+    opened_on: '2026-10-01',
+    stop: null,
+    targets: [],
+    trend_break: null,
+    time_stop_sessions: null,
+    sector_etf: null,
+    thesis_status: 'intact',
+  });
+  const funds: Record<string, { name: string; cusip: string; ticker: string; weight: number }[]> = {
+    SPY: [
+      { name: 'NVIDIA Corp', cusip: '67066G104', ticker: 'NVDA', weight: 0.075 },
+      { name: 'Apple Inc', cusip: '037833100', ticker: 'AAPL', weight: 0.07 },
+    ],
+    QQQ: [
+      { name: 'Apple Inc', cusip: '037833100', ticker: 'AAPL', weight: 0.09 },
+      { name: 'NVIDIA Corp', cusip: '67066G104', ticker: 'NVDA', weight: 0.08 },
+    ],
+  };
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/holdings**', (r) =>
+    r.fulfill(json([holding(1, 'NVDA', 10), holding(2, 'SPY', 20), holding(3, 'QQQ', 10)])),
+  );
+  await page.route('**/rest/v1/daily_bars**', (r) => {
+    const t = new URL(r.request().url()).searchParams.get('ticker')?.replace(/^eq\./, '') ?? '';
+    const c = price[t];
+    return r.fulfill(
+      json(
+        c === undefined
+          ? []
+          : [{ date: '2026-11-24', open: c, high: c, low: c, close: c, volume: 1, vwap: null }],
+      ),
+    );
+  });
+  await page.route('**/rest/v1/etf_reports**', (r) =>
+    r.fulfill(
+      json(
+        ['SPY', 'QQQ'].map((etf) => ({
+          etf,
+          report_date: '2026-06-30',
+          accession: '0001410368-26-089410',
+          version: 'etf-1',
+          holdings: 2,
+          matched: 2,
+        })),
+      ),
+    ),
+  );
+  await page.route('**/rest/v1/etf_holdings**', (r) => {
+    const etf = new URL(r.request().url()).searchParams.get('etf')?.replace(/^eq\./, '') ?? '';
+    return r.fulfill(json(funds[etf] ?? []));
+  });
+  await page.goto('/journal');
+  const etf = page.getByRole('region', { name: 'ETF look-through and overlap' });
+  await expect(etf).toContainText(
+    'SPY: holdings as of 2026-06-30 (2 lines, 2 matched to a ticker).',
+  );
+  await expect(etf.getByRole('row', { name: /^QQQ and SPY/ })).toContainText('14.5%');
+  const nvda = etf.getByRole('row', { name: /^NVDA/ });
+  await expect(nvda).toContainText('1000.00');
+  await expect(nvda).toContainText('SPY 750.00, QQQ 320.00');
+  await expect(nvda).toContainText('2070.00');
+  await expect(etf).toContainText('published up to 60 days after the month they describe');
+});
