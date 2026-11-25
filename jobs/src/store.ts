@@ -243,6 +243,7 @@ export const LATEST_TABLES = [
   'regime_daily',
   'fear_greed_daily',
   'capitulation_daily',
+  'regime_event_stats',
   'breadth_daily',
   'fred_observations',
   'econ_calendar_snapshots',

@@ -4,6 +4,9 @@
  */
 import type { Obs, RecessionLevel } from './regime.js';
 import { movingAverage } from './feargreed.js';
+import type { AlertInput, Reading } from './alerts.js';
+import { MIN_CASES } from './stats.js';
+import { toFixedHalfUp } from './ai/template.js';
 
 export const CAPITULATION_VERSION = 'capitulation-1';
 
@@ -215,4 +218,104 @@ export function capitulationHistory(
       recession: recession.get(date) ?? null,
     });
   });
+}
+
+/** Marsad's stored event study for the watch's longer-history proxy, at one horizon. */
+export interface ProxyStudy {
+  horizon: number;
+  n: number;
+  median: number | null;
+  q1: number | null;
+  q3: number | null;
+  dataFrom: string;
+  /** Episode start dates, for counting losses at the horizon. */
+  episodes: readonly string[];
+}
+
+/** Episodes whose close `horizon` sessions later was below the start close; episodes without that close are left out. */
+export function episodeLosses(
+  series: readonly Obs[],
+  episodes: readonly string[],
+  horizon: number,
+): { n: number; losses: number } {
+  const at = new Map(series.map((o, i) => [o.date, i]));
+  let n = 0;
+  let losses = 0;
+  for (const e of episodes) {
+    const i = at.get(e);
+    const later = i === undefined ? undefined : series[i + horizon];
+    const start = i === undefined ? undefined : series[i];
+    if (start === undefined || later === undefined) continue;
+    n += 1;
+    if (later.value < start.value) losses += 1;
+  }
+  return { n, losses };
+}
+
+const signedPct = (v: number) => `${v >= 0 ? '+' : ''}${toFixedHalfUp(v * 100, 1)}%`;
+const CONDITION_TEXT: Record<ConditionKey, (c: Condition) => string> = {
+  vix: (c) => `VIX ${toFixedHalfUp(Number(c.value), 1)} (at least ${CAPITULATION_RULES.vixMin})`,
+  breadth: (c) =>
+    `${toFixedHalfUp(Number(c.value), 1)}% of the Marsad universe above its 50-day average (at most ${CAPITULATION_RULES.above50MaxPct}%)`,
+  composite: (c) =>
+    `Fear and Greed composite ${toFixedHalfUp(Number(c.value), 0)} (at most ${CAPITULATION_RULES.compositeMax})`,
+  recession: (c) => `recession filter ${String(c.value)} (not high)`,
+};
+
+/**
+ * The regime alert for the first day the watch turns on (the brief's example 3). Its plan lists conditions for
+ * staged index-ETF entries, never orders; history comes from Marsad's own proxy event study with n, and under 30
+ * episodes the card says so instead of giving a rate. `storedAt` is when the inputs were stored (end-of-day data).
+ */
+export function capitulationAlert(
+  day: CapitulationDay,
+  plan: StagedPlan | null,
+  study: (ProxyStudy & { losses: { n: number; losses: number } }) | null,
+  context: { vix?: Reading; regime?: string },
+  storedAt: Date,
+  now: Date,
+): AlertInput {
+  const r = CAPITULATION_RULES;
+  const studyText =
+    study === null
+      ? 'Marsad event study: not computed yet.'
+      : study.n < MIN_CASES || study.median === null || study.q1 === null || study.q3 === null
+        ? `Marsad event study (VIX close at least 30 with the recession filter not high, S&P 500 since ${study.dataFrom}): n=${study.n} episodes, insufficient history for a rate.`
+        : `Marsad event study (VIX close at least 30 with the recession filter not high, S&P 500 since ${study.dataFrom}): ${study.horizon}-session forward return median ${signedPct(study.median)}, 25th percentile ${signedPct(study.q1)}, 75th percentile ${signedPct(study.q3)}, n=${study.n} episodes.`;
+  const levels =
+    plan === null
+      ? 'SPY levels unavailable (no SPY bar for the trigger day).'
+      : `SPY trigger close ${toFixedHalfUp(plan.triggerClose, 2)}; selloff low ${toFixedHalfUp(plan.selloffLow, 2)}; review below ${toFixedHalfUp(plan.triggerClose * (1 - r.reviewDrawdown), 2)}.`;
+  return {
+    kind: 'regime',
+    priority: 'high',
+    ruleId: 'capitulation-watch',
+    ruleVersion: 1,
+    ruleStatus: 'live',
+    eventId: `capitulation:${day.date}`,
+    headline: 'Capitulation watch ON',
+    trigger: `Trigger at the close of ${day.date}: ${day.conditions.map((c) => CONDITION_TEXT[c.key](c)).join('; ')}. ${studyText}`,
+    plan: {
+      entry: `Staged entries in index ETFs, as conditions, not orders: one third at the trigger close; one third on a retest of the selloff low (within ${r.retestBand * 100}%, at least ${r.retestMinSessions} sessions later); one third on a close above the ${r.reclaimSessions}-day average. ${levels}`,
+      invalidation: `Pause every remaining third if the recession filter turns high; review if SPY closes more than ${r.reviewDrawdown * 100}% below the trigger close; the plan expires after ${r.planSessions} sessions.`,
+    },
+    risk: [
+      { horizon: 'scalp', losses: 0, n: null },
+      { horizon: 'swing', losses: 0, n: null },
+      { horizon: 'long', losses: study?.losses.losses ?? 0, n: study?.losses.n ?? 0 },
+    ],
+    context: { ...context, news: [] },
+    bearCase:
+      'In 2008 the VIX stayed above 30 for weeks while the decline continued, and in 2022 the market made new lows months after its first volatility spike. Staging limits the damage if this is one of those episodes, and the recession filter pauses the plan if the economy turns.',
+    sources: [
+      { id: 'capitulation_daily', label: `Capitulation watch ${day.version}`, asOf: day.date },
+      ...(study
+        ? [{ id: 'regime_event_stats', label: 'Marsad event study', asOf: study.dataFrom }]
+        : []),
+    ],
+    worstAgeSeconds: Math.max(0, Math.round((now.getTime() - storedAt.getTime()) / 1000)),
+    // Close-based: judged after the session, so the inputs are up to a day old by design.
+    maxAgeSeconds: 26 * 3600,
+    delayed: true,
+  };
 }

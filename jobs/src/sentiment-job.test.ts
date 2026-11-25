@@ -145,6 +145,82 @@ describe('runSentimentJob on a market that capitulates on its last days', () => 
     expect(String((run.details as Record<string, unknown>)['capitulation'])).toContain('on');
   });
 
+  it('raises one regime alert for a fresh trigger, quoting the stored event study with n', async () => {
+    const { store, log } = fakeStore(seed);
+    // The crash starts on 2026-07-15 (the trigger); the job runs the next day at 15:00 in Riyadh (outside quiet hours).
+    const run = await runSentimentJob({ store, now: () => new Date('2026-07-16T12:00:00Z') });
+    const trigger = (log.plans[0] ?? [])[0]?.triggerDate;
+    expect(trigger).toBe('2026-07-15');
+    const rows = log.storedAlerts.flat();
+    expect(rows).toHaveLength(1);
+    const a = rows[0];
+    expect(a?.input).toMatchObject({
+      kind: 'regime',
+      priority: 'high',
+      ruleId: 'capitulation-watch',
+      ruleStatus: 'live',
+      eventId: `capitulation:${trigger}`,
+      headline: 'Capitulation watch ON',
+      delayed: true,
+    });
+    expect(a?.decision).toBe('push');
+    expect(a?.delivery['push']).toBe('pending');
+    expect(a?.input.trigger).toContain(`Trigger at the close of ${trigger}: VIX `);
+    expect(a?.input.trigger).toContain('Marsad event study: not computed yet.');
+    expect(a?.input.risk.at(-1)).toEqual({ horizon: 'long', losses: 0, n: 0 });
+    expect(run.details).toMatchObject({ capitulationAlert: { push: 1 } });
+  });
+
+  it('says insufficient history under 30 episodes and counts losses at 63 sessions', async () => {
+    // Two proxy episodes in the calm stretch, where 63 sessions later the S&P 500 is higher: 0 losses of 2.
+    const { store, log } = fakeStore({
+      ...seed,
+      latestRows: {
+        'regime_event_stats|condition=vix-30-recession-not-high': [
+          {
+            horizon: 63,
+            n: 9,
+            median: 0.05,
+            q1: -0.02,
+            q3: 0.1,
+            data_from: '2016-01-04',
+            episodes: [dates[10], dates[100]],
+          },
+        ],
+      },
+    });
+    await runSentimentJob({ store, now: () => new Date('2026-07-16T23:00:00Z') });
+    const a = log.storedAlerts.flat()[0];
+    expect(a?.input.trigger).toContain(
+      'S&P 500 since 2016-01-04): n=9 episodes, insufficient history for a rate.',
+    );
+    expect(a?.input.risk.at(-1)).toEqual({ horizon: 'long', losses: 0, n: 2 });
+  });
+
+  it('never alerts on an old trigger', async () => {
+    // Still on, but the trigger (2026-07-15) is 6 days old: history, not news.
+    const { store, log } = fakeStore(seed);
+    const run = await runSentimentJob({ store, now: () => new Date('2026-07-21T23:00:00Z') });
+    expect(String((run.details as Record<string, unknown>)['capitulation'])).toBe(
+      'on on 2026-07-21',
+    );
+    expect(run.status).toBe('ok');
+    expect(log.storedAlerts.flat()).toHaveLength(0);
+  });
+
+  it('a later run does not store the same trigger again', async () => {
+    const first = fakeStore(seed);
+    await runSentimentJob({ store: first.store, now: () => new Date('2026-07-16T23:00:00Z') });
+    const key = first.log.storedAlerts.flat()[0]?.key as string;
+    const again = fakeStore({
+      ...seed,
+      recentAlerts: [{ key, at: '2026-07-16T23:00:00Z', decision: 'push' }],
+    });
+    await runSentimentJob({ store: again.store, now: () => new Date('2026-07-17T23:00:00Z') });
+    expect(key).toBeTruthy();
+    expect(again.log.storedAlerts.flat()).toHaveLength(0);
+  });
+
   it('stays off when the recession filter is high', async () => {
     const { store, log } = fakeStore({
       ...seed,
@@ -153,5 +229,6 @@ describe('runSentimentJob on a market that capitulates on its last days', () => 
     await runSentimentJob({ store, now: () => new Date('2026-07-23T11:00:00Z') });
     expect((log.capitulation[0] ?? []).some((d) => d.state === 'on')).toBe(false);
     expect(log.plans[0]).toEqual([]);
+    expect(log.storedAlerts.flat()).toHaveLength(0);
   });
 });
