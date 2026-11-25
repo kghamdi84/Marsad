@@ -2,6 +2,7 @@
 import type {
   AnnualSection,
   Bar,
+  Brief,
   CapitulationDay,
   CompanyRef,
   EconEvent,
@@ -66,6 +67,7 @@ export interface FakeLog {
   topicDays: TopicDay[][];
   econCalendars: { from: string; to: string; events: EconEvent[] }[];
   movers: MarketMovers[][];
+  briefs: { brief: Brief; inputs: unknown; delivery: Record<string, string> }[];
   earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
@@ -85,6 +87,8 @@ export interface FakeSeed {
   recessionLevels?: { date: string; level: string }[];
   topicDates?: string[];
   resultsFilings?: { cik: string; date: string }[];
+  /** Rows `latest` returns, by table (and by "column=value" filter when given), newest first. */
+  latestRows?: Record<string, Record<string, unknown>[]>;
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -104,7 +108,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'dailyCloses' in x ||
       'recessionLevels' in x ||
       'topicDates' in x ||
-      'resultsFilings' in x);
+      'resultsFilings' in x ||
+      'latestRows' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -136,12 +141,22 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     topicDays: [],
     econCalendars: [],
     movers: [],
+    briefs: [],
     earningsEstimates: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    latest: (table, columns, _orderBy, limit) => {
+      const filter = columns.split('|')[1];
+      const rows = s.latestRows?.[filter ? `${table}|${filter}` : table] ?? [];
+      return Promise.resolve(rows.slice(0, limit));
+    },
+    saveBrief: (brief, inputs, delivery) => {
+      log.briefs.push({ brief, inputs, delivery });
+      return Promise.resolve();
+    },
     upsertMovers: (rows) => {
       log.movers.push([...rows]);
       return Promise.resolve(rows.length);

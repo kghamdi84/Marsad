@@ -408,8 +408,8 @@
         {
           "id": "3.13",
           "title": "Pre-market brief and close recap by email and push",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "brief-1 (ADR 0015): pre-market brief (about 60 minutes before the open, window enforced by the market calendar) and close recap (22:50 UTC) built by templates from stored data with every number dated; title at most 60 and push body at most 140 characters; stored in briefs with the full input snapshot and a delivery log; shown on the Watch page. Email through Resend when RESEND_API_KEY and BRIEF_EMAIL_TO exist (SETUP step 9), once per day, failures fail the run; otherwise 'not-configured'. Hand-checked template text; job tests for the window, holidays, next session past Thanksgiving, email once, email failure. Still to do: Khaled adds the two email secrets; Web Push arrives with the Phase 5 dispatcher."
         }
       ]
     },

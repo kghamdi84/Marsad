@@ -132,6 +132,16 @@ Claude's cloud sessions reach the internet only through hosts you allow. Connect
 
 Package registries (npm) are allowed by default.
 
+## Step 9. Email for the daily brief (free)
+
+The pre-market brief and close recap are built every trading day and shown on the Watch page. To also get them by email:
+
+1. On your iPad, open **resend.com** and tap **Sign up**. Use your personal email. The free plan is enough for two emails a day.
+2. In Resend, tap **API Keys**, then **Create API Key**. Name it `Marsad`, permission **Sending access**. Tap **Add**, then copy the key (it is shown once).
+3. In GitHub: the repository, **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Name `RESEND_API_KEY`, paste the key, tap **Add secret**.
+4. Add one more secret: name `BRIEF_EMAIL_TO`, value the same email you signed up to Resend with. Until you verify a domain, Resend only delivers to that address.
+5. Tell Claude "email secrets added". Claude runs the brief once and checks the delivery log.
+
 ## Costs so far
 
 | Item                                      | Monthly cost | Approved                  |

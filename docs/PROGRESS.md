@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, batch F: Watch dashboard; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 3, batch G: briefs; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch G: pre-market brief and close recap (2026-11-25)
+
+- **ADR 0015** (`brief-1`): template briefs from stored data (no AI yet), stored with their input snapshot and delivery log, shown on the Watch page; email through Resend once Khaled adds two secrets (SETUP step 9). Web Push comes with the Phase 5 dispatcher.
+- Workflows: `brief-pre-market.yml` (12:30 and 13:30 UTC weekdays, the job keeps only the run 30 to 89 minutes before the open) and `brief-close-recap.yml` (22:50 UTC weekdays).
+- **Verified**: hand-checked template text (rounding, missing inputs, capitulation flag, no em dash); job tests for the window, holidays, the next session past Thanksgiving, sending once, and a failed send; RLS check constraints (kind, 140-character push body, one per kind and day).
 
 ### Phase 3 batch F: Watch dashboard (2026-11-25)
 

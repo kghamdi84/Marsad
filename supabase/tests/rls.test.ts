@@ -105,6 +105,8 @@ beforeAll(async () => {
       values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
     insert into public.capitulation_plans (trigger_date, version, plan)
       values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
+    insert into public.briefs (kind, for_date, version, title, push_body, sections, inputs)
+      values ('pre-market', date '2026-11-25', 'brief-1', 'Pre-market brief, Wed 2026-11-25', 'Regime Stress.', '[]'::jsonb, '{}'::jsonb);
     insert into public.market_movers_daily (date, version, n, gainers, losers, sectors)
       values (date '2026-11-24', 'watch-1', 990, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb);
     insert into public.econ_calendar_snapshots (fetched_at, version, range_from, range_to, events)
@@ -284,6 +286,7 @@ describe('system tables', () => {
       'capitulation_plans',
       'news_topic_days',
       'market_movers_daily',
+      'briefs',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',
@@ -350,6 +353,17 @@ describe('system tables', () => {
         `insert into public.capitulation_daily (date, version, state, conditions) values (date '2026-11-24', 'capitulation-1', 'maybe', '[]')`,
       ),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it('briefs reject an unknown kind, a long push body and a second brief of the same kind and day', async () => {
+    const ins = (kind: string, body: string, day = '2026-11-26') =>
+      db.query(
+        `insert into public.briefs (kind, for_date, version, title, push_body, sections, inputs)
+         values ('${kind}', date '${day}', 'brief-1', 't', '${body}', '[]', '{}')`,
+      );
+    await expect(ins('weekly', 'x')).rejects.toThrow(/check constraint/);
+    await expect(ins('pre-market', 'x'.repeat(141))).rejects.toThrow(/check constraint/);
+    await expect(ins('pre-market', 'x', '2026-11-25')).rejects.toThrow(/duplicate key/);
   });
 
   it('the regime tables reject an unknown label or level and a non-positive horizon', async () => {

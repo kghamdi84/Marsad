@@ -222,3 +222,41 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/watch-dashboard.png`, fullPage: true });
 });
+
+test('watch: the latest brief with its sections and email state', async ({ page }) => {
+  await seedSession(page, 'aal2');
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/briefs**', (r) =>
+    r.fulfill(
+      json([
+        {
+          kind: 'pre-market',
+          for_date: '2026-11-25',
+          title: 'Pre-market brief, Wed 2026-11-25',
+          sections: [
+            {
+              heading: 'Market state',
+              lines: ['Regime: Stress; recession filter elevated (as of 2026-11-24).'],
+            },
+            { heading: 'Today (ET)', lines: ['08:30 ET GDP (high impact).'] },
+          ],
+          delivery: { kind: 'pre-market', email: 'not-configured' },
+          created_at: '2026-11-25T13:30:12+00:00',
+        },
+      ]),
+    ),
+  );
+  await page.goto('/');
+  const brief = page.getByRole('region', { name: 'Latest brief' });
+  await expect(
+    brief.getByRole('heading', { name: 'Pre-market brief, Wed 2026-11-25' }),
+  ).toBeVisible();
+  await expect(brief.getByText('08:30 ET GDP (high impact).')).toBeVisible();
+  await expect(brief.getByText(/Not emailed: no email channel set up yet/)).toBeVisible();
+  await expect(brief.getByText(/by templates from stored data \(no AI\)/)).toBeVisible();
+});
