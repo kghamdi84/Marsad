@@ -18,13 +18,14 @@ on:
           - record-breadth-main.ts
           - record-calendar-main.ts
           - record-frames-main.ts
+          - record-10q-main.ts
 
 permissions:
   contents: read
 
 concurrency:
   # The Massive recorders share the massive-api group (about 5 calls a minute); the FRED-only recorder does not.
-  group: ${{ (inputs.script == 'record-calendar-main.ts' || inputs.script == 'record-frames-main.ts') && 'record-public' || 'massive-api' }}
+  group: ${{ (inputs.script == 'record-calendar-main.ts' || inputs.script == 'record-frames-main.ts' || inputs.script == 'record-10q-main.ts') && 'record-public' || 'massive-api' }}
   cancel-in-progress: false
 
 jobs:
