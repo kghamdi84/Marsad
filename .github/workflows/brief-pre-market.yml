@@ -1,0 +1,38 @@
+name: Pre-market brief
+
+# The pre-market brief, about 60 minutes before the US open. Both times fire on weekdays; the job runs only
+# inside its window (12:30 UTC in summer time, 13:30 UTC in winter) and skips holidays (ADR 0015). Reads only stored data. Emails the brief when the RESEND_API_KEY and
+# BRIEF_EMAIL_TO secrets exist; otherwise stores it (shown on the Watch page) and records "not-configured".
+on:
+  schedule:
+    - cron: '30 12 * * 1-5'
+    - cron: '30 13 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brief-pre-market
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build, store and send the brief
+        run: pnpm --filter @marsad/jobs brief pre-market
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BRIEF_EMAIL_TO: ${{ secrets.BRIEF_EMAIL_TO }}
+          BRIEF_MINUTES_BEFORE_OPEN: ${{ vars.BRIEF_MINUTES_BEFORE_OPEN }}

@@ -33,3 +33,4 @@ export * from './capitulation.js';
 export * from './geopolitics.js';
 export * from './econ-calendar.js';
 export * from './watch.js';
+export * from './briefs.js';

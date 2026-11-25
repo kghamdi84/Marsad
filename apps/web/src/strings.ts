@@ -109,6 +109,17 @@ export const t = {
         'Opening gaps at the last session (open against the previous close), for the watchlist and the strip ETFs, largest first. Pre-market gaps in real time need a paid plan.',
       none: 'No gaps to show: no daily bars stored yet.',
     },
+    brief: {
+      title: 'Latest brief',
+      none: 'No brief yet. The pre-market brief is built about 60 minutes before the open, the close recap after the close (trading days).',
+      made: (at: string) => `Built ${at}, by templates from stored data (no AI).`,
+      email: (state: string) =>
+        state === 'sent'
+          ? 'Emailed.'
+          : state === 'not-configured'
+            ? 'Not emailed: no email channel set up yet (docs/SETUP.md, step 9).'
+            : `Email failed: ${state.replace(/^failed: /, '')}.`,
+    },
     news: {
       title: 'Watchlist news',
       none: 'No news stored for the watchlist yet.',

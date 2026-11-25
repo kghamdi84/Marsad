@@ -329,6 +329,21 @@ const out = {
       movers: core.marketMovers(['d0', 'd1'], series, new Set(['A', 'B']), 1),
     };
   })(),
+  // Brief templates (ADR 0015).
+  brief: core.preMarketBrief({
+    date: '2026-11-25',
+    regime: { date: '2026-11-24', label: 'stress', recession: 'elevated' },
+    fearGreed: { date: '2026-11-24', composite: 41.88, label: 'fear', available: 5 },
+    capitulation: null,
+    vix: { date: '2026-11-24', value: 26.62 },
+    vix3m: { date: '2026-11-24', value: 25.5 },
+    breadth: { date: '2026-11-24', pctAbove50: 38.25, pctAbove200: null },
+    events: [{ date: '2026-11-25', timeEt: '08:30', name: 'GDP', impact: 'high' }],
+    earnings: [],
+    watchlist: [{ ticker: 'NVDA', date: '2026-11-24', change1d: 0.0412 }],
+    topic: null,
+    staleSources: [],
+  }),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,

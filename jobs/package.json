@@ -13,7 +13,8 @@
     "health": "tsx src/health-main.ts",
     "regime": "tsx src/regime-main.ts",
     "sentiment": "tsx src/sentiment-main.ts",
-    "calendar": "tsx src/calendar-main.ts"
+    "calendar": "tsx src/calendar-main.ts",
+    "brief": "tsx src/brief-main.ts"
   },
   "dependencies": {
     "@marsad/core": "workspace:*",

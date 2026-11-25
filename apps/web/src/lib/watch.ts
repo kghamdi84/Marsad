@@ -167,3 +167,30 @@ export async function loadWatch(): Promise<WatchData> {
     })),
   };
 }
+
+export interface StoredBrief {
+  kind: string;
+  forDate: string;
+  title: string;
+  sections: { heading: string; lines: string[] }[];
+  delivery: Record<string, string>;
+  createdAt: string;
+}
+
+/** The two newest briefs (pre-market and recap). */
+export async function loadBriefs(): Promise<StoredBrief[]> {
+  const r = await client()
+    .from('briefs')
+    .select('kind, for_date, title, sections, delivery, created_at')
+    .order('created_at', { ascending: false })
+    .limit(2);
+  if (r.error) throw new Error(`briefs: ${r.error.message}`);
+  return ((r.data ?? []) as Record<string, unknown>[]).map((b) => ({
+    kind: String(b['kind']),
+    forDate: String(b['for_date']),
+    title: String(b['title']),
+    sections: (b['sections'] ?? []) as StoredBrief['sections'],
+    delivery: (b['delivery'] ?? {}) as Record<string, string>,
+    createdAt: String(b['created_at']),
+  }));
+}

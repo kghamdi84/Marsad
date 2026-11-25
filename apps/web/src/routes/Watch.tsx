@@ -15,9 +15,11 @@ import { num, td, th, thNum } from '../components/study/Panel';
 import {
   STRIP_BARS,
   STRIP_SERIES,
+  loadBriefs,
   loadCalendar,
   loadWatch,
   type CalendarData,
+  type StoredBrief,
   type WatchData,
 } from '../lib/watch';
 import { t } from '../strings';
@@ -444,9 +446,39 @@ function NewsSection({ data }: { data: WatchData }) {
   );
 }
 
+function BriefSection({ briefs }: { briefs: StoredBrief[] }) {
+  const b = briefs[0];
+  return (
+    <Section id="brief" title={w.brief.title}>
+      {!b ? (
+        <p className="text-muted">{w.brief.none}</p>
+      ) : (
+        <div className="flex flex-col gap-2 rounded-sm border border-line p-3">
+          <h3 className="font-semibold">{b.title}</h3>
+          {b.sections.map((s) => (
+            <div key={s.heading}>
+              <h4 className="text-sm font-medium text-muted">{s.heading}</h4>
+              <ul className="list-disc ps-5 text-sm">
+                {s.lines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="text-xs text-muted">
+            {w.brief.made(b.createdAt.slice(0, 16).replace('T', ' ') + ' UTC')}{' '}
+            {w.brief.email(b.delivery['email'] ?? 'not-configured')}
+          </p>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function Watch() {
   const q = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
   const wq = useQuery({ queryKey: ['watch'], queryFn: loadWatch });
+  const bq = useQuery({ queryKey: ['briefs'], queryFn: loadBriefs });
   const now = useNow();
   return (
     <section className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -455,6 +487,12 @@ export function Watch() {
         <p className="text-sm text-muted">{t.watch.intro}</p>
         <p className="text-xs text-muted">{w.endOfDay}</p>
       </div>
+      {bq.data && <BriefSection briefs={bq.data} />}
+      {bq.isError && (
+        <p role="alert" className="text-down">
+          {bq.error.message}
+        </p>
+      )}
       {wq.isPending && <p className="text-muted">{t.loading}</p>}
       {wq.isError && (
         <p role="alert" className="text-down">

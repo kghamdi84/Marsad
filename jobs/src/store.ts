@@ -11,6 +11,7 @@ import { etDate } from '@marsad/core';
 import type {
   AnnualSection,
   BreadthDay,
+  Brief,
   BreadthInput,
   BreadthSignals,
   CapitulationDay,
@@ -123,6 +124,14 @@ export interface Store {
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
   upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  /** The newest rows of one allow-listed table, newest first (the brief job's reads). */
+  latest(
+    table: LatestTable,
+    columns: string,
+    orderBy: string,
+    limit: number,
+  ): Promise<Record<string, unknown>[]>;
+  saveBrief(brief: Brief, inputs: unknown, delivery: Record<string, string>): Promise<void>;
   /** UTC dates already stored in news_topic_days. */
   getTopicDates(): Promise<string[]>;
   upsertTopicDays(rows: readonly TopicDay[], fetchedAt: Date): Promise<number>;
@@ -147,6 +156,22 @@ export interface UniverseRow {
   rank: number;
   dollarVolume: number;
 }
+
+/** Tables the brief job may read with `latest`. */
+export const LATEST_TABLES = [
+  'regime_daily',
+  'fear_greed_daily',
+  'capitulation_daily',
+  'breadth_daily',
+  'fred_observations',
+  'econ_calendar_snapshots',
+  'earnings_estimate_snapshots',
+  'news_topic_days',
+  'source_status',
+  'daily_bars',
+  'briefs',
+] as const;
+export type LatestTable = (typeof LATEST_TABLES)[number];
 
 /** One watchlist company's estimated next results release. */
 export interface EarningsEstimateRow extends EarningsEstimate {
@@ -991,6 +1016,36 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .from('earnings_estimate_snapshots')
         .insert({ computed_at: at.toISOString(), version, estimates: rows });
       if (error) throw new Error(`earnings_estimate_snapshots insert failed: ${error.message}`);
+    },
+    async latest(table, columns, orderBy, limit) {
+      if (!LATEST_TABLES.includes(table)) throw new Error(`latest: table ${table} not allowed`);
+      // An optional equality filter is written "column=value" after a pipe in `columns`, e.g. "date, value|series_id=VIXCLS".
+      const [cols, filter] = columns.split('|') as [string, string | undefined];
+      let q = db.from(table).select(cols);
+      if (filter) {
+        const [k, v] = filter.split('=') as [string, string];
+        q = q.eq(k, v);
+      }
+      const { data, error } = await q.order(orderBy, { ascending: false }).limit(limit);
+      if (error) throw new Error(`${table} read failed: ${error.message}`);
+      return (data ?? []) as unknown as Record<string, unknown>[];
+    },
+    async saveBrief(brief, inputs, delivery) {
+      const { error } = await db.from('briefs').upsert(
+        {
+          kind: brief.kind,
+          for_date: brief.date,
+          version: brief.version,
+          title: brief.title,
+          push_body: brief.pushBody,
+          sections: brief.sections,
+          inputs,
+          delivery,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'kind,for_date' },
+      );
+      if (error) throw new Error(`briefs upsert failed: ${error.message}`);
     },
     async upsertMovers(rows) {
       if (rows.length === 0) return 0;
