@@ -1,4 +1,5 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
   DEFAULT_SOURCE_POLICIES,
@@ -10,6 +11,7 @@ import {
   type UpcomingRow,
 } from '@marsad/core';
 import { downloadExport, listExports } from '../lib/exports';
+import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
 
@@ -168,6 +170,100 @@ function Latency() {
   );
 }
 
+function Preferences() {
+  const q = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  if (q.isError)
+    return (
+      <p role="alert" className="text-down">
+        {q.error.message}
+      </p>
+    );
+  return q.data ? <PreferencesForm initial={q.data} /> : null;
+}
+
+function PreferencesForm({ initial }: { initial: Prefs }) {
+  const qc = useQueryClient();
+  const [p, setP] = useState<Prefs>(initial);
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: savePreferences,
+    onSuccess: () => {
+      setMsg(t.status.preferencesSaved);
+      void qc.invalidateQueries({ queryKey: ['preferences'] });
+    },
+  });
+  const pct = (v: number) => String(Math.round(v * 1000) / 10);
+  const sh = p.shariah;
+  const set = (patch: Partial<Prefs['shariah']>) => setP({ shariah: { ...sh, ...patch } });
+  return (
+    <form
+      aria-label={t.status.preferences}
+      className="flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setMsg(null);
+        const ok = [sh.debtMax, sh.cashMax].every((v) => v > 0 && v < 1);
+        if (!ok) return setMsg(t.status.preferencesInvalid);
+        save.mutate(p);
+      }}
+    >
+      <h2 className="font-semibold">{t.status.preferences}</h2>
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={sh.enabled}
+          onChange={(e) => set({ enabled: e.target.checked })}
+        />
+        {t.status.shariahToggle}
+      </label>
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.shariahBasis}
+          <select
+            className="min-h-11 rounded-sm border border-line bg-bg px-2 text-fg"
+            value={sh.basis}
+            onChange={(e) => set({ basis: e.target.value === 'assets' ? 'assets' : 'market-cap' })}
+          >
+            <option value="market-cap">{t.status.basisMarketCap}</option>
+            <option value="assets">{t.status.basisAssets}</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.debtMax}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={pct(sh.debtMax)}
+            onChange={(e) => set({ debtMax: Number(e.target.value) / 100 })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          {t.status.cashMax}
+          <input
+            inputMode="decimal"
+            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
+            defaultValue={pct(sh.cashMax)}
+            onChange={(e) => set({ cashMax: Number(e.target.value) / 100 })}
+          />
+        </label>
+      </div>
+      <button
+        type="submit"
+        disabled={save.isPending}
+        className="min-h-11 self-start rounded-sm border border-line px-3 text-sm"
+      >
+        {t.status.savePreferences}
+      </button>
+      {save.isError && (
+        <p role="alert" className="text-down">
+          {save.error.message}
+        </p>
+      )}
+      {msg && <p className="text-sm">{msg}</p>}
+    </form>
+  );
+}
+
 function Exports() {
   const q = useQuery({ queryKey: ['exports'], queryFn: listExports });
   const dl = useMutation({
@@ -303,6 +399,8 @@ export function Status() {
           </table>
         )}
       </div>
+
+      <Preferences />
 
       <Exports />
 

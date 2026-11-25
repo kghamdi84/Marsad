@@ -128,6 +128,10 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Shariah screening aid (2026-11-25)
+
+- **ADR 0027** (`shariah-1`): off by default; when switched on in Preferences (Status page), each company's Financials panel shows debt and cash over market capitalization or total assets against Khaled's limits, from the filings, with every caveat (business activity and non-permissible income are not screened; Sahm's label takes precedence).
+
 ### Weekly exports and alert latency (2026-11-25)
 
 - **ADR 0026** (`exports-1`): each Sunday the `exports` job writes Khaled's personal tables and the rule library as JSON, with a hashed manifest, to a private bucket he alone can read (MFA); the Status page lists and saves them.

@@ -30,3 +30,5 @@ Captured during work so they are not built early.
 
 - ETF overlap (Phase 7): needs ETF constituent weights (for example a holdings endpoint on a paid data plan or the issuers' daily files). With them: overlap of each holding with SPY, QQQ and its sector ETF, and the portfolio's look-through exposure.
 - Rotation alerts (Phase 7): push the rotation suggestion when the thesis card gives thesis status a history.
+
+- Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.

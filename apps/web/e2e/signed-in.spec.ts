@@ -145,3 +145,39 @@ test('the status page shows alert latency by kind and lets the owner save a week
   expect((await download).suggestedFilename()).toBe('marsad-2026-11-29-trades.json');
   expect(listed).toEqual([OWNER, `${OWNER}/2026-11-29`]);
 });
+
+test('preferences: the Shariah aid is off until switched on; limits are saved as fractions', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  let saved: unknown = null;
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/user_settings**', (r) => {
+    if (r.request().method() === 'POST') {
+      saved = r.request().postDataJSON();
+      return r.fulfill({ status: 201, body: '' });
+    }
+    return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+  await page.goto('/status');
+  const form = page.getByRole('form', { name: 'Preferences' });
+  const toggle = form.getByLabel('Show the Shariah screening aid on company pages');
+  await expect(toggle).not.toBeChecked();
+  await toggle.check();
+  await form.getByLabel('Divide debt and cash by').selectOption('assets');
+  await form.getByLabel('Debt limit (%)').fill('30');
+  await form.getByRole('button', { name: 'Save preferences' }).click();
+  await expect
+    .poll(() => saved)
+    .toEqual({
+      shariah_screen: true,
+      shariah_basis: 'assets',
+      shariah_debt_max: 0.3,
+      shariah_cash_max: 0.33,
+    });
+  await form.getByLabel('Cash limit (%)').fill('120');
+  await form.getByRole('button', { name: 'Save preferences' }).click();
+  await expect(form).toContainText('Limits must be above 0% and below 100%.');
+});

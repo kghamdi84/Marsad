@@ -733,8 +733,8 @@
         {
           "id": "8.2",
           "title": "Optional Shariah screen",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "shariah-1 (ADR 0027): off by default; basis and limits in Preferences (Status page); debt and cash ratios from filings as known on the chosen date, a missing input never passes, every caveat shown (business activity and non-permissible income not screened; Sahm's label takes precedence). Unit and browser tests on the real NVDA filing."
         },
         {
           "id": "8.3",
