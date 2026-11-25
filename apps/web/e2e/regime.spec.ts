@@ -7,7 +7,9 @@ import {
   capitulationHistory,
   eventStudy,
   fearGreedHistory,
+  parseNewsItems,
   stagedPlan,
+  topicDay,
   recessionFilter,
   regimeHistory,
   type BreadthInput,
@@ -30,6 +32,9 @@ import t10y2y from '../../../fixtures/fred/fredgraph-T10Y2Y.json' with { type: '
 import t10y3m from '../../../fixtures/fred/fredgraph-T10Y3M.json' with { type: 'json' };
 import vix from '../../../fixtures/fred/fredgraph-VIXCLS.json' with { type: 'json' };
 import vix3m from '../../../fixtures/fred/fredgraph-VXVCLS.json' with { type: 'json' };
+import oil from '../../../fixtures/fred/fredgraph-DCOILWTICO.json' with { type: 'json' };
+import dollar from '../../../fixtures/fred/fredgraph-DTWEXBGS.json' with { type: 'json' };
+import newsSample from '../../../fixtures/massive/news-market-sample-2026-11-24.json' with { type: 'json' };
 import { seedSession } from './helpers';
 
 // Every row below is computed from the real FRED downloads in fixtures/ by the same core functions the regime job
@@ -58,6 +63,8 @@ const fred: Record<string, Obs[]> = {
   NFCI: csv(nfci.body),
   SAHMREALTIME: csv(sahm.body),
   USEPUINDXD: csv(epu.body),
+  DCOILWTICO: csv(oil.body),
+  DTWEXBGS: csv(dollar.body),
 };
 
 function regimeRows() {
@@ -192,6 +199,18 @@ function capitulationRows() {
   );
 }
 
+// Topic days from the 23 real sample articles: the 28 baseline days carry the last 11 of them, the 7 recent days all
+// 23. By hand: tariffs 1 a baseline day (7 a week) and 4 a recent day (28), so 4.0 times; central banks 0 then 2 a day.
+function topicRows() {
+  const articles = parseNewsItems(newsSample.body.results) ?? [];
+  const rows = [];
+  for (let i = 0; i < 35; i++) {
+    const date = new Date(Date.UTC(2026, 9, 21 + i)).toISOString().slice(0, 10);
+    rows.push(topicDay(date, i < 28 ? articles.slice(12) : articles));
+  }
+  return rows;
+}
+
 async function mock(page: Page) {
   await seedSession(page, 'aal2');
   await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
@@ -201,6 +220,17 @@ async function mock(page: Page) {
   await page.route('**/rest/v1/regime_daily**', (r) => json(r, [...regimeRows()].reverse()));
   await page.route('**/rest/v1/regime_event_stats**', (r) => json(r, statRows()));
   await page.route('**/rest/v1/breadth_daily**', (r) => json(r, [...breadthRows()].reverse()));
+  await page.route('**/rest/v1/news_topic_days**', (r) => json(r, [...topicRows()].reverse()));
+  // GLD, ITA and IYT: the synthetic SPY closes stand in (not market data); the page only needs a series.
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    json(
+      r,
+      (fgSynthetic.spy as [string, number][])
+        .slice(-260)
+        .map(([date, close]) => ({ date, close }))
+        .reverse(),
+    ),
+  );
   await page.route('**/rest/v1/fear_greed_daily**', (r) =>
     json(r, [...fearGreedRows()].reverse().slice(0, 30)),
   );
@@ -326,6 +356,39 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(
     study.getByRole('row', { name: /VIX at or above 30, recession filter not high/ }),
   ).toContainText('Insufficient history: 9 episodes');
+  // GPR and EPU as one context line under the label.
+  await expect(
+    label.getByText(
+      /^Context: geopolitical risk \(GPR\) at the \d+(st|nd|rd|th) percentile of the past year; policy uncertainty \(EPU\) at the \d+(st|nd|rd|th)\.$/,
+    ),
+  ).toBeVisible();
+
+  // The geopolitical panel: topic counts with their baseline, and the reacting assets with source and date.
+  const geo = page.getByRole('region', { name: 'Geopolitical panel' });
+  await expect(
+    geo.getByText(
+      /7 days to 2026-11-24 \(7 days stored\), against the 4 weeks before \(28 days stored\)/,
+    ),
+  ).toBeVisible();
+  const tariffs = geo.getByRole('row', { name: /^Tariffs and trade/ });
+  await expect(tariffs).toContainText('28');
+  await expect(tariffs).toContainText('17.4%'); // 28 of 161 articles
+  await expect(tariffs).toContainText('7.0');
+  await expect(tariffs).toContainText('4.0 times');
+  await expect(geo.getByRole('row', { name: /^Central banks/ })).toContainText('No baseline');
+  await expect(geo.getByRole('row', { name: /^Conflict/ })).toContainText('0');
+  // The newest tariff headline, linked.
+  await expect(
+    geo.getByRole('link', {
+      name: '3 Stocks to Watch From the Transport Equipment & Leasing Industry',
+    }),
+  ).toHaveAttribute('href', /^https:\/\//);
+  await expect(geo.getByRole('row', { name: /WTI crude oil/ })).toContainText('2026-11-17');
+  await expect(geo.getByRole('row', { name: /Broad US dollar index/ })).toContainText('2026-11-20');
+  await expect(geo.getByRole('row', { name: /Defense \(ITA\)/ })).toContainText(
+    /\d{4}-\d{2}-\d{2}/,
+  );
+  await expect(geo.getByText(/not wire services/)).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/regime.png`, fullPage: true });
 });

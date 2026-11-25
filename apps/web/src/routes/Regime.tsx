@@ -4,7 +4,9 @@ import {
   BREADTH_VERSION,
   CAPITULATION_RULES,
   COMPONENT_SOURCES,
+  topicSummary,
   type ComponentKey,
+  type Topic,
   type Condition,
   UNIVERSE_VERSION,
   breadthReading,
@@ -94,6 +96,110 @@ function SnapshotTable({ rows }: { rows: { label: string; obs: Obs[]; digits?: n
   );
 }
 
+/** GPR and EPU as one context line under the label (their 1-year percentiles). */
+function ContextLine({ data }: { data: RegimeData }) {
+  const gpr = seriesSnapshot(data.gpr);
+  const epu = seriesSnapshot(data.series['USEPUINDXD'] ?? []);
+  if (!gpr || !epu) return null;
+  return (
+    <p className="text-sm">
+      {r.context(r.ordinal(Math.round(gpr.percentile)), r.ordinal(Math.round(epu.percentile)))}
+    </p>
+  );
+}
+
+function GeopoliticsSection({ data }: { data: RegimeData }) {
+  const g = r.geopolitics;
+  const last = data.topics.at(-1);
+  const assets = (
+    <>
+      <h3 className="font-semibold">{g.assetsTitle}</h3>
+      <SnapshotTable
+        rows={[
+          { label: g.oil, obs: data.series['DCOILWTICO'] ?? [] },
+          { label: g.dollar, obs: data.series['DTWEXBGS'] ?? [] },
+          { label: g.dgs10, obs: data.series['DGS10'] ?? [] },
+          { label: g.gld, obs: data.bars['GLD'] ?? [] },
+          { label: g.ita, obs: data.bars['ITA'] ?? [] },
+          { label: g.iyt, obs: data.bars['IYT'] ?? [] },
+        ]}
+      />
+      <p className="text-xs text-muted">{g.source}</p>
+    </>
+  );
+  if (!last)
+    return (
+      <Section id="geopolitics" title={g.title}>
+        <p className="text-sm text-muted">{g.intro}</p>
+        <p className="text-muted">{g.none}</p>
+        {assets}
+      </Section>
+    );
+  const sum = topicSummary(data.topics, last.date);
+  const latestSample = (topic: Topic) =>
+    [...data.topics].reverse().flatMap((d) => d.samples[topic] ?? [])[0];
+  return (
+    <Section id="geopolitics" title={g.title}>
+      <p className="text-sm text-muted">{g.intro}</p>
+      <p className="text-sm">{g.asOf(last.date, sum.recentDays, sum.baselineDays)}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={th}>{g.colTopic}</th>
+              <th className={thNum}>{g.colLast7}</th>
+              <th className={thNum}>{g.colShare}</th>
+              <th className={thNum}>{g.colBaseline}</th>
+              <th className={thNum}>{g.colRatio}</th>
+              <th className={th}>{g.colLatest}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sum.readings.map((x) => {
+              const s = latestSample(x.topic);
+              return (
+                <tr key={x.topic}>
+                  <td className={td}>{g.names[x.topic] ?? x.topic}</td>
+                  <td className={`${td} ${num}`}>{x.last7}</td>
+                  <td className={`${td} ${num}`}>
+                    {x.share7 === null ? r.noData : `${fixed(x.share7 * 100, 1)}%`}
+                  </td>
+                  <td className={`${td} ${num}`}>
+                    {x.weeklyBaseline === null ? r.noData : fixed(x.weeklyBaseline, 1)}
+                  </td>
+                  <td className={`${td} ${num}`}>
+                    {x.ratio === null ? g.noRatio : g.ratio(fixed(x.ratio, 1))}
+                  </td>
+                  <td className={td}>
+                    {s && /^https:\/\//.test(s.url) ? (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2"
+                      >
+                        {s.title}
+                      </a>
+                    ) : (
+                      (s?.title ?? '')
+                    )}
+                    {s && (
+                      <span className="block text-xs text-muted">
+                        {s.publisher}, {s.publishedAt.slice(0, 10)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {assets}
+    </Section>
+  );
+}
+
 function LabelSection({ data }: { data: RegimeData }) {
   const last = data.days.at(-1);
   const run = currentRun(data.days);
@@ -116,6 +222,7 @@ function LabelSection({ data }: { data: RegimeData }) {
       <p>{r.reasons[last.reason] ?? last.reason}</p>
       <p className="text-sm text-muted">{r.asOf(last.date, last.ruleVersion)}</p>
       <p className="text-sm">{r.since(run.since, run.sessions)}</p>
+      <ContextLine data={data} />
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-muted">{r.inputs.sp500}</dt>
@@ -600,6 +707,7 @@ export function Regime() {
           <BreadthSection data={q.data} />
           <FearGreedSection data={q.data} />
           <CapitulationSection data={q.data} />
+          <GeopoliticsSection data={q.data} />
           <StudySection data={q.data} />
           <Section id="volatility" title={v.title}>
             <SnapshotTable

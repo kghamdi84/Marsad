@@ -28,6 +28,51 @@ export interface NewsArticle extends NewsItem {
   sentiment: { ticker: string; label: string; reasoning: string | null }[];
 }
 
+/** Reads Massive news items; null when any item lacks an id, title, time, URL or publisher. */
+export function parseNewsItems(items: unknown[]): NewsArticle[] | null {
+  const out: NewsArticle[] = [];
+  for (const it of items) {
+    const r = it as Record<string, unknown>;
+    const publisher = (r['publisher'] as { name?: unknown } | undefined)?.name;
+    const id = str(r['id']);
+    const title = str(r['title']);
+    const when = str(r['published_utc']);
+    const url = str(r['article_url']);
+    if (
+      !id ||
+      !title ||
+      !when ||
+      !url ||
+      typeof publisher !== 'string' ||
+      Number.isNaN(Date.parse(when))
+    )
+      return null;
+    const insights = Array.isArray(r['insights'])
+      ? (r['insights'] as Record<string, unknown>[])
+      : [];
+    out.push({
+      id,
+      publisher,
+      title,
+      publishedAt: new Date(when).toISOString(),
+      url,
+      tickers: Array.isArray(r['tickers'])
+        ? (r['tickers'] as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [],
+      author: str(r['author']),
+      description: str(r['description']),
+      sentiment: insights
+        .filter((i) => typeof i['ticker'] === 'string' && typeof i['sentiment'] === 'string')
+        .map((i) => ({
+          ticker: i['ticker'] as string,
+          label: i['sentiment'] as string,
+          reasoning: str(i['sentiment_reasoning']),
+        })),
+    });
+  }
+  return out;
+}
+
 export function fetchNews(
   http: HttpClient,
   cfg: MassiveConfig,
@@ -37,46 +82,8 @@ export function fetchNews(
   checkTicker(ticker);
   const path = `/v2/reference/news?ticker=${ticker}&limit=${limit}&order=desc&sort=published_utc`;
   return massiveCall(http, cfg, path, '/v2/reference/news', 1800_000, (items) => {
-    const out: NewsArticle[] = [];
-    for (const it of items) {
-      const r = it as Record<string, unknown>;
-      const publisher = (r['publisher'] as { name?: unknown } | undefined)?.name;
-      const id = str(r['id']);
-      const title = str(r['title']);
-      const when = str(r['published_utc']);
-      const url = str(r['article_url']);
-      if (
-        !id ||
-        !title ||
-        !when ||
-        !url ||
-        typeof publisher !== 'string' ||
-        Number.isNaN(Date.parse(when))
-      )
-        return null;
-      const insights = Array.isArray(r['insights'])
-        ? (r['insights'] as Record<string, unknown>[])
-        : [];
-      out.push({
-        id,
-        publisher,
-        title,
-        publishedAt: new Date(when).toISOString(),
-        url,
-        tickers: Array.isArray(r['tickers'])
-          ? (r['tickers'] as unknown[]).filter((x): x is string => typeof x === 'string')
-          : [],
-        author: str(r['author']),
-        description: str(r['description']),
-        sentiment: insights
-          .filter((i) => typeof i['ticker'] === 'string' && typeof i['sentiment'] === 'string')
-          .map((i) => ({
-            ticker: i['ticker'] as string,
-            label: i['sentiment'] as string,
-            reasoning: str(i['sentiment_reasoning']),
-          })),
-      });
-    }
+    const out = parseNewsItems(items);
+    if (out === null) return null;
     const newest = out.reduce((m, a) => (a.publishedAt > m ? a.publishedAt : m), '');
     return { value: out, asOf: newest ? new Date(newest) : cfg.now() };
   });

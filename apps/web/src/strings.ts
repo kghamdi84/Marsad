@@ -575,6 +575,55 @@ export const t = {
       rules: (vix: number, pct: number, members: number, composite: number) =>
         `Rules: VIX at or above ${vix}; at most ${pct}% of the universe above its 50-day average (with at least ${members} members that have 50 sessions); composite at or below ${composite}; recession filter not high. ADR 0011.`,
     },
+    geopolitics: {
+      title: 'Geopolitical panel',
+      intro:
+        'How often market news mentions each topic, beside the assets that usually react. Counted by documented keyword rules (ADR 0012), not by a model.',
+      none: 'No topic counts yet. The topics job runs daily at 01:20 UTC and fills 35 days on its first run.',
+      asOf: (date: string, recent: number, baseline: number) =>
+        `7 days to ${date} (${recent} day${recent === 1 ? '' : 's'} stored), against the 4 weeks before (${baseline} day${baseline === 1 ? '' : 's'} stored).`,
+      colTopic: 'Topic',
+      colLast7: 'Articles, last 7 days',
+      colShare: 'Share of all articles',
+      colBaseline: 'Weekly average, 4 weeks before',
+      colRatio: 'Ratio',
+      colLatest: 'Latest headline',
+      ratio: (v: string) => `${v} times`,
+      noRatio: 'No baseline',
+      names: {
+        conflict: 'Conflict',
+        sanctions: 'Sanctions',
+        tariffs: 'Tariffs and trade',
+        elections: 'Elections',
+        centralBanks: 'Central banks',
+        energy: 'Energy',
+      } as Record<string, string>,
+      assetsTitle: 'Assets that usually react',
+      oil: 'WTI crude oil (USD a barrel)',
+      dollar: 'Broad US dollar index',
+      dgs10: '10-year Treasury yield',
+      gld: 'Gold (GLD)',
+      ita: 'Defense (ITA)',
+      iyt: 'Transports (IYT)',
+      source:
+        'Source: Massive market-wide news, mostly investment press (The Motley Fool, Zacks, GlobeNewswire), not wire services; so this counts coverage, not events. Assets: FRED DCOILWTICO, DTWEXBGS and DGS10; Massive daily bars for GLD, ITA and IYT.',
+    },
+    ordinal: (n: number) => {
+      const k = n % 100;
+      const suffix =
+        k >= 11 && k <= 13
+          ? 'th'
+          : n % 10 === 1
+            ? 'st'
+            : n % 10 === 2
+              ? 'nd'
+              : n % 10 === 3
+                ? 'rd'
+                : 'th';
+      return `${n}${suffix}`;
+    },
+    context: (gpr: string, epu: string) =>
+      `Context: geopolitical risk (GPR) at the ${gpr} percentile of the past year; policy uncertainty (EPU) at the ${epu}.`,
     volatility: {
       title: 'Volatility and its term structure',
       vix: 'VIX',

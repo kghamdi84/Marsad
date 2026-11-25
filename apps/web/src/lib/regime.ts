@@ -8,6 +8,7 @@ import type {
   RecessionSignal,
   RegimeInputs,
   StagedPlan,
+  TopicDay,
 } from '@marsad/core';
 import { supabase } from './supabase';
 
@@ -89,6 +90,10 @@ export interface RegimeData {
   /** The last 30 composite days, oldest first. */
   fearGreed: StoredFearGreedDay[];
   capitulation: StoredCapitulation;
+  /** The last 40 stored topic days, oldest first. */
+  topics: TopicDay[];
+  /** The trailing year of closes for each panel ticker, oldest first. */
+  bars: Record<string, Obs[]>;
 }
 
 /** FRED series shown in the panels. */
@@ -101,9 +106,27 @@ export const PANEL_SERIES = [
   'T10Y3M',
   'T10Y2Y',
   'USEPUINDXD',
+  'DCOILWTICO',
+  'DTWEXBGS',
 ] as const;
 
+/** Daily bars shown beside the topic counts (ADR 0012). */
+export const PANEL_BARS = ['GLD', 'ITA', 'IYT'] as const;
+
 const n = (v: unknown): number => Number(v);
+
+async function recentBars(ticker: string): Promise<Obs[]> {
+  const rows = check(
+    await client()
+      .from('daily_bars')
+      .select('date, close')
+      .eq('ticker', ticker)
+      .order('date', { ascending: false })
+      .limit(260),
+    `daily_bars ${ticker}`,
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({ date: String(r['date']), value: n(r['close']) })).reverse();
+}
 
 async function recent(seriesId: string): Promise<Obs[]> {
   const rows = check(
@@ -254,5 +277,22 @@ export async function loadRegime(): Promise<RegimeData> {
         dataTo: String(r['data_to']),
       }))
     : [];
-  return { days, breadth, stats, series, gpr, fearGreed, capitulation };
+  const [topicsR, ...barLists] = await Promise.all([
+    client().from('news_topic_days').select('*').order('date', { ascending: false }).limit(40),
+    ...PANEL_BARS.map((t) => recentBars(t)),
+  ]);
+  const topics: TopicDay[] = (
+    check(topicsR as never, 'news_topic_days') as Record<string, unknown>[]
+  )
+    .map((r) => ({
+      date: String(r['date']),
+      version: String(r['version']),
+      total: n(r['total']),
+      counts: r['counts'] as TopicDay['counts'],
+      samples: r['samples'] as TopicDay['samples'],
+    }))
+    .reverse();
+  const bars: Record<string, Obs[]> = {};
+  PANEL_BARS.forEach((t, i) => (bars[t] = (barLists[i] as Obs[] | undefined) ?? []));
+  return { days, breadth, stats, series, gpr, fearGreed, capitulation, topics, bars };
 }

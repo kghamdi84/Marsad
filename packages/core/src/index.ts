@@ -30,3 +30,4 @@ export * from './regime.js';
 export * from './breadth.js';
 export * from './feargreed.js';
 export * from './capitulation.js';
+export * from './geopolitics.js';

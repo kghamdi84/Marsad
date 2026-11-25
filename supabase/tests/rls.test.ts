@@ -105,6 +105,8 @@ beforeAll(async () => {
       values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
     insert into public.capitulation_plans (trigger_date, version, plan)
       values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
+    insert into public.news_topic_days (date, version, total, counts, samples)
+      values (date '2026-11-24', 'topics-1', 554, '{}'::jsonb, '{}'::jsonb);
     insert into public.news_articles (id, published_at, publisher, title, url)
       values ('n1', timestamptz '2026-11-24 17:45:55+00', 'The Motley Fool', 'Why Sandisk Stock Plunged Today', 'https://example.com/a');
     insert into public.short_interest (ticker, settlement_date, short_interest) values ('NVDA', date '2026-10-30', 279579505);
@@ -215,7 +217,7 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(13); // five seeded sources plus massive_reference, massive_bars, the four Study sources, massive_sections and massive_breadth
+      expect(await count(tx, 'public.source_status')).toBe(14); // five seeded sources plus massive_reference, massive_bars, the four Study sources, massive_sections, massive_breadth and massive_topics
     });
   });
 
@@ -274,6 +276,7 @@ describe('system tables', () => {
       'fear_greed_daily',
       'capitulation_daily',
       'capitulation_plans',
+      'news_topic_days',
       'news_articles',
       'short_interest',
       'short_volume',
