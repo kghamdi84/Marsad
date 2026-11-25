@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Shell } from './components/Shell';
+import { Lab } from './routes/Lab';
 import { Placeholder } from './routes/Placeholder';
 import { Regime } from './routes/Regime';
 import { Status } from './routes/Status';
@@ -25,6 +26,7 @@ const routeTree = root.addChildren([
   page('/alerts', t.nav.alerts, 5),
   page('/journal', t.nav.journal, 7),
   createRoute({ getParentRoute: () => root, path: '/status', component: Status }),
+  createRoute({ getParentRoute: () => root, path: '/lab', component: Lab }),
 ]);
 
 export const router = createRouter({ routeTree });

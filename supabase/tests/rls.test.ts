@@ -105,6 +105,10 @@ beforeAll(async () => {
       values (date '2026-11-23', 'capitulation-1', 'off', '[]'::jsonb);
     insert into public.capitulation_plans (trigger_date, version, plan)
       values (date '2026-04-07', 'capitulation-1', '{}'::jsonb);
+    insert into public.rules (id, version, hash, doc) values ('index-trend-filter', 1, 'abcdef12', '{}'::jsonb);
+    insert into public.rule_events (rule_id, version, to_status, reason) values ('index-trend-filter', 1, 'draft', 'new version');
+    insert into public.backtest_runs (rule_id, version, engine, params, trials, report)
+      values ('index-trend-filter', 1, 'backtest-1', '{}'::jsonb, 1, '{}'::jsonb);
     insert into public.briefs (kind, for_date, version, title, push_body, sections, inputs)
       values ('pre-market', date '2026-11-25', 'brief-1', 'Pre-market brief, Wed 2026-11-25', 'Regime Stress.', '[]'::jsonb, '{}'::jsonb);
     insert into public.market_movers_daily (date, version, n, gainers, losers, sectors)
@@ -287,6 +291,9 @@ describe('system tables', () => {
       'news_topic_days',
       'market_movers_daily',
       'briefs',
+      'rules',
+      'rule_events',
+      'backtest_runs',
       'econ_calendar_snapshots',
       'earnings_estimate_snapshots',
       'news_articles',
@@ -352,6 +359,29 @@ describe('system tables', () => {
       db.query(
         `insert into public.capitulation_daily (date, version, state, conditions) values (date '2026-11-24', 'capitulation-1', 'maybe', '[]')`,
       ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it('a rule version cannot change; only its status can', async () => {
+    await expect(
+      db.query(
+        `update public.rules set doc = '{"x":1}'::jsonb where id = 'index-trend-filter' and version = 1`,
+      ),
+    ).rejects.toThrow(/immutable/);
+    await expect(
+      db.query(
+        `update public.rules set hash = '00000000' where id = 'index-trend-filter' and version = 1`,
+      ),
+    ).rejects.toThrow(/immutable/);
+    await db.query(
+      `update public.rules set status = 'backtested' where id = 'index-trend-filter' and version = 1`,
+    );
+    const r = await db.query<{ status: string }>(
+      `select status from public.rules where id = 'index-trend-filter' and version = 1`,
+    );
+    expect(r.rows[0]?.status).toBe('backtested');
+    await expect(
+      db.query(`update public.rules set status = 'retired' where id = 'index-trend-filter'`),
     ).rejects.toThrow(/check constraint/);
   });
 
