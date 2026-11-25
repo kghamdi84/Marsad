@@ -1,8 +1,10 @@
 import {
   CAPITULATION_VERSION,
   FEAR_GREED_VERSION,
+  capitulationAlert,
   capitulationHistory,
   capitulationTriggers,
+  episodeLosses,
   fearGreedHistory,
   runJob,
   stagedPlan,
@@ -11,7 +13,14 @@ import {
   type RecessionLevel,
   type StagedPlan,
 } from '@marsad/core';
+import { alertContext, pipelineAndStore } from './alert-writer.js';
+import { CAPITULATION_PROXY } from './regime-job.js';
 import type { Store } from './store.js';
+
+/** A trigger older than this many calendar days is history, never a new alert (backfills and late runs). */
+export const CAPITULATION_ALERT_MAX_DAYS = 4;
+/** The event-study horizon the alert quotes (the brief's example: 63 sessions). */
+export const CAPITULATION_ALERT_HORIZON = 63;
 
 export interface SentimentJobDeps {
   store: Store;
@@ -81,6 +90,57 @@ export async function runSentimentJob(deps: SentimentJobDeps): Promise<JobRunRec
       });
       await store.upsertCapitulationPlans(plans);
 
+      // 3.10: the regime alert when the watch turns on. Only a trigger at most a few days old and still on today;
+      // the alert's event key is the trigger date, so later runs never store it twice.
+      // The newest day with every input: FRED publishes the VIX close the next morning, while breadth and bars
+      // arrive the same evening, so the newest day is often 'unavailable' for a few hours.
+      const lastDay = [...capDays].reverse().find((d) => d.state !== 'unavailable');
+      const triggerDate = capitulationTriggers(capDays).at(-1);
+      let alert: Record<string, number> | null = null;
+      const triggerAge =
+        triggerDate === undefined
+          ? Infinity
+          : (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${triggerDate}T00:00:00Z`)) /
+            86_400_000;
+      if (lastDay?.state === 'on' && triggerAge <= CAPITULATION_ALERT_MAX_DAYS) {
+        const day = capDays.find((d) => d.date === triggerDate) ?? lastDay;
+        const row = (
+          await store.latest(
+            'regime_event_stats',
+            `horizon, n, median, q1, q3, data_from, episodes|condition=${CAPITULATION_PROXY}`,
+            'horizon',
+            20,
+          )
+        ).find((r) => Number(r['horizon']) === CAPITULATION_ALERT_HORIZON);
+        const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+        const study = row
+          ? {
+              horizon: CAPITULATION_ALERT_HORIZON,
+              n: Number(row['n']),
+              median: num(row['median']),
+              q1: num(row['q1']),
+              q3: num(row['q3']),
+              dataFrom: String(row['data_from']),
+              episodes: (row['episodes'] ?? []) as string[],
+            }
+          : null;
+        const at = now();
+        const input = capitulationAlert(
+          day,
+          plans.find((p) => p.triggerDate === day.date) ?? null,
+          study
+            ? {
+                ...study,
+                losses: episodeLosses(sp500, study.episodes, CAPITULATION_ALERT_HORIZON),
+              }
+            : null,
+          await alertContext(store),
+          at,
+          at,
+        );
+        alert = (await pipelineAndStore(store, [{ input, sourceAt: null }], at)).decisions;
+      }
+
       const latest = [...days].reverse().find((d) => d.composite !== null);
       const newest = days.at(-1);
       const cap = capDays.at(-1);
@@ -96,6 +156,7 @@ export async function runSentimentJob(deps: SentimentJobDeps): Promise<JobRunRec
         newestAvailable: newest?.available ?? null,
         capitulation: cap ? `${cap.state} on ${cap.date}` : null,
         episodes: plans.length,
+        ...(alert ? { capitulationAlert: alert } : {}),
         inputs: {
           breadthDays: breadth.length,
           spyBars: spyBars.length,

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  capitulationAlert,
   capitulationDay,
   capitulationHistory,
   capitulationTriggers,
+  episodeLosses,
   stagedPlan,
   type SpyBar,
 } from './capitulation.js';
@@ -168,5 +170,94 @@ describe('stagedPlan (hand-checked scenarios)', () => {
 
   it('returns null without a SPY bar on the trigger date', () => {
     expect(stagedPlan('nope', bars(closes), rec)).toBeNull();
+  });
+});
+
+describe('episodeLosses', () => {
+  const s = [100, 101, 99, 102, 98, 103].map((value, i) => ({ date: `2026-01-0${i + 1}`, value }));
+  it('counts episodes whose close 2 sessions later is lower, leaving out those without that close', () => {
+    // 01: 100 -> 99 loss; 02: 101 -> 102 gain; 04: 102 -> 103 gain; 05: no close 2 sessions later; 09: not in series.
+    expect(
+      episodeLosses(s, ['2026-01-01', '2026-01-02', '2026-01-04', '2026-01-05', '2026-01-09'], 2),
+    ).toEqual({
+      n: 3,
+      losses: 1,
+    });
+  });
+  it('an equal close is not a loss', () => {
+    const flat = [5, 6, 5].map((value, i) => ({ date: `d${i}`, value }));
+    expect(episodeLosses(flat, ['d0'], 2)).toEqual({ n: 1, losses: 0 });
+  });
+});
+
+describe('capitulationAlert', () => {
+  const day = capitulationDay({
+    date: '2026-03-09',
+    vix: 35.94,
+    above50: 90,
+    n50: 1000,
+    composite: 6.4,
+    recession: 'low',
+  });
+  const plan = {
+    version: 'capitulation-1',
+    triggerDate: '2026-03-09',
+    triggerClose: 480,
+    selloffLow: 470.5,
+    sessionsSince: 0,
+    expired: false,
+    pausedOn: null,
+    reviewOn: null,
+    tranches: [],
+  };
+  const at = new Date('2026-03-10T12:00:00Z');
+  const study = {
+    horizon: 63,
+    n: 41,
+    median: 0.061,
+    q1: -0.024,
+    q3: 0.11,
+    dataFrom: '1990-01-02',
+    episodes: [],
+    losses: { n: 41, losses: 12 },
+  };
+
+  it('writes the brief example 3 card from the stored numbers', () => {
+    const a = capitulationAlert(day, plan, study, { regime: 'stress' }, at, at);
+    expect(a.headline).toBe('Capitulation watch ON');
+    expect(a.kind).toBe('regime');
+    expect(a.priority).toBe('high');
+    expect(a.eventId).toBe('capitulation:2026-03-09');
+    expect(a.trigger).toBe(
+      'Trigger at the close of 2026-03-09: VIX 35.9 (at least 30); 9.0% of the Marsad universe above its 50-day average (at most 15%); Fear and Greed composite 6 (at most 15); recession filter low (not high). Marsad event study (VIX close at least 30 with the recession filter not high, S&P 500 since 1990-01-02): 63-session forward return median +6.1%, 25th percentile -2.4%, 75th percentile +11.0%, n=41 episodes.',
+    );
+    // Review level: 480 x 0.9 = 432.00.
+    expect(a.plan?.entry).toContain(
+      'SPY trigger close 480.00; selloff low 470.50; review below 432.00.',
+    );
+    expect(a.plan?.stop).toBeUndefined();
+    expect(a.risk).toEqual([
+      { horizon: 'scalp', losses: 0, n: null },
+      { horizon: 'swing', losses: 0, n: null },
+      { horizon: 'long', losses: 12, n: 41 },
+    ]);
+    expect(a.worstAgeSeconds).toBe(0);
+    expect(a.maxAgeSeconds).toBe(26 * 3600);
+    expect(a.bearCase).toMatch(/2008/);
+  });
+
+  it('gives no rate under 30 episodes and says when the study or SPY levels are missing', () => {
+    const few = capitulationAlert(day, null, { ...study, n: 9 }, {}, at, at);
+    expect(few.trigger).toContain('n=9 episodes, insufficient history for a rate.');
+    expect(few.trigger).not.toContain('median');
+    expect(few.plan?.entry).toContain('SPY levels unavailable');
+    const none = capitulationAlert(day, plan, null, {}, at, at);
+    expect(none.trigger).toContain('Marsad event study: not computed yet.');
+    expect(none.risk.at(-1)).toEqual({ horizon: 'long', losses: 0, n: 0 });
+  });
+
+  it('measures age from when the inputs were stored', () => {
+    const a = capitulationAlert(day, plan, study, {}, new Date('2026-03-10T09:00:00Z'), at);
+    expect(a.worstAgeSeconds).toBe(3 * 3600);
   });
 });

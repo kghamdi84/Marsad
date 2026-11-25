@@ -52,3 +52,10 @@ An episode starts on an "on" day after a day that was not on. Its staged-entry p
 - Today the composite has at most 6 of 7 components; put/call returns with an options plan (Phase 5 asks for put/call ratios anyway).
 - The composite starts around the turn of 2026: before that, fewer than 4 components have 252 values (safe haven and breadth need 252 values on top of 2 years of bars and breadth). Stock price strength needs 252 values of a 252-session measure, so it joins about two years after breadth starts (around December 2026); until then the reading is at most 5 of 7. The junk-bond component is limited by FRED's 3-year window.
 - Every day stores each component's raw value, score and window size, so any day can be recomputed and compared.
+
+## Addendum (2026-11-25): the alert when the watch turns on
+
+- The sentiment job raises one regime alert (high priority, rule `capitulation-watch`, live) for a trigger at most 4 calendar days old while the newest day with every input is still on. The event key is the trigger date, so reruns never store it twice; an older trigger found by a backfill is history, not an alert.
+- The card follows the brief's example 3: each condition with its value and threshold, Marsad's proxy event study at 63 sessions with n, median and quartiles (under 30 episodes it says the history is insufficient and gives no rate), the staged plan as conditions with SPY levels, and the bear case. The long-horizon risk row counts proxy episodes with a lower S&P 500 close 63 sessions later.
+- The newest day is often unavailable for a few hours because FRED publishes the VIX close the next morning; the job judges the newest complete day.
+- Delivery: Web Push (ADR 0031), subject to quiet hours like every high-priority alert.
