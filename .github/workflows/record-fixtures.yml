@@ -15,6 +15,7 @@ on:
           - record-study-main.ts
           - record-sections-main.ts
           - record-holdings-main.ts
+          - record-breadth-main.ts
 
 permissions:
   contents: read
