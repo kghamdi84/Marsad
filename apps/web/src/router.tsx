@@ -1,23 +1,15 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Shell } from './components/Shell';
 import { Alerts } from './routes/Alerts';
+import { Journal } from './routes/Journal';
 import { Lab } from './routes/Lab';
-import { Placeholder } from './routes/Placeholder';
 import { Regime } from './routes/Regime';
 import { Status } from './routes/Status';
 import { Study } from './routes/Study';
 import { StudyCompany } from './routes/StudyCompany';
 import { Watch } from './routes/Watch';
-import { t } from './strings';
 
 const root = createRootRoute({ component: Shell });
-
-const page = (path: string, title: string, phase: number) =>
-  createRoute({
-    getParentRoute: () => root,
-    path,
-    component: () => <Placeholder title={title} phase={phase} />,
-  });
 
 const routeTree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/', component: Watch }),
@@ -25,7 +17,7 @@ const routeTree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/study/$ticker', component: StudyCompany }),
   createRoute({ getParentRoute: () => root, path: '/regime', component: Regime }),
   createRoute({ getParentRoute: () => root, path: '/alerts', component: Alerts }),
-  page('/journal', t.nav.journal, 7),
+  createRoute({ getParentRoute: () => root, path: '/journal', component: Journal }),
   createRoute({ getParentRoute: () => root, path: '/status', component: Status }),
   createRoute({ getParentRoute: () => root, path: '/lab', component: Lab }),
 ]);

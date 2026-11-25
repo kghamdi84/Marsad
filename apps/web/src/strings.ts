@@ -126,6 +126,55 @@ export const t = {
       none: 'No news stored for the watchlist yet.',
     },
   },
+  journal: {
+    title: 'Journal',
+    intro:
+      'Size a trade before you place it in Sahm, and keep every holding\u2019s exit conditions in view. Marsad never places orders; holding is never the default.',
+    sizer: {
+      title: 'Pre-trade checklist and position sizer',
+      ticker: 'Ticker',
+      account: 'Account size (USD)',
+      risk: 'Risk per trade (%)',
+      entry: 'Limit price',
+      stop: 'Stop',
+      targets: 'Targets (separate with spaces)',
+      tif: 'Time in force',
+      result: (shares: number, risk: string, value: string, pct: string) =>
+        `${shares} shares; risk USD ${risk} if the stop fills; position USD ${value} (${pct} of the account).`,
+      capped: 'Capped at 25% of the account, not by the risk.',
+      rr: (list: string) => `Reward to risk: ${list}.`,
+      checklist: 'Checklist (all five before the ticket)',
+      ticket: 'Sahm order ticket',
+      copy: 'Copy Sahm order ticket',
+      copied: 'Copied. Paste it into Sahm and check it there before you send it.',
+      incomplete: 'Tick all five checklist items to copy the ticket.',
+    },
+    holdings: {
+      title: 'Holdings and exit conditions',
+      none: 'No open holdings. Add one below or paste a CSV.',
+      colTicker: 'Ticker',
+      colShares: 'Shares',
+      colCost: 'Cost',
+      colLast: 'Last close',
+      colResult: 'Unrealized',
+      colExits: 'Exit conditions',
+      rules: (stop: string, targets: string, trend: string, time: string) =>
+        `Stop ${stop}; targets ${targets}; trend break ${trend}; time stop ${time}.`,
+      none2: 'none',
+      noRules: 'No exit conditions set: add a stop and a target.',
+      triggered: 'Triggered',
+      close: 'Mark closed',
+      add: 'Add holding',
+      csvTitle: 'Add from CSV',
+      csvHelp:
+        'Paste rows with the header ticker,shares,cost_basis,opened_on,stop,targets,trend_break,time_stop_sessions. Targets separated by ;. Trend break like sma50.',
+      csvButton: 'Add these holdings',
+      csvAdded: (n: number) => `${n} holding${n === 1 ? '' : 's'} added.`,
+      opened: 'Opened (YYYY-MM-DD)',
+      trend: 'Trend break (like sma50)',
+      timeStop: 'Time stop (sessions)',
+    },
+  },
   alerts: {
     title: 'Alerts',
     intro:
@@ -830,8 +879,6 @@ export const t = {
     ofN: (n: number) => `of ${n} days only`,
   },
 
-  placeholder: (phase: number) =>
-    `This module is built in Phase ${phase}. No data is shown until then.`,
   status: {
     title: 'System status',
     sources: 'Data sources',

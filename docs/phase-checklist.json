@@ -666,8 +666,8 @@
         {
           "id": "7.1",
           "title": "Holdings and options positions (manual and CSV)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "portfolio-1 (ADR 0020): personal holdings table (MFA; RLS test), entered from the Journal page or by CSV (every faulty line named; nothing added while any line is faulty), closed rather than deleted. Still to do: options positions (with the Phase 6 options data)."
         },
         {
           "id": "7.2",
@@ -684,14 +684,14 @@
         {
           "id": "7.4",
           "title": "Pre-trade checklist, position sizer and Sahm order ticket",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Pre-trade checklist (five Jimmy D items) and position sizer (risk budget over stop distance, 25% position cap, reward-to-risk per target) with the Sahm ticket in the brief's exact format; the copy button stays disabled until the checklist is complete (browser test)."
         },
         {
           "id": "7.5",
           "title": "Exit-discipline rules",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Exit conditions per holding (stop, targets, trend break, time stop) checked on the newest completed bar and shown on the Journal page; holdings without a stop or target are flagged. Still to do: exit alerts fired by a job through the alert pipeline; thesis-break matching."
         },
         {
           "id": "7.6",

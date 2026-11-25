@@ -401,6 +401,33 @@ describe('system tables', () => {
     );
   });
 
+  it('holdings are personal and refuse a bad trend rule', async () => {
+    await as(owner2, async (tx) => {
+      await tx.query(
+        `insert into public.holdings (ticker, shares, cost_basis, opened_on, stop, targets, trend_break) values ('RKLB', 100, 24, '2026-10-01', 22, '{27}', 'sma50')`,
+      );
+      expect(await count(tx, 'public.holdings')).toBe(1);
+    });
+    await as(other2, async (tx) => expect(await count(tx, 'public.holdings')).toBe(0));
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into public.holdings (ticker, shares, cost_basis, opened_on, trend_break) values ('RKLB', 1, 1, '2026-10-01', 'magic')`,
+        ),
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner1, (tx) =>
+        tx.query(
+          `insert into public.holdings (ticker, shares, cost_basis, opened_on) values ('RKLB', 1, 1, '2026-10-01')`,
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.holdings'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 5, batch A: alert pipeline and halt alerts; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 7, batch A: holdings, sizer and exits; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -127,6 +127,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
+
+### Phase 7 batch A: holdings, position sizer, Sahm ticket and exit conditions (2026-11-25)
+
+- Phase 6 (options) needs the Options Developer plan (USD 79 a month) for data: not bought. Phase 7 needs no paid data, so it went first.
+- **ADR 0020** (`portfolio-1`): the sizer and the Sahm ticket (copy only after the five-item checklist), personal holdings by hand or CSV, and exit conditions per holding checked on the newest bar. The Journal page replaces its placeholder; no placeholder pages remain.
+- **Live**: the backtest lab ran once by hand (index trend filter 7 trades, 0 out of sample; ETF momentum 0; trend template 13, 1 out of sample): all drafts, insufficient history, as expected on two years of bars.
 
 ### Phase 5 batch A: alert pipeline, card, halt alerts and feedback (2026-11-25)
 
