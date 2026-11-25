@@ -79,6 +79,12 @@ export interface AlertInput {
   sources: { id: string; label: string; asOf: string }[];
   /** Age of the oldest input, in seconds. */
   worstAgeSeconds: number;
+  /**
+   * Oldest input age allowed for this input, overriding the per-priority setting. Only for end-of-day inputs
+   * (exit rules on completed bars), whose data can never be minutes old; the age is then measured from when the
+   * bars were stored, and the card says the data is delayed.
+   */
+  maxAgeSeconds?: number;
   delayed: boolean;
 }
 
@@ -191,9 +197,10 @@ export function runPipeline(
   const key = dedupeKey(a, local.date);
   const done = (decision: Decision): PipelineResult => ({ decision, key, reasons });
 
-  if (a.worstAgeSeconds > s.maxAgeSeconds[a.priority]) {
+  const maxAge = a.maxAgeSeconds ?? s.maxAgeSeconds[a.priority];
+  if (a.worstAgeSeconds > maxAge) {
     reasons.push(
-      `data too old: ${a.worstAgeSeconds} s against ${s.maxAgeSeconds[a.priority]} s for ${a.priority}`,
+      `data too old: ${a.worstAgeSeconds} s against ${maxAge} s for ${a.maxAgeSeconds !== undefined ? 'end-of-day data' : a.priority}`,
     );
     return done('suppress');
   }

@@ -672,14 +672,14 @@
         {
           "id": "7.2",
           "title": "Exposure, beta and stress views",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "exposure-1 (ADR 0022): sector weights, beta to SPY (252 sessions), beta-weighted exposure, concentration (HHI), 126-session correlations, stress scenarios SPY -5/-10/-20%, VIX +10, sector -10% with assumptions listed. numpy known answers within 1e-10; browser test."
         },
         {
           "id": "7.3",
           "title": "ETF overlap and stock-to-ETF rotation signal",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "rotation-1 (ADR 0022): 3/6/12-month relative strength against the sector ETF and SPY, trend, and Khaled's thesis status; suggests the ETF or SPY when lagging with a weakening thesis. Still to do: ETF overlap (needs ETF constituent data, not on any current plan)."
         },
         {
           "id": "7.4",
@@ -690,8 +690,8 @@
         {
           "id": "7.5",
           "title": "Exit-discipline rules",
-          "status": "in_progress",
-          "evidence": "Exit conditions per holding (stop, targets, trend break, time stop) checked on the newest completed bar and shown on the Journal page; holdings without a stop or target are flagged. Still to do: exit alerts fired by a job through the alert pipeline; thesis-break matching."
+          "status": "done",
+          "evidence": "Exit conditions per holding (stop, targets, trend break, time stop) on the Journal page, and job alerts-exits after each bars run sends each newly broken rule through the alert pipeline once, with the case against selling (ADR 0022; job and core tests). Thesis-break triggers are the thesis status Khaled sets (rotation signal)."
         },
         {
           "id": "7.6",

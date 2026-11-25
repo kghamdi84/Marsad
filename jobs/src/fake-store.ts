@@ -1,5 +1,6 @@
 /** An in-memory Store for tests. Records every write; `fred` seeds what getFredRange returns. */
 import type {
+  HoldingRef,
   AnnualSection,
   Bar,
   Brief,
@@ -109,6 +110,8 @@ export interface FakeSeed {
   halts?: HaltRow[];
   watchlist?: string[];
   recentAlerts?: { key: string; at: string; decision: string }[];
+  barsFetchedAt?: Record<string, string>;
+  holdings?: HoldingRef[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -184,6 +187,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       return Promise.resolve(rows.length);
     },
     getDailyBars: (ticker) => Promise.resolve(s.bars?.[ticker] ?? []),
+    getBarsFetchedAt: (ticker) => Promise.resolve(s.barsFetchedAt?.[ticker] ?? null),
+    getOpenHoldings: () => Promise.resolve([...(s.holdings ?? [])]),
     getRegimeLabels: (from) =>
       Promise.resolve((s.regimeLabels ?? []).filter((r) => r.date >= from)),
     getRuleVersions: (id) => Promise.resolve([...(s.rules?.[id] ?? [])]),

@@ -128,6 +128,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Phase 7 batch B: exit alerts, exposure and stress, rotation (2026-11-25)
+
+- **ADR 0022**: exit rules fire alerts through the pipeline after each bars run (job `alerts-exits`, once per newly broken rule); exposure by sector, beta to SPY, concentration, correlations and stress scenarios (SPY -5/-10/-20%, VIX +10, sector -10%) labeled as approximations; the rotation signal from 3/6/12-month relative strength, trend and the thesis status Khaled sets. The bars job adds the 11 sector ETFs and open holdings.
+- **Verified**: numpy known answers (betas, VIX sensitivity, correlations, relative strength) within 1e-10; hand-checked scenarios; job tests (one alert per newly broken rule, stale bars named and the run failed); RLS test for the new columns; browser test with an exact beta of 2.
+- ETF overlap needs ETF constituent data no current plan includes: labeled on the page, noted in IDEAS.
+
 ### Phase 6 math ahead of options data (2026-11-25)
 
 - **ADR 0021** (`options-1`): Black-Scholes-Merton prices and greeks, implied volatility, expected move, IV rank and percentile, defined-risk payoffs with breakevens, and the liquidity guard; checked against scipy within 1e-9 and by hand; mutation-checked. The data half of Phase 6 waits for the options plan decision.

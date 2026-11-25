@@ -428,6 +428,26 @@ describe('system tables', () => {
     );
   });
 
+  it('a holding takes a known sector ETF and a thesis status (intact by default)', async () => {
+    await as(owner2, async (tx) => {
+      const r = await tx.query<{ sector_etf: string | null; thesis_status: string }>(
+        `insert into public.holdings (ticker, shares, cost_basis, opened_on, sector_etf) values ('RKLB', 1, 1, '2026-10-01', 'XLI') returning sector_etf, thesis_status`,
+      );
+      expect(r.rows[0]).toEqual({ sector_etf: 'XLI', thesis_status: 'intact' });
+    });
+    for (const [col, bad] of [
+      ['sector_etf', 'QQQ'],
+      ['thesis_status', 'great'],
+    ] as const)
+      await expect(
+        as(owner2, (tx) =>
+          tx.query(
+            `insert into public.holdings (ticker, shares, cost_basis, opened_on, ${col}) values ('RKLB', 1, 1, '2026-10-01', '${bad}')`,
+          ),
+        ),
+      ).rejects.toThrow(/check constraint/);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(

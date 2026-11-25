@@ -9,6 +9,7 @@ import {
 } from './snapshot-codec.js';
 import { etDate } from '@marsad/core';
 import type {
+  HoldingRef,
   AnnualSection,
   BreadthDay,
   AlertInput,
@@ -139,6 +140,10 @@ export interface Store {
   insertAlerts(rows: readonly StoredAlert[]): Promise<number>;
   /** Full stored daily bars of one ticker, oldest first. */
   getDailyBars(ticker: string): Promise<DailyBar[]>;
+  /** When the newest stored bar of a ticker was fetched, or null without bars. */
+  getBarsFetchedAt(ticker: string): Promise<string | null>;
+  /** Open holdings of every owner (the app has one), with their row ids. */
+  getOpenHoldings(): Promise<HoldingRef[]>;
   /** Regime label of every stored day on or after `from`. */
   getRegimeLabels(from: string): Promise<{ date: string; label: string }[]>;
   getRuleVersions(id: string): Promise<{ version: number; hash: string; status: RuleStatus }[]>;
@@ -1101,6 +1106,42 @@ export function supabaseStore(url: string, secretKey: string): Store {
         { onConflict: 'kind,for_date' },
       );
       if (error) throw new Error(`briefs upsert failed: ${error.message}`);
+    },
+    async getBarsFetchedAt(ticker) {
+      const { data, error } = await db
+        .from('daily_bars')
+        .select('fetched_at')
+        .eq('ticker', ticker)
+        .order('date', { ascending: false })
+        .limit(1);
+      if (error) throw new Error(`daily_bars read failed: ${error.message}`);
+      const r = (data ?? [])[0];
+      return r ? new Date(String(r.fetched_at)).toISOString() : null;
+    },
+    async getOpenHoldings() {
+      const { data, error } = await db
+        .from('holdings')
+        .select(
+          'id, ticker, shares, cost_basis, opened_on, stop, targets, trend_break, time_stop_sessions',
+        )
+        .is('closed_on', null)
+        .order('id', { ascending: true })
+        .limit(500);
+      if (error) throw new Error(`holdings read failed: ${error.message}`);
+      return (data ?? []).map((r) => {
+        const tb = /^(sma|ema)(\d{1,3})$/.exec(String(r.trend_break ?? ''));
+        return {
+          id: Number(r.id),
+          ticker: String(r.ticker),
+          shares: Number(r.shares),
+          costBasis: Number(r.cost_basis),
+          openedOn: String(r.opened_on),
+          stop: r.stop === null ? null : Number(r.stop),
+          targets: ((r.targets as unknown[] | null) ?? []).map(Number),
+          trendBreak: tb ? { ind: tb[1] as 'sma' | 'ema', period: Number(tb[2]) } : null,
+          timeStopSessions: r.time_stop_sessions === null ? null : Number(r.time_stop_sessions),
+        };
+      });
     },
     async getDailyBars(ticker) {
       const out: DailyBar[] = [];

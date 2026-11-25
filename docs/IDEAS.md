@@ -27,3 +27,6 @@ Captured during work so they are not built early.
 - Cross-check Marsad's composite against CNN's published Fear and Greed reading, if its terms allow (the brief lists it as optional).
 - Update FOMC_MEETINGS in `packages/core/src/econ-calendar.ts` when the Fed publishes the 2028 schedule (mid-2027).
 - Confirmed earnings dates and consensus estimates if a paid earnings source (Massive Benzinga partner data) is approved.
+
+- ETF overlap (Phase 7): needs ETF constituent weights (for example a holdings endpoint on a paid data plan or the issuers' daily files). With them: overlap of each holding with SPY, QQQ and its sector ETF, and the portfolio's look-through exposure.
+- Rotation alerts (Phase 7): push the rotation suggestion when the thesis card gives thesis status a history.
