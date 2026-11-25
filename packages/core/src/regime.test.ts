@@ -173,6 +173,13 @@ describe('recession filter thresholds (hand-built series)', () => {
       value: 4.5,
     });
   });
+  it('the inversion count shown on the page includes the newest session', () => {
+    // 395 sessions at +1, then 5 at -0.1: all 5 negative sessions, the newest included, are counted.
+    const curve = [...days(395, 1, '2025-11-27'), ...days(5, -0.1, '2026-12-27')];
+    const f = recessionFilter({ ...quiet, T10Y3M: curve }, asOf);
+    expect(f.signals[1]).toMatchObject({ state: 'triggered', value: -0.1 });
+    expect(f.signals[1]?.detail['invertedSessions']).toBe(5);
+  });
   it('one or two signals is elevated, three is high', () => {
     const two = {
       ...quiet,
