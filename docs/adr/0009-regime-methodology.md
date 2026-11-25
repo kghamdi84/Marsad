@@ -10,19 +10,19 @@ The brief (module "regime") asks for a regime label from documented rules, a rec
 
 What the free data allows, measured on 2026-11-25 (first observation on FRED):
 
-| Input | Series | First date | Frequency |
-| --- | --- | --- | --- |
-| S&P 500 close | `SP500` | 2016-11-25 (FRED keeps 10 years) | daily |
-| VIX close | `VIXCLS` | 1990-01-02 | daily |
-| VIX 3-month (VIX3M) | `VXVCLS` | 2007-12-04 | daily |
-| 10-year minus 3-month | `T10Y3M` | 1982-01-04 | daily |
-| High-yield option-adjusted spread | `BAMLH0A0HYM2` | 2023-11-27 (licensed series, FRED keeps 3 years) | daily |
-| Investment-grade spread | `BAMLC0A0CM` | 2023-11-27 | daily |
-| Financial conditions | `NFCI` | 1971-01-08 | weekly (Friday) |
-| Initial jobless claims | `ICSA` | 1967-01-07 | weekly (Saturday) |
-| Sahm rule, real time | `SAHMREALTIME` | 1959-12-01 | monthly |
-| Economic policy uncertainty | `USEPUINDXD` | 1985-01-01 | daily |
-| Geopolitical risk | GPR daily file | 1985 | daily |
+| Input                             | Series         | First date                                       | Frequency         |
+| --------------------------------- | -------------- | ------------------------------------------------ | ----------------- |
+| S&P 500 close                     | `SP500`        | 2016-11-25 (FRED keeps 10 years)                 | daily             |
+| VIX close                         | `VIXCLS`       | 1990-01-02                                       | daily             |
+| VIX 3-month (VIX3M)               | `VXVCLS`       | 2007-12-04                                       | daily             |
+| 10-year minus 3-month             | `T10Y3M`       | 1982-01-04                                       | daily             |
+| High-yield option-adjusted spread | `BAMLH0A0HYM2` | 2023-11-27 (licensed series, FRED keeps 3 years) | daily             |
+| Investment-grade spread           | `BAMLC0A0CM`   | 2023-11-27                                       | daily             |
+| Financial conditions              | `NFCI`         | 1971-01-08                                       | weekly (Friday)   |
+| Initial jobless claims            | `ICSA`         | 1967-01-07                                       | weekly (Saturday) |
+| Sahm rule, real time              | `SAHMREALTIME` | 1959-12-01                                       | monthly           |
+| Economic policy uncertainty       | `USEPUINDXD`   | 1985-01-01                                       | daily             |
+| Geopolitical risk                 | GPR daily file | 1985                                             | daily             |
 
 The Massive free plan gives 2 years of daily bars. The Indices plans (VIX itself) are not needed: VIX and VIX3M come from FRED.
 
