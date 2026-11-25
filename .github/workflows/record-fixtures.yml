@@ -17,19 +17,22 @@ on:
           - record-holdings-main.ts
           - record-breadth-main.ts
           - record-calendar-main.ts
+          - record-frames-main.ts
+          - record-10q-main.ts
+          - record-13f-main.ts
 
 permissions:
   contents: read
 
 concurrency:
   # The Massive recorders share the massive-api group (about 5 calls a minute); the FRED-only recorder does not.
-  group: ${{ inputs.script == 'record-calendar-main.ts' && 'record-fred' || 'massive-api' }}
+  group: ${{ (inputs.script == 'record-calendar-main.ts' || inputs.script == 'record-frames-main.ts' || inputs.script == 'record-10q-main.ts' || inputs.script == 'record-13f-main.ts') && 'record-public' || 'massive-api' }}
   cancel-in-progress: false
 
 jobs:
   record:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0

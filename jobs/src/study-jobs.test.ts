@@ -9,6 +9,7 @@ import form5Amended from '../../fixtures/sec/form5A-0001045810-25-000070.json';
 import dividends from '../../fixtures/massive/dividends-NVDA.json';
 import news from '../../fixtures/massive/news-NVDA.json';
 import sections from '../../fixtures/massive/sections-NVDA-risk_factors.json';
+import business from '../../fixtures/massive/sections-NVDA-business.json';
 import notEntitled from '../../fixtures/massive/not-entitled-403.json';
 import shortInterest from '../../fixtures/massive/short-interest-NVDA.json';
 import shortVolume from '../../fixtures/massive/short-volume-NVDA.json';
@@ -295,9 +296,10 @@ describe('runStudyDataJob on the real NVDA short data and dividends', () => {
 
 describe('runSectionsJob on the real NVIDIA 10-K sections', () => {
   const route = ['/stocks/filings/10-K/vX/sections', { status: 200, body: sections.body }] as const;
-  it('stores both annual reports and marks the source live', async () => {
+  const businessRoute = ['section=business', { status: 200, body: business.body }] as const;
+  it('stores both annual reports, the newest business section, and marks the source live', async () => {
     const { store, log } = fakeStore();
-    const { http, urls } = routedHttp(NOW, [route]);
+    const { http, urls } = routedHttp(NOW, [businessRoute, route]);
     const run = await runSectionsJob({
       http,
       cfg: massive,
@@ -306,8 +308,14 @@ describe('runSectionsJob on the real NVIDIA 10-K sections', () => {
       tickers: ['NVDA'],
     });
     expect(run.status).toBe('ok');
-    expect(run.rows_written).toBe(2);
+    expect(run.rows_written).toBe(3);
     expect(urls[0]).toContain('ticker=NVDA&section=risk_factors&limit=2');
+    expect(urls[1]).toContain('ticker=NVDA&section=business&limit=1');
+    // The real NVIDIA fiscal 2026 business section (recorded 2026-11-25), stored as filed.
+    expect(
+      log.annualSections[1]?.map((x) => [x.section, x.periodEnd, x.filingDate, x.text.length]),
+    ).toEqual([['business', '2026-01-25', '2026-02-25', 48289]]);
+    expect(log.annualSections[1]?.[0]?.text.startsWith('Item 1. Business')).toBe(true);
     expect(log.annualSections[0]?.map((x) => [x.periodEnd, x.filingDate, x.text.length])).toEqual([
       ['2026-01-25', '2026-02-25', 114916],
       ['2025-01-26', '2025-02-26', 110844],
@@ -318,6 +326,7 @@ describe('runSectionsJob on the real NVIDIA 10-K sections', () => {
   it('lists a company with no annual report from the vendor instead of failing or hiding it', async () => {
     const { store, log } = fakeStore();
     const { http } = routedHttp(NOW, [
+      businessRoute,
       ['ticker=NVDA', { status: 200, body: sections.body }],
       ['ticker=ZZZ', { status: 200, body: { status: 'OK', results: [] } }],
     ]);
@@ -355,6 +364,7 @@ describe('runSectionsJob on the real NVIDIA 10-K sections', () => {
       ['/stocks/filings/10-K/', { status: 200, body: { results: [] } }],
     ]);
     await runSectionsJob({ http, cfg: massive, store, now: () => NOW });
+    // No stored report, so no business request either: one call per stock.
     expect(urls).toHaveLength(STARTING_STOCKS.length);
     expect(urls.some((u) => /ticker=(SPY|QQQ|IWM|DIA)&/.test(u))).toBe(false);
   });

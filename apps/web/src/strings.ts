@@ -570,6 +570,35 @@ export const t = {
       missingImplied:
         'Move against the options-implied move: needs options data, which is built in a later phase.',
     },
+    business: {
+      title: 'What the company does (10-K, Item 1)',
+      intro:
+        'The business description from the newest annual report, exactly as filed. It is the company describing itself, not an independent view.',
+      open: 'Show the business description',
+      loading: 'Loading the annual report text',
+      none: 'No business description is stored for this company (ETFs file none).',
+      filed: (period: string, filed: string) => `Year ended ${period}, filed ${filed}.`,
+      view: '10-K on SEC',
+      textLabel: 'Business description as filed',
+    },
+    quarterly: {
+      title: 'Risk factors, quarter over quarter (10-Q)',
+      intro:
+        'Part II, Item 1A of the two newest quarterly reports, read from the SEC filings. A 10-Q lists changes since the annual report or says there were none; the two quarters are compared sentence by sentence with the same rules as the 10-K comparison.',
+      open: 'Show the quarterly updates',
+      loading: 'Loading the quarterly reports',
+      none: 'No quarterly report text is stored for this company yet.',
+      newest: (filed: string) => `Newest 10-Q, filed ${filed}`,
+      unchanged:
+        'This quarter says there were no material changes to the risk factors in the annual report.',
+      changes:
+        'This quarter lists risk factors added or changed since the annual report (shown below as filed).',
+      textLabel: 'Quarterly risk factors as filed',
+      view: '10-Q on SEC',
+      compare: (newer: string, older: string) =>
+        `Compared with the 10-Q filed ${older} (newer: ${newer}).`,
+      oneOnly: 'Only one quarterly report is stored, so there is nothing to compare yet.',
+    },
     risk: {
       title: 'Risk factors, year over year (10-K)',
       open: 'Show the comparison',
@@ -787,11 +816,6 @@ export const t = {
         why: 'A 5-year price history is beyond the free plan, which allows 2 years of daily bars. Statements come from SEC filings instead.',
       },
       {
-        name: '10-Q sections and quarter-to-quarter risk changes',
-        state: 'Not built',
-        why: 'The annual-report comparison above uses the vendor’s 10-K sections. That feed covers 10-Ks only, so quarterly reports would need the filing documents themselves.',
-      },
-      {
         name: '13F holders',
         state: 'Not built',
         why: 'Funds report holdings up to 45 days after quarter end. The vendor serves 13F filings by the fund that filed them, not by the stock, so a list of holders of this company needs the SEC quarterly 13F data sets, which are not loaded.',
@@ -974,6 +998,38 @@ export const t = {
       windowNote: (n: number) => `percentile over ${n} sessions`,
       method:
         'A component counts only with a value for that day; nothing is carried forward. Prices are price returns. Stock price strength needs a 52-week measure plus a year of its own history, so it joins about two years after breadth starts (around December 2026).',
+    },
+    quality: {
+      title: 'Quality at a discount',
+      intro:
+        'Profitable companies with strong balance sheets that also look cheap: quality is gross profits over assets (Novy-Marx, 2013), return on assets, low accruals and low leverage (Asness, Frazzini and Pedersen, 2019); value is the earnings yield and book-to-market (Graham). Each is a percentile within the Marsad universe; a company passes at quality 70 or more and value 50 or more.',
+      active:
+        'Capitulation watch is on: this is the list the brief pairs with staged entries. Study each name before any decision.',
+      inactive: 'Capitulation watch is off: shown for study, not as a signal.',
+      none: 'The screen has not run yet. It runs every Sunday.',
+      noPrice: 'no stored close',
+      summary: (
+        asOf: string,
+        year: number,
+        priceDate: string,
+        universe: number,
+        eligible: number,
+        passed: number,
+      ) =>
+        `Screened ${asOf}: fiscal ${year} figures from SEC filings, closes of ${priceDate}. ${eligible} of ${universe} companies had every input; ${passed} pass.`,
+      excluded: (noCik: number, noGp: number, loss: number, negEq: number, missing: number) =>
+        `Left out: ${noCik} without an SEC record, ${noGp} reporting no gross profit (banks and most insurers), ${loss} unprofitable, ${negEq} with negative equity, ${missing} with missing figures or no close.`,
+      nonePassed: 'No company passes both bars this week.',
+      colTicker: 'Company',
+      colQuality: 'Quality',
+      colValue: 'Value',
+      colGp: 'Gross profit / assets',
+      colRoa: 'Return on assets',
+      colEy: 'Earnings yield',
+      colBm: 'Book / price',
+      colNotes: 'Figures used',
+      caveats:
+        'Market value uses the latest close times shares from the year-end filing, so later buybacks or issuance are not reflected. Figures are as reported for the full fiscal year; a quarter since then is not included. A screen is a starting point for study, not a recommendation.',
     },
     capitulation: {
       title: 'Capitulation watch',

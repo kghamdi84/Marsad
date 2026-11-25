@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-11-25T17:20:21.456Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/CostOfRevenue/USD/CY2025.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "CostOfRevenue",
+    "ccp": "CY2025",
+    "uom": "USD",
+    "label": "Cost of Revenue",
+    "description": "The aggregate cost of goods produced and sold and services rendered during the reporting period.",
+    "pts": 1485,
+    "data": [
+      {
+        "accn": "0000104169-26-000055",
+        "cik": 104169,
+        "entityName": "Walmart Inc.",
+        "loc": "US-AR",
+        "start": "2025-02-01",
+        "end": "2026-01-31",
+        "val": 535395000000
+      },
+      {
+        "accn": "0001045810-26-000021",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "loc": "US-CA",
+        "start": "2025-01-27",
+        "end": "2026-01-25",
+        "val": 62475000000
+      }
+    ],
+    "totalRows": 1485
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "recordedAt": "2026-11-25T17:20:19.860Z",
+  "endpoint": "/api/xbrl/frames/dei/EntityCommonStockSharesOutstanding/shares/CY2025Q4I.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "dei",
+    "tag": "EntityCommonStockSharesOutstanding",
+    "ccp": "CY2025Q4I",
+    "uom": "shares",
+    "label": "Entity Common Stock, Shares Outstanding",
+    "description": "Indicate number of shares or other units outstanding of each of registrant's classes of capital or common stock or other ownership interests, if and as stated on cover of related periodic report. Where multiple classes or units exist define each class/interest by adding class of stock items such as Common Class A [Member], Common Class B [Member] or Partnership Interest [Member] onto the Instrument [Domain] of the Entity Listings, Instrument.",
+    "pts": 2645,
+    "data": [
+      {
+        "accn": "0000034088-26-000045",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "end": "2026-01-31",
+        "val": 4166763453
+      },
+      {
+        "accn": "0000050863-26-000011",
+        "cik": 50863,
+        "entityName": "INTEL CORPORATION",
+        "loc": "US-CA",
+        "end": "2026-01-16",
+        "val": 4995000000
+      },
+      {
+        "accn": "0000104169-25-000191",
+        "cik": 104169,
+        "entityName": "Walmart Inc.",
+        "loc": "US-AR",
+        "end": "2025-12-02",
+        "val": 7970166964
+      },
+      {
+        "accn": "0000200406-26-000016",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "end": "2026-02-06",
+        "val": 2409898936
+      },
+      {
+        "accn": "0000320193-26-000006",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "end": "2026-01-16",
+        "val": 14681140000
+      },
+      {
+        "accn": "0000732717-26-000120",
+        "cik": 732717,
+        "entityName": "AT&T INC.",
+        "loc": "US-TX",
+        "end": "2026-01-28",
+        "val": 7000577201
+      },
+      {
+        "accn": "0001193125-26-027207",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "end": "2026-01-22",
+        "val": 7425629076
+      }
+    ],
+    "totalRows": 2645
+  }
+}

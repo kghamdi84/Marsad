@@ -1,0 +1,65 @@
+{
+  "recordedAt": "2026-11-25T17:20:20.216Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/CommonStockSharesOutstanding/shares/CY2025Q4I.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "CommonStockSharesOutstanding",
+    "ccp": "CY2025Q4I",
+    "uom": "shares",
+    "label": "Common Stock, Shares, Outstanding",
+    "description": "Number of shares of common stock outstanding. Common stock represent the ownership interest in a corporation.",
+    "pts": 4530,
+    "data": [
+      {
+        "accn": "0000034088-26-000067",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "end": "2025-12-31",
+        "val": 4179000000
+      },
+      {
+        "accn": "0000050863-26-000191",
+        "cik": 50863,
+        "entityName": "Intel Corporation",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 4994000000
+      },
+      {
+        "accn": "0000070858-26-000548",
+        "cik": 70858,
+        "entityName": "BofA Finance LLC",
+        "loc": "-",
+        "end": "2025-12-31",
+        "val": 7212464345
+      },
+      {
+        "accn": "0000320193-26-000006",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 14702703000
+      },
+      {
+        "accn": "0001193125-26-027207",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "end": "2025-12-31",
+        "val": 7429000000
+      },
+      {
+        "accn": "0001045810-26-000021",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "loc": "US-CA",
+        "end": "2026-01-25",
+        "val": 24304000000
+      }
+    ],
+    "totalRows": 4530
+  }
+}

@@ -59,3 +59,5 @@ export * from './catalyst.js';
 export * from './push.js';
 export * from './email-digest.js';
 export * from './option-positions.js';
+export * from './quality.js';
+export * from './tenq.js';

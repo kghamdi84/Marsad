@@ -1,0 +1,105 @@
+{
+  "recordedAt": "2026-11-25T17:20:19.481Z",
+  "endpoint": "/api/xbrl/frames/us-gaap/StockholdersEquity/USD/CY2025Q4I.json",
+  "status": 200,
+  "body": {
+    "taxonomy": "us-gaap",
+    "tag": "StockholdersEquity",
+    "ccp": "CY2025Q4I",
+    "uom": "USD",
+    "label": "Stockholders' Equity Attributable to Parent",
+    "description": "Total of all stockholders' equity (deficit) items, net of receivables from officers, directors, owners, and affiliates of the entity which are attributable to the parent. The amount of the economic entity's stockholders' equity attributable to the parent excludes the amount of stockholders' equity which is allocable to that ownership interest in subsidiary equity which is not attributable to the parent (noncontrolling interest, minority interest). This excludes temporary equity and is sometimes called permanent equity.",
+    "pts": 5849,
+    "data": [
+      {
+        "accn": "0001628280-26-067844",
+        "cik": 21344,
+        "entityName": "COCA COLA CO",
+        "loc": "US-GA",
+        "end": "2025-12-31",
+        "val": 32169000000
+      },
+      {
+        "accn": "0000034088-26-000067",
+        "cik": 34088,
+        "entityName": "Exxon Mobil Corporation",
+        "loc": "US-TX",
+        "end": "2025-12-31",
+        "val": 259386000000
+      },
+      {
+        "accn": "0000037996-26-000191",
+        "cik": 37996,
+        "entityName": "Ford Motor Co",
+        "loc": "US-MI",
+        "end": "2025-12-31",
+        "val": 35952000000
+      },
+      {
+        "accn": "0000050863-26-000191",
+        "cik": 50863,
+        "entityName": "Intel Corporation",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 114281000000
+      },
+      {
+        "accn": "0000070858-26-000548",
+        "cik": 70858,
+        "entityName": "BofA Finance LLC",
+        "loc": "-",
+        "end": "2025-12-31",
+        "val": 303243000000
+      },
+      {
+        "accn": "0000078003-26-000127",
+        "cik": 78003,
+        "entityName": "PFIZER INC",
+        "loc": "US-NY",
+        "end": "2025-12-31",
+        "val": 86476000000
+      },
+      {
+        "accn": "0000104169-26-000154",
+        "cik": 104169,
+        "entityName": "WALMART INC.",
+        "loc": "US-AR",
+        "end": "2026-01-31",
+        "val": 99617000000
+      },
+      {
+        "accn": "0000200406-26-000197",
+        "cik": 200406,
+        "entityName": "Johnson & Johnson",
+        "loc": "US-NJ",
+        "end": "2025-12-28",
+        "val": 81544000000
+      },
+      {
+        "accn": "0000320193-26-000013",
+        "cik": 320193,
+        "entityName": "Apple Inc.",
+        "loc": "US-CA",
+        "end": "2025-12-27",
+        "val": 88190000000
+      },
+      {
+        "accn": "0001193125-26-027207",
+        "cik": 789019,
+        "entityName": "MICROSOFT CORPORATION",
+        "loc": "US-WA",
+        "end": "2025-12-31",
+        "val": 390875000000
+      },
+      {
+        "accn": "0001045810-26-000075",
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "loc": "US-CA",
+        "end": "2026-01-25",
+        "val": 157293000000
+      }
+    ],
+    "totalRows": 5849
+  }
+}

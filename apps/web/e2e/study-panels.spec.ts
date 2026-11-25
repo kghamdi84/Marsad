@@ -2,6 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import dividends from '../../../fixtures/massive/dividends-NVDA.json' with { type: 'json' };
 import news from '../../../fixtures/massive/news-NVDA.json' with { type: 'json' };
 import sections from '../../../fixtures/massive/sections-NVDA-risk_factors.json' with { type: 'json' };
+import business from '../../../fixtures/massive/sections-NVDA-business.json' with { type: 'json' };
 import shortInterest from '../../../fixtures/massive/short-interest-NVDA.json' with { type: 'json' };
 import shortVolume from '../../../fixtures/massive/short-volume-NVDA.json' with { type: 'json' };
 import factsFixture from '../../../fixtures/sec/companyfacts-NVDA-trimmed.json' with { type: 'json' };
@@ -429,6 +430,80 @@ function sectionRows(): Json[] {
     text: x['text'],
   }));
 }
+
+test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and the comparison', async ({
+  page,
+}) => {
+  await setup(page);
+  const rows = [
+    {
+      accession: '0001819994-26-000074',
+      filing_date: '2026-11-09',
+      filing_url:
+        'https://www.sec.gov/Archives/edgar/data/1819994/000181999426000074/rklb-20260930.htm',
+      text: 'Other than as set forth below, there have been no material changes from the risk factors previously disclosed. Our new launch vehicle may be delayed.',
+      no_material_changes: false,
+    },
+    {
+      accession: '0001819994-26-000062',
+      filing_date: '2026-08-10',
+      filing_url:
+        'https://www.sec.gov/Archives/edgar/data/1819994/000181999426000062/rklb-20260630.htm',
+      text: 'Other than as set forth below, there have been no material changes from the risk factors previously disclosed. The Iridium Transaction may not close.',
+      no_material_changes: false,
+    },
+  ];
+  let asked = 0;
+  await page.route('**/rest/v1/quarterly_sections**', (r) => {
+    asked++;
+    return json(r, rows);
+  });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'Risk factors, quarter over quarter (10-Q)' });
+  expect(asked).toBe(0);
+  await panel.getByText('Show the quarterly updates').click();
+  await expect(panel.getByText('Newest 10-Q, filed 2026-11-09.')).toBeVisible();
+  await expect(panel.getByText(/This quarter lists risk factors added or changed/)).toBeVisible();
+  await expect(
+    panel.getByRole('region', { name: 'Quarterly risk factors as filed' }),
+  ).toContainText('Our new launch vehicle may be delayed.');
+  await expect(
+    panel.getByText('Compared with the 10-Q filed 2026-08-10 (newer: 2026-11-09).'),
+  ).toBeVisible();
+  // One sentence each side is new or gone; the shared first sentence is unchanged.
+  await expect(panel.getByText('1 new, 1 removed, 0 edited, 1 unchanged sentences.')).toBeVisible();
+});
+
+test('business: the real 10-K Item 1 text loads only when opened, with its filing link', async ({
+  page,
+}) => {
+  await setup(page);
+  const asked: string[] = [];
+  await page.route('**/rest/v1/annual_sections**', (r) => {
+    asked.push(r.request().url());
+    const x = business.body.results[0] as Json;
+    return json(r, [
+      {
+        period_end: x['period_end'],
+        filing_date: x['filing_date'],
+        filing_url: x['filing_url'],
+        text: x['text'],
+      },
+    ]);
+  });
+  await page.goto('/study/NVDA');
+  const panel = page.getByRole('region', { name: 'What the company does (10-K, Item 1)' });
+  await expect(panel.getByText(/not an independent view/)).toBeVisible();
+  expect(asked).toHaveLength(0);
+  await panel.getByText('Show the business description').click();
+  await expect(panel.getByText('Year ended 2026-01-25, filed 2026-02-25.')).toBeVisible();
+  await expect(panel.getByText(/NVIDIA pioneered accelerated computing/)).toBeVisible();
+  await expect(panel.getByRole('link', { name: '10-K on SEC' })).toHaveAttribute(
+    'href',
+    'https://www.sec.gov/Archives/edgar/data/1045810/0001045810-26-000021.txt',
+  );
+  expect(asked[0]).toContain('section=eq.business');
+});
 
 test('risk factors: nothing is fetched until opened, then two real 10-Ks are compared by sentence', async ({
   page,

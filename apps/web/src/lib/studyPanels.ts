@@ -385,6 +385,57 @@ export async function loadEarningsFilings(cik: string): Promise<EarningsFiling[]
   }));
 }
 
+export interface QuarterlySection {
+  accession: string;
+  filingDate: string;
+  filingUrl: string;
+  text: string;
+  noMaterialChanges: boolean;
+}
+
+/** The two newest stored 10-Q risk-factor sections (Part II, Item 1A), newest first. */
+export async function loadQuarterlySections(cik: string): Promise<QuarterlySection[]> {
+  const rows = check(
+    await client()
+      .from('quarterly_sections')
+      .select('accession, filing_date, filing_url, text, no_material_changes')
+      .eq('cik', cik)
+      .order('filing_date', { ascending: false })
+      .limit(2),
+    'quarterly_sections',
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    accession: String(r['accession']),
+    filingDate: String(r['filing_date']),
+    filingUrl: String(r['filing_url']),
+    text: String(r['text']),
+    noMaterialChanges: r['no_material_changes'] === true,
+  }));
+}
+
+/** The newest stored 10-K business section (Item 1), or null when none is stored. */
+export async function loadBusinessSection(cik: string): Promise<DatedSection | null> {
+  const rows = check(
+    await client()
+      .from('annual_sections')
+      .select('period_end, filing_date, filing_url, text')
+      .eq('cik', cik)
+      .eq('section', 'business')
+      .order('period_end', { ascending: false })
+      .limit(1),
+    'annual_sections',
+  ) as Record<string, unknown>[];
+  const r = rows[0];
+  return r
+    ? {
+        periodEnd: String(r['period_end']),
+        filingDate: String(r['filing_date']),
+        filingUrl: String(r['filing_url']),
+        text: String(r['text']),
+      }
+    : null;
+}
+
 /** The two newest stored 10-K risk-factor sections (about 110 KB of text each), newest fiscal year first. */
 export async function loadRiskFactorSections(cik: string): Promise<DatedSection[]> {
   const rows = check(
