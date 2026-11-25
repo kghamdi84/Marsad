@@ -9,7 +9,18 @@ import {
   type SeriesMarker,
   type Time,
 } from 'lightweight-charts';
-import { ema, rsi, sma, type ChartMarker, type DailyBar } from '@marsad/core';
+import { ema, rsi, sma, type ChartMarker, type DailyBar, type MarkerKind } from '@marsad/core';
+
+/** The short text drawn on the chart for each marker kind; the full label is in the list beneath it. */
+const MARKER_TEXT: Record<MarkerKind, string> = {
+  'high-8k': '8-K',
+  'medium-8k': '8-K',
+  split: 'Split',
+  dividend: 'Div',
+  'insider-buy': 'Buy',
+  halt: 'Halt',
+  alert: 'Alert',
+};
 
 export interface ChartToggles {
   sma50: boolean;
@@ -149,18 +160,25 @@ export default function PriceChart({
       .filter((m) => barDates.has(m.date))
       .map((m) => ({
         time: m.date as Time,
-        // Dividends sit below the bar so they never hide an 8-K or split marker above it.
-        position: m.kind === 'dividend' ? 'belowBar' : 'aboveBar',
-        shape: m.kind === 'split' ? 'square' : m.kind === 'high-8k' ? 'arrowDown' : 'circle',
+        // Dividends and insider buys sit below the bar so they never hide an 8-K, split, halt or alert above it.
+        position: m.kind === 'dividend' || m.kind === 'insider-buy' ? 'belowBar' : 'aboveBar',
+        shape:
+          m.kind === 'split' || m.kind === 'halt'
+            ? 'square'
+            : m.kind === 'high-8k'
+              ? 'arrowDown'
+              : m.kind === 'insider-buy'
+                ? 'arrowUp'
+                : 'circle',
         color:
-          m.kind === 'high-8k'
+          m.kind === 'high-8k' || m.kind === 'halt'
             ? warn
-            : m.kind === 'medium-8k'
+            : m.kind === 'medium-8k' || m.kind === 'alert'
               ? fg
               : m.kind === 'dividend'
                 ? text
                 : up,
-        text: m.kind === 'split' ? 'Split' : m.kind === 'dividend' ? 'Div' : '8-K',
+        text: MARKER_TEXT[m.kind],
       }));
     createSeriesMarkers(candles, placed);
 

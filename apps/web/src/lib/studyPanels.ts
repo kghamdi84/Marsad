@@ -1,11 +1,51 @@
 import type {
+  AlertEvent,
   DatedSection,
   DividendEvent,
   EarningsFiling,
   FinancialFact,
+  HaltEvent,
   NewsItem,
 } from '@marsad/core';
 import { supabase } from './supabase';
+
+/**
+ * Chart events for one ticker that are not filings: trading halts (newest 50) and Marsad's own delivered alerts
+ * (newest 50, suppressed signals left out). Loaded on their own: a failure leaves the chart without these markers.
+ */
+export async function loadChartEvents(
+  ticker: string,
+): Promise<{ halts: HaltEvent[]; alerts: AlertEvent[] }> {
+  const [h, a] = await Promise.all([
+    client()
+      .from('halts')
+      .select('halted_at, reason_code, reason_meaning')
+      .eq('symbol', ticker)
+      .order('halted_at', { ascending: false })
+      .limit(50),
+    client()
+      .from('alerts')
+      .select('created_at, headline')
+      .eq('ticker', ticker)
+      .neq('decision', 'suppress')
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+  const halts = check(h, 'halts') as Record<string, unknown>[];
+  const alerts = check(a, 'alerts') as Record<string, unknown>[];
+  return {
+    halts: halts.map((r) => ({
+      haltedAt: new Date(String(r['halted_at'])).toISOString(),
+      reason: r['reason_meaning']
+        ? `${String(r['reason_code'])} (${String(r['reason_meaning'])})`
+        : String(r['reason_code']),
+    })),
+    alerts: alerts.map((r) => ({
+      createdAt: new Date(String(r['created_at'])).toISOString(),
+      headline: String(r['headline']),
+    })),
+  };
+}
 
 function client() {
   if (!supabase) throw new Error('not configured');
