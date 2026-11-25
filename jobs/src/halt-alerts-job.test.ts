@@ -45,6 +45,7 @@ describe('runHaltAlertsJob', () => {
     expect(rows[0]?.delivery['push']).toBe('pending');
     // Critical and pushed: an email copy is queued too (ADR 0032); nothing goes to the digest.
     expect(rows[0]?.delivery['email']).toBe('pending');
+    expect(rows[0]?.delivery['telegram']).toBe('pending');
     expect(rows[0]?.delivery['digest']).toBeUndefined();
   });
 

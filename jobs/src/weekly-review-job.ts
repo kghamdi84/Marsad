@@ -78,7 +78,7 @@ export async function runWeeklyReviewJob(deps: WeeklyReviewJobDeps): Promise<Job
         await deps.sendEmail(brief.title, briefText(brief));
         email = 'sent';
       }
-      await store.saveBrief(brief, inputs, { email, push: 'pending' });
+      await store.saveBrief(brief, inputs, { email, push: 'pending', telegram: 'pending' });
       return {
         rows: 1,
         details: { weekEnding, trades: trades.length, alerts: alerts.length, email },

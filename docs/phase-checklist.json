@@ -538,8 +538,8 @@
         {
           "id": "5.7",
           "title": "Telegram bot (optional)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "telegram-1 (ADR 0033): optional second channel carrying exactly what push carries (push-decision alerts, system alerts, briefs) with the same freshness limits and late labels, on its own delivery field and once-only claim, run in the dispatcher step after Web Push; test message through the Web Push workflow; send-only bot. Verified: 6 job tests (send once, expiry, not configured, failed send, test mode, token never in an error) and writer tests. Still to do: Khaled creates the bot and adds TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (SETUP step 7), then the live test."
         },
         {
           "id": "5.8",

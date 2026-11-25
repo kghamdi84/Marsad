@@ -6,7 +6,11 @@ import type { PendingPush, PushStore, PushTable } from './push-job.js';
 type Row = Record<string, unknown>;
 
 /** The dispatcher's reads and writes with the secret key (job_runs through the main store's recordRun). */
-export function supabasePushStore(url: string, secretKey: string): Omit<PushStore, 'recordRun'> {
+export function supabasePushStore(
+  url: string,
+  secretKey: string,
+  field: 'push' | 'telegram' = 'push',
+): Omit<PushStore, 'recordRun'> {
   const db = createClient(url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -14,7 +18,7 @@ export function supabasePushStore(url: string, secretKey: string): Omit<PushStor
     const { data, error } = await db
       .from(table)
       .select(cols)
-      .eq('delivery->>push', 'pending')
+      .eq(`delivery->>${field}`, 'pending')
       .order('created_at', { ascending: true })
       .limit(200);
     if (error) throw new Error(`${table} pending read failed: ${error.message}`);
@@ -64,7 +68,7 @@ export function supabasePushStore(url: string, secretKey: string): Omit<PushStor
         .from(table)
         .update({ delivery: next })
         .eq('id', id)
-        .eq('delivery->>push', expect)
+        .eq(`delivery->>${field}`, expect)
         .select('id');
       if (error) throw new Error(`${table} delivery update failed: ${error.message}`);
       return (data ?? []).length === 1;

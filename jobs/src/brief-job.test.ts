@@ -72,6 +72,7 @@ describe('runBriefJob', () => {
       kind: 'pre-market',
       email: 'not-configured',
       push: 'pending',
+      telegram: 'pending',
     });
     const lines = saved?.brief.sections.flatMap((s) => s.lines) ?? [];
     expect(lines).toContain('Fear and Greed composite 42, fear (5 of 7 components, 2026-11-24).');
@@ -173,6 +174,8 @@ describe('runBriefJob', () => {
       tickers: [],
     });
     expect(log.briefs[0]?.delivery['push']).toBe('sent to 1 of 1 device');
+    // Stored before Telegram existed: never sent late as if new.
+    expect(log.briefs[0]?.delivery['telegram']).toBe('not sent (brief stored before Telegram)');
   });
 
   it('briefText has no em dash', () => {
