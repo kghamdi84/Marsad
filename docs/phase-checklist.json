@@ -562,14 +562,14 @@
         {
           "id": "5.11",
           "title": "Feed-down and recovery alerts",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Live since Phase 1: the heartbeat raises one stale and one recovered system alert per transition, pauses dependent rules and shows them on the Status page. Still to do: push delivery (Web Push, after the Phase 5 prerequisites)."
         },
         {
           "id": "5.12",
           "title": "Latency metrics",
-          "status": "in_progress",
-          "evidence": "Each stored alert carries its source time and end-to-end latency, shown on its card. Still to do: latency on the status page and live-feed latency (after the prerequisites)."
+          "status": "done",
+          "evidence": "Each alert stores its source time and end-to-end latency (card); the Status page shows median and 90th-percentile latency by alert kind over 30 days, and each source's last latency. Live-feed latency arrives with the Phase 5 prerequisites."
         },
         {
           "id": "5.13",
@@ -745,8 +745,8 @@
         {
           "id": "8.4",
           "title": "Weekly exports to Storage",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "exports-1 (ADR 0026): weekly job writes each owner's personal tables and the rule library as JSON with a hashed manifest to a private bucket (owner read-only with MFA; RLS tested); Status page lists and saves them. Job, unit, RLS and browser tests."
         },
         {
           "id": "8.5",

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
   DEFAULT_SOURCE_POLICIES,
@@ -6,8 +6,10 @@ import {
   describeSourceHealth,
   dualClock,
   formatAge,
+  latencyByKind,
   type UpcomingRow,
 } from '@marsad/core';
+import { downloadExport, listExports } from '../lib/exports';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
 
@@ -109,6 +111,102 @@ const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
 const thEnd = 'border-b border-line px-2 py-2 text-end font-medium text-muted';
 const td = 'border-b border-line px-2 py-2 align-top';
 
+async function loadLatency() {
+  if (!supabase) throw new Error('not configured');
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const r = await supabase
+    .from('alerts')
+    .select('kind, latency_ms')
+    .gte('created_at', since)
+    .not('latency_ms', 'is', null)
+    .limit(5000);
+  if (r.error) throw new Error(r.error.message);
+  return latencyByKind(
+    (r.data as { kind: string; latency_ms: number | null }[]).map((x) => ({
+      kind: x.kind,
+      latencyMs: x.latency_ms === null ? null : Number(x.latency_ms),
+    })),
+  );
+}
+
+function Latency() {
+  const q = useQuery({ queryKey: ['latency'], queryFn: loadLatency });
+  return (
+    <div className="overflow-x-auto">
+      <h2 className="mb-2 font-semibold">{t.status.latency}</h2>
+      <p className="mb-2 text-sm text-muted">{t.status.latencyIntro}</p>
+      {q.isError && (
+        <p role="alert" className="text-down">
+          {q.error.message}
+        </p>
+      )}
+      {!q.data ? null : q.data.length === 0 ? (
+        <p className="text-muted">{t.status.noLatency}</p>
+      ) : (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={th}>{t.status.colKind}</th>
+              <th className={thEnd}>{t.status.colN}</th>
+              <th className={thEnd}>{t.status.colMedian}</th>
+              <th className={thEnd}>{t.status.colP90}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {q.data?.map((l) => (
+              <tr key={l.kind}>
+                <td className={td}>{l.kind}</td>
+                <td className={`${td} text-end tabular-nums`}>{l.n}</td>
+                <td className={`${td} text-end tabular-nums`}>{formatAge(l.median / 1000)}</td>
+                <td className={`${td} text-end tabular-nums`}>{formatAge(l.p90 / 1000)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function Exports() {
+  const q = useQuery({ queryKey: ['exports'], queryFn: listExports });
+  const dl = useMutation({
+    mutationFn: (x: { date: string; file: string }) => downloadExport(x.date, x.file),
+  });
+  return (
+    <div>
+      <h2 className="mb-2 font-semibold">{t.status.exports}</h2>
+      <p className="mb-2 text-sm text-muted">{t.status.exportsIntro}</p>
+      {q.isError && (
+        <p role="alert" className="text-down">
+          {q.error.message}
+        </p>
+      )}
+      {q.data && q.data.length === 0 && <p className="text-muted">{t.status.noExports}</p>}
+      {q.data?.map((e) => (
+        <ul key={e.date} className="mb-2 flex flex-wrap gap-2">
+          {e.files.map((f) => (
+            <li key={f}>
+              <button
+                type="button"
+                className="min-h-11 rounded-sm border border-line px-3 text-sm"
+                onClick={() => dl.mutate({ date: e.date, file: f })}
+              >
+                {t.status.exportFile(e.date, f)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ))}
+      {dl.isError && (
+        <p role="alert" className="text-down">
+          {dl.error.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: load, refetchInterval: 30_000 });
 
@@ -176,6 +274,8 @@ export function Status() {
         </p>
       )}
 
+      <Latency />
+
       <div className="overflow-x-auto">
         <h2 className="mb-2 font-semibold">{t.status.alerts}</h2>
         {q.data && q.data.alerts.length === 0 ? (
@@ -203,6 +303,8 @@ export function Status() {
           </table>
         )}
       </div>
+
+      <Exports />
 
       <div className="overflow-x-auto">
         <h2 className="mb-2 font-semibold">{t.status.jobs}</h2>

@@ -128,6 +128,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
 
+### Weekly exports and alert latency (2026-11-25)
+
+- **ADR 0026** (`exports-1`): each Sunday the `exports` job writes Khaled's personal tables and the rule library as JSON, with a hashed manifest, to a private bucket he alone can read (MFA); the Status page lists and saves them.
+- The Status page shows alert latency by kind (median and 90th percentile, 30 days), in its own query so a failure there never blanks the page.
+- The accessibility scan now renders sticky bars in normal flow, ending the intermittent target-size results under the tab bar.
+
 ### Thesis card (2026-11-25)
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.

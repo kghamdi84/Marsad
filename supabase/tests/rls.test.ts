@@ -534,6 +534,26 @@ describe('system tables', () => {
     await expect(as(anon, (tx) => count(tx, 'public.theses'))).rejects.toThrow(/permission denied/);
   });
 
+  it('exports: the owner with MFA reads only their own folder and can write nothing', async () => {
+    await db.query(
+      `insert into storage.objects (bucket_id, name) values ('exports', '${OWNER}/2026-11-29/trades.json'), ('exports', '${OTHER}/2026-11-29/trades.json')`,
+    );
+    await as(owner2, async (tx) => expect(await count(tx, 'storage.objects')).toBe(1));
+    await as(owner1, async (tx) => expect(await count(tx, 'storage.objects')).toBe(0));
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into storage.objects (bucket_id, name) values ('exports', '${OWNER}/2026-12-06/x.json')`,
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await as(owner2, async (tx) => {
+      const r = await tx.query(`delete from storage.objects where bucket_id = 'exports'`);
+      expect(r.affectedRows).toBe(0);
+    });
+    await db.query(`delete from storage.objects`);
+  });
+
   it('a rule version cannot change; only its status can', async () => {
     await expect(
       db.query(
