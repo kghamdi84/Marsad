@@ -440,26 +440,26 @@
         {
           "id": "4.3",
           "title": "Point-in-time backtester with costs",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "backtest-1 (ADR 0017): next-open entries, intrabar stops (gap fills at the open), exit and time stops at the next open, one position at a time, costs per side (commission, slippage, FX). Hand-checked cases and an independent Python backtester on 600 seeded bars (14 trades, one stop) match exactly; look-ahead test: changing bars after a cut never changes an earlier closed trade; mutation-checked (two survivors found, tests added)."
         },
         {
           "id": "4.4",
           "title": "Walk-forward and out-of-sample holdout",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "Anchored walk-forward folds and a final 20% holdout (ADR 0017): best training Sharpe chosen per fold, only test-window trades count, holdout computed only when revealed and with the last chosen variant; tests check fold order, no leakage into the holdout, and the reveal flag."
         },
         {
           "id": "4.5",
           "title": "Bootstrap intervals, trial counting, deflated Sharpe",
           "status": "in_progress",
-          "evidence": "stats-1 (ADR 0016): Wilson interval, seeded percentile bootstrap, Sharpe, deflated Sharpe ratio (Bailey and Lopez de Prado 2014), maximum drawdown, trade statistics with the 30-case rule; known answers from scipy 1.18, statsmodels 0.15 and numpy 2.5 within 1e-9 (bootstrap exact on the same seeded draws); mutation-checked. Still to do: trial counting stored per rule (backtester and lifecycle tables)."
+          "evidence": "stats-1 (ADR 0016): Wilson interval, seeded percentile bootstrap, Sharpe, deflated Sharpe ratio (Bailey and Lopez de Prado 2014), maximum drawdown, trade statistics with the 30-case rule; known answers from scipy 1.18, statsmodels 0.15 and numpy 2.5 within 1e-9 (bootstrap exact on the same seeded draws); mutation-checked. Walk-forward counts every variant as a trial and feeds the trial count and the variance of training Sharpes to the deflated Sharpe ratio. Still to do: store trial counts per rule with the lifecycle tables."
         },
         {
           "id": "4.6",
           "title": "Benchmark and regime breakdowns, Monte Carlo drawdowns",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "backtestReport (ADR 0017): buy-and-hold benchmark over the same dates, regime breakdown at the signal date (values only from 30 trades), Monte Carlo maximum drawdowns from 1,000 seeded resamples (median and worst 5%); same seed identical, another seed changes only the simulations."
         },
         {
           "id": "4.7",

@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 4, batch A: statistics and rule language; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 4, batch B: backtester; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -127,6 +127,11 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - FRED workflow run by hand: regime ok (2,512 days, latest 2026-11-23 stress); calendar ok (20 events in 60 days, an earnings estimate for all 10 watchlist companies); the composite step failed loudly as designed ("3 of 7 components") until the breadth backfill and IEF bars exist. GitHub will email a failed FRED workflow each night until then.
 - Breadth backfill (run 45588953591) running since 09:48 UTC; the topics backfill is queued behind it in the Massive queue.
+
+### Phase 4 batch B: backtester (2026-11-25)
+
+- **ADR 0017** (`backtest-1`): next-open entries, intrabar stops, costs per side, reports with bootstrap intervals, benchmark, regime breakdown and Monte Carlo drawdowns; anchored walk-forward with trial counting and an untouched holdout.
+- **Verified**: hand-checked trades; an independent Python backtester on seeded bars matches exactly; look-ahead and determinism tests; 10 mutations, two survivors (re-entry on the exit bar, open trades in the report) got tests and are now caught.
 
 ### Phase 4 batch A: statistics and the rule language (2026-11-25)
 

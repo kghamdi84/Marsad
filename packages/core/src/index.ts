@@ -36,3 +36,4 @@ export * from './watch.js';
 export * from './briefs.js';
 export * from './stats.js';
 export * from './rules.js';
+export * from './backtest.js';

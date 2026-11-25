@@ -381,6 +381,25 @@ const out = {
       hash: core.ruleHash({ id: 'x-y', name: 'n', side: 'long', entry: rule, maxHoldBars: 5 }),
     };
   })(),
+  // Backtester on the seeded synthetic bars (ADR 0017).
+  backtest: (() => {
+    const f = JSON.parse(
+      readFileSync(join(root, 'fixtures/backtest/sma-cross-known.json'), 'utf8'),
+    );
+    const trades = core.backtest(f.rule, f.bars, 'SYN', f.costs);
+    const many = [...trades, ...trades, ...trades].map((t, k) => ({ ...t, ret: t.ret + k * 1e-5 }));
+    const split = core.walkForwardSplit(
+      f.bars.map((b) => b.date),
+      4,
+      0.2,
+    );
+    return {
+      trades,
+      report: core.backtestReport(many, { seed: 3, monteCarloRuns: 200 }),
+      split,
+      wf: core.walkForward([f.rule], f.bars, 'SYN', split),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
