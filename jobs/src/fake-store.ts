@@ -4,6 +4,7 @@ import type {
   Bar,
   CapitulationDay,
   CompanyRef,
+  EconEvent,
   FearGreedDay,
   StagedPlan,
   TopicDay,
@@ -26,6 +27,7 @@ import { decodeList, decodeSnapshot, encodeList, encodeSnapshot } from './snapsh
 import type {
   BreadthRow,
   DailyClose,
+  EarningsEstimateRow,
   EventStatRow,
   InsiderCandidate,
   InsiderResult,
@@ -61,6 +63,8 @@ export interface FakeLog {
   capitulation: CapitulationDay[][];
   plans: StagedPlan[][];
   topicDays: TopicDay[][];
+  econCalendars: { from: string; to: string; events: EconEvent[] }[];
+  earningsEstimates: EarningsEstimateRow[][];
   runs: JobRunRecord[];
   statuses: SourceStatusUpdate[];
   alerts: { alert: SystemAlert; policyVersion: string; snapshot: Record<string, unknown> }[];
@@ -78,6 +82,7 @@ export interface FakeSeed {
   dailyCloses?: Record<string, DailyClose[]>;
   recessionLevels?: { date: string; level: string }[];
   topicDates?: string[];
+  resultsFilings?: { cik: string; date: string }[];
 }
 
 export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {}): {
@@ -96,7 +101,8 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
       'breadthInputs' in x ||
       'dailyCloses' in x ||
       'recessionLevels' in x ||
-      'topicDates' in x);
+      'topicDates' in x ||
+      'resultsFilings' in x);
   const s: FakeSeed = isSeed(seed) ? seed : { fred: seed as Record<string, FredObservation[]> };
   const fred = s.fred ?? {};
   const snapshots = new Map<string, string>();
@@ -126,11 +132,22 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     capitulation: [],
     plans: [],
     topicDays: [],
+    econCalendars: [],
+    earningsEstimates: [],
     runs: [],
     statuses: [],
     alerts: [],
   };
   const store: Store = {
+    getResultsFilingDates: () => Promise.resolve([...(s.resultsFilings ?? [])]),
+    saveEconCalendar: (_at, _version, from, to, events) => {
+      log.econCalendars.push({ from, to, events: [...events] });
+      return Promise.resolve();
+    },
+    saveEarningsEstimates: (_at, _version, rows) => {
+      log.earningsEstimates.push([...rows]);
+      return Promise.resolve();
+    },
     getTopicDates: () => Promise.resolve([...(s.topicDates ?? [])]),
     upsertTopicDays: (rows) => {
       log.topicDays.push([...rows]);

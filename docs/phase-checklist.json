@@ -402,8 +402,8 @@
         {
           "id": "3.12",
           "title": "Economic and earnings calendars",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "calendar-1 (ADR 0013): FRED release dates (paged; ten tracked releases matched by id and name, verified against FRED's real release list) with usual ET times and impact, plus FOMC statements from the Federal Reserve calendar (2026 and 2027); watchlist earnings estimated from each company's own 8-K item 2.02 filings (same quarter last year plus 52 weeks), always labelled estimated, with overdue marking. Append-only snapshots; Watch page shows the next 14 days with ET and local time and a countdown for today, and the earnings estimates. Real FRED fixtures recorded through the Record fixtures workflow; calendar matched by hand on 2026-11-25 to 2026-12-31 (19 events); browser test checks 08:30 ET as 16:30 Riyadh and 14:00 EST as 22:00. Massive earnings calendars are not on the plan. Still to do: the first live run (tonight's FRED workflow)."
         },
         {
           "id": "3.13",

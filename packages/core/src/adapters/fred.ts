@@ -91,3 +91,69 @@ export async function fetchFredSeries(
   };
   return { ok: true, data, latencyMs: res.latencyMs, fromCache: res.fromCache };
 }
+
+/**
+ * Release dates of every FRED release between two dates, including scheduled ones with no data yet
+ * (`include_release_dates_with_no_data`), for the economic calendar (ADR 0013). Pages by 1,000 with `offset`: on
+ * 2026-11-25 the next 10 weeks held 1,040 dates. Confirmed on that day (fixtures/fred/fred-release-dates-*).
+ */
+export async function fetchReleaseDates(
+  http: HttpClient,
+  cfg: FredConfig,
+  from: string,
+  to: string,
+  maxPages = 5,
+): Promise<AdapterResult<{ releaseId: number; releaseName: string; date: string }[]>> {
+  const ok = /^\d{4}-\d{2}-\d{2}$/;
+  if (!ok.test(from) || !ok.test(to)) throw new RangeError('dates must be YYYY-MM-DD');
+  const base = cfg.baseUrl ?? 'https://api.stlouisfed.org';
+  const out: { releaseId: number; releaseName: string; date: string }[] = [];
+  let latencyMs = 0;
+  for (let page = 0; page < maxPages; page++) {
+    const url =
+      `${base}/fred/releases/dates?realtime_start=${from}&realtime_end=${to}` +
+      `&include_release_dates_with_no_data=true&sort_order=asc&limit=1000&offset=${page * 1000}` +
+      `&file_type=json&api_key=${encodeURIComponent(cfg.apiKey)}`;
+    const res = await http.get(url, { cacheTtlMs: 3600_000 });
+    if (!res.ok) return failure('FRED', res.kind, redactKey(res.message));
+    latencyMs += res.latencyMs;
+    let json: unknown;
+    try {
+      json = JSON.parse(res.body);
+    } catch {
+      return failure('FRED', 'invalid-response', 'response was not JSON');
+    }
+    const body = json as { release_dates?: unknown; count?: unknown };
+    if (!Array.isArray(body.release_dates))
+      return failure('FRED', 'invalid-response', 'no release_dates array');
+    for (const d of body.release_dates) {
+      const r = d as Record<string, unknown>;
+      if (
+        typeof r['release_id'] !== 'number' ||
+        typeof r['release_name'] !== 'string' ||
+        typeof r['date'] !== 'string' ||
+        !ok.test(r['date'])
+      )
+        return failure('FRED', 'invalid-response', 'release date without id, name or date');
+      out.push({ releaseId: r['release_id'], releaseName: r['release_name'], date: r['date'] });
+    }
+    const count = typeof body.count === 'number' ? body.count : out.length;
+    if (out.length >= count || body.release_dates.length < 1000)
+      return {
+        ok: true,
+        data: {
+          value: out,
+          provenance: {
+            source: 'fred',
+            endpoint: '/fred/releases/dates',
+            asOf: cfg.now().toISOString(),
+            fetchedAt: cfg.now().toISOString(),
+            planTier: 'end-of-day',
+          },
+        },
+        latencyMs,
+        fromCache: false,
+      };
+  }
+  return failure('FRED', 'invalid-response', `more than ${maxPages} pages of release dates`);
+}

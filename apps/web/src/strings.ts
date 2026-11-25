@@ -51,6 +51,42 @@ export const t = {
     primary: 'Main sections',
   },
   clock: { et: 'ET', local: 'local' },
+  watch: {
+    title: 'Watch',
+    intro:
+      'Today and the days ahead. Marsad watches and explains; you decide and place every order in Sahm.',
+    more: 'The market strip, watchlist, heatmap, movers, gap scanner and news join this page next.',
+  },
+  calendar: {
+    title: 'Economic calendar',
+    none: 'No calendar yet. The calendar job runs after the FRED job each evening (23:30 UTC).',
+    todayHeading: (date: string) => `Today, ${date}`,
+    range: (from: string, to: string) => `${from} to ${to}`,
+    impact: { high: 'High impact', medium: 'Medium impact', low: 'Low impact' } as Record<
+      string,
+      string
+    >,
+    time: (et: string, local: string) => `${et} ET (${local} local)`,
+    countdownIn: (h: number, m: number) => (h > 0 ? `in ${h} h ${m} min` : `in ${m} min`),
+    released: 'Released',
+    daysAhead: (n: number) => `Next ${n} days.`,
+    source: (at: string) =>
+      `Sources: FRED release calendar (dates) with each agency's usual release time; FOMC dates from the Federal Reserve. Updated ${at}.`,
+    earningsTitle: 'Watchlist earnings (estimated)',
+    earningsIntro:
+      'Estimated from each company\u2019s own results filings (SEC 8-K item 2.02): companies usually report a quarter on the same weekday a year later. Not a confirmed date; check the company\u2019s investor relations page.',
+    earningsNone: 'No estimates yet. They need stored SEC results filings and the calendar job.',
+    colTicker: 'Ticker',
+    colExpected: 'Expected around',
+    colRange: 'Range',
+    colBasis: 'Basis',
+    colLast: 'Last results filing',
+    basis: {
+      'same-quarter-last-year': 'Same quarter last year, 52 weeks on',
+      'quarterly-cadence': 'About 13 weeks after the last one (less than a year of history)',
+    } as Record<string, string>,
+    overdue: 'Overdue: no newer results filing yet',
+  },
   study: {
     title: 'Study',
     intro: 'Pick a company to study. Prices are end-of-day, never a live quote.',

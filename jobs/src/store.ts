@@ -14,6 +14,8 @@ import type {
   BreadthInput,
   BreadthSignals,
   CapitulationDay,
+  EarningsEstimate,
+  EconEvent,
   FearGreedDay,
   StagedPlan,
   TopicDay,
@@ -105,6 +107,20 @@ export interface Store {
   upsertFearGreedDays(rows: readonly FearGreedDay[]): Promise<number>;
   upsertCapitulationDays(rows: readonly CapitulationDay[]): Promise<number>;
   upsertCapitulationPlans(rows: readonly StagedPlan[]): Promise<number>;
+  /** Dates of 8-K results filings (item 2.02) per issuer CIK, oldest first. */
+  getResultsFilingDates(): Promise<{ cik: string; date: string }[]>;
+  saveEconCalendar(
+    at: Date,
+    version: string,
+    from: string,
+    to: string,
+    events: readonly EconEvent[],
+  ): Promise<void>;
+  saveEarningsEstimates(
+    at: Date,
+    version: string,
+    rows: readonly EarningsEstimateRow[],
+  ): Promise<void>;
   /** UTC dates already stored in news_topic_days. */
   getTopicDates(): Promise<string[]>;
   upsertTopicDays(rows: readonly TopicDay[], fetchedAt: Date): Promise<number>;
@@ -128,6 +144,12 @@ export interface UniverseRow {
   ticker: string;
   rank: number;
   dollarVolume: number;
+}
+
+/** One watchlist company's estimated next results release. */
+export interface EarningsEstimateRow extends EarningsEstimate {
+  ticker: string;
+  cik: string;
 }
 
 /** The breadth fields the composite and the capitulation watch read. */
@@ -934,6 +956,39 @@ export function supabaseStore(url: string, secretKey: string): Store {
         .upsert(out, { onConflict: 'trigger_date' });
       if (error) throw new Error(`capitulation_plans upsert failed: ${error.message}`);
       return out.length;
+    },
+    async getResultsFilingDates() {
+      const out: { cik: string; date: string }[] = [];
+      for (let start = 0; ; start += 1000) {
+        const { data, error } = await db
+          .from('filings')
+          .select('cik, filing_date')
+          .eq('form', '8-K')
+          .contains('items', ['2.02'])
+          .order('filing_date', { ascending: true })
+          .range(start, start + 999);
+        if (error) throw new Error(`filings read failed: ${error.message}`);
+        const rows = data ?? [];
+        for (const r of rows) out.push({ cik: r.cik as string, date: r.filing_date as string });
+        if (rows.length < 1000) break;
+      }
+      return out;
+    },
+    async saveEconCalendar(at, version, from, to, events) {
+      const { error } = await db.from('econ_calendar_snapshots').insert({
+        fetched_at: at.toISOString(),
+        version,
+        range_from: from,
+        range_to: to,
+        events,
+      });
+      if (error) throw new Error(`econ_calendar_snapshots insert failed: ${error.message}`);
+    },
+    async saveEarningsEstimates(at, version, rows) {
+      const { error } = await db
+        .from('earnings_estimate_snapshots')
+        .insert({ computed_at: at.toISOString(), version, estimates: rows });
+      if (error) throw new Error(`earnings_estimate_snapshots insert failed: ${error.message}`);
     },
     async getTopicDates() {
       const { data, error } = await db

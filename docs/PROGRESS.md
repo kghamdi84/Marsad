@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 3, batch D: geopolitical panel; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-25 (Phase 3, batch E: calendars; Khaled travelling, working autonomously on his instruction).
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
@@ -122,6 +122,13 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - The Supabase integration created `insider_holdings` (anon REST returns 401, same as the other tables; the new `insider_filings` columns come from the same migration file).
 - First run of `sec-insiders` after the merge, started by hand: `ok, rows 279, 43582 ms, read 80 of 80 candidates`. It reads 80 filings a run, newest first, so older Form 3s and the rest of the 600-filing window fill in over the next runs. Not looked at on the live page (needs Khaled's signed-in session).
+
+### Phase 3 batch E: economic and earnings calendars (2026-11-25)
+
+- **ADR 0013** (`calendar-1`): FRED release dates for ten tracked US releases with usual times and impact, FOMC statements from the Fed's calendar, and watchlist earnings estimated from each company's own results filings (labelled estimated). Append-only snapshots; the Watch page now exists with the calendar and earnings sections.
+- **Fixtures**: recorded live through the Record fixtures workflow (new FRED-only recorder outside the Massive queue): 1,040 release dates over 10 weeks, and FRED's full release list, against which every tracked id and name was checked. FOMC dates read from federalreserve.gov.
+- **Mistake caught**: I first wrote the new module over `packages/core/src/calendar.ts`, the existing market-hours calendar; `git status` showed it and I restored it from git before anything was committed. New code is in `econ-calendar.ts`; I now check a path is free before creating a file.
+- Massive's earnings calendars (Benzinga, Wall Street Horizon) are not on the plan, so earnings dates are estimates.
 
 ### Phase 3 batch D: geopolitical panel (2026-11-25)
 
