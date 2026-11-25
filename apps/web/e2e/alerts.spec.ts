@@ -64,6 +64,8 @@ test('alerts: a stored halt alert as a card with its decision, reasons, latency 
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: '[HALT, critical] SOFI' }) });
   await expect(card.getByText('SOFI halted: News pending')).toBeVisible();
+  // A push notification opens /alerts#alert-<id>, so each card carries that anchor (ADR 0031).
+  await expect(card).toHaveAttribute('id', 'alert-11111111-1111-4111-8111-111111111111');
   await expect(card.getByText('Pushed', { exact: true })).toBeVisible();
   await expect(
     card.getByText('Trading halted at 14:32 ET (22:32 local), reason T1 (News pending).'),

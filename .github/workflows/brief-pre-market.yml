@@ -36,3 +36,10 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           BRIEF_EMAIL_TO: ${{ secrets.BRIEF_EMAIL_TO }}
           BRIEF_MINUTES_BEFORE_OPEN: ${{ vars.BRIEF_MINUTES_BEFORE_OPEN }}
+      - name: Send push notifications
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs push
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
