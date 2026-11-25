@@ -344,6 +344,43 @@ const out = {
     topic: null,
     staleSources: [],
   }),
+  // Statistics and the rule evaluator (ADR 0016).
+  stats: (() => {
+    const f = JSON.parse(readFileSync(join(root, 'fixtures/stats/reference.json'), 'utf8'));
+    return {
+      cdf: [-3, -1, 0, 1.5, 4].map((x) => core.normCdf(x)),
+      inv: [0.001, 0.05, 0.5, 0.95].map((p) => core.normInv(p)),
+      wilson: core.wilson(97, 212),
+      trade: core.tradeStats(f.returns),
+      dsr: core.deflatedSharpe(f.returns, 20, 0.0025),
+      boot: core.bootstrap(f.returns, core.mean, { resamples: 500, seed: 9 }),
+    };
+  })(),
+  rules: (() => {
+    const bars = Array.from({ length: 120 }, (_, i) => {
+      const c = 100 + Math.sin(i / 5) * 8 + i * 0.1;
+      return {
+        date: `d${i}`,
+        open: c,
+        high: c + 1,
+        low: c - 1,
+        close: c,
+        volume: 1000 + i,
+        vwap: null,
+      };
+    });
+    const ev = new core.RuleEvaluator(bars);
+    const rule = {
+      all: [
+        { left: { ind: 'close' }, op: 'crossesAbove', right: { ind: 'sma', period: 20 } },
+        { left: { ind: 'rsi', period: 14 }, op: '<', right: 70 },
+      ],
+    };
+    return {
+      signals: ev.signals(rule),
+      hash: core.ruleHash({ id: 'x-y', name: 'n', side: 'long', entry: rule, maxHoldBars: 5 }),
+    };
+  })(),
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
