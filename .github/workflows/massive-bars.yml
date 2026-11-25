@@ -34,3 +34,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      # Exit rules (stop, targets, trend break, time stop) on the bars just stored, through the alert pipeline.
+      # Runs even when the bars step failed, so a holding with stale bars is named instead of skipped silently.
+      - name: Check exit rules on open holdings
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs alerts-exits
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

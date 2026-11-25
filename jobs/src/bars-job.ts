@@ -1,5 +1,6 @@
 import {
   BAR_ONLY_TICKERS,
+  SECTOR_ETFS,
   STARTING_TICKERS,
   buildCalendar,
   etDate,
@@ -26,17 +27,25 @@ const WINDOW_DAYS = 730;
 const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
 
 /**
- * Stores the daily bars of every tracked ticker for the whole two-year window, split-adjusted by the vendor
+ * Stores the daily bars of every tracked ticker, sector ETF and open holding for the whole two-year window, split-adjusted by the vendor
  * as of this run. Re-fetching the window each time keeps the stored history on one scale after a split.
  * A bar for a session that has not finished is left out, so a manual run mid-session never stores a
  * partial day. A ticker that fails (for example a plan problem) is named and the run is an error.
  */
 export async function runBarsJob(deps: BarsJobDeps): Promise<JobRunRecord> {
   const { store, now, http, cfg } = deps;
-  const tickers = deps.tickers ?? [...STARTING_TICKERS, ...BAR_ONLY_TICKERS];
   const run = await runJob(
     'massive-bars',
     async () => {
+      // The tracked list, the sector ETFs (sector betas, shocks and rotation) and every open holding (exit rules).
+      const tickers = deps.tickers ?? [
+        ...new Set([
+          ...STARTING_TICKERS,
+          ...BAR_ONLY_TICKERS,
+          ...SECTOR_ETFS.map((s) => s.ticker),
+          ...(await store.getOpenHoldings()).map((h) => h.ticker),
+        ]),
+      ];
       const started = now().getTime();
       const calendar = buildCalendar(await store.getHolidays('NYSE'), 'NYSE');
       const lastDay = lastCompletedTradingDay(now(), calendar);

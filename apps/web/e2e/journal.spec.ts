@@ -93,12 +93,13 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
     );
   });
   await page.goto('/journal');
-  const rklb = page.getByRole('row', { name: /^RKLB/ });
+  const holdings = page.getByRole('region', { name: 'Holdings and exit conditions' });
+  const rklb = holdings.getByRole('row', { name: /^RKLB/ });
   // 21.50 against a 24.00 cost: -10.4% (USD -250.00); the stop and the trend break both triggered.
   await expect(rklb).toContainText('-10.4% (USD -250.00)');
   await expect(rklb).toContainText('Triggered: Closed at 21.50, at or below the stop 22.00.');
   await expect(rklb).toContainText('below the 3-day SMA');
-  await expect(page.getByRole('row', { name: /^SOFI/ })).toContainText(
+  await expect(holdings.getByRole('row', { name: /^SOFI/ })).toContainText(
     'No exit conditions set: add a stop and a target.',
   );
 
@@ -128,4 +129,93 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
         time_stop_sessions: null,
       },
     ]);
+});
+
+test('journal: exposure, stress and rotation from stored bars; sector and thesis are saved', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  // SPY returns alternate +1% and -0.5%; XLI moves with SPY; RKLB returns are exactly 2 x SPY's minus 0.4% a day,
+  // so its beta to SPY and to XLI is exactly 2, and it lags both. The VIX moves -100 points per unit SPY return,
+  // so RKLB's sensitivity is -0.02 a point: +10 points is -20%. One holding: every scenario is -20% x its weight.
+  const n = 300;
+  const r = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? 0.01 : -0.005));
+  const series = (start: number, f: (x: number) => number) => {
+    const out = [start];
+    for (let i = 1; i < n; i++) out.push((out[i - 1] as number) * (1 + f(r[i] as number)));
+    return out;
+  };
+  const day = (i: number) =>
+    new Date(Date.UTC(2025, 5, 2) + i * 86_400_000).toISOString().slice(0, 10);
+  const closes: Record<string, number[]> = {
+    SPY: series(500, (x) => x),
+    XLI: series(120, (x) => x),
+    RKLB: series(20, (x) => 2 * x - 0.004),
+  };
+  let vix = 20;
+  const vixRows = Array.from({ length: n }, (_, i) => {
+    if (i > 0) vix += -100 * (r[i] as number);
+    return { date: day(i), value: vix };
+  });
+  let patched: unknown = null;
+  await page.route('**/rest/v1/**', (rt) => rt.fulfill(json([])));
+  await page.route('**/rest/v1/holdings**', (rt) => {
+    if (rt.request().method() === 'PATCH') {
+      patched = rt.request().postDataJSON();
+      return rt.fulfill({ status: 204, body: '' });
+    }
+    return rt.fulfill(
+      json([
+        {
+          id: 1,
+          ticker: 'RKLB',
+          shares: 100,
+          cost_basis: 20,
+          opened_on: '2026-01-02',
+          stop: null,
+          targets: [],
+          trend_break: null,
+          time_stop_sessions: null,
+          sector_etf: 'XLI',
+          thesis_status: 'weakening',
+        },
+      ]),
+    );
+  });
+  await page.route('**/rest/v1/daily_bars**', (rt) => {
+    const t = new URL(rt.request().url()).searchParams.get('ticker')?.replace(/^eq\./, '') ?? '';
+    return rt.fulfill(
+      json(
+        (closes[t] ?? [])
+          .map((close, i) => ({
+            date: day(i),
+            open: close,
+            high: close,
+            low: close,
+            close,
+            volume: 1,
+            vwap: null,
+          }))
+          .reverse(),
+      ),
+    );
+  });
+  await page.route('**/rest/v1/fred_observations**', (rt) =>
+    rt.fulfill(json([...vixRows].reverse())),
+  );
+  await page.goto('/journal');
+  const exposure = page.getByRole('region', { name: 'Exposure, beta and stress' });
+  await expect(exposure).toContainText('Beta-weighted exposure: 2.00 times SPY');
+  await expect(exposure.getByRole('row', { name: /^SPY down 10%/ })).toContainText('(-20.0%)');
+  await expect(exposure.getByRole('row', { name: /^VIX up 10 points/ })).toContainText('(-20.0%)');
+  await expect(exposure.getByRole('row', { name: /^Industrials \(XLI\) down 10%/ })).toContainText(
+    '(-20.0%)',
+  );
+  await expect(exposure).toContainText('Industrials: 100.0%');
+  const rotation = page.getByRole('region', { name: 'Stock-to-ETF rotation' });
+  await expect(rotation.getByRole('row', { name: /^RKLB/ })).toContainText('Rotate');
+  await expect(rotation).toContainText('and the thesis is weakening. Consider XLI or SPY instead.');
+
+  await page.getByLabel('Thesis').selectOption('broken');
+  await expect.poll(() => patched).toEqual({ sector_etf: 'XLI', thesis_status: 'broken' });
 });

@@ -173,6 +173,55 @@ export const t = {
       opened: 'Opened (YYYY-MM-DD)',
       trend: 'Trend break (like sma50)',
       timeStop: 'Time stop (sessions)',
+      sector: 'Sector ETF',
+      sectorNone: 'Unassigned',
+      thesis: 'Thesis',
+      thesisStatus: { intact: 'Intact', weakening: 'Weakening', broken: 'Broken' } as Record<
+        string,
+        string
+      >,
+    },
+    exposure: {
+      title: 'Exposure, beta and stress',
+      intro:
+        'Betas are slopes of daily returns over the last 252 common sessions against SPY, the VIX and each holding’s sector ETF. Scenarios are linear approximations, not forecasts.',
+      none: 'No open holdings to measure.',
+      total: (v: string) => `Portfolio value USD ${v} at the latest closes.`,
+      beta: (b: string, usd: string) =>
+        `Beta-weighted exposure: ${b} times SPY (USD ${usd} of SPY moves like this portfolio).`,
+      betaAssumed: (list: string) => `Beta counted as 1 (too little history): ${list}.`,
+      concentration: (ticker: string, w: string, top3: string, eff: string) =>
+        `Largest position ${ticker} at ${w}; top three ${top3}; equal to ${eff} equal-sized positions.`,
+      colTicker: 'Ticker',
+      colWeight: 'Weight',
+      colBeta: 'Beta to SPY',
+      colSector: 'Sector',
+      colScenario: 'Scenario',
+      colImpact: 'Estimated change',
+      sectorsTitle: 'By sector',
+      scenariosTitle: 'Stress scenarios (approximations)',
+      corrTitle: 'Highly correlated pairs (126 sessions, 0.8 or more)',
+      corrNone: 'No pair at 0.8 or more.',
+      overlap:
+        'ETF overlap needs ETF constituent data, which the current data plans do not include; it arrives with that data.',
+    },
+    rotation: {
+      title: 'Stock-to-ETF rotation',
+      intro:
+        'Relative strength over 3, 6 and 12 months against the sector ETF and SPY, the trend, and your thesis status. When a holding lags and its thesis weakens, the sector ETF or SPY is suggested instead.',
+      colTicker: 'Ticker',
+      colVsSector: 'Against sector ETF (3, 6, 12 months)',
+      colVsSpy: 'Against SPY (3, 6, 12 months)',
+      colTrend: 'Trend',
+      colSignal: 'Signal',
+      trend: { up: 'Up', down: 'Down', mixed: 'Mixed' } as Record<string, string>,
+      noSector: 'No sector ETF set',
+      suggestion: {
+        rotate: 'Rotate',
+        review: 'Review thesis',
+        none: 'No rotation',
+        insufficient: 'Insufficient history',
+      } as Record<string, string>,
     },
   },
   alerts: {
