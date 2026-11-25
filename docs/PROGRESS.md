@@ -130,6 +130,7 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - **Verified**: the composite matches an independent Python implementation on the real FRED downloads plus a seeded synthetic market for all 3,239 days to 1e-8; 17 rule mutations all caught (three needed new tests, added); hand-checked staged-plan scenarios (my first hand arithmetic was wrong in three places, the code was right); the capitulation proxy's 10 episodes checked against an independent scan (the 13 VIX-at-30 episodes minus the three in the 2020 to 2021 Sahm-rule period); RLS 22 passed; Node and Deno identical.
 - **Jobs**: `sentiment-daily` runs after the FRED workflow (23:30 UTC) and after the breadth workflow (10:40 UTC), reads only stored data, and fails loudly when the newest composite is more than 5 days old.
 - **Not yet**: the "Capitulation watch ON" alert needs the delivery channel (3.13); the quality-at-discount screen is a later phase.
+- **Breadth backfill fix**: the first live backfill (run 45584836642) stored 3 sessions, then stopped on 2024-11-28 (Thanksgiving): Massive answers a holiday with zero records and no `results` field, which the shared client read as a bad response (the tests had assumed an empty `results` array). The grouped-daily adapter now treats exactly that shape (status OK, count 0, no `results`) as a closed market; anything else is still an error, and errors now name the response's fields (never values) and the technical message in the job log.
 
 ### Sign-in fix (2026-11-25)
 
