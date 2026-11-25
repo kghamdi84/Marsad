@@ -442,6 +442,23 @@ const out = {
       push: core.pushText(i),
     }));
   })(),
+  // Portfolio and discipline (ADR 0020).
+  portfolio: {
+    size: core.positionSize({ account: 50000, riskPct: 0.01, entry: 24.15, stop: 23.7 }),
+    rr: core.rewardRisk(24.15, 23.7, [25.05, 26.4]),
+    ticket: core.sahmTicket({
+      side: 'BUY',
+      shares: 125,
+      ticker: 'RKLB',
+      type: 'LIMIT',
+      limit: 24.15,
+      stop: 23.7,
+      tif: 'GTC',
+    }),
+    csv: core.parseHoldingsCsv(
+      'ticker,shares,cost_basis,opened_on,stop,targets,trend_break\nRKLB,125,24.15,2026-10-01,23.70,26.40;28,sma50',
+    ),
+  },
   rounding: [81.615, 1.005, 2.675, -2.675, 0.5, 188.4, 1e21].map((n) => core.toFixedHalfUp(n, 2)),
   cost: core.costOfUsage('claude-sonnet-5-5', {
     inputTokens: 1000,
