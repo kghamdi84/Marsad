@@ -161,8 +161,9 @@ test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow
     card.getByRole('img', { name: /\d+ gained, \d+ lost, \d+ still pending/ }),
   ).toBeVisible();
   const row = card.getByRole('row', { name: /^exit-stop \(live\)/ });
-  await expect(row).toContainText('66.7% (insufficient history)');
-  await expect(row).toContainText('▲ +1.00%'); // mean return and mean excess
+  // Three finished outcomes: no percentage of any kind from fewer than 30 cases (integrity rule 10).
+  await expect(row).toContainText('Insufficient history (3 of 30)');
+  await expect(row).not.toContainText('%');
   await expect(card.getByRole('row', { name: /shadow/ })).toHaveCount(0); // pending outcomes are not scored
   await expect(card).toContainText('1 outcome is still waiting for its sessions.');
   await expect(card).toContainText(

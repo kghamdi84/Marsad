@@ -411,17 +411,24 @@ function Scorecard() {
                   </td>
                   <td className={`${td} ${num}`}>{r.horizon.replace('d', '')}</td>
                   <td className={`${td} ${num}`}>{r.n}</td>
-                  <td className={`${td} ${num}`}>
-                    {r.winRate === null ? '\u2013' : share(r.winRate)}{' '}
-                    {r.winCi
-                      ? `(${share(r.winCi.low)} to ${share(r.winCi.high)})`
-                      : `(${s.insufficient})`}
-                  </td>
-                  <td className={`${td} ${num}`}>{pctSigned(r.meanRet)}</td>
-                  <td className={`${td} ${num}`}>{pctSigned(r.meanExcess)}</td>
-                  <td className={`${td} ${num}`}>
-                    {pctSigned(r.meanMfe)} / {pctSigned(r.meanMae)}
-                  </td>
+                  {r.insufficient ? (
+                    // No percentage from fewer than 30 cases (integrity rule 10): one honest line instead.
+                    <td className={`${td} text-muted`} colSpan={4}>
+                      {s.insufficientRow(r.n)}
+                    </td>
+                  ) : (
+                    <>
+                      <td className={`${td} ${num}`}>
+                        {r.winRate === null ? '\u2013' : share(r.winRate)}{' '}
+                        {r.winCi ? `(${share(r.winCi.low)} to ${share(r.winCi.high)})` : ''}
+                      </td>
+                      <td className={`${td} ${num}`}>{pctSigned(r.meanRet)}</td>
+                      <td className={`${td} ${num}`}>{pctSigned(r.meanExcess)}</td>
+                      <td className={`${td} ${num}`}>
+                        {pctSigned(r.meanMfe)} / {pctSigned(r.meanMae)}
+                      </td>
+                    </>
+                  )}
                   <td className={`${td} ${num}`}>
                     {r.stops} / {r.targets}
                   </td>
@@ -439,8 +446,10 @@ function Scorecard() {
         <ul className="text-sm">
           {cal.map((b) => (
             <li key={b.low}>
-              {s.bin(b.low, b.high)}: n={b.n}, {b.winRate === null ? '\u2013' : share(b.winRate)}
-              {b.ci ? ` (${share(b.ci.low)} to ${share(b.ci.high)})` : ''}
+              {s.bin(b.low, b.high)}: n={b.n},{' '}
+              {b.ci === null || b.winRate === null
+                ? s.binInsufficient
+                : `${share(b.winRate)} (${share(b.ci.low)} to ${share(b.ci.high)})`}
             </li>
           ))}
         </ul>

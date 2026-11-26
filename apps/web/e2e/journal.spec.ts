@@ -329,6 +329,11 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
   const sofi = section.getByRole('listitem').filter({ hasText: 'SOFI' });
   await expect(sofi).toContainText('Adherence 0 (0 of 9 items).');
   await expect(section.getByRole('row', { name: /^All trades/ })).toContainText('1 (1)');
+  // One closed trade: no win rate, which would be a percentage from fewer than 30 cases.
+  await expect(section.getByRole('row', { name: /^All trades/ })).toContainText(
+    'Insufficient history (1 of 30)',
+  );
+  await expect(section.getByRole('row', { name: /^All trades/ })).not.toContainText('%');
   await expect(section).toContainText('Each group needs 30 closed trades');
 
   await sofi.getByLabel('Add a screenshot (PNG, JPEG or WebP, up to 5 MB)').setInputFiles({

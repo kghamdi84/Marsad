@@ -380,8 +380,14 @@ export function Trades() {
                           {s.closed} ({s.open})
                         </td>
                         <td className={`${td} ${num}`}>
-                          {s.winRate === null ? '–' : `${toFixedHalfUp(s.winRate * 100, 1)}%`}
-                          {s.insufficient && s.closed > 0 ? ` (${x.insufficient})` : ''}
+                          {/* No percentage from fewer than 30 cases (integrity rule 10). */}
+                          {s.insufficient
+                            ? s.closed > 0
+                              ? x.insufficientWin(s.closed)
+                              : '–'
+                            : s.winRate === null
+                              ? '–'
+                              : `${toFixedHalfUp(s.winRate * 100, 1)}%`}
                         </td>
                         <td className={`${td} ${num}`}>
                           {r2(s.meanR)} ({s.rCount})

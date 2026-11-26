@@ -453,6 +453,7 @@ export const t = {
       colPnl: 'Result USD',
       colAdherence: 'Mean adherence',
       insufficient: 'insufficient history',
+      insufficientWin: (n: number) => `Insufficient history (${n} of 30)`,
       vs: (hiN: number, hiR: string, loN: number, loR: string) =>
         `Adherence 80 or more: mean ${hiR} over ${hiN} trades; below 80: mean ${loR} over ${loN} trades.`,
       vsInsufficient:
@@ -591,11 +592,14 @@ export const t = {
       colExcursion: 'Mean best and worst move',
       colLevels: 'Stop or target first',
       insufficient: 'insufficient history',
+      /** No percentage from fewer than 30 cases (integrity rule 10): the row shows this instead. */
+      insufficientRow: (n: number) => `Insufficient history (${n} of 30)`,
       shadow: 'shadow',
       live: 'live',
       calibration: 'Quality-score calibration (5 sessions)',
       noCalibration: 'Not enough scored alerts carry a quality score yet (30 needed).',
       bin: (low: number, high: number) => `Score ${low} to ${high}`,
+      binInsufficient: 'insufficient history',
     },
   },
   lab: {

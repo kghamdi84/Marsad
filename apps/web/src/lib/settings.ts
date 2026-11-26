@@ -22,12 +22,17 @@ export async function loadPreferences(): Promise<Preferences> {
     .maybeSingle();
   if (r.error) throw new Error(`user_settings: ${r.error.message}`);
   const x = (r.data ?? null) as Record<string, unknown> | null;
+  /** A stored fraction strictly between 0 and 1, or the default (never NaN on screen). */
+  const fraction = (v: unknown, fallback: number) => {
+    const n = v === null || v === undefined ? Number.NaN : Number(v);
+    return Number.isFinite(n) && n > 0 && n < 1 ? n : fallback;
+  };
   return {
     shariah: {
       enabled: x?.['shariah_screen'] === true,
       basis: x?.['shariah_basis'] === 'assets' ? 'assets' : DEFAULT_SHARIAH.basis,
-      debtMax: x ? Number(x['shariah_debt_max']) : DEFAULT_SHARIAH.debtMax,
-      cashMax: x ? Number(x['shariah_cash_max']) : DEFAULT_SHARIAH.cashMax,
+      debtMax: fraction(x?.['shariah_debt_max'], DEFAULT_SHARIAH.debtMax),
+      cashMax: fraction(x?.['shariah_cash_max'], DEFAULT_SHARIAH.cashMax),
     },
     ai: {
       dailyUsd: x?.['ai_daily_cap_usd'] == null ? null : Number(x['ai_daily_cap_usd']),

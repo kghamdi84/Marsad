@@ -240,6 +240,10 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   // The monthly bar shows the same 90% against its 80% warning tick.
   await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
   await expect(page.getByText('90% of the cap')).toBeVisible();
+  // A settings row without stored limits falls back to the defaults, never "NaN".
+  const prefs = page.getByRole('form', { name: 'Preferences' });
+  await expect(prefs.getByLabel('Debt limit (%)')).toHaveValue('33');
+  await expect(prefs.getByLabel('Cash limit (%)')).toHaveValue('33');
 });
 
 test('job runs: a 24-hour strip per job, each run a tick, errors said in words', async ({
