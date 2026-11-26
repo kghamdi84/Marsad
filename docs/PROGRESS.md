@@ -198,6 +198,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Not built from the design yet: the short-interest and next-earnings tiles on the company page, the Shariah chip in the list, and touch-and-hold crosshair on the chart.
 - Verified: ./init.sh passes; full Playwright 156 with axe; Study tests open the right section first; new phone test for the accordions.
 
+### Redesign, step 7: Alerts (2026-11-26)
+
+- From Alerts.dc.html and Mobile-Alerts.dc.html: tabs Sent, Held back and All with counts (the old "show suppressed" box is gone; all 50 newest load once); rows with a priority bar, kind, priority badge, ticker, headline, decision and time in ET and local; the full card beside the list on iPad and desktop, in a sheet on phones. The pipeline's reasons show as chips; the bear case sits on an orange tint; feedback buttons stay at the foot. A push or email link (/alerts#alert-<id>) selects that alert and switches to All when needed. Empty state links to the Lab. Scorecard and catalyst scenarios use the card style.
+- Not built from the design yet: the plan bar and per-horizon risk visuals (the stored card is text, so they need structured fields first), the 30-tick scorecard strip, and the 4-step scenario sheet on phones.
+- Verified: ./init.sh passes; full Playwright 158 with axe; the alert test now opens the alert from its #alert- link; new phone test for the sheet.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).
