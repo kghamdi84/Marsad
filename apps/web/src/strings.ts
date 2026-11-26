@@ -487,7 +487,7 @@ export const t = {
   alerts: {
     title: 'Alerts',
     intro:
-      'Every signal Marsad judged, with the decision and its reasons. Few, clean, complete: each alert keeps its inputs, rule version and delivery log.',
+      'Every signal Marsad judged, with the decision and its reasons. Each alert keeps its inputs, rule version and delivery log.',
     showSuppressed: 'Show suppressed signals too',
     tabs: { sent: 'Sent', held: 'Held back', all: 'All' } as Record<string, string>,
     tabsLabel: 'Which alerts',
@@ -532,6 +532,7 @@ export const t = {
     latency: (seconds: string) => `End-to-end latency ${seconds} s.`,
     delivery: (push: string) => `Delivery: ${push}.`,
     feedback: 'Feedback',
+    feedbackPrompt: 'Was this alert useful?',
     verdicts: { useful: 'Useful', noise: 'Noise', acted: 'Acted on' } as Record<string, string>,
     saved: 'Saved.',
     at: (when: string) => `Created ${when}.`,

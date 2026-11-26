@@ -89,12 +89,10 @@ function AlertRow({
             {row.ticker && <span className="font-bold text-white">{row.ticker}</span>}
           </span>
           <span className="text-[0.9375rem] leading-snug text-fg">{headline}</span>
-          <span className="flex flex-wrap gap-x-2 text-xs text-muted">
-            <span className="font-semibold text-fg">
-              {a.decision[row.decision] ?? row.decision}
-            </span>
-            <span>{whenText(row.createdAt)}</span>
-          </span>
+        </span>
+        <span className="flex flex-none flex-col items-end gap-1 text-xs text-muted">
+          <span className="font-semibold text-up">{a.decision[row.decision] ?? row.decision}</span>
+          <span className="whitespace-nowrap">{whenText(row.createdAt)}</span>
         </span>
       </button>
     </li>
@@ -220,7 +218,7 @@ function ChecklistVisual({ input }: { input: AlertInput }) {
   const c = input.checklist;
   if (!c) return null;
   return (
-    <ul aria-label={v.checklist} className="grid grid-cols-1 gap-1 text-sm tablet:grid-cols-2">
+    <ul aria-label={v.checklist} className="grid grid-cols-1 gap-2 text-sm">
       {(Object.keys(v.checks) as (keyof NonNullable<AlertInput['checklist']>)[]).map((k) => (
         <li key={k} className="flex items-center gap-2">
           <span
@@ -247,11 +245,51 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
   });
   const [header, ...rest] = row.card;
   const hid = `alert-detail-${row.id}`;
+  const section = (sec: (typeof rest)[number], n: number) => {
+    const bear = sec.heading === 'Bear case';
+    return (
+      <div
+        key={sec.heading}
+        className={`flex flex-col gap-1.5 rounded-xl p-4 ${bear ? 'bg-down/12 ring-1 ring-down/30' : 'bg-surface ring-1 ring-line'}`}
+      >
+        <h3 className={`text-[0.8125rem] font-bold ${bear ? 'text-down' : 'text-fg'}`}>
+          {String(n).padStart(2, '0')} {'\u00B7'} {sec.heading}
+        </h3>
+        {row.input && sec.heading === 'Plan' && <PlanVisual input={row.input} />}
+        {row.input && sec.heading.startsWith('Risk') && <RiskVisual input={row.input} />}
+        {row.input && sec.heading === 'Checklist' && <ChecklistVisual input={row.input} />}
+        {sec.lines.map((l) => (
+          <p key={l} className="text-sm leading-snug text-fg">
+            {l}
+          </p>
+        ))}
+      </div>
+    );
+  };
+  const numbered = rest.map((sec, i) => ({ sec, n: i + 1 }));
+  const pair = numbered.filter(
+    (x) => x.sec.heading === 'Checklist' || x.sec.heading === 'Bear case',
+  );
+  const single = numbered.filter((x) => !pair.includes(x));
+  const beforePair = single.filter((x) => x.n < (pair[0]?.n ?? 99));
+  const afterPair = single.filter((x) => x.n > (pair[0]?.n ?? 99));
   return (
     <section aria-labelledby={hid} className="flex flex-col gap-4">
       {header && (
-        <div className="flex flex-col gap-1">
-          <h2 id={hid} className="text-lg font-bold text-white">
+        <div className="flex flex-col gap-1.5 rounded-xl bg-raised p-5">
+          <span className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-bold tracking-wide text-muted">{row.kind.toUpperCase()}</span>
+            <span
+              className={`rounded px-1.5 py-px font-semibold ${BADGE[row.priority] ?? BADGE['normal']}`}
+            >
+              {a.priority[row.priority] ?? row.priority}
+            </span>
+            {row.ticker && <span className="text-base font-bold text-white">{row.ticker}</span>}
+            <span className="ms-auto rounded bg-bg px-2 py-0.5 font-semibold text-up">
+              {a.decision[row.decision] ?? row.decision}
+            </span>
+          </span>
+          <h2 id={hid} className="text-xl font-bold text-white">
             {header.heading}
           </h2>
           {header.lines.map((l) => (
@@ -259,62 +297,45 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
               {l}
             </p>
           ))}
-          <p className="text-sm font-semibold text-up">
-            {a.decision[row.decision] ?? row.decision}
-          </p>
+          <ul className="flex flex-wrap gap-1.5 pt-1">
+            {row.reasons.map((r) => (
+              <li key={r} className="rounded-full bg-bg/60 px-2.5 py-1 text-xs text-fg">
+                {r}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-      <div className="flex flex-col gap-1.5">
-        <h3 className="text-[0.8125rem] font-bold text-muted">{a.why}</h3>
-        <ul className="flex flex-wrap gap-1.5">
-          {row.reasons.map((r) => (
-            <li key={r} className="rounded-full bg-bg px-2.5 py-1 text-xs text-fg">
-              {r}
-            </li>
-          ))}
-        </ul>
-      </div>
-      {rest.map((sec) => {
-        const bear = sec.heading === 'Bear case';
-        return (
-          <div
-            key={sec.heading}
-            className={`flex flex-col gap-1 rounded-xl p-3 ${bear ? 'bg-down/12 ring-1 ring-down/30' : 'bg-bg/45'}`}
-          >
-            <h3 className={`text-[0.8125rem] font-bold ${bear ? 'text-down' : 'text-muted'}`}>
-              {sec.heading}
-            </h3>
-            {row.input && sec.heading === 'Plan' && <PlanVisual input={row.input} />}
-            {row.input && sec.heading.startsWith('Risk') && <RiskVisual input={row.input} />}
-            {row.input && sec.heading === 'Checklist' && <ChecklistVisual input={row.input} />}
-            {sec.lines.map((l) => (
-              <p key={l} className="text-sm leading-snug text-fg">
-                {l}
-              </p>
-            ))}
-          </div>
-        );
-      })}
+      {beforePair.map((x) => section(x.sec, x.n))}
+      {pair.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+          {pair.map((x) => section(x.sec, x.n))}
+        </div>
+      )}
+      {afterPair.map((x) => section(x.sec, x.n))}
       <p className="text-xs text-muted">
         {a.at(whenText(row.createdAt))}{' '}
         {row.latencyMs !== null ? a.latency(toFixedHalfUp(row.latencyMs / 1000, 1)) : ''}{' '}
         {a.delivery(row.delivery['push'] ?? 'none')}
       </p>
-      <div role="group" aria-label={a.feedback} className="grid grid-cols-3 gap-2">
-        {VERDICTS.map((v) => (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={row.feedback === v}
-            disabled={m.isPending}
-            onClick={() => m.mutate(v)}
-            className={`min-h-11 rounded-xl border px-2 text-sm font-semibold ${
-              row.feedback === v ? 'border-up bg-up/15 text-white' : 'border-line text-muted'
-            }`}
-          >
-            {a.verdicts[v]}
-          </button>
-        ))}
+      <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 ring-1 ring-line">
+        <span className="text-sm font-semibold text-white">{a.feedbackPrompt}</span>
+        <div role="group" aria-label={a.feedback} className="grid grid-cols-3 gap-2">
+          {VERDICTS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={row.feedback === v}
+              disabled={m.isPending}
+              onClick={() => m.mutate(v)}
+              className={`min-h-11 rounded-xl border px-2 text-sm font-semibold ${
+                row.feedback === v ? 'border-up bg-raised text-white' : 'border-muted/40 text-white'
+              }`}
+            >
+              {a.verdicts[v]}
+            </button>
+          ))}
+        </div>
       </div>
       {m.isError && (
         <p role="alert" className="text-sm text-down">
@@ -474,10 +495,26 @@ export function Alerts() {
     rows.find((r) => r.id === picked && inTab(r, tab)) ?? (wide ? shown[0] : undefined);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
-        <p className="text-sm text-muted">{a.intro}</p>
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
+          <p className="text-[13px] text-muted">{a.intro}</p>
+        </div>
+        {q.data && q.data.length > 0 && wide && (
+          <Segmented
+            label={a.tabsLabel}
+            options={TABS.map((k) => ({
+              key: k,
+              label: `${a.tabs[k]} (${rows.filter((r) => inTab(r, k)).length})`,
+            }))}
+            value={tab}
+            onChange={(k) => {
+              setTab(k);
+              setPicked(null);
+            }}
+          />
+        )}
       </div>
       {q.isPending && <SkeletonCards />}
       {q.isError && (
@@ -498,19 +535,21 @@ export function Alerts() {
           </div>
         ) : (
           <>
-            <Segmented
-              label={a.tabsLabel}
-              options={TABS.map((k) => ({
-                key: k,
-                label: `${a.tabs[k]} (${rows.filter((r) => inTab(r, k)).length})`,
-              }))}
-              value={tab}
-              onChange={(k) => {
-                setTab(k);
-                setPicked(null);
-              }}
-              stretch={!wide}
-            />
+            {!wide && (
+              <Segmented
+                label={a.tabsLabel}
+                options={TABS.map((k) => ({
+                  key: k,
+                  label: `${a.tabs[k]} (${rows.filter((r) => inTab(r, k)).length})`,
+                }))}
+                value={tab}
+                onChange={(k) => {
+                  setTab(k);
+                  setPicked(null);
+                }}
+                stretch
+              />
+            )}
             <div className="grid grid-cols-1 items-start gap-4 tablet:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
               {shown.length === 0 ? (
                 <p className="text-sm text-muted">{a.noneHere}</p>
@@ -530,7 +569,7 @@ export function Alerts() {
                 </ul>
               )}
               {wide && (
-                <div className="sticky top-20 rounded-xl border border-line bg-surface p-5">
+                <div className="sticky top-20">
                   {selected ? (
                     <AlertDetail row={selected} />
                   ) : (
