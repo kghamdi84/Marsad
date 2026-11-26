@@ -250,6 +250,15 @@ export const t = {
       barStop: 'Stop',
       barNow: 'Now',
       barTarget: 'Target',
+      thesisPill: (state: string) => `Thesis: ${state}`,
+      thesisHint: 'Tap to change: intact, weakening, broken.',
+      timeStop: (held: number, max: number) => `Time stop: ${held} of ${max} sessions`,
+      csvFile: 'Or choose a CSV file',
+      csvDrop: 'You can also drop a CSV file on the box.',
+      preview: 'Preview',
+      duplicate: 'Already stored, skipped',
+      willAdd: (n: number, skipped: number) =>
+        `${n} to add${skipped ? `, ${skipped} skipped as already stored` : ''}.`,
     },
     sizer: {
       title: 'Pre-trade checklist and position sizer',
@@ -267,6 +276,7 @@ export const t = {
       checklist: 'Checklist (all five before the ticket)',
       ticket: 'Sahm order ticket',
       copy: 'Copy Sahm order ticket',
+      checksDone: (n: number) => `(${n} of 5 checks)`,
       copied: 'Copied. Paste it into Sahm and check it there before you send it.',
       incomplete: 'Tick all five checklist items to copy the ticket.',
     },
@@ -1435,6 +1445,21 @@ export const t = {
     title: 'System status',
     sources: 'Data sources',
     jobs: 'Recent job runs',
+    strips: {
+      title: 'Last 24 hours',
+      aria: (job: string, n: number, errors: number, skipped: number) =>
+        `${job}: ${n} run${n === 1 ? '' : 's'} in the last 24 hours, ${errors} with an error, ${skipped} skipped.`,
+      latestError: (when: string, error: string) => `Latest error ${when}: ${error}`,
+      legend:
+        'Blue tick: ran OK. Grey: skipped. Red: error. Yellow: still running. Left edge 24 hours ago, right edge now.',
+      none: 'No runs in the last 24 hours.',
+    },
+    capBars: {
+      daily: 'AI today against the daily cap',
+      monthly: 'AI this month against the monthly cap',
+      pct: (v: string) => `${v}% of the cap`,
+      tick: 'The tick marks the 80% warning.',
+    },
     alerts: 'System alerts',
     preferences: 'Preferences',
     shariahToggle: 'Show the Shariah screening aid on company pages',

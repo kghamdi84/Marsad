@@ -7,7 +7,9 @@ import {
   positionSize,
   rewardRisk,
   sahmTicket,
+  markDuplicateHoldings,
   portfolioTotals,
+  sessionsHeld,
   unrealized,
   type Holding,
 } from './portfolio.js';
@@ -196,5 +198,20 @@ describe('portfolioTotals (hand-checked)', () => {
   it('gives no percentage when nothing is priced', () => {
     const r = portfolioTotals([{ ticker: 'X', shares: 1, costBasis: 5 }], () => null);
     expect(r).toMatchObject({ value: 0, cost: 0, gainUsd: 0, gainPct: null, unpriced: ['X'] });
+  });
+});
+
+describe('sessionsHeld and markDuplicateHoldings (hand-checked)', () => {
+  it('counts the bars after the opening date', () => {
+    const bars = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06'].map((date) => ({ date }));
+    expect(sessionsHeld(bars, '2026-10-01')).toBe(3); // the 2nd, 5th and 6th
+    expect(sessionsHeld(bars, '2026-10-06')).toBe(0);
+  });
+
+  it('marks rows already stored or repeated in the file', () => {
+    const a = { ticker: 'RKLB', openedOn: '2026-10-01', shares: 100, costBasis: 24 };
+    const b = { ticker: 'SOFI', openedOn: '2026-09-15', shares: 40, costBasis: 18.5 };
+    const c = { ticker: 'RKLB', openedOn: '2026-10-01', shares: 50, costBasis: 24 }; // a different lot
+    expect(markDuplicateHoldings([a], [a, b, b, c])).toEqual([true, false, true, false]);
   });
 });
