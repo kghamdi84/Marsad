@@ -226,4 +226,47 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   // USD 4.50 of a USD 5 monthly cap is 90%: a warning.
   await expect(page.getByText('USD 4.50 this month (2 calls).')).toBeVisible();
   await expect(page.getByText('AI spend at 90% of a cap (daily')).toBeVisible();
+  // The monthly bar shows the same 90% against its 80% warning tick.
+  await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
+  await expect(page.getByText('90% of the cap')).toBeVisible();
+});
+
+test('job runs: a 24-hour strip per job, each run a tick, errors said in words', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  await page.clock.setFixedTime(new Date('2026-11-26T12:00:00Z'));
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/job_runs**', (r) =>
+    r.fulfill(
+      json([
+        { id: 1, job: 'bars', started_at: '2026-11-26T02:00:00Z', status: 'ok', error: null },
+        {
+          id: 2,
+          job: 'bars',
+          started_at: '2026-11-26T08:00:00Z',
+          status: 'error',
+          error: 'HTTP 500',
+        },
+        { id: 3, job: 'fred', started_at: '2026-11-26T03:00:00Z', status: 'skipped', error: null },
+      ]),
+    ),
+  );
+  await page.goto('/status');
+  await expect(
+    page.getByRole('img', {
+      name: 'bars: 2 runs in the last 24 hours, 1 with an error, 0 skipped.',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('img', {
+      name: 'fred: 1 run in the last 24 hours, 0 with an error, 1 skipped.',
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(/Latest error 2026-11-26 03:00 ET .*: HTTP 500/)).toBeVisible();
 });

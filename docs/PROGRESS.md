@@ -220,6 +220,13 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Not built from the design yet: Status job-run 24-hour strips and cost bars with an 80% tick, Lab equity curves (no stored report has them yet). The "sp.filter is not a function" crash mentioned in the handoff could not be found or reproduced in the current code.
 - Verified: ./init.sh passes; full Playwright 160 with axe.
 
+### Redesign leftovers, batch A: Status and Journal (2026-11-26)
+
+- Status: a 24-hour strip per job with a tick at each run (blue OK, grey skipped, red error, yellow running; counts in words for screen readers) and the latest error text, from its own 24-hour read; AI spend bars against the daily and monthly caps with the 80% warning tick (only when caps are set). No bar for GitHub Actions minutes: the account's included minutes are not stored, so a limit would be a guess.
+- Journal: the thesis is a pill that moves on one step per tap (intact, weakening, broken); a time-stop bar (sessions held of the limit); CSV import with a file picker, drop on the box, and a live preview where rows already stored are struck through and skipped; the Copy Sahm ticket button shows "(n of 5 checks)" and stays pinned above the tab bar on phones.
+- Core: `sessionsHeld` (the time-stop exit now uses it, so the bar and the exit cannot disagree) and `markDuplicateHoldings`, both with hand-checked tests.
+- Verified: ./init.sh passes; full Playwright 162 with axe.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

@@ -111,6 +111,30 @@ export interface Holding {
   timeStopSessions: number | null;
 }
 
+/** Sessions traded since the position was opened (bars after the opening date), as the time stop counts them. */
+export function sessionsHeld(bars: readonly { date: string }[], openedOn: string): number {
+  return bars.filter((b) => b.date > openedOn).length;
+}
+
+/**
+ * Which incoming CSV rows repeat a holding already stored, or an earlier row of the same file: same ticker, opening
+ * date, shares and cost. True marks a duplicate to skip.
+ */
+export function markDuplicateHoldings(
+  existing: readonly Pick<Holding, 'ticker' | 'openedOn' | 'shares' | 'costBasis'>[],
+  incoming: readonly Pick<Holding, 'ticker' | 'openedOn' | 'shares' | 'costBasis'>[],
+): boolean[] {
+  const key = (h: Pick<Holding, 'ticker' | 'openedOn' | 'shares' | 'costBasis'>) =>
+    `${h.ticker}|${h.openedOn}|${h.shares}|${h.costBasis}`;
+  const seen = new Set(existing.map(key));
+  return incoming.map((h) => {
+    const k = key(h);
+    if (seen.has(k)) return true;
+    seen.add(k);
+    return false;
+  });
+}
+
 /** Parses holdings CSV with the header ticker,shares,cost_basis,opened_on[,stop,targets,trend_break,time_stop_sessions]. */
 export function parseHoldingsCsv(text: string): { holdings: Holding[]; errors: string[] } {
   const lines = text
@@ -210,7 +234,7 @@ export function exitSignals(h: Holding, bars: readonly DailyBar[]): ExitSignal[]
       });
   }
   if (h.timeStopSessions !== null) {
-    const held = bars.filter((b) => b.date > h.openedOn).length;
+    const held = sessionsHeld(bars, h.openedOn);
     if (held >= h.timeStopSessions && hit.length === 0)
       out.push({
         kind: 'time-stop',

@@ -10,7 +10,9 @@ import {
   exitSignals,
   parseHoldingsCsv,
   exposureReport,
+  markDuplicateHoldings,
   portfolioTotals,
+  sessionsHeld,
   positionSize,
   rewardRisk,
   rotationSignal,
@@ -187,15 +189,18 @@ function Sizer() {
           <code className="rounded-sm bg-raised p-2 text-sm" data-testid="sahm-ticket">
             {ticket}
           </code>
-          <Button
-            type="button"
-            disabled={!complete}
-            onClick={() => {
-              void navigator.clipboard?.writeText(ticket).then(() => setCopied(true));
-            }}
-          >
-            {s.copy}
-          </Button>
+          <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-10 -mx-1 rounded-xl bg-surface/95 p-1 backdrop-blur tablet:static tablet:m-0 tablet:bg-transparent tablet:p-0 tablet:backdrop-blur-none">
+            <Button
+              type="button"
+              disabled={!complete}
+              className="w-full min-h-12! rounded-xl! border-0! bg-white! font-bold text-raised! disabled:bg-muted/40!"
+              onClick={() => {
+                void navigator.clipboard?.writeText(ticket).then(() => setCopied(true));
+              }}
+            >
+              {s.copy} {s.checksDone(Object.values(ticked).filter(Boolean).length)}
+            </Button>
+          </div>
           {!complete && <p className="text-sm text-muted">{s.incomplete}</p>}
           {copied && <p className="text-sm">{s.copied}</p>}
         </div>
@@ -257,6 +262,33 @@ function PlanBar({ h, last, hit }: { h: StoredHolding; last: number | null; hit:
 
 type HoldingBars = Parameters<typeof exitSignals>[1];
 
+const NEXT_THESIS: Record<ThesisStatus, ThesisStatus> = {
+  intact: 'weakening',
+  weakening: 'broken',
+  broken: 'intact',
+};
+const THESIS_TONE: Record<ThesisStatus, string> = {
+  intact: 'bg-up/15 text-up',
+  weakening: 'bg-warn/15 text-warn',
+  broken: 'border border-down/70 text-down',
+};
+
+/** How much of the time stop is used: sessions held against the limit, in words and as a bar. */
+function TimeStop({ held, max }: { held: number; max: number }) {
+  const used = Math.min(1, held / max);
+  return (
+    <div className="mb-2 flex flex-col gap-1">
+      <span className="text-[0.6875rem] text-muted">{j.ui.timeStop(held, max)}</span>
+      <span aria-hidden="true" className="h-1.5 rounded-full bg-faint/20">
+        <span
+          className={`block h-full rounded-full ${used >= 1 ? 'bg-down' : used >= 0.8 ? 'bg-warn' : 'bg-up'}`}
+          style={{ width: `${toFixedHalfUp(used * 100, 1)}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
 /** A holding's plan bar, exit rules, triggered exits and its sector, thesis and close controls. */
 function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   const qc = useQueryClient();
@@ -276,6 +308,9 @@ function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   return (
     <>
       <PlanBar h={h} last={last?.close ?? null} hit={exits.length > 0} />
+      {h.timeStopSessions !== null && h.timeStopSessions > 0 && (
+        <TimeStop held={sessionsHeld(bars, h.openedOn)} max={h.timeStopSessions} />
+      )}
       {hasRules ? (
         <span className="text-xs text-muted">
           {hh.rules(
@@ -311,25 +346,22 @@ function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col text-xs text-muted">
+        <div className="flex flex-col text-xs text-muted">
           {hh.thesis}
-          <select
-            className={select}
-            value={h.thesisStatus}
-            onChange={(e) =>
+          <button
+            type="button"
+            title={j.ui.thesisHint}
+            onClick={() =>
               meta.mutate({
                 sectorEtf: h.sectorEtf,
-                thesisStatus: e.target.value as ThesisStatus,
+                thesisStatus: NEXT_THESIS[h.thesisStatus],
               })
             }
+            className={`mt-0.5 min-h-11 rounded-full px-3 text-sm font-semibold ${THESIS_TONE[h.thesisStatus]}`}
           >
-            {(['intact', 'weakening', 'broken'] as const).map((k) => (
-              <option key={k} value={k}>
-                {hh.thesisStatus[k]}
-              </option>
-            ))}
-          </select>
-        </label>
+            {j.ui.thesisPill(hh.thesisStatus[h.thesisStatus] ?? h.thesisStatus)}
+          </button>
+        </div>
       </div>
       {meta.isError && <ErrorText message={meta.error.message} />}
       <button
@@ -406,12 +438,18 @@ function Holdings() {
       void qc.invalidateQueries({ queryKey: ['holdings'] });
     },
   });
+  const parsed = csv.trim() ? parseHoldingsCsv(csv) : null;
+  const dups = parsed ? markDuplicateHoldings(q.data?.holdings ?? [], parsed.holdings) : [];
+  const fresh = parsed ? parsed.holdings.filter((_h, i) => !dups[i]) : [];
+  const readFile = (f: File | undefined) => {
+    if (f) void f.text().then(setCsv);
+  };
   const submitCsv = (e: FormEvent) => {
     e.preventDefault();
     const r = parseHoldingsCsv(csv);
     setErrs(r.errors);
     setMsg(null);
-    if (r.errors.length === 0 && r.holdings.length > 0) add.mutate(r.holdings);
+    if (r.errors.length === 0 && fresh.length > 0) add.mutate(fresh);
   };
   return (
     <section aria-labelledby="holdings" className={`${cardClass} gap-3!`}>
@@ -457,10 +495,49 @@ function Holdings() {
         <textarea
           id="csv"
           rows={4}
-          className="rounded-sm border border-line bg-bg p-2 font-mono text-sm text-fg"
+          className="rounded-xl border border-dashed border-muted/50 bg-bg p-3 font-mono text-sm text-fg"
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            readFile(e.dataTransfer.files[0]);
+          }}
         />
+        <p className="text-xs text-muted">{j.ui.csvDrop}</p>
+        <label className="flex min-h-11 w-fit cursor-pointer items-center rounded-xl border border-line px-3 text-sm text-fg">
+          {j.ui.csvFile}
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            className="sr-only"
+            onChange={(e) => readFile(e.target.files?.[0])}
+          />
+        </label>
+        {parsed && parsed.holdings.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <h3 className="text-[0.8125rem] font-bold text-muted">{j.ui.preview}</h3>
+            <ul className="flex flex-col gap-1 text-sm">
+              {parsed.holdings.map((h, i) => (
+                <li
+                  key={`${h.ticker}-${i}`}
+                  className={`flex flex-wrap justify-between gap-2 rounded-lg px-2 py-1.5 ${
+                    dups[i] ? 'bg-bg/40 text-muted line-through' : 'bg-bg/70 text-fg'
+                  }`}
+                >
+                  <span className="font-semibold">{h.ticker}</span>
+                  <span className="tabular-nums">
+                    {h.shares} @ {money(h.costBasis)} {'\u00B7'} {h.openedOn}
+                  </span>
+                  {dups[i] && <span className="w-full text-xs no-underline">{j.ui.duplicate}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted">
+              {j.ui.willAdd(fresh.length, parsed.holdings.length - fresh.length)}
+            </p>
+          </div>
+        )}
         <Button type="submit" disabled={add.isPending}>
           {hh.csvButton}
         </Button>

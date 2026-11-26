@@ -381,6 +381,13 @@ function Costs() {
           )}
         </p>
       )}
+      {ai?.budget && (
+        <div className="flex flex-col gap-2">
+          <CapBar label={t.status.capBars.daily} pct={ai.budget.dailyPct} />
+          <CapBar label={t.status.capBars.monthly} pct={ai.budget.monthlyPct} />
+          <p className="text-xs text-muted">{t.status.capBars.tick}</p>
+        </div>
+      )}
       {gh && <p className="text-sm">{t.status.actions(gh.minutes, gh.runs)}</p>}
     </ScrollX>
   );
@@ -472,6 +479,117 @@ function HealthHero({ data }: { data: Awaited<ReturnType<typeof load>> }) {
       </ul>
       <p className="text-xs text-muted">{h.legend}</p>
     </section>
+  );
+}
+
+async function loadDayRuns() {
+  if (!supabase) throw new Error('not configured');
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const r = await supabase
+    .from('job_runs')
+    .select('job, started_at, status, error')
+    .gte('started_at', since)
+    .order('started_at', { ascending: true })
+    .limit(2000);
+  if (r.error) throw new Error(r.error.message);
+  return {
+    since,
+    now: new Date().toISOString(),
+    runs: (r.data ?? []) as {
+      job: string;
+      started_at: string;
+      status: string;
+      error: string | null;
+    }[],
+  };
+}
+
+const TICK: Record<string, string> = {
+  ok: 'bg-up',
+  skipped: 'bg-muted/60',
+  error: 'bg-alarm',
+  running: 'bg-warn',
+};
+
+/** One strip per job over the last 24 hours, a tick at each run, coloured by outcome (and said in words). */
+function JobStrips() {
+  const q = useQuery({ queryKey: ['day-runs'], queryFn: loadDayRuns, refetchInterval: 60_000 });
+  const x = t.status.strips;
+  if (!q.data) return null;
+  const start = Date.parse(q.data.since);
+  const span = Date.parse(q.data.now) - start;
+  const jobs = [...new Set(q.data.runs.map((r) => r.job))].sort();
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-[0.8125rem] font-bold text-muted">{x.title}</h3>
+      {jobs.length === 0 ? (
+        <p className="text-sm text-muted">{x.none}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {jobs.map((job) => {
+            const runs = q.data.runs.filter((r) => r.job === job);
+            const errors = runs.filter((r) => r.status === 'error');
+            const lastErr = errors.at(-1);
+            return (
+              <li
+                key={job}
+                className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] items-center gap-3"
+              >
+                <span className="truncate text-sm text-fg">{job}</span>
+                <span
+                  role="img"
+                  aria-label={x.aria(
+                    job,
+                    runs.length,
+                    errors.length,
+                    runs.filter((r) => r.status === 'skipped').length,
+                  )}
+                  className="relative h-5 rounded-md bg-bg"
+                >
+                  {runs.map((r, i) => (
+                    <span
+                      key={`${r.started_at}-${i}`}
+                      className={`absolute top-1 h-3 w-0.5 rounded-full ${TICK[r.status] ?? 'bg-faint'}`}
+                      style={{
+                        insetInlineStart: `${Math.min(99.5, Math.max(0, ((Date.parse(r.started_at) - start) / span) * 100)).toFixed(2)}%`,
+                      }}
+                    />
+                  ))}
+                </span>
+                {lastErr?.error && (
+                  <span className="col-span-2 text-xs text-alarm">
+                    {x.latestError(when(lastErr.started_at), lastErr.error)}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="text-xs text-muted">{x.legend}</p>
+    </div>
+  );
+}
+
+/** A spend bar against a cap with the 80% warning tick. */
+function CapBar({ label, pct }: { label: string; pct: number }) {
+  const x = t.status.capBars;
+  const width = Math.min(100, Math.max(0, pct));
+  const tone = pct >= 100 ? 'bg-alarm' : pct >= 80 ? 'bg-warn' : 'bg-up';
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="flex justify-between gap-2 text-sm">
+        <span className="text-fg">{label}</span>
+        <span className="text-muted tabular-nums">{x.pct(toFixedHalfUp(pct, 0))}</span>
+      </span>
+      <span aria-hidden="true" className="relative h-2 rounded-full bg-faint/20">
+        <span
+          className={`absolute inset-y-0 start-0 rounded-full ${tone}`}
+          style={{ width: `${width}%` }}
+        />
+        <span className="absolute -top-1 start-[80%] h-4 w-0.5 bg-white" />
+      </span>
+    </div>
   );
 }
 
@@ -585,6 +703,7 @@ export function Status() {
 
       <ScrollX label={t.status.jobs} className={`${cardClass} gap-3!`}>
         <h2 className={panelTitle}>{t.status.jobs}</h2>
+        <JobStrips />
         {q.data && q.data.jobs.length === 0 ? (
           <p className="text-muted">{t.status.noJobs}</p>
         ) : (

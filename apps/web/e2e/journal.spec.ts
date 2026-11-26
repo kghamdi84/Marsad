@@ -133,6 +133,13 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
         time_stop_sessions: null,
       },
     ]);
+
+  // A row already stored (RKLB, same lot) is greyed in the preview and skipped.
+  await page
+    .getByLabel('Add from CSV')
+    .fill('ticker,shares,cost_basis,opened_on\nRKLB,100,24,2026-10-01\nHOOD,5,30,2026-11-02');
+  await expect(page.getByText('Already stored, skipped')).toBeVisible();
+  await expect(page.getByText('1 to add, 1 skipped as already stored.')).toBeVisible();
 });
 
 test('journal: exposure, stress and rotation from stored bars; sector and thesis are saved', async ({
@@ -222,7 +229,8 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
   await expect(rotation).toContainText('and the thesis is weakening. Consider XLI or SPY instead.');
 
   await openTab(page, 'Positions');
-  await page.getByLabel('Thesis').selectOption('broken');
+  // The thesis pill moves on one step per tap: weakening to broken.
+  await page.getByRole('button', { name: 'Thesis: Weakening' }).click();
   await expect.poll(() => patched).toEqual({ sector_etf: 'XLI', thesis_status: 'broken' });
 });
 
@@ -578,7 +586,7 @@ test.describe('on a phone', () => {
             stop: 22,
             targets: [27],
             trend_break: null,
-            time_stop_sessions: null,
+            time_stop_sessions: 10,
           },
         ]),
       ),
@@ -607,6 +615,8 @@ test.describe('on a phone', () => {
     await expect(
       card.getByRole('img', { name: 'Stop 22.00, now 21.50, targets 27.00.' }),
     ).toBeVisible();
+    // Bars on 2, 3, 4 and 5 October follow the 1 October open: 4 of 10 sessions used.
+    await expect(card.getByText('Time stop: 4 of 10 sessions')).toBeVisible();
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,
