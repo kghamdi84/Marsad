@@ -3,14 +3,11 @@ import { etfOverlap, lookThrough, toFixedHalfUp } from '@marsad/core';
 import { ErrorText } from '../ui';
 import { loadEtfHoldings } from '../../lib/etf';
 import type { BarsByTicker, StoredHolding } from '../../lib/journal';
+import { dayMonthYear } from '../../lib/dates';
 import { t } from '../../strings';
 
 const x = t.journal.etf;
 const pct = (v: number) => `${toFixedHalfUp(v * 100, 1)}%`;
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** '2026-08-31' as the design writes it: '31 Aug 2026'. */
-const dmy = (iso: string) =>
-  `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 /** Fund colours after light blue (direct), in the design's order. */
 const VIA_FILL = ['bg-ink', 'bg-muted', 'bg-faint'];
 const box = 'flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4';
@@ -50,7 +47,7 @@ export function EtfLookThrough({
       a: a.etf,
       b: b.etf,
       overlap: etfOverlap(byEtf[a.etf] ?? [], byEtf[b.etf] ?? []),
-      dates: [...new Set([a.reportDate, b.reportDate])].map(dmy),
+      dates: [...new Set([a.reportDate, b.reportDate])].map(dayMonthYear),
     })),
   );
   return (
@@ -154,7 +151,7 @@ export function EtfLookThrough({
               {pairs.length === 0 &&
                 reports.map((r) => (
                   <li key={r.etf} className="text-[0.8125rem] text-muted">
-                    {r.etf}: {x.nport(dmy(dateOf.get(r.etf) ?? r.reportDate))}
+                    {r.etf}: {x.nport(dayMonthYear(dateOf.get(r.etf) ?? r.reportDate))}
                   </li>
                 ))}
             </ul>

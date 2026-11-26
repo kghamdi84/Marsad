@@ -41,6 +41,7 @@ import {
 } from '../lib/journal';
 import { SkeletonCards, Tabs, cardClass, useRemembered, useWide } from '../components/Card';
 import { Sheet } from '../components/Sheet';
+import { dayMonth } from '../lib/dates';
 import { t } from '../strings';
 
 const j = t.journal;
@@ -249,10 +250,6 @@ const signedUsd = (v: number) => `${v >= 0 ? '▲ +' : '▼ −'}$${usd0(v)}`;
 const signedPct1 = (v: number) => `${v >= 0 ? '+' : '−'}${toFixedHalfUp(Math.abs(v) * 100, 1)}%`;
 /** A target as stored: whole numbers without decimals ("205"), others with two ("27.50"). */
 const level = (v: number) => (Number.isInteger(v) ? String(v) : money(v));
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** "2026-11-25" as "25 Nov". */
-const dayMonth = (iso: string) =>
-  `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1] ?? ''}`;
 
 /**
  * The design's stop, now, target bar: a 10 px gradient from orange through neutral to blue, a cost tick and a

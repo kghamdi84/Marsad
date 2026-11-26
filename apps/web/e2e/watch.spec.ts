@@ -59,27 +59,29 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
     ),
   );
   await page.goto('/');
-  const econ = page.getByRole('region', { name: 'Economic calendar' });
-  await expect(econ.getByRole('heading', { name: 'Today, 2026-11-25' })).toBeVisible();
+  const agenda = page.getByRole('region', { name: 'Agenda' });
+  await expect(agenda.getByRole('heading', { name: 'Today, Wed 25 Nov' })).toBeVisible();
   // GDP at 08:30 ET is 13:30 UTC, 16:30 in Riyadh, 1 h 30 min after 12:00 UTC.
-  const gdp = econ.getByRole('row', { name: /GDP/ });
-  await expect(gdp).toContainText('08:30 ET (16:30 local)');
-  await expect(gdp).toContainText('in 1 h 30 min');
+  const gdp = agenda.getByRole('listitem').filter({ hasText: 'GDP' });
+  await expect(gdp).toContainText('08:30 ET · 16:30 Riyadh · in 1 h 30 min');
   await expect(gdp).toContainText('High impact');
+  await expect(gdp).toContainText('Macro');
   // The FOMC statement on 2026-12-09, 14:00 EST, is 19:00 UTC and 22:00 in Riyadh.
-  await expect(econ.getByRole('row', { name: /FOMC statement and projections/ })).toContainText(
-    '14:00 ET (22:00 local)',
-  );
+  await expect(
+    agenda.getByRole('listitem').filter({ hasText: 'FOMC statement and projections' }),
+  ).toContainText('14:00 ET · 22:00 Riyadh');
   // Only the next 14 days: CPI on 2026-12-10 is beyond them.
-  await expect(econ.getByRole('row', { name: /^CPI|CPI/ })).toHaveCount(0);
-  await expect(econ.getByText(/FRED release calendar/)).toBeVisible();
-
-  const earn = page.getByRole('region', { name: 'Watchlist earnings (estimated)' });
-  const row = earn.getByRole('row', { name: /NVDA/ });
-  await expect(row).toContainText('2027-02-24');
-  await expect(row).toContainText('2027-02-17 to 2027-03-03');
-  await expect(row).toContainText('Same quarter last year, 52 weeks on');
-  await expect(earn.getByText(/Not a confirmed date/)).toBeVisible();
+  await expect(agenda.getByRole('listitem').filter({ hasText: /^CPI/ })).toHaveCount(0);
+  await expect(agenda.getByText(/FRED release calendar/)).toBeVisible();
+  // Estimated earnings sit on their estimated day, with the window and how it was estimated.
+  await expect(agenda.getByRole('heading', { name: 'Wed 24 Feb' })).toBeVisible();
+  const nvdaEarnings = agenda.getByRole('listitem').filter({ hasText: 'NVDA earnings' });
+  await expect(nvdaEarnings).toContainText('Estimated, 17 Feb to 03 Mar');
+  await expect(nvdaEarnings).toContainText('Same quarter last year, 52 weeks on');
+  await expect(nvdaEarnings).toContainText('Watchlist');
+  await expect(
+    agenda.getByText('blue: watchlist earnings, estimated', { exact: false }),
+  ).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/watch.png`, fullPage: true });
 });
@@ -180,12 +182,10 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   await page.goto('/');
 
   const strip = page.getByRole('region', { name: 'Market strip' });
-  await expect(strip.getByRole('listitem').filter({ hasText: 'S&P 500 (SPY)' })).toContainText(
-    '+0.8%',
-  );
+  await expect(strip.getByRole('listitem').filter({ hasText: 'SPY' })).toContainText('+0.8%');
   await expect(strip.getByRole('listitem').filter({ hasText: 'VIX' })).toContainText('+10.0%');
   await expect(strip.getByRole('listitem').filter({ hasText: '10-year yield' })).toContainText(
-    '+0.05 points',
+    '▲ +0.05 pts',
   );
 
   const list = page.getByRole('region', { name: 'Watchlist' });
@@ -206,7 +206,7 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   await expect(sectors.getByRole('listitem').filter({ hasText: 'Technology' })).toContainText(
     '+2.10%',
   );
-  await expect(sectors.getByRole('listitem').filter({ hasText: 'Energy' })).toContainText('-1.30%');
+  await expect(sectors.getByRole('listitem').filter({ hasText: 'Energy' })).toContainText('−1.30%');
   await expect(sectors.getByRole('listitem').filter({ hasText: 'Utilities' })).toContainText(
     'No data',
   );
@@ -214,7 +214,7 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   const movers = page.getByRole('region', { name: 'Movers in the Marsad universe' });
   await expect(movers.getByText(/among 987 members/)).toBeVisible();
   await expect(movers.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
-  await expect(movers.getByRole('row', { name: /DN1/ })).toContainText('-8.0%');
+  await expect(movers.getByRole('row', { name: /DN1/ })).toContainText('−8.0%');
 
   const gaps = page.getByRole('region', { name: 'Gap scanner' });
   await expect(gaps.getByRole('row').first()).toContainText('+2.50%');
@@ -264,7 +264,7 @@ test('watch: the latest brief with its sections and email state', async ({ page 
   await page.goto('/');
   const brief = page.getByRole('region', { name: 'Latest brief' });
   await expect(
-    brief.getByRole('heading', { name: 'Pre-market brief, Wed 2026-11-25' }),
+    brief.getByRole('heading', { name: 'Latest brief: Pre-market brief · Wed 25 Nov' }),
   ).toBeVisible();
   await expect(brief.getByText('08:30 ET GDP (high impact).')).toBeVisible();
   await expect(brief.getByText(/Not emailed: no email channel set up yet/)).toBeVisible();

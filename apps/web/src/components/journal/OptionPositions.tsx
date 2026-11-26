@@ -18,16 +18,13 @@ import {
   type StoredOptionPosition,
 } from '../../lib/optionPositions';
 import { Sheet } from '../Sheet';
+import { dayMonthYear } from '../../lib/dates';
 import { t } from '../../strings';
 
 const x = t.journal.options;
 const usd = (v: number) => `${v < 0 ? '-' : ''}$${toFixedHalfUp(Math.abs(v), 2)}`;
 const selectCls = 'min-h-11 rounded-sm border border-line bg-bg px-2 text-fg';
 const usd0 = (v: number) => Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** '2027-01-16' as the design writes it: '16 Jan 2027'. */
-const dmy = (iso: string) =>
-  `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 
 function PositionCard({
   p,
@@ -96,7 +93,10 @@ function PositionCard({
         </span>
       </div>
       <span className="text-[0.8125rem]">
-        {x.beExpiry(v.breakevens.map((be) => toFixedHalfUp(be, 2)).join(', '), dmy(p.expiry))}
+        {x.beExpiry(
+          v.breakevens.map((be) => toFixedHalfUp(be, 2)).join(', '),
+          dayMonthYear(p.expiry),
+        )}
       </span>
       {met.map((sg) => (
         <span key={sg.rule} className="text-[0.8125rem] font-semibold text-warn">

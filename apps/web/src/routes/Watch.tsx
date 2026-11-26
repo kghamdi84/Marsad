@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Mail } from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
   DEFAULT_LOCAL_ZONE,
   TIER_LABELS,
@@ -14,14 +14,7 @@ import {
   type EconEvent,
   type TickerSummary,
 } from '@marsad/core';
-import {
-  Card,
-  ScrollX,
-  Segmented,
-  SkeletonCards,
-  Sparkline,
-  useRemembered,
-} from '../components/Card';
+import { Card, Segmented, SkeletonCards, Sparkline, useRemembered } from '../components/Card';
 import { num, th, thNum } from '../components/study/Panel';
 import {
   STRIP_BARS,
@@ -33,6 +26,7 @@ import {
   type StoredBrief,
   type WatchData,
 } from '../lib/watch';
+import { dayMonth, weekdayDayMonth } from '../lib/dates';
 import { loadQuoteView, quoteStatus, type QuoteView } from '../lib/quotes';
 import { t } from '../strings';
 
@@ -74,8 +68,8 @@ function Change({
   return (
     <span className={plain ? '' : up ? 'text-up' : down ? 'text-down' : ''}>
       <span aria-hidden="true">{up ? '▲ ' : down ? '▼ ' : ''}</span>
-      {up ? '+' : ''}
-      {p}%
+      {up ? '+' : down ? '−' : ''}
+      {down ? p.slice(1) : p}%
     </span>
   );
 }
@@ -100,43 +94,51 @@ function BriefCard({ briefs }: { briefs: StoredBrief[] }) {
     );
   const created = new Date(b.createdAt);
   const email = b.delivery['email'] ?? 'not-configured';
+  const clock = dualClock(created, DEFAULT_LOCAL_ZONE);
+  const city = (DEFAULT_LOCAL_ZONE.split('/').at(-1) ?? '').replace(/_/g, ' ');
+  // Stored titles read "Pre-market brief, Wed 2026-11-25"; the design writes "Pre-market brief · Wed 25 Nov".
+  const kind = b.title.split(',')[0] ?? b.title;
+  const chip =
+    email === 'sent'
+      ? 'bg-up/16 text-up'
+      : email.startsWith('failed')
+        ? 'bg-down/16 text-down'
+        : 'bg-faint/16 text-muted';
   return (
     <section
-      aria-label={w.brief.title}
-      className="flex flex-col gap-4 rounded-2xl bg-raised p-4 tablet:rounded-xl tablet:p-5"
+      aria-labelledby="brief-h"
+      className="flex flex-col gap-3 rounded-2xl bg-raised p-4 tablet:rounded-xl tablet:p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold tracking-wide text-muted uppercase">
-            {w.brief.title}
+      <div className="flex items-start justify-between gap-2.5">
+        <span className="flex flex-col gap-0.5">
+          <h2 id="brief-h" className="text-lg font-bold text-white">
+            <span className="sr-only">{w.brief.title}: </span>
+            {u.briefTitle(kind, weekdayDayMonth(b.forDate))}
+          </h2>
+          <span className="text-[0.8125rem] text-muted">
+            {u.briefWhen(clock.et, clock.local, city)}
           </span>
-          <h2 className="text-lg font-semibold text-white">{b.title}</h2>
-          <p className="text-xs text-muted">
-            {w.brief.made(`${etDate(created)} ${dualClock(created, DEFAULT_LOCAL_ZONE).label}`)}
-          </p>
-        </div>
-        {email === 'sent' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-up/15 px-3 py-1 text-sm font-semibold text-up">
-            <Mail aria-hidden="true" size={16} />
-            {u.emailed}
+          <span className="sr-only">
+            {w.brief.made(`${etDate(created)} ${clock.label}`)} {w.brief.email(email)}
           </span>
-        ) : (
-          <span
-            className={`max-w-xs text-xs ${email.startsWith('failed') ? 'text-down' : 'text-muted'}`}
-          >
-            {w.brief.email(email)}
-          </span>
-        )}
+        </span>
+        <span
+          title={w.brief.email(email)}
+          className={`flex flex-none items-center gap-1 rounded-full px-2 py-[3px] text-xs font-semibold ${chip}`}
+        >
+          {email === 'sent' && <Check aria-hidden="true" size={12} strokeWidth={2.4} />}
+          {email === 'sent' ? u.emailed : email.startsWith('failed') ? u.emailFailed : u.notEmailed}
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-2 tablet:grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] tablet:gap-3">
-        {b.sections.map((s) => (
+        {b.sections.map((sec) => (
           <div
-            key={s.heading}
-            className="flex min-w-0 flex-col gap-2 rounded-xl bg-bg/45 p-3 tablet:rounded-[10px] tablet:p-3.5"
+            key={sec.heading}
+            className="flex min-w-0 flex-col gap-1 rounded-xl bg-bg/50 p-3 tablet:rounded-[10px] tablet:p-3.5"
           >
-            <h3 className="text-[13px] font-bold text-muted">{s.heading}</h3>
-            <ul className="flex flex-col gap-1.5 text-sm leading-snug text-fg">
-              {s.lines.map((l) => (
+            <h3 className="text-xs font-normal text-muted">{sec.heading}</h3>
+            <ul className="flex flex-col gap-1 text-sm leading-snug text-fg">
+              {sec.lines.map((l) => (
                 <li key={l}>{l}</li>
               ))}
             </ul>
@@ -190,30 +192,41 @@ function StripCard({ data }: { data: WatchData }) {
           const lastV = x.line.at(-1);
           const lineTone =
             first !== undefined && lastV !== undefined ? toneText(lastV - first) : 'text-muted';
+          const name = w.strip.names[x.key] ?? x.key;
+          const value = x.value === null ? null : x.key === 'DGS10' ? `${x.value}%` : x.value;
+          const pts = x.pts === null ? null : Number(x.pts);
           return (
             <li
               key={x.key}
+              aria-label={w.strip.aria(name, value ?? t.regime.noData)}
               className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-surface p-3 tablet:p-3.5"
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[13px] font-semibold text-fg">
-                  {w.strip.names[x.key] ?? x.key}
-                </span>
-              </div>
-              {x.date && <span className="text-[11px] text-muted">{x.date}</span>}
-              <span className="text-xl font-semibold text-white tabular-nums">
-                {x.value ?? t.regime.noData}
+              <span className="flex justify-between gap-1 text-xs">
+                <span className="truncate font-semibold text-fg">{name}</span>
+                {x.date && <span className="whitespace-nowrap text-muted">{dayMonth(x.date)}</span>}
               </span>
-              <span className="text-[13px] tabular-nums">
-                {x.value === null ? null : x.pts !== null ? (
-                  <span className={toneText(Number(x.pts))}>
-                    {w.strip.points(`${Number(x.pts) > 0 ? '+' : ''}${x.pts}`)}
+              <span className="text-lg font-semibold text-white tabular-nums">
+                {value ?? t.regime.noData}
+              </span>
+              {value !== null && (
+                <span className="flex items-center justify-between gap-1.5">
+                  <span className="text-[13px] whitespace-nowrap tabular-nums">
+                    {pts !== null ? (
+                      <span className={toneText(pts)}>
+                        <span aria-hidden="true">{pts > 0 ? '▲ ' : pts < 0 ? '▼ ' : ''}</span>
+                        {w.strip.points(
+                          `${pts > 0 ? '+' : pts < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(pts), 2)}`,
+                        )}
+                      </span>
+                    ) : (
+                      <Change v={x.change} />
+                    )}
                   </span>
-                ) : (
-                  <Change v={x.change} />
-                )}
-              </span>
-              <Sparkline values={x.line} className={lineTone} height={28} />
+                  <span className="w-[52px] flex-none">
+                    <Sparkline values={x.line} className={lineTone} height={20} />
+                  </span>
+                </span>
+              )}
             </li>
           );
         })}
@@ -869,180 +882,117 @@ function instantOf(e: EconEvent): Date {
   return etWallToUtc(e.date, h, m);
 }
 
-function EventRow({ e, now }: { e: EconEvent; now: Date }) {
-  const at = instantOf(e);
-  const clock = dualClock(at, DEFAULT_LOCAL_ZONE);
-  const ms = at.getTime() - now.getTime();
-  const today = e.date === etDate(now);
-  const countdown =
-    ms <= 0
-      ? c.released
-      : c.countdownIn(Math.floor(ms / 3_600_000), Math.floor((ms % 3_600_000) / 60_000));
-  return (
-    <tr>
-      <td className={`${cell} w-4 pe-0`}>
-        <span
-          aria-hidden="true"
-          className={`block size-2.5 rounded-full ${IMPACT_DOT[e.impact] ?? 'bg-faint'}`}
-        />
-      </td>
-      <td className={cell}>
-        <span className={`text-sm ${e.impact === 'high' ? 'font-semibold text-white' : 'text-fg'}`}>
-          {e.name}
-        </span>
-        <span className="block text-xs text-muted">
-          {c.time(clock.et, clock.local)} · {c.impact[e.impact]}
-        </span>
-      </td>
-      <td className={`${cell} text-end text-xs whitespace-nowrap`}>
-        {today && (
-          <span
-            className={`rounded-md px-2 py-0.5 font-semibold ${ms <= 0 ? 'text-muted' : 'bg-raised text-fg'}`}
-          >
-            {countdown}
-          </span>
-        )}
-      </td>
-    </tr>
-  );
+const DAYS_AHEAD = 14;
+const CITY = (DEFAULT_LOCAL_ZONE.split('/').at(-1) ?? '').replace(/_/g, ' ');
+
+interface AgendaItem {
+  key: string;
+  date: string;
+  /** Sort order within a day: minutes after midnight ET; estimates go last. */
+  order: number;
+  name: string;
+  time: string;
+  extra: string | null;
+  tag: string;
+  dot: string;
+  strong: boolean;
+  late: boolean;
+  countdown: string | null;
 }
 
-const DAYS_AHEAD = 14;
-
-function EconPart({ data, now }: { data: CalendarData; now: Date }) {
-  const head = (
-    <h3 id="econ-h" className="text-[15px] font-semibold text-white">
-      {c.title}
-    </h3>
-  );
-  if (!data.econ)
-    return (
-      <section aria-labelledby="econ-h" className="flex flex-col gap-2">
-        {head}
-        <p className="text-sm text-muted">{c.none}</p>
-      </section>
-    );
+/** Economic events for the next 14 days and the watchlist's estimated earnings, one list by day, as the design draws it. */
+function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
   const today = etDate(now);
   const last = new Date(Date.parse(`${today}T00:00:00Z`) + DAYS_AHEAD * 86_400_000)
     .toISOString()
     .slice(0, 10);
-  const events = data.econ.events.filter((e) => e.date >= today && e.date <= last);
-  const days = [...new Set(events.map((e) => e.date))];
+  const items: AgendaItem[] = [];
+  for (const e of data.econ?.events ?? []) {
+    if (e.date < today || e.date > last) continue;
+    const at = instantOf(e);
+    const clock = dualClock(at, DEFAULT_LOCAL_ZONE);
+    const ms = at.getTime() - now.getTime();
+    items.push({
+      key: `${e.date}-${e.name}`,
+      date: e.date,
+      order: Number(clock.et.slice(0, 2)) * 60 + Number(clock.et.slice(3, 5)),
+      name: e.name,
+      time: u.eventTime(clock.et, clock.local, CITY),
+      extra: c.impact[e.impact] ?? null,
+      tag: u.tagMacro,
+      dot: IMPACT_DOT[e.impact] ?? 'bg-faint',
+      strong: e.impact === 'high',
+      late: false,
+      countdown:
+        e.date !== today
+          ? null
+          : ms <= 0
+            ? c.released
+            : c.countdownIn(Math.floor(ms / 3_600_000), Math.floor((ms % 3_600_000) / 60_000)),
+    });
+  }
+  for (const e of data.earnings?.estimates ?? [])
+    items.push({
+      key: `earn-${e.ticker}`,
+      date: e.date,
+      order: 24 * 60,
+      name: u.earningsName(e.ticker),
+      time: e.overdue ? c.overdue : u.earningsWhen(dayMonth(e.from), dayMonth(e.to)),
+      extra: c.basis[e.basis] ?? e.basis,
+      tag: u.tagWatchlist,
+      dot: 'bg-up',
+      strong: false,
+      late: e.overdue,
+      countdown: null,
+    });
+  items.sort((x, y) => x.date.localeCompare(y.date) || x.order - y.order);
+  const days = [...new Set(items.map((i) => i.date))];
   return (
-    <section aria-labelledby="econ-h" className="flex flex-col gap-2">
-      {head}
-      <p className="text-xs text-muted">{c.daysAhead(DAYS_AHEAD)}</p>
+    <Card id="calendar-h" title={u.calendar}>
+      {!data.econ && <p className="text-sm text-muted">{c.none}</p>}
+      {(data.earnings?.estimates ?? []).length === 0 && (
+        <p className="text-sm text-muted">{c.earningsNone}</p>
+      )}
       {days.map((d) => (
-        <div key={d} className="flex flex-col">
-          <h4 className={`pt-2 text-[13px] font-bold ${d === today ? 'text-up' : 'text-muted'}`}>
-            {d === today ? c.todayHeading(d) : d}
-          </h4>
-          <table className="w-full border-collapse">
-            <tbody>
-              {events
-                .filter((e) => e.date === d)
-                .map((e) => (
-                  <EventRow key={`${e.date}-${e.name}`} e={e} now={now} />
-                ))}
-            </tbody>
-          </table>
+        <div key={d} className="flex flex-col gap-1.5">
+          <h3 className={`text-[13px] font-semibold ${d === today ? 'text-up' : 'text-muted'}`}>
+            {d === today ? c.todayHeading(weekdayDayMonth(d)) : weekdayDayMonth(d)}
+          </h3>
+          <ul className="flex flex-col gap-1.5">
+            {items
+              .filter((i) => i.date === d)
+              .map((i) => (
+                <li
+                  key={i.key}
+                  className="flex min-h-12 items-center gap-2.5 rounded-[10px] bg-bg px-3 py-2"
+                >
+                  <span aria-hidden="true" className={`size-2.5 flex-none rounded-full ${i.dot}`} />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className={i.strong ? 'font-bold text-white' : 'text-fg'}>{i.name}</span>
+                    <span className={`text-[13px] ${i.late ? 'text-down' : 'text-muted'}`}>
+                      {i.time}
+                      {i.countdown && <> · {i.countdown}</>}
+                    </span>
+                    {i.extra && <span className="sr-only">{i.extra}</span>}
+                  </span>
+                  <span
+                    className={`flex-none rounded-sm px-1.5 py-0.5 text-xs text-fg ${
+                      i.tag === u.tagWatchlist ? 'bg-ink' : 'bg-raised'
+                    }`}
+                  >
+                    {i.tag}
+                  </span>
+                </li>
+              ))}
+          </ul>
         </div>
       ))}
-      <p className="text-xs text-muted">
-        {c.source(data.econ.fetchedAt.slice(0, 16).replace('T', ' ') + ' UTC')}
-      </p>
-    </section>
-  );
-}
-
-function EarningsPart({ data }: { data: CalendarData }) {
-  const list = data.earnings?.estimates ?? [];
-  return (
-    <section aria-labelledby="earnings-h" className="flex flex-col gap-2">
-      <h3 id="earnings-h" className="text-[15px] font-semibold text-white">
-        {c.earningsTitle}
-      </h3>
-      <p className="text-xs text-muted">{c.earningsIntro}</p>
-      {list.length === 0 ? (
-        <p className="text-sm text-muted">{c.earningsNone}</p>
-      ) : (
-        <ScrollX label={c.earningsTitle}>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={th}>{c.colTicker}</th>
-                <th className={th}>{c.colExpected}</th>
-                <th className={th}>{c.colRange}</th>
-                <th className={th}>{c.colBasis}</th>
-                <th className={th}>{c.colLast}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((e) => (
-                <tr key={e.ticker}>
-                  <td className={`${cell} font-semibold text-white`}>
-                    <span className="inline-flex items-center gap-2">
-                      <span aria-hidden="true" className="size-2.5 rounded-full bg-up" />
-                      {e.ticker}
-                    </span>
-                  </td>
-                  <td className={`${cell} whitespace-nowrap`}>
-                    {e.date}
-                    {e.overdue && <span className="block text-xs text-down">{c.overdue}</span>}
-                  </td>
-                  <td className={`${cell} whitespace-nowrap text-muted`}>
-                    {c.range(e.from, e.to)}
-                  </td>
-                  <td className={`${cell} text-muted`}>{c.basis[e.basis] ?? e.basis}</td>
-                  <td className={`${cell} whitespace-nowrap text-muted`}>{e.lastRelease}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollX>
+      <p className="text-[13px] text-muted">{u.agendaLegend}</p>
+      {data.econ && (
+        <p className="text-xs text-muted">
+          {c.source(data.econ.fetchedAt.slice(0, 16).replace('T', ' ') + ' UTC')}
+        </p>
       )}
-    </section>
-  );
-}
-
-const CAL_TYPES = ['all', 'economy', 'earnings'] as const;
-type CalType = (typeof CAL_TYPES)[number];
-
-function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
-  const [type, setType] = useRemembered<CalType>('marsad.watch.calendar', CAL_TYPES, 'all');
-  return (
-    <Card
-      id="calendar-h"
-      title={u.calendar}
-      aside={
-        <Segmented
-          label={u.calType}
-          options={[
-            { key: 'all', label: u.calAll },
-            { key: 'economy', label: u.calEconomy },
-            { key: 'earnings', label: u.calEarnings },
-          ]}
-          value={type}
-          onChange={setType}
-        />
-      }
-    >
-      {type !== 'earnings' && <EconPart data={data} now={now} />}
-      {type !== 'economy' && <EarningsPart data={data} />}
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        <li className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-2 rounded-full bg-[#ED1C24]" />
-          {u.legendHigh}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-2 rounded-full bg-warn" />
-          {u.legendMedium}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-2 rounded-full bg-up" />
-          {u.legendEarnings}
-        </li>
-      </ul>
     </Card>
   );
 }
