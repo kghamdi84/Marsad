@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { normalizeTicker, toFixedHalfUp, type CatalystScenario } from '@marsad/core';
+import { useWide } from '../Card';
+import { Sheet } from '../Sheet';
 import { Button, ErrorText, Field } from '../ui';
 import {
   addScenario,
@@ -72,16 +74,19 @@ const EMPTY = {
   expires: '',
 };
 
-function NewScenario() {
+function NewScenario({ stepped = false }: { stepped?: boolean }) {
   const qc = useQueryClient();
   const [f, setF] = useState(EMPTY);
   const [bad, setBad] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const show = (k: number) => !stepped || step === k;
   const save = useMutation({
     mutationFn: addScenario,
     onSuccess: () => {
       setMsg(x.saved);
       setF(EMPTY);
+      setStep(0);
       void qc.invalidateQueries({ queryKey: ['scenarios'] });
     },
   });
@@ -136,11 +141,18 @@ function NewScenario() {
   };
   return (
     <form onSubmit={submit} aria-label={x.add} className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{x.add}</h3>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {!stepped && <h3 className="text-sm font-semibold">{x.add}</h3>}
+      {stepped && (
+        <p className="text-sm font-semibold text-up" aria-live="polite">
+          {x.stepOf(step + 1, x.steps[step] ?? '')}
+        </p>
+      )}
+      <div hidden={!show(0)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field id="sc-name" label={x.name} value={f.name} onChange={set('name')} />
         <Field id="sc-tickers" label={x.tickers} value={f.tickers} onChange={set('tickers')} />
         <Field id="sc-keywords" label={x.keywords} value={f.keywords} onChange={set('keywords')} />
+      </div>
+      <div hidden={!show(1)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field id="sc-8k" label={x.eightK} value={f.eightK} onChange={set('eightK')} />
         <Field id="sc-f4" label={x.form4} value={f.form4} onChange={set('form4')} />
         <label className="flex flex-col gap-1 text-sm text-muted">
@@ -180,6 +192,8 @@ function NewScenario() {
           value={f.volume}
           onChange={set('volume')}
         />
+      </div>
+      <div hidden={!show(2)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field id="sc-entry" label={x.entry} value={f.entry} onChange={set('entry')} />
         <Field
           id="sc-chase"
@@ -197,9 +211,50 @@ function NewScenario() {
         <Field id="sc-size" label={x.size} value={f.size} onChange={set('size')} />
         <Field id="sc-expires" label={x.expires} value={f.expires} onChange={set('expires')} />
       </div>
-      <Button type="submit" disabled={save.isPending}>
-        {x.save}
-      </Button>
+      {stepped && step === 3 && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xl bg-bg/45 p-3 text-sm">
+          {(
+            [
+              [x.name, f.name],
+              [x.tickers, f.tickers],
+              [x.keywords, f.keywords],
+              [x.eightK, f.eightK],
+              [x.form4, f.form4],
+              [x.entry, f.entry],
+              [x.chase, f.chase],
+              [x.invalidation, f.invalidation],
+              [x.expires, f.expires],
+            ] as const
+          ).map(([k, val]) => (
+            <div key={k} className="contents">
+              <dt className="text-muted">{k}</dt>
+              <dd className="text-fg">{val.trim() || x.reviewEmpty}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {stepped && step < 3 && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" disabled={step === 0} onClick={() => setStep(step - 1)}>
+            {x.back}
+          </Button>
+          <Button type="button" onClick={() => setStep(step + 1)}>
+            {x.next}
+          </Button>
+        </div>
+      )}
+      {(!stepped || step === 3) && (
+        <div className={stepped ? 'grid grid-cols-2 gap-2' : ''}>
+          {stepped && (
+            <Button type="button" onClick={() => setStep(2)}>
+              {x.back}
+            </Button>
+          )}
+          <Button type="submit" disabled={save.isPending}>
+            {x.save}
+          </Button>
+        </div>
+      )}
       {bad && <ErrorText message={x.invalid} />}
       {save.isError && <ErrorText message={save.error.message} />}
       {msg && <p className="text-sm">{msg}</p>}
@@ -209,6 +264,8 @@ function NewScenario() {
 
 export function Scenarios() {
   const q = useQuery({ queryKey: ['scenarios'], queryFn: loadScenarios });
+  const wide = useWide();
+  const [open, setOpen] = useState(false);
   return (
     <section aria-labelledby="scenarios" className="flex flex-col gap-3">
       <h2 id="scenarios" className="font-semibold">
@@ -226,7 +283,18 @@ export function Scenarios() {
             ))}
           </ul>
         ))}
-      <NewScenario />
+      {wide ? (
+        <NewScenario />
+      ) : (
+        <>
+          <Button type="button" onClick={() => setOpen(true)}>
+            {x.add}
+          </Button>
+          <Sheet open={open} onClose={() => setOpen(false)} title={x.add}>
+            <NewScenario stepped />
+          </Sheet>
+        </>
+      )}
     </section>
   );
 }

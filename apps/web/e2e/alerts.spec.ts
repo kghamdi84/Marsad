@@ -156,6 +156,10 @@ test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow
   );
   await page.goto('/alerts');
   const card = page.getByRole('region', { name: 'Scorecard' });
+  // One tick per scored alert at 5 sessions, said in words for screen readers.
+  await expect(
+    card.getByRole('img', { name: /\d+ gained, \d+ lost, \d+ still pending/ }),
+  ).toBeVisible();
   const row = card.getByRole('row', { name: /^exit-stop \(live\)/ });
   await expect(row).toContainText('66.7% (insufficient history)');
   await expect(row).toContainText('▲ +1.00%'); // mean return and mean excess
@@ -237,6 +241,32 @@ test('catalyst scenarios: a written scenario is listed; saving needs a trigger a
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
+  test('alerts: a scenario is written in four steps in a sheet', async ({ page }, info) => {
+    test.skip(
+      info.project.name !== 'desktop',
+      'One phone run is enough; the viewport is set here.',
+    );
+    await seedSession(page, 'aal2');
+    await page.route('**/rest/v1/**', (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    );
+    await page.goto('/alerts');
+    await page.getByRole('button', { name: 'Write a scenario' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Write a scenario' });
+    await expect(sheet.getByText('Step 1 of 4: Watch')).toBeVisible();
+    await sheet.getByLabel('Name').fill('NVDA guidance cut');
+    await sheet.getByLabel('Tickers (separate with commas)').fill('NVDA');
+    await sheet.getByRole('button', { name: 'Next' }).click();
+    await expect(sheet.getByText('Step 2 of 4: Triggers')).toBeVisible();
+    await expect(sheet.getByLabel('8-K items (commas, for example 5.02)')).toBeVisible();
+    await expect(sheet.getByLabel('Name')).toBeHidden();
+    await sheet.getByRole('button', { name: 'Next' }).click();
+    await sheet.getByRole('button', { name: 'Next' }).click();
+    await expect(sheet.getByText('Step 4 of 4: Review')).toBeVisible();
+    await expect(sheet.getByText('NVDA guidance cut')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Save scenario' })).toBeVisible();
+  });
+
   test('alerts: tapping an alert opens its full card in a sheet', async ({ page }, info) => {
     test.skip(
       info.project.name !== 'desktop',
@@ -278,4 +308,73 @@ test.describe('on a phone', () => {
       390,
     );
   });
+});
+
+test('alerts: a setup alert shows its plan bar, reward to risk, risk interval and checklist', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  // Synthetic setup alert (not market data): signal 100, now 101, stop 95, targets 110 and 120.
+  // Reward to risk from the signal: (110 - 100) / 5 = 2.0R and (120 - 100) / 5 = 4.0R.
+  // Swing history: 12 losses in 40 trades = 30.0% loss rate.
+  const setup = {
+    ...input,
+    kind: 'setup' as const,
+    priority: 'high' as const,
+    ticker: 'NVDA',
+    headline: 'NVDA setup',
+    signalPrice: 100,
+    price: 101,
+    plan: { entry: 'Limit 100', stop: 95, targets: [110, 120], invalidation: 'Close below 95' },
+    risk: [
+      { horizon: 'scalp' as const, losses: 0, n: null },
+      { horizon: 'swing' as const, losses: 12, n: 40 },
+      { horizon: 'long' as const, losses: 2, n: 9 },
+    ],
+    checklist: {
+      cleanSetup: true,
+      notExtended: true,
+      riskDefined: true,
+      profitPlan: false,
+      bearCaseRead: true,
+    },
+  };
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/alerts**', (r) =>
+    r.fulfill(
+      json([
+        {
+          id: '33333333-3333-4333-8333-333333333333',
+          created_at: NOW.toISOString(),
+          kind: 'setup',
+          priority: 'high',
+          ticker: 'NVDA',
+          decision: 'push',
+          reasons: ['high: pushed'],
+          card: renderCard(setup),
+          latency_ms: null,
+          delivery: {},
+          input: setup,
+        },
+      ]),
+    ),
+  );
+  await page.goto('/alerts');
+  const card = page.getByRole('region', { name: /NVDA/ });
+  await expect(
+    card.getByRole('img', {
+      name: 'Stop 95.00, signal 100.00, now 101.00, targets 110.00, 120.00.',
+    }),
+  ).toBeVisible();
+  await expect(card.getByText('2.0R')).toBeVisible();
+  await expect(card.getByText('4.0R')).toBeVisible();
+  await expect(card.getByText('30.0% loss rate, n = 40')).toBeVisible();
+  await expect(card.getByText('Insufficient history (9 of 30)')).toBeVisible();
+  await expect(card.getByText('Does not apply')).toBeVisible();
+  await expect(card.getByRole('list', { name: 'Checklist' })).toContainText('Profit plan: No');
 });
