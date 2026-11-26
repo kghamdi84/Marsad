@@ -871,10 +871,8 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
     json(r, settings === null ? [] : [settings]),
   );
   await page.goto('/study/NVDA');
-  await openSection(page, 'Financials');
-  const panel = page.getByRole('region', { name: 'Financials, as filed' });
-  await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
-  await expect(panel.getByRole('region', { name: 'Shariah screening aid' })).toHaveCount(0);
+  await openSection(page, 'Shariah aid');
+  await expect(page.getByText('The Shariah screening aid is off.')).toBeVisible();
 
   settings = {
     shariah_screen: true,
@@ -883,6 +881,7 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
     shariah_cash_max: 0.33,
   };
   await page.reload();
+  await openSection(page, 'Shariah aid');
   const aid = page.getByRole('region', { name: 'Shariah screening aid' });
   // Market cap: last close 300.00 x 24.1 billion shares (cover page filed 2026-08-26) = USD 7.23 trillion.
   // Long-term debt 33.366 billion / 7,230 billion = 0.5%; cash 22.443 billion / 7,230 billion = 0.3%.

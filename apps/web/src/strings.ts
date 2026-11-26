@@ -1037,6 +1037,7 @@ export const t = {
         risk: 'Risk factors',
         news: 'News',
         dividends: 'Dividends',
+        shariah: 'Shariah aid',
       } as Record<string, string>,
       markerLetters: {
         'high-8k': 'F',
@@ -1079,6 +1080,8 @@ export const t = {
     missing: 'Not available on the free plan',
     shariah: {
       title: 'Shariah screening aid',
+      off: 'The Shariah screening aid is off. Turn it on in Status, under Preferences.',
+      noBalance: 'No balance sheet is stored for this company, so the ratios cannot be computed.',
       basis: (b: string) =>
         b === 'assets'
           ? 'Ratios over total assets.'

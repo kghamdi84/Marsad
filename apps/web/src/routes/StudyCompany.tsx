@@ -28,6 +28,7 @@ import { Business } from '../components/study/Business';
 import { Holders13F } from '../components/study/Holders13F';
 import { QuarterlyRiskFactors } from '../components/study/QuarterlyRiskFactors';
 import { RiskFactors } from '../components/study/RiskFactors';
+import { ShariahAid } from '../components/study/ShariahAid';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
 import {
@@ -264,6 +265,7 @@ const SECTIONS = [
   'risk',
   'news',
   'dividends',
+  'shariah',
 ] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
@@ -618,6 +620,8 @@ export function StudyCompany() {
         );
       case 'dividends':
         return <Dividends rows={dividends.data ?? []} />;
+      case 'shariah':
+        return cikOf ? <ShariahAid cik={cikOf} bars={q.data.bars} /> : null;
       case 'news':
         return <NewsPanel ticker={q.data.ticker} />;
     }

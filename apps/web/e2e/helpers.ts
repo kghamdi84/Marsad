@@ -96,7 +96,8 @@ export async function openSection(
     | 'Short data'
     | 'Risk factors'
     | 'News'
-    | 'Dividends',
+    | 'Dividends'
+    | 'Shariah aid',
 ) {
   await page.getByRole('tab', { name }).click();
 }
