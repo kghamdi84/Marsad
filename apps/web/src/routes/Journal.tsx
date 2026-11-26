@@ -252,6 +252,9 @@ function PlanBar({ h, last, hit }: { h: StoredHolding; last: number | null; hit:
         <span>
           {ui.barStop} {money(h.stop)}
         </span>
+        <span className="text-fg">
+          {ui.barNow} {money(last)}
+        </span>
         <span>
           {ui.barTarget} {h.targets.length ? h.targets.map(money).join(', ') : j.holdings.none2}
         </span>
@@ -277,7 +280,7 @@ const THESIS_TONE: Record<ThesisStatus, string> = {
 function TimeStop({ held, max }: { held: number; max: number }) {
   const used = Math.min(1, held / max);
   return (
-    <div className="mb-2 flex flex-col gap-1">
+    <div className="mb-2 flex flex-col gap-1 rounded-lg bg-bg/60 p-3">
       <span className="text-[0.6875rem] text-muted">{j.ui.timeStop(held, max)}</span>
       <span aria-hidden="true" className="h-1.5 rounded-full bg-faint/20">
         <span
@@ -310,6 +313,15 @@ function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
       <PlanBar h={h} last={last?.close ?? null} hit={exits.length > 0} />
       {h.timeStopSessions !== null && h.timeStopSessions > 0 && (
         <TimeStop held={sessionsHeld(bars, h.openedOn)} max={h.timeStopSessions} />
+      )}
+      {h.trendBreak && (
+        <div className="mb-2 flex flex-col gap-1 rounded-lg bg-bg/60 p-3">
+          <span className="text-[0.6875rem] text-muted">{j.ui.trendBreakLabel}</span>
+          <span className="text-sm text-fg">
+            {h.trendBreak.ind}
+            {h.trendBreak.period}
+          </span>
+        </div>
       )}
       {hasRules ? (
         <span className="text-xs text-muted">
