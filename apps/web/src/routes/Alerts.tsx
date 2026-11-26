@@ -374,6 +374,10 @@ function Scorecard() {
     .filter((al) => five.has(al.id))
     .slice(-30)
     .map((al) => five.get(al.id) as (typeof q.data.outcomes)[number]);
+  const perAlert = [...q.data.alerts]
+    .sort((x, y) => y.createdAt.localeCompare(x.createdAt))
+    .slice(0, 8)
+    .map((al) => ({ id: al.id, label: `${al.ruleId} ${al.ticker ?? ''}`.trim() }));
   const tone = (o: (typeof strip)[number]) =>
     o.status !== 'done' || o.ret === null
       ? 'bg-faint/40'
@@ -406,6 +410,41 @@ function Scorecard() {
           </div>
           <span className="text-xs text-muted">{s.stripNote}</span>
         </div>
+      )}
+      {perAlert.length > 0 && (
+        <ScrollX label={s.perAlertLabel}>
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className={th}>{s.colAlert}</th>
+                {(['1d', '5d', '20d'] as const).map((h) => (
+                  <th key={h} className={thNum}>
+                    {s.sessions(h.replace('d', ''))}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {perAlert.map((al) => (
+                <tr key={al.id}>
+                  <td className={td}>
+                    <span className="font-semibold text-white">{al.label}</span>
+                  </td>
+                  {(['1d', '5d', '20d'] as const).map((h) => {
+                    const o = q.data.outcomes.find((x) => x.alertId === al.id && x.horizon === h);
+                    return (
+                      <td key={h} className={`${td} ${num}`}>
+                        {o && o.status === 'done' && o.ret !== null
+                          ? pctSigned(o.ret)
+                          : s.pendingCell}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollX>
       )}
       {rows.length === 0 ? (
         <p className="text-muted">{s.none}</p>

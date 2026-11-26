@@ -576,6 +576,10 @@ export const t = {
     },
     scorecard: {
       tableLabel: 'Results by rule and horizon',
+      perAlertLabel: 'Result of each recent alert by horizon',
+      colAlert: 'Alert',
+      sessions: (n: string) => (n === '1' ? '1 session' : `${n} sessions`),
+      pendingCell: 'Pending',
       strip: (scored: number) =>
         `Last ${scored} alert${scored === 1 ? '' : 's'} with a result after 1 session, oldest first`,
       stripAria: (wins: number, losses: number, pending: number) =>
