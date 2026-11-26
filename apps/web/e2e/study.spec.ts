@@ -126,7 +126,7 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
   ).toBeVisible();
 
   // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag.
-  await openSection(page, 'Filings and risk');
+  await openSection(page, 'Risk factors');
   await expect(page.getByText('Item 5.02: Executive or director change')).toBeVisible();
   await expect(page.getByText('Item 9.01: Attached documents and exhibits')).toBeVisible();
   await expect(page.getByText('High', { exact: true }).first()).toBeVisible();
@@ -141,7 +141,7 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
   await expect(
     page.getByRole('heading', { name: 'Risk factors, quarter over quarter (10-Q)' }),
   ).toBeVisible();
-  await openSection(page, 'Ownership');
+  await openSection(page, 'Holders and insiders');
   await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/study.png`, fullPage: true });
@@ -163,7 +163,7 @@ test('a ticker with no stored bars says so instead of showing an empty chart', a
   await page.goto('/study/RKLB');
   await expect(page.getByText(/No daily bars stored for this ticker yet/)).toBeVisible();
   await expect(page.getByText(/No company record yet/)).toBeVisible();
-  await openSection(page, 'Filings and risk');
+  await openSection(page, 'Risk factors');
   await expect(page.getByText('No filings stored for this company.')).toBeVisible();
 });
 
@@ -233,7 +233,7 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Thesis card' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toHaveCount(0);
-    await page.locator('summary', { hasText: 'Ownership' }).click();
+    await page.locator('summary', { hasText: 'Holders and insiders' }).click();
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(

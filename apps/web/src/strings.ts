@@ -1027,9 +1027,12 @@ export const t = {
       sectionNames: {
         overview: 'Overview',
         financials: 'Financials',
-        ownership: 'Ownership',
-        filings: 'Filings and risk',
+        earnings: 'Earnings',
+        holders: 'Holders and insiders',
+        short: 'Short data',
+        risk: 'Risk factors',
         news: 'News',
+        dividends: 'Dividends',
       } as Record<string, string>,
       markerLetters: {
         'high-8k': 'F',
