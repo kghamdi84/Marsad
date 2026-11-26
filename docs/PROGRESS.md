@@ -2,7 +2,20 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 6 math ahead of options data; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-26 (phone design match against the Claude Design handoff).
+
+### Phone design match against the Claude Design handoff (2026-11-26)
+
+Each page was rendered from `design_handoff_marsad_redesign/mobile/*.dc.html` and compared side by side with the app at 390 x 844 (Playwright, isMobile and hasTouch, temporary config deleted after each run).
+
+- Journal: summary carousel with dots, pill tabs with More (Options, Trades, Weekly review), holding cards with the stop-to-target bar, triangle gain, Stop hit, Target hit and Rotate to ETF flags, CSV import behind a button. New trade has 01 Prices, 02 Size, 03 Checklist and a pinned copy button. The Sahm ticket now reads `BUY 125 RKLB LIMIT 24.15 STOP 22.15 GTC` (core test updated). Exposure and ETF look-through use the design's bars. Options cards show name, legs, days left, a loss-to-gain bar and breakeven; details sit in a sheet.
+- Watch: brief hero ("Pre-market brief · Wed 25 Nov", Emailed chip, tiles), market tiles with inline sparklines, and the Agenda list by day with Macro and Watchlist tags.
+- Regime: hero with three tiles and the labelled ribbon, "What the S&P did next" rows with dashed 30-tick insufficient boxes, and context sections as collapsed rows with a value.
+- Study: on phones the chart comes first and the tiles follow.
+- Alerts: list cards with Pushed or In digest, the design time line, "Sent 4" tabs, scorecard boxes per rule under 30 cases, per-alert tiles, and a New scenario button.
+- Status: the checked line reads "Checked 03:48 ET · 11:48 Riyadh". Sign in already matched.
+- Checks: Prettier, tsc, ESLint, 1,046 unit tests, Playwright 170 passed and 10 skipped.
+- Not matched, and why: the event study shows the middle half, not a 90% interval (the stored study has no bootstrap bars; adding them needs a job change and a migration, waiting for Khaled). No company names in watchlist or Study rows (not in the data). The Shariah tab has no filing reference or dollar figures. Trades and Weekly review keep their current layout. Option bar fills are lighter than the design so the labels meet WCAG AA. CI is blocked by the GitHub billing lock until Khaled clears it.
 
 ### Phase 1 session 1 (2026-11-23): what exists
 

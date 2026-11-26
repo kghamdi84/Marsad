@@ -1648,8 +1648,7 @@ export const t = {
   status: {
     hero: {
       title: (ok: number, n: number) => `${ok} of ${n} sources healthy`,
-      line: (et: string, riyadh: string) =>
-        `Database OK \u00B7 checked ${et} ET \u00B7 ${riyadh} Riyadh`,
+      line: (et: string, riyadh: string) => `Checked ${et} ET \u00B7 ${riyadh} Riyadh`,
       stale: (names: string[]) => `${names.join(', ')} ${names.length === 1 ? 'is' : 'are'} stale.`,
       aria: (healthy: number, quiet: number, stale: number) =>
         `${healthy} healthy, ${quiet} quiet by design, ${stale} stale`,
