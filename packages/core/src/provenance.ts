@@ -16,7 +16,7 @@ export type PlanTier = 'real-time' | 'delayed' | 'end-of-day' | 'unavailable' | 
 export type FreshnessState = 'live' | 'delayed' | 'stale' | 'unavailable';
 
 export interface Provenance {
-  source: string; // 'massive', 'fred', 'sec_edgar', 'nasdaq_halts', 'gpr', or 'marsad' for derived values
+  source: string; // 'massive', 'tauric', 'fred', 'sec_edgar', 'nasdaq_halts', 'gpr', or 'marsad' for derived values
   endpoint: string;
   asOf: string; // UTC ISO 8601, the time the value describes
   fetchedAt: string; // UTC ISO 8601, when Marsad received it
@@ -71,6 +71,9 @@ export function formatAge(seconds: number): string {
  *   the session's limit (plus 15 minutes for the delayed tier). When the market is
  *   closed the value is current if it is at or after the last regular close.
  * - End-of-day tier: current if its ET date is the last completed trading day or later.
+ * - Unknown tier (a vendor whose delay has not been measured): judged with the delayed tier's allowance,
+ *   but never called "Live". Its state is `delayed` and its label says the delay is not confirmed, so a
+ *   feed of unproven speed cannot pass as real time (ADR 0041).
  * - No value, or an unavailable plan tier: unavailable.
  */
 export function evaluateFreshness(input: FreshnessInput): Freshness {
@@ -96,11 +99,14 @@ export function evaluateFreshness(input: FreshnessInput): Freshness {
       : stale();
   }
 
-  const delay = planTier === 'delayed' ? DELAYED_TIER_SECONDS : 0;
-  const current = (): Freshness =>
-    planTier === 'delayed'
-      ? { state: 'delayed', ageSeconds, session, label: 'Delayed 15 min' }
-      : { state: 'live', ageSeconds, session, label: 'Live' };
+  const delay = planTier === 'delayed' || planTier === 'unknown' ? DELAYED_TIER_SECONDS : 0;
+  const current = (): Freshness => {
+    if (planTier === 'delayed')
+      return { state: 'delayed', ageSeconds, session, label: 'Delayed 15 min' };
+    if (planTier === 'unknown')
+      return { state: 'delayed', ageSeconds, session, label: 'Delay not confirmed' };
+    return { state: 'live', ageSeconds, session, label: 'Live' };
+  };
 
   if (session === 'closed') {
     const lastClose = lastRegularClose(now, calendar);

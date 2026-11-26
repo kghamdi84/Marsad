@@ -13,6 +13,7 @@ const beat = (source: string, sec: number | null) => ({
 });
 const healthy = [
   beat('massive', 20),
+  beat('tauric', 300),
   beat('nasdaq_halts', 120),
   beat('sec_edgar', 900),
   beat('fred', 3600),
@@ -112,7 +113,7 @@ describe('runHealthJob', () => {
     const run = await runHealthJob({ store, now: () => far });
     expect(run.status).toBe('error');
     expect(run.error).toMatch(/calendar does not cover today/);
-    expect(run.error).toMatch(/massive, nasdaq_halts, sec_edgar/);
+    expect(run.error).toMatch(/massive, tauric, nasdaq_halts, sec_edgar/);
     expect(log.alerts.map((a) => [a.alert.source, a.alert.event])).toEqual([['gpr', 'stale']]);
     expect(log.runs).toHaveLength(1);
   });

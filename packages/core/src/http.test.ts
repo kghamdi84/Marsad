@@ -172,3 +172,48 @@ describe('HttpClient', () => {
     expect(clock.slept).toEqual([12_000]);
   });
 });
+
+describe('HttpClient POST (Tauric batch quotes, ADR 0041)', () => {
+  it('sends the method, headers and body, and caches by URL and body', async () => {
+    const clock = fakeClock();
+    const seen: {
+      url: string;
+      method: string | undefined;
+      body: string | undefined;
+      ct: string | undefined;
+    }[] = [];
+    const fetch: FetchLike = (url, init) => {
+      seen.push({
+        url,
+        method: init?.method,
+        body: init?.body,
+        ct: init?.headers?.['Content-Type'],
+      });
+      return Promise.resolve(res(200, `reply ${seen.length}`));
+    };
+    const http = new HttpClient({
+      fetch,
+      clock,
+      bucket: new TokenBucket(100, 100, clock),
+      cache: new TtlCache<string>(),
+    });
+    const headers = { 'Content-Type': 'application/json' };
+    const a = await http.post('https://x/q', '{"k":1}', { headers, cacheTtlMs: 60_000 });
+    const b = await http.post('https://x/q', '{"k":1}', { headers, cacheTtlMs: 60_000 });
+    const c = await http.post('https://x/q', '{"k":2}', { headers, cacheTtlMs: 60_000 });
+    const d = await http.get('https://x/q', { cacheTtlMs: 60_000 });
+    expect([a, b, c, d].map((r) => (r.ok ? r.body : null))).toEqual([
+      'reply 1',
+      'reply 1',
+      'reply 2',
+      'reply 3',
+    ]);
+    expect(seen[0]).toEqual({
+      url: 'https://x/q',
+      method: 'POST',
+      body: '{"k":1}',
+      ct: 'application/json',
+    });
+    expect(seen[2]?.method).toBeUndefined(); // a GET sends no method or body
+  });
+});

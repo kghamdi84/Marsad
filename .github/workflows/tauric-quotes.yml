@@ -1,0 +1,47 @@
+name: Tauric quotes
+
+# Second quote source (ADR 0041). Every 5 minutes from 13:00 to 21:59 UTC on weekdays, which covers the regular
+# session (09:30 to 16:00 ET) in both daylight saving settings. The job itself skips (no vendor call, no credit)
+# outside the regular session and 15 minutes after the close. One batch request per run, about 110 of the
+# account's 3,000 daily data credits at most. GitHub's scheduler can run late.
+# Until the TAURIC_API_KEY repository secret exists, every run ends at the first step without failing.
+on:
+  schedule:
+    - cron: '*/5 13-21 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauric-api
+  cancel-in-progress: false
+
+jobs:
+  quotes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HAS_KEY: ${{ secrets.TAURIC_API_KEY != '' }}
+    steps:
+      - name: Waiting for the TAURIC_API_KEY secret
+        if: ${{ env.HAS_KEY != 'true' }}
+        run: echo "TAURIC_API_KEY is not set; nothing to do (ADR 0041)."
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        if: ${{ env.HAS_KEY == 'true' }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        if: ${{ env.HAS_KEY == 'true' }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: ${{ env.HAS_KEY == 'true' }}
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: ${{ env.HAS_KEY == 'true' }}
+      - name: Run the quotes job
+        if: ${{ env.HAS_KEY == 'true' }}
+        run: pnpm --filter @marsad/jobs tauric quotes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TAURIC_API_KEY: ${{ secrets.TAURIC_API_KEY }}

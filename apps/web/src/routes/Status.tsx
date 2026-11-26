@@ -14,6 +14,7 @@ import {
 } from '@marsad/core';
 import { downloadExport, listExports } from '../lib/exports';
 import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
+import { loadQuoteView, saveQuoteSource, type QuoteSource } from '../lib/quotes';
 import { supabase } from '../lib/supabase';
 import { Notifications } from '../components/status/Notifications';
 import { ScrollX, cardClass } from '../components/Card';
@@ -166,6 +167,84 @@ function Latency() {
         </table>
       )}
     </ScrollX>
+  );
+}
+
+/**
+ * Quote source (ADR 0041): one choice of two, so radio buttons. Saved as soon as it is picked; it changes only
+ * which latest price the screens show, never the data rules, charts or alerts use.
+ */
+function QuoteSourceCard() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['quote-view'], queryFn: loadQuoteView });
+  const [msg, setMsg] = useState<string | null>(null);
+  // The picked option shows at once and stays while the saved setting reloads; a failed save puts it back.
+  const [chosen, setChosen] = useState<QuoteSource | null>(null);
+  const qs = t.status.quoteSource;
+  const save = useMutation({
+    mutationFn: saveQuoteSource,
+    onSuccess: (_v, source) => {
+      setMsg(qs.saved(source === 'tauric' ? qs.tauric : qs.massive));
+      void qc.invalidateQueries({ queryKey: ['quote-view'] });
+    },
+    onError: () => setChosen(null),
+  });
+  const current: QuoteSource = chosen ?? q.data?.source ?? 'massive';
+  const options: { key: QuoteSource; label: string; note: string }[] = [
+    { key: 'massive', label: qs.massive, note: qs.massiveNote },
+    { key: 'tauric', label: qs.tauric, note: qs.tauricNote },
+  ];
+  return (
+    <section aria-labelledby="quote-source-h" className={`${cardClass} gap-3!`}>
+      <h2 id="quote-source-h" className={panelTitle}>
+        {qs.title}
+      </h2>
+      <p className="text-sm text-muted">{qs.intro}</p>
+      {q.isError ? (
+        <p role="alert" className="text-down">
+          {q.error.message}
+        </p>
+      ) : (
+        <fieldset className="flex flex-col gap-2" disabled={!q.data || save.isPending}>
+          <legend className="mb-1 text-sm text-fg">{qs.legend}</legend>
+          {options.map((o) => (
+            <label
+              key={o.key}
+              className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 ${
+                current === o.key ? 'border-up/60 bg-raised' : 'border-line'
+              }`}
+            >
+              <input
+                type="radio"
+                name="quote-source"
+                value={o.key}
+                className="mt-1 size-4"
+                checked={current === o.key}
+                onChange={() => {
+                  setMsg(null);
+                  setChosen(o.key);
+                  save.mutate(o.key);
+                }}
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-white">{o.label}</span>
+                <span className="text-xs text-muted">{o.note}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {save.isError && (
+        <p role="alert" className="text-down">
+          {save.error.message}
+        </p>
+      )}
+      {msg && (
+        <p role="status" className="text-sm">
+          {msg}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -842,6 +921,8 @@ export function Status() {
       </div>
 
       <Notifications />
+
+      <QuoteSourceCard />
 
       <Preferences />
 

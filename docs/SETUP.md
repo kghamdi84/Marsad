@@ -116,6 +116,7 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 | `SEC_USER_AGENT`        | Text you choose, like `Marsad research your-email@example.com`   | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in)                                 |
 | `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Only when the first Edge Function is deployed (Phase 5). Not needed now. The database is deployed by the GitHub integration |
 | `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | Phase 2                                                                                                                     |
+| `TAURIC_API_KEY`        | tauric.ai, **Settings**, **API keys** (choose an expiry)         | Optional second quote source (ADR 0041). GitHub repository secret only; the Tauric workflows wait for it                    |
 
 ## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
 

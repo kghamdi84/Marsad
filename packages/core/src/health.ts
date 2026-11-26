@@ -81,7 +81,7 @@ export function assessSources(
 }
 
 /** Version of `DEFAULT_SOURCE_POLICIES`. Stored with every alert so a replay uses the same limits. */
-export const SOURCE_POLICY_VERSION = '2026-12-02.1';
+export const SOURCE_POLICY_VERSION = '2026-12-03.1';
 
 export interface SystemAlert {
   kind: 'system';
@@ -168,6 +168,16 @@ export const DEFAULT_SOURCE_POLICIES: readonly SourcePolicy[] = [
     label: 'Massive (market data)',
     dependentRules: ['group:prices'],
     maxSilenceSec: { 'pre-market': 600, regular: 120, 'after-hours': 600, closed: null },
+    required: false,
+  },
+  {
+    source: 'tauric',
+    label: 'Tauric quotes',
+    // Display only (ADR 0041): no rule reads Tauric quotes, so its silence pauses nothing. The job polls every
+    // 5 minutes from 13:00 to 21:59 UTC on weekdays (GitHub's schedule can lag by several minutes), so 30 minutes
+    // of silence in the regular session means it stopped. It does not poll outside the regular session.
+    dependentRules: [],
+    maxSilenceSec: { 'pre-market': null, regular: 1800, 'after-hours': null, closed: null },
     required: false,
   },
   {
