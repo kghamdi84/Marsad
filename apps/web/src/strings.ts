@@ -585,6 +585,15 @@ export const t = {
       no: 'No',
     },
     none: 'No alerts yet. Halt alerts for watched tickers start with the next halts run; rule alerts start when rules go live.',
+    decisionShort: {
+      push: 'Pushed',
+      digest: 'In digest',
+      shadow: 'Shadow',
+      suppress: 'Suppressed',
+    } as Record<string, string>,
+    tabCount: (label: string, n: number) => `${label} ${n}`,
+    when: (day: string, et: string, local: string, city: string) =>
+      `${day} · ${et} ET · ${local} ${city}`,
     decision: {
       push: 'Pushed',
       digest: 'Held for the digest',
@@ -605,6 +614,8 @@ export const t = {
         'If this happens, here is my plan. Write a scenario in advance; each evening Marsad checks the day’s filings, Form 4s, news, halts and moves against it. A match is critical only with a tier-1 source or two independent tier-2 sources, otherwise it is marked unconfirmed. Matches are recorded, not pushed, until live data exists.',
       none: 'No scenarios yet.',
       add: 'Write a scenario',
+      newScenario: 'New scenario',
+      sub: 'If this happens, here is my plan',
       name: 'Name',
       tickers: 'Tickers (separate with commas)',
       keywords: 'Keywords or people a headline must mention (commas, optional)',
@@ -667,6 +678,9 @@ export const t = {
       colLevels: 'Stop or target first',
       insufficient: 'insufficient history',
       /** No percentage from fewer than 30 cases (integrity rule 10): the row shows this instead. */
+      sub: 'In each alert’s direction, against SPY, before costs',
+      hitRatesAt: 'Hit rates appear at 30 scored alerts',
+      ruleLabel: (rule: string, shadow: boolean) => `${rule} (${shadow ? 'shadow' : 'live'})`,
       insufficientRow: (n: number) => `Insufficient history (${n} of 30)`,
       shadow: 'shadow',
       live: 'live',

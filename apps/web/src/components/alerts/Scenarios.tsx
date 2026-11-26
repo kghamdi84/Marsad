@@ -295,7 +295,8 @@ export function Scenarios() {
       <h2 id="scenarios" className="font-semibold">
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <p className="text-[13px] text-muted">{x.sub}</p>
+      <p className="hidden text-sm text-muted tablet:block">{x.intro}</p>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.length === 0 ? (
@@ -311,9 +312,13 @@ export function Scenarios() {
         <NewScenario />
       ) : (
         <>
-          <Button type="button" onClick={() => setOpen(true)}>
-            {x.add}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[52px] rounded-[14px] bg-white text-base font-bold text-raised"
+          >
+            {x.newScenario}
+          </button>
           <Sheet open={open} onClose={() => setOpen(false)} title={x.add}>
             <NewScenario stepped />
           </Sheet>

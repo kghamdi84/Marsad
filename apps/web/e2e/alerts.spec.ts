@@ -74,7 +74,7 @@ test('alerts: a stored halt alert as a card with its decision, reasons, latency 
   await expect(card.getByText(/End-to-end latency 30.5 s/)).toBeVisible();
   // The pipeline's reasons are shown as chips under "Why".
   await expect(card.getByText('critical: pushed (bypasses quiet hours and the cap)')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sent (1)' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Sent 1' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -156,15 +156,12 @@ test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow
   );
   await page.goto('/alerts');
   const card = page.getByRole('region', { name: 'Scorecard' });
-  // One tick per scored alert at 5 sessions, said in words for screen readers.
-  await expect(
-    card.getByRole('img', { name: /\d+ gained, \d+ lost, \d+ still pending/ }),
-  ).toBeVisible();
-  const row = card.getByRole('row', { name: /^exit-stop \(live\)/ });
-  // Three finished outcomes: no percentage of any kind from fewer than 30 cases (integrity rule 10).
-  await expect(row).toContainText('Insufficient history (3 of 30)');
-  await expect(row).not.toContainText('%');
-  await expect(card.getByRole('row', { name: /shadow/ })).toHaveCount(0); // pending outcomes are not scored
+  // Three finished outcomes: the design's box, and no percentage of any kind from fewer than 30 cases (rule 10).
+  const box = card.getByText('exit-stop (live)', { exact: true }).locator('..');
+  await expect(box).toContainText('Insufficient history (3 of 30)');
+  await expect(box).toContainText('Hit rates appear at 30 scored alerts');
+  await expect(box).not.toContainText('%');
+  await expect(card.getByText('exit-stop (shadow)')).toHaveCount(0); // pending outcomes are not scored
   await expect(card).toContainText('1 outcome is still waiting for its sessions.');
   await expect(card).toContainText(
     'Not enough scored alerts carry a quality score yet (30 needed).',
@@ -252,7 +249,7 @@ test.describe('on a phone', () => {
       r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
     );
     await page.goto('/alerts');
-    await page.getByRole('button', { name: 'Write a scenario' }).click();
+    await page.getByRole('button', { name: 'New scenario' }).click();
     const sheet = page.getByRole('dialog', { name: 'Write a scenario' });
     await expect(sheet.getByText('Step 1 of 4: Watch')).toBeVisible();
     await sheet.getByLabel('Name').fill('NVDA guidance cut');
