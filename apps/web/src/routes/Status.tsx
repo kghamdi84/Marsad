@@ -18,6 +18,8 @@ import { downloadExport, listExports } from '../lib/exports';
 import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
 import { supabase } from '../lib/supabase';
 import { Notifications } from '../components/status/Notifications';
+import { ScrollX, cardClass } from '../components/Card';
+import { panelTitle } from '../components/study/Panel';
 import { t } from '../strings';
 
 interface SourceRow {
@@ -139,8 +141,8 @@ async function loadLatency() {
 function Latency() {
   const q = useQuery({ queryKey: ['latency'], queryFn: loadLatency });
   return (
-    <div className="overflow-x-auto">
-      <h2 className="mb-2 font-semibold">{t.status.latency}</h2>
+    <ScrollX label={t.status.latency} className={`${cardClass} gap-3!`}>
+      <h2 className={panelTitle}>{t.status.latency}</h2>
       <p className="mb-2 text-sm text-muted">{t.status.latencyIntro}</p>
       {q.isError && (
         <p role="alert" className="text-down">
@@ -171,7 +173,7 @@ function Latency() {
           </tbody>
         </table>
       )}
-    </div>
+    </ScrollX>
   );
 }
 
@@ -204,7 +206,7 @@ function PreferencesForm({ initial }: { initial: Prefs }) {
   return (
     <form
       aria-label={t.status.preferences}
-      className="flex flex-col gap-2"
+      className={`${cardClass} gap-3!`}
       onSubmit={(e) => {
         e.preventDefault();
         setMsg(null);
@@ -215,7 +217,7 @@ function PreferencesForm({ initial }: { initial: Prefs }) {
         save.mutate(p);
       }}
     >
-      <h2 className="font-semibold">{t.status.preferences}</h2>
+      <h2 className={panelTitle}>{t.status.preferences}</h2>
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -334,8 +336,8 @@ function Costs() {
   const gh = q.data ? actionsMinutes(q.data.runs, now) : null;
   const money = (v: number) => toFixedHalfUp(v, 2);
   return (
-    <div className="overflow-x-auto">
-      <h2 className="mb-2 font-semibold">{t.status.costs}</h2>
+    <ScrollX label={t.status.costs} className={`${cardClass} gap-3!`}>
+      <h2 className={panelTitle}>{t.status.costs}</h2>
       <p className="mb-2 text-sm text-muted">{t.status.costsIntro}</p>
       <table className="w-full border-collapse text-sm">
         <thead>
@@ -380,7 +382,7 @@ function Costs() {
         </p>
       )}
       {gh && <p className="text-sm">{t.status.actions(gh.minutes, gh.runs)}</p>}
-    </div>
+    </ScrollX>
   );
 }
 
@@ -390,8 +392,8 @@ function Exports() {
     mutationFn: (x: { date: string; file: string }) => downloadExport(x.date, x.file),
   });
   return (
-    <div>
-      <h2 className="mb-2 font-semibold">{t.status.exports}</h2>
+    <div className={`${cardClass} gap-3!`}>
+      <h2 className={panelTitle}>{t.status.exports}</h2>
       <p className="mb-2 text-sm text-muted">{t.status.exportsIntro}</p>
       {q.isError && (
         <p role="alert" className="text-down">
@@ -423,12 +425,65 @@ function Exports() {
   );
 }
 
+/** "N of M sources healthy", one cell per source; the state of each is in words for screen readers and on hover. */
+function HealthHero({ data }: { data: Awaited<ReturnType<typeof load>> }) {
+  const h = t.status.hero;
+  const views = data.sources.flatMap((s) => {
+    const policy = DEFAULT_SOURCE_POLICIES.find((p) => p.source === s.source);
+    if (!policy) return [];
+    const v = describeSourceHealth(
+      policy,
+      s.last_message_at ? new Date(s.last_message_at) : null,
+      new Date(data.checkedAt),
+      data.calendar,
+    );
+    return [{ name: s.display_name, state: v.state, label: v.label }];
+  });
+  if (views.length === 0) return null;
+  const healthy = views.filter((v) => v.state === 'ok' || v.state === 'not-expected').length;
+  const stale = views.filter((v) => v.state === 'stale').length;
+  const cell = (state: string) =>
+    state === 'ok' || state === 'not-expected'
+      ? 'bg-up'
+      : state === 'stale'
+        ? 'bg-warn'
+        : 'bg-faint/40';
+  return (
+    <section
+      aria-labelledby="health-h"
+      className="flex flex-col gap-3 rounded-2xl bg-raised p-4 tablet:rounded-xl tablet:p-5"
+    >
+      <h2 id="health-h" className="text-xl font-bold text-white">
+        {h.title(healthy, views.length)}
+      </h2>
+      {stale > 0 && <p className="text-sm font-semibold text-warn">{h.stale(stale)}</p>}
+      <ul className="flex flex-wrap gap-1.5">
+        {views.map((v) => (
+          <li
+            key={v.name}
+            title={`${v.name}: ${v.label}`}
+            className={`h-6 w-6 rounded-md ${cell(v.state)}`}
+          >
+            <span className="sr-only">
+              {v.name}: {v.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted">{h.legend}</p>
+    </section>
+  );
+}
+
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: load, refetchInterval: 30_000 });
 
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-6">
-      <h1 className="text-xl font-semibold">{t.status.title}</h1>
+    <section className="mx-auto flex max-w-5xl flex-col gap-4">
+      <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">
+        {t.status.title}
+      </h1>
+      {q.data && <HealthHero data={q.data} />}
       <p role="status" className={q.isError ? 'text-down' : 'text-muted'}>
         {q.isError
           ? t.status.dbError(q.error.message)
@@ -437,8 +492,8 @@ export function Status() {
             : t.loading}
       </p>
 
-      <div className="overflow-x-auto">
-        <h2 className="mb-2 font-semibold">{t.status.sources}</h2>
+      <ScrollX label={t.status.sources} className={`${cardClass} gap-3!`}>
+        <h2 className={panelTitle}>{t.status.sources}</h2>
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -477,7 +532,7 @@ export function Status() {
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollX>
 
       {q.data && (
         <p
@@ -492,8 +547,8 @@ export function Status() {
 
       <Latency />
 
-      <div className="overflow-x-auto">
-        <h2 className="mb-2 font-semibold">{t.status.alerts}</h2>
+      <ScrollX label={t.status.alerts} className={`${cardClass} gap-3!`}>
+        <h2 className={panelTitle}>{t.status.alerts}</h2>
         {q.data && q.data.alerts.length === 0 ? (
           <p className="text-muted">{t.status.noAlerts}</p>
         ) : (
@@ -518,7 +573,7 @@ export function Status() {
             </tbody>
           </table>
         )}
-      </div>
+      </ScrollX>
 
       <Costs />
 
@@ -528,8 +583,8 @@ export function Status() {
 
       <Exports />
 
-      <div className="overflow-x-auto">
-        <h2 className="mb-2 font-semibold">{t.status.jobs}</h2>
+      <ScrollX label={t.status.jobs} className={`${cardClass} gap-3!`}>
+        <h2 className={panelTitle}>{t.status.jobs}</h2>
         {q.data && q.data.jobs.length === 0 ? (
           <p className="text-muted">{t.status.noJobs}</p>
         ) : (
@@ -560,7 +615,7 @@ export function Status() {
             </tbody>
           </table>
         )}
-      </div>
+      </ScrollX>
     </section>
   );
 }
