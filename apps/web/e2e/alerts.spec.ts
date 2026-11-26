@@ -59,22 +59,25 @@ test('alerts: a stored halt alert as a card with its decision, reasons, latency 
     }
     return r.fulfill(json([]));
   });
-  await page.goto('/alerts');
-  const card = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: '[HALT, critical] SOFI' }) });
-  await expect(card.getByText('SOFI halted: News pending')).toBeVisible();
-  // A push notification opens /alerts#alert-<id>, so each card carries that anchor (ADR 0031).
-  await expect(card).toHaveAttribute('id', 'alert-11111111-1111-4111-8111-111111111111');
-  await expect(card.getByText('Pushed', { exact: true })).toBeVisible();
+  // A push notification opens /alerts#alert-<id>: that alert is shown (ADR 0031).
+  await page.goto('/alerts#alert-11111111-1111-4111-8111-111111111111');
+  const row = page.locator('#alert-11111111-1111-4111-8111-111111111111');
+  await expect(row.getByText('SOFI halted: News pending')).toBeVisible();
+  await expect(row.getByText('Pushed', { exact: true })).toBeVisible();
+  await expect(row.getByText('Critical', { exact: true })).toBeVisible();
+  const card = page.getByRole('region', { name: '[HALT, critical] SOFI' });
   await expect(
     card.getByText('Trading halted at 14:32 ET (22:32 local), reason T1 (News pending).'),
   ).toBeVisible();
   await expect(card.getByText('scalp n/a; swing n/a; long-term n/a.')).toBeVisible();
   await expect(card.getByText(/A halt freezes price discovery/)).toBeVisible();
   await expect(card.getByText(/End-to-end latency 30.5 s/)).toBeVisible();
-  await card.getByText('Why').click();
+  // The pipeline's reasons are shown as chips under "Why".
   await expect(card.getByText('critical: pushed (bypasses quiet hours and the cap)')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sent (1)' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await card.getByRole('button', { name: 'Useful' }).click();
   await expect
     .poll(() => posted)
@@ -229,4 +232,46 @@ test('catalyst scenarios: a written scenario is listed; saving needs a trigger a
       chase_guard_pct: 0.1,
       expires_on: '2027-01-31',
     });
+});
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test('alerts: tapping an alert opens its full card in a sheet', async ({ page }, info) => {
+    test.skip(
+      info.project.name !== 'desktop',
+      'One phone run is enough; the viewport is set here.',
+    );
+    await seedSession(page, 'aal2');
+    const json = (body: unknown) => ({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    });
+    await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+    await page.route('**/rest/v1/alerts**', (r) =>
+      r.fulfill(
+        json([
+          {
+            id: '22222222-2222-4222-8222-222222222222',
+            created_at: NOW.toISOString(),
+            kind: 'halt',
+            priority: 'critical',
+            ticker: 'SOFI',
+            decision: decision.decision,
+            reasons: decision.reasons,
+            card: renderCard(input),
+            latency_ms: 30_500,
+            delivery: { push: 'sent' },
+          },
+        ]),
+      ),
+    );
+    await page.goto('/alerts');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.locator('#alert-22222222-2222-4222-8222-222222222222').getByRole('button').click();
+    const sheet = page.getByRole('dialog', { name: '[HALT, critical] SOFI' });
+    await expect(sheet.getByText(/A halt freezes price discovery/)).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Useful' })).toBeVisible();
+  });
 });

@@ -441,6 +441,13 @@ export const t = {
     intro:
       'Every signal Marsad judged, with the decision and its reasons. Few, clean, complete: each alert keeps its inputs, rule version and delivery log.',
     showSuppressed: 'Show suppressed signals too',
+    tabs: { sent: 'Sent', held: 'Held back', all: 'All' } as Record<string, string>,
+    tabsLabel: 'Which alerts',
+    priority: { critical: 'Critical', high: 'High', normal: 'Normal' } as Record<string, string>,
+    choose: 'Choose an alert to see its full card.',
+    noneHere: 'Nothing in this list.',
+    openLab: 'Open the Lab',
+    openCard: (headline: string) => `Open the card: ${headline}`,
     none: 'No alerts yet. Halt alerts for watched tickers start with the next halts run; rule alerts start when rules go live.',
     decision: {
       push: 'Pushed',
@@ -489,6 +496,7 @@ export const t = {
       resume: 'Resume',
     },
     scorecard: {
+      tableLabel: 'Results by rule and horizon',
       title: 'Scorecard',
       intro:
         'Each alert\u2019s result after 1, 5 and 20 sessions in the direction it pointed (an exit is right when the price falls), against SPY over the same sessions. Before costs. The +1 hour result needs intraday bars, which the current data plan does not include.',
