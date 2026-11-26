@@ -9,6 +9,7 @@ import {
   buildCalendar,
   describeSourceHealth,
   dualClock,
+  etDate,
   formatAge,
   latencyByKind,
   toFixedHalfUp,
@@ -46,7 +47,8 @@ interface JobRow {
 function when(iso: string | null): string {
   if (!iso) return t.status.never;
   const d = new Date(iso);
-  return `${d.toISOString().slice(0, 10)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
+  // The date is the US Eastern date, matching the ET clock beside it (the UTC date is a day ahead from 19:00 ET).
+  return `${etDate(d)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
 }
 
 interface AlertRow {

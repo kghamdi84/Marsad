@@ -28,7 +28,7 @@ Khaled asked to keep Massive and add Tauric (Tauric Research, `api.tauric.ai`) w
 - With Massive selected, nothing changes on screen (there is no intraday Massive price on the free plan). With Tauric selected, a "Latest (Tauric)" column and a line under the company price show its price, change and age in words.
 - Tauric stays labelled "Delay not confirmed" until a live US session is measured against an outside reference; then this ADR is revised with the measured delay and the tier.
 - The fixture was recorded through the Tauric MCP connector (same operation and schema as the REST call). Re-record from the REST API once the key is set.
-- GitHub's scheduler can run late, so quotes can be 5 to 15 minutes old even if Tauric is real-time. The labels say so; Phase 5's poller would replace this job if Tauric proves real-time.
+- GitHub's scheduler is best-effort, and in this repository it drops most runs (ADR 0008): on 2026-11-25 and 26 the heartbeat, set for every 15 minutes, fired 9 times in two days, hours apart. Until ADR 0008's trigger from Supabase Cron is accepted, Tauric quotes will arrive far less often than every 5 minutes, and the Tauric health limit (30 minutes) will report the gaps. The labels show each quote's real age, so a late quote reads "Stale", never fresh.
 - Instruments are matched by ticker (`security:{TICKER}`); Tauric's quote does not carry CIK or FIGI. The price is display only, so no identity-sensitive calculation uses it.
 - Vendor risk: no SLA and stop-at-will terms. Massive remains the source of record, so losing Tauric costs one column.
 - Not built (by the reviews' advice): a system-wide switch, an audit log of changes, Tauric as a source for any rule or alert, and any "live" label.
