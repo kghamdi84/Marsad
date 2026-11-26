@@ -226,6 +226,7 @@ export function Tabs<K extends string>({
   value,
   onChange,
   children,
+  pill = false,
 }: {
   label: string;
   idPrefix: string;
@@ -233,6 +234,8 @@ export function Tabs<K extends string>({
   value: K;
   onChange: (k: K) => void;
   children: ReactNode;
+  /** The design's phone tab bar: a rounded track (3 px padding, surface) with the selected tab on raised. */
+  pill?: boolean;
 }) {
   const move = (dir: number) => {
     const i = options.findIndex((o) => o.key === value);
@@ -246,7 +249,11 @@ export function Tabs<K extends string>({
       <div
         role="tablist"
         aria-label={label}
-        className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 tablet:mx-0 tablet:px-0"
+        className={
+          pill
+            ? 'flex overflow-x-auto rounded-xl bg-surface p-[3px] [scrollbar-width:none]'
+            : '-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 tablet:mx-0 tablet:px-0'
+        }
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') move(1);
           if (e.key === 'ArrowLeft') move(-1);
@@ -262,11 +269,17 @@ export function Tabs<K extends string>({
             aria-controls={`${idPrefix}-panel-${o.key}`}
             tabIndex={o.key === value ? 0 : -1}
             onClick={() => onChange(o.key)}
-            className={`min-h-11 flex-none border-b-2 px-3 text-sm whitespace-nowrap ${
-              o.key === value
-                ? 'border-up font-semibold text-white'
-                : 'border-transparent text-muted hover:text-fg'
-            }`}
+            className={
+              pill
+                ? `min-h-11 flex-[1_0_auto] rounded-[9px] px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap ${
+                    o.key === value ? 'bg-raised text-white' : 'text-muted'
+                  }`
+                : `min-h-11 flex-none border-b-2 px-3 text-sm whitespace-nowrap ${
+                    o.key === value
+                      ? 'border-up font-semibold text-white'
+                      : 'border-transparent text-muted hover:text-fg'
+                  }`
+            }
           >
             {o.label}
           </button>
