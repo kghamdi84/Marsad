@@ -523,3 +523,14 @@ Built on Claude Opus 5.5 at high effort, as the brief asks for the methodology. 
 - TypeScript is pinned to 6.0.x because typescript-eslint does not support 7.x yet (ADR 0001).
 - PGlite has one connection: never call `db.query` from inside a `db.transaction` in tests (it deadlocks).
 - Playwright uses the preinstalled Chromium at `/opt/pw-browsers/chromium` in cloud sessions; CI installs its own.
+
+## Design handoff match (claude/marsad-design-match)
+
+Matched to the handoff screenshots and checked by Playwright (desktop 1440, phone 390) plus the axe scan:
+- Foundation: ink, crit, line-soft and ema tokens, IBM Plex Sans Arabic and Mono as files (CSP font-src 'self'), wide breakpoint.
+- Sign in: password, create account, link, code, Unavailable banner.
+- Lab: title, lifecycle filter strip, 3-up cards, gate ticks, details toggle, Not recommended grid.
+
+Still to match, in order: Status (large gap: source cards, job-run ticks, costs list, notifications steps, preferences layout), Shell market sheet copy, Regime, Alerts, Journal, Watch, Study, member states.
+
+Known data limits: no 90% bootstrap bars in the Regime event study, no Lab equity curves, no GitHub Actions minutes bar.
