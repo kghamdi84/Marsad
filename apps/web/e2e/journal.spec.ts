@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seedSession, scanAfterEach } from './helpers';
+import { seedSession, scanAfterEach, openTab } from './helpers';
 
 scanAfterEach();
 
@@ -15,6 +15,7 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
   await seedSession(page, 'aal2');
   await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
   await page.goto('/journal');
+  await openTab(page, 'New trade');
   const sizer = page.getByRole('region', { name: 'Pre-trade checklist and position sizer' });
   await sizer.getByLabel('Ticker').fill('rklb');
   await sizer.getByLabel('Account size (USD)').fill('50000');
@@ -207,6 +208,7 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
     rt.fulfill(json([...vixRows].reverse())),
   );
   await page.goto('/journal');
+  await openTab(page, 'Exposure');
   const exposure = page.getByRole('region', { name: 'Exposure, beta and stress' });
   await expect(exposure).toContainText('Beta-weighted exposure: 2.00 times SPY');
   await expect(exposure.getByRole('row', { name: /^SPY down 10%/ })).toContainText('(-20.0%)');
@@ -219,6 +221,7 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
   await expect(rotation.getByRole('row', { name: /^RKLB/ })).toContainText('Rotate');
   await expect(rotation).toContainText('and the thesis is weakening. Consider XLI or SPY instead.');
 
+  await openTab(page, 'Positions');
   await page.getByLabel('Thesis').selectOption('broken');
   await expect.poll(() => patched).toEqual({ sector_etf: 'XLI', thesis_status: 'broken' });
 });
@@ -306,6 +309,7 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
     });
   });
   await page.goto('/journal');
+  await openTab(page, 'Trades');
   const section = page.getByRole('region', { name: 'Trades and adherence' });
   // RKLB: (28 - 24) / (24 - 22) = 2R, USD 400; 10 items, noEmotion not honored: 9 of 10 = 90.
   const rklb = section.getByRole('listitem').filter({ hasText: 'RKLB' });
@@ -366,6 +370,7 @@ test('journal: the latest weekly review, or when the first one is due', async ({
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) }),
   );
   await page.goto('/journal');
+  await openTab(page, 'Weekly review');
   await expect(page.getByText('The first weekly review is written on Sunday')).toBeVisible();
   rows = [
     {
@@ -416,6 +421,7 @@ test('options positions: the stored spread with its risk, exit rules and bear ca
     r.fulfill(json([{ date: '2026-11-24', close: 105 }])),
   );
   await page.goto('/journal');
+  await openTab(page, 'Options');
   const s = page.getByRole('region', { name: 'Options positions' });
   const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread (NVDA)' });
   // Debit 300, maximum gain 700, breakeven 103; at 105 the spread is worth +200 at expiry.
@@ -535,6 +541,7 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
     return r.fulfill(json(funds[etf] ?? []));
   });
   await page.goto('/journal');
+  await openTab(page, 'Exposure');
   const etf = page.getByRole('region', { name: 'ETF look-through and overlap' });
   await expect(etf).toContainText(
     'SPY: holdings as of 2026-06-30 (2 lines, 2 matched to a ticker).',
@@ -545,4 +552,64 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
   await expect(nvda).toContainText('SPY 750.00, QQQ 320.00');
   await expect(nvda).toContainText('2070.00');
   await expect(etf).toContainText('published up to 60 days after the month they describe');
+});
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test('journal: holdings as cards with the stop-to-target bar, nothing wider than the screen', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop',
+      'One phone run is enough; the viewport is set here.',
+    );
+    await seedSession(page, 'aal2');
+    await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+    await page.route('**/rest/v1/holdings**', (r) =>
+      r.fulfill(
+        json([
+          {
+            id: 1,
+            ticker: 'RKLB',
+            shares: 100,
+            cost_basis: 24,
+            opened_on: '2026-10-01',
+            stop: 22,
+            targets: [27],
+            trend_break: null,
+            time_stop_sessions: null,
+          },
+        ]),
+      ),
+    );
+    await page.route('**/rest/v1/daily_bars**', (r) =>
+      r.fulfill(
+        json(
+          [24, 25, 24, 21.5]
+            .map((close, i) => ({
+              date: `2026-10-0${i + 2}`,
+              open: close,
+              high: close,
+              low: close,
+              close,
+              volume: 1,
+              vwap: null,
+            }))
+            .reverse(),
+        ),
+      ),
+    );
+    await page.goto('/journal');
+    const holdings = page.getByRole('region', { name: 'Holdings and exit conditions' });
+    const card = holdings.getByRole('listitem').filter({ hasText: 'RKLB' });
+    await expect(card).toContainText('-10.4% (USD -250.00)');
+    await expect(
+      card.getByRole('img', { name: 'Stop 22.00, now 21.50, targets 27.00.' }),
+    ).toBeVisible();
+    // The page never scrolls sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+  });
 });

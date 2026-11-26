@@ -204,6 +204,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Not built from the design yet: the plan bar and per-horizon risk visuals (the stored card is text, so they need structured fields first), the 30-tick scorecard strip, and the 4-step scenario sheet on phones.
 - Verified: ./init.sh passes; full Playwright 158 with axe; the alert test now opens the alert from its #alert- link; new phone test for the sheet.
 
+### Redesign, step 8: Journal (2026-11-26)
+
+- From Journal.dc.html and Mobile-Journal.dc.html: KPI tiles (portfolio value, open gain with percent on cost, beta to SPY with a 1.0 tick, needs attention); sections as tabs (Positions, New trade, Options, Exposure, Trades, Weekly review), remembered in this browser; every section in the card style. Each holding has the stop, now and target bar (orange to blue, cost and target ticks, a white "now" dot, an orange ring when an exit has triggered). On phones holdings are cards, not a table.
+- Core: `portfolioTotals` (value, cost, open gain, gain on cost, unpriced holdings listed rather than guessed) with hand-checked tests. The KPI beta and the Exposure card share one positions builder, so they cannot disagree.
+- Fixed: on a phone the long CSV header example made the whole page scroll sideways. Every phone test now checks the page is no wider than the screen.
+- Not built from the design yet: thesis pill that cycles on tap, time-stop progress bar, the CSV drop zone with a duplicate preview, and the pinned Copy ticket button on phones.
+- Verified: ./init.sh passes; full Playwright 160 with axe.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

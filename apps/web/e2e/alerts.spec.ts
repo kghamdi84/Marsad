@@ -273,5 +273,9 @@ test.describe('on a phone', () => {
     const sheet = page.getByRole('dialog', { name: '[HALT, critical] SOFI' });
     await expect(sheet.getByText(/A halt freezes price discovery/)).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Useful' })).toBeVisible();
+    // The page never scrolls sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
   });
 });
