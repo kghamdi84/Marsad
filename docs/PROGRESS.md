@@ -535,3 +535,7 @@ Matched to the handoff screenshots and checked by Playwright (desktop 1440, phon
 Still to match, in order: Shell market sheet copy, Regime, Alerts, Journal, Watch, Study, member states.
 
 Known data limits: no 90% bootstrap bars in the Regime event study, no Lab equity curves, no GitHub Actions minutes bar.
+
+### Design match update
+
+Matched since the last note: Alerts (header tabs, list cards, numbered detail sections, feedback prompt), Watch (width, link size), Journal positions (holdings card grid). Still to match: Alerts scorecard table and scenario card grid, Journal ticket, CSV button and other tabs, Study, Regime detail, member states, 390 px comparisons.
