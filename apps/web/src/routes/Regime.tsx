@@ -153,34 +153,26 @@ function Hero({ data }: { data: RegimeData }) {
         </div>
         <span className="rounded-full bg-muted/15 px-2.5 py-1 text-xs text-fg">{u.endOfDay}</span>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
-        <Tile label={r.inputs.sp500} value={fixed(x.sp500)} note={last.date} />
+      <div className="grid grid-cols-2 gap-3 wide:grid-cols-4">
         <Tile
-          label={r.inputs.sma50}
-          value={x.sma50 === null ? r.noData : fixed(x.sma50)}
-          note={last.date}
+          label={r.inputs.sp500}
+          value={fixed(x.sp500)}
+          note={`${r.inputs.srcSp500} \u00B7 ${last.date}`}
         />
         <Tile
-          label={r.inputs.sma200}
-          value={x.sma200 === null ? r.noData : fixed(x.sma200)}
-          note={
-            x.sma200 !== null && x.sma200Prior !== null
-              ? x.sma200 < x.sma200Prior
-                ? r.inputs.falling
-                : r.inputs.rising
-              : last.date
-          }
+          label={r.inputs.vix}
+          value={x.vix === null ? r.noData : fixed(x.vix)}
+          note={`${r.inputs.srcVix} \u00B7 ${last.date}`}
+        />
+        <Tile
+          label={r.inputs.vix3m}
+          value={x.vix3m === null ? r.noData : fixed(x.vix3m)}
+          note={`${r.inputs.srcVix3m} \u00B7 ${last.date}`}
         />
         <Tile
           label={r.inputs.drawdown}
           value={x.drawdown === null ? r.noData : pct(x.drawdown)}
-          note={last.date}
-        />
-        <Tile label={r.inputs.vix} value={x.vix === null ? r.noData : fixed(x.vix)} />
-        <Tile label={r.inputs.vix3m} value={x.vix3m === null ? r.noData : fixed(x.vix3m)} />
-        <Tile
-          label={r.inputs.ratio}
-          value={x.vix === null || x.vix3m === null ? r.noData : fixed(x.vix / x.vix3m, 3)}
+          note={x.drawdown === null ? last.date : r.inputs.high(fixed(x.sp500 / (1 + x.drawdown)))}
         />
       </div>
       <div className="flex flex-col gap-2">
