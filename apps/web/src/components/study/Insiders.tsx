@@ -8,6 +8,7 @@ import {
   summarizeRecentOpenMarket,
 } from '@marsad/core';
 import { loadInsiders, type Form3Filing, type InsiderRow } from '../../lib/studyPanels';
+import { ScrollX } from '../Card';
 import { t } from '../../strings';
 import { PanelShell, num, td, th, thNum } from './Panel';
 
@@ -72,7 +73,7 @@ function Form3Card({ f }: { f: Form3Filing }) {
       ) : f.holdings.length === 0 ? (
         <p className="mt-1 text-sm text-muted">{h.noRows}</p>
       ) : (
-        <div className="mt-2 overflow-x-auto">
+        <ScrollX label={h.title} className="mt-2">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
@@ -127,7 +128,7 @@ function Form3Card({ f }: { f: Form3Filing }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollX>
       )}
     </li>
   );
@@ -208,7 +209,7 @@ export function Insiders({ cik }: { cik: string }) {
             {summary.amendmentLines > 0 && (
               <p className="text-sm text-muted">{i.amendmentLines(summary.amendmentLines)}</p>
             )}
-            <div className="overflow-x-auto">
+            <ScrollX label={i.title}>
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
@@ -273,7 +274,7 @@ export function Insiders({ cik }: { cik: string }) {
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollX>
           </>
         )
       )}

@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Mail } from 'lucide-react';
 import {
   DEFAULT_LOCAL_ZONE,
+  TIER_LABELS,
   clusterNews,
   dualClock,
   etDate,
@@ -13,7 +14,7 @@ import {
   type EconEvent,
   type TickerSummary,
 } from '@marsad/core';
-import { Card, Segmented, Sparkline } from '../components/Card';
+import { Card, ScrollX, Segmented, SkeletonCards, Sparkline } from '../components/Card';
 import { num, th, thNum } from '../components/study/Panel';
 import {
   STRIP_BARS,
@@ -113,7 +114,10 @@ function BriefCard({ briefs }: { briefs: StoredBrief[] }) {
   const created = new Date(b.createdAt);
   const email = b.delivery['email'] ?? 'not-configured';
   return (
-    <section aria-label={w.brief.title} className="flex flex-col gap-4 rounded-xl bg-raised p-5">
+    <section
+      aria-label={w.brief.title}
+      className="flex flex-col gap-4 rounded-2xl bg-raised p-4 tablet:rounded-xl tablet:p-5"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-semibold tracking-wide text-muted uppercase">
@@ -137,9 +141,12 @@ function BriefCard({ briefs }: { briefs: StoredBrief[] }) {
           </span>
         )}
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-3">
+      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] tablet:gap-3">
         {b.sections.map((s) => (
-          <div key={s.heading} className="flex flex-col gap-2 rounded-[10px] bg-bg/45 p-3.5">
+          <div
+            key={s.heading}
+            className="flex min-w-0 flex-col gap-2 rounded-xl bg-bg/45 p-3 tablet:rounded-[10px] tablet:p-3.5"
+          >
             <h3 className="text-[13px] font-bold text-muted">{s.heading}</h3>
             <ul className="flex flex-col gap-1.5 text-sm leading-snug text-fg">
               {s.lines.map((l) => (
@@ -190,7 +197,7 @@ function StripCard({ data }: { data: WatchData }) {
       <h2 id="strip-h" className="sr-only">
         {w.strip.title}
       </h2>
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+      <ul className="grid grid-cols-2 gap-2 tablet:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] tablet:gap-3">
         {tiles.map((x) => {
           const first = x.line[0];
           const lastV = x.line.at(-1);
@@ -199,7 +206,7 @@ function StripCard({ data }: { data: WatchData }) {
           return (
             <li
               key={x.key}
-              className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-3.5"
+              className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-surface p-3 tablet:p-3.5"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[13px] font-semibold text-fg">
@@ -293,10 +300,100 @@ function ChangePill({ v }: { v: number | null }) {
   );
 }
 
+/** Phones: one row per ticker (close and day change); a tap shows the week, month, range and volume. */
+function PhoneRow({
+  tk,
+  bars,
+  s,
+  stale,
+  open,
+  onToggle,
+}: {
+  tk: string;
+  bars: readonly { close: number }[];
+  s: TickerSummary | null;
+  stale: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const line = bars.slice(-30).map((b) => b.close);
+  const first = line[0];
+  const last = line.at(-1);
+  const panel = `wl-more-${tk}`;
+  return (
+    <li className="border-t border-line/60">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panel}
+        onClick={onToggle}
+        className={`grid min-h-[60px] w-full grid-cols-[minmax(0,1fr)_56px_auto] items-center gap-3 px-4 py-2 text-start ${
+          open ? 'bg-raised/40' : ''
+        }`}
+      >
+        <span className="text-base font-bold text-white">{tk}</span>
+        <Sparkline
+          values={line}
+          className={
+            first !== undefined && last !== undefined ? toneText(last - first) : 'text-muted'
+          }
+        />
+        <span className="flex flex-col items-end gap-0.5">
+          <span className="text-base text-white tabular-nums">
+            {s ? toFixedHalfUp(s.close, 2) : t.regime.noData}
+          </span>
+          {s && (
+            <span className="text-[0.8125rem] font-semibold whitespace-nowrap">
+              <Change v={s.change1d} />
+            </span>
+          )}
+        </span>
+      </button>
+      {open && (
+        <div id={panel} className="flex flex-col gap-3 bg-raised/40 px-4 pt-1 pb-4">
+          {s ? (
+            <>
+              {stale && <p className="text-[0.8125rem] text-warn">{u.olderDate(s.date)}</p>}
+              <div className="grid grid-cols-3 gap-1.5">
+                {PERIODS.map((p) => (
+                  <span key={p} className="flex flex-col gap-0.5 rounded-lg bg-bg p-2">
+                    <span className="text-xs text-muted">{u.periodChips[p]}</span>
+                    <span className="font-semibold tabular-nums">
+                      <Change v={changeOf(s, p)} />
+                    </span>
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[0.8125rem] text-muted">{u.colRange}</span>
+                <RangeDot s={s} />
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted">{u.colVolume}</span>
+                <VolumeBar ratio={s.volumeRatio20} />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted">{t.regime.noData}</p>
+          )}
+          <Link
+            to="/study/$ticker"
+            params={{ ticker: tk }}
+            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-white"
+          >
+            {u.studyTicker(tk)}
+          </Link>
+        </div>
+      )}
+    </li>
+  );
+}
+
 function WatchlistCard({ data }: { data: WatchData }) {
   const l = w.list;
   const [period, setPeriod] = useRemembered<Period>('marsad.watch.period', PERIODS, '1d');
   const [sorted, setSorted] = useState(false);
+  const [openTk, setOpenTk] = useState<string | null>(null);
   const rows = data.tickers.map((tk) => ({
     tk,
     bars: data.bars[tk] ?? [],
@@ -313,7 +410,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
       title={l.title}
       subtitle={data.defaultList ? l.defaultNote : undefined}
       aside={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden flex-wrap items-center gap-2 tablet:flex">
           <Segmented
             label={u.period}
             options={PERIODS.map((p) => ({ key: p, label: u.periods[p] ?? p }))}
@@ -333,7 +430,20 @@ function WatchlistCard({ data }: { data: WatchData }) {
         </div>
       }
     >
-      <div className="overflow-x-auto">
+      <ul className="-mx-4 -mb-1 tablet:hidden">
+        {rows.map(({ tk, bars, s }) => (
+          <PhoneRow
+            key={tk}
+            tk={tk}
+            bars={bars}
+            s={s}
+            stale={!!s && s.date !== newest}
+            open={openTk === tk}
+            onToggle={() => setOpenTk(openTk === tk ? null : tk)}
+          />
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto tablet:block">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -424,17 +534,19 @@ function SectorsCard({ data }: { data: WatchData }) {
         <p className="text-sm text-muted">{w.sectors.none}</p>
       ) : (
         <>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2">
+          <ul className="grid grid-cols-3 gap-1.5 tablet:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] tablet:gap-2">
             {m.sectors.map((x) => (
               <li
                 key={x.ticker}
-                className="flex min-h-[76px] flex-col justify-between gap-1 rounded-lg p-2.5 text-white"
+                className="flex min-h-[60px] min-w-0 flex-col justify-between gap-1 rounded-lg p-2 text-white tablet:min-h-[76px] tablet:p-2.5"
                 style={{
                   background:
                     x.change === null || x.change === 0 ? 'rgba(138,153,178,0.14)' : tint(x.change),
                 }}
               >
-                <span className="text-[13px] leading-tight font-semibold">{x.sector}</span>
+                <span className="truncate text-xs leading-tight font-semibold tablet:text-[13px]">
+                  {x.sector}
+                </span>
                 <span className="text-[11px]">{x.ticker}</span>
                 <span className="text-sm font-bold tabular-nums">
                   <Change v={x.change} digits={2} plain />
@@ -449,40 +561,44 @@ function SectorsCard({ data }: { data: WatchData }) {
   );
 }
 
+type MoverList = NonNullable<WatchData['movers']>['gainers'];
+
+const moverMax = (m: NonNullable<WatchData['movers']>) =>
+  Math.max(1e-9, ...[...m.gainers, ...m.losers].map((x) => Math.abs(x.change)));
+
+function MoverRows({ xs, max }: { xs: MoverList; max: number }) {
+  return (
+    <table className="w-full border-collapse text-sm">
+      <tbody>
+        {xs.map((x) => (
+          <tr key={x.ticker}>
+            <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">{x.ticker}</td>
+            <td className="py-1.5 align-middle">
+              <span aria-hidden="true" className="block h-2.5 rounded-sm bg-faint/15">
+                <span
+                  className={`block h-full rounded-sm ${x.change > 0 ? 'bg-up' : 'bg-down'}`}
+                  style={{ width: `${toFixedHalfUp((Math.abs(x.change) / max) * 100, 1)}%` }}
+                />
+              </span>
+              <span className="text-[11px] text-muted">
+                {toFixedHalfUp(x.close, 2)} {'\u00B7'}{' '}
+                {w.movers.dollarVolume(
+                  Math.round(x.dollarVolume / 1e6).toLocaleString('en-US') + ' million',
+                )}
+              </span>
+            </td>
+            <td className={`w-20 py-1.5 ps-2 align-middle font-semibold ${num}`}>
+              <Change v={x.change} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function MoversCard({ data }: { data: WatchData }) {
   const m = data.movers;
-  const max = m ? Math.max(1e-9, ...[...m.gainers, ...m.losers].map((x) => Math.abs(x.change))) : 1;
-  const list = (title: string, xs: NonNullable<WatchData['movers']>['gainers']) => (
-    <div className="flex flex-col gap-1">
-      <h3 className="text-[13px] font-bold text-muted">{title}</h3>
-      <table className="w-full border-collapse text-sm">
-        <tbody>
-          {xs.map((x) => (
-            <tr key={x.ticker}>
-              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">{x.ticker}</td>
-              <td className="py-1.5 align-middle">
-                <span aria-hidden="true" className="block h-2.5 rounded-sm bg-faint/15">
-                  <span
-                    className={`block h-full rounded-sm ${x.change > 0 ? 'bg-up' : 'bg-down'}`}
-                    style={{ width: `${toFixedHalfUp((Math.abs(x.change) / max) * 100, 1)}%` }}
-                  />
-                </span>
-                <span className="text-[11px] text-muted">
-                  {toFixedHalfUp(x.close, 2)} ·{' '}
-                  {w.movers.dollarVolume(
-                    Math.round(x.dollarVolume / 1e6).toLocaleString('en-US') + ' million',
-                  )}
-                </span>
-              </td>
-              <td className={`w-20 py-1.5 ps-2 align-middle font-semibold ${num}`}>
-                <Change v={x.change} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
   return (
     <Card
       id="movers-h"
@@ -493,8 +609,14 @@ function MoversCard({ data }: { data: WatchData }) {
         <p className="text-sm text-muted">{w.movers.none}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {list(w.movers.gainers, m.gainers)}
-          {list(w.movers.losers, m.losers)}
+          {[[w.movers.gainers, m.gainers] as const, [w.movers.losers, m.losers] as const].map(
+            ([title, xs]) => (
+              <div key={title} className="flex flex-col gap-1">
+                <h3 className="text-[13px] font-bold text-muted">{title}</h3>
+                <MoverRows xs={xs} max={moverMax(m)} />
+              </div>
+            ),
+          )}
         </div>
       )}
     </Card>
@@ -503,63 +625,122 @@ function MoversCard({ data }: { data: WatchData }) {
 
 const GAP_ROWS = 10;
 
-function GapsCard({ data }: { data: WatchData }) {
-  const rows = [...new Set([...data.tickers, ...STRIP_BARS])]
+interface GapRow {
+  tk: string;
+  gap: number;
+  day: number | null;
+  date: string;
+}
+
+function gapRows(data: WatchData): GapRow[] {
+  return [...new Set([...data.tickers, ...STRIP_BARS])]
     .flatMap((tk) => {
       const s = tickerSummary(data.bars[tk] ?? []);
       return s && s.gap !== null ? [{ tk, gap: s.gap, day: s.change1d, date: s.date }] : [];
     })
     .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
     .slice(0, GAP_ROWS);
+}
+
+function GapRows({ rows }: { rows: GapRow[] }) {
   const max = Math.max(1e-9, ...rows.map((r) => Math.abs(r.gap)));
+  return (
+    <table className="w-full border-collapse text-sm">
+      <tbody>
+        {rows.map((x) => {
+          // What the close kept: the day's change in the gap's direction, capped at the gap.
+          const kept =
+            x.day === null || Math.sign(x.day) !== Math.sign(x.gap)
+              ? 0
+              : Math.min(Math.abs(x.day), Math.abs(x.gap));
+          const bg = x.gap > 0 ? 'bg-up' : 'bg-down';
+          return (
+            <tr key={x.tk}>
+              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">{x.tk}</td>
+              <td className="py-1.5 align-middle">
+                <span aria-hidden="true" className="relative block h-2.5 rounded-sm bg-faint/15">
+                  <span
+                    className={`absolute inset-y-0 start-0 rounded-sm opacity-45 ${bg}`}
+                    style={{ width: `${toFixedHalfUp((Math.abs(x.gap) / max) * 100, 1)}%` }}
+                  />
+                  <span
+                    className={`absolute inset-y-0 start-0 rounded-sm ${bg}`}
+                    style={{ width: `${toFixedHalfUp((kept / max) * 100, 1)}%` }}
+                  />
+                </span>
+                <span className="text-[11px] text-muted">
+                  {x.date}
+                  {x.day !== null && (
+                    <>
+                      {' '}
+                      {'\u00B7'} {u.dayChange(fmtPct(x.day))}
+                    </>
+                  )}
+                </span>
+              </td>
+              <td className={`w-20 py-1.5 ps-2 align-middle font-semibold ${num}`}>
+                <Change v={x.gap} digits={2} />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function GapsCard({ data }: { data: WatchData }) {
+  const rows = gapRows(data);
   return (
     <Card id="gaps-h" title={w.gaps.title} subtitle={w.gaps.intro}>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">{w.gaps.none}</p>
       ) : (
         <>
-          <table className="w-full border-collapse text-sm">
-            <tbody>
-              {rows.map((x) => {
-                // What the close kept: the day's change in the gap's direction, capped at the gap.
-                const kept =
-                  x.day === null || Math.sign(x.day) !== Math.sign(x.gap)
-                    ? 0
-                    : Math.min(Math.abs(x.day), Math.abs(x.gap));
-                const bg = x.gap > 0 ? 'bg-up' : 'bg-down';
-                return (
-                  <tr key={x.tk}>
-                    <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">
-                      {x.tk}
-                    </td>
-                    <td className="py-1.5 align-middle">
-                      <span
-                        aria-hidden="true"
-                        className="relative block h-2.5 rounded-sm bg-faint/15"
-                      >
-                        <span
-                          className={`absolute inset-y-0 start-0 rounded-sm opacity-45 ${bg}`}
-                          style={{ width: `${toFixedHalfUp((Math.abs(x.gap) / max) * 100, 1)}%` }}
-                        />
-                        <span
-                          className={`absolute inset-y-0 start-0 rounded-sm ${bg}`}
-                          style={{ width: `${toFixedHalfUp((kept / max) * 100, 1)}%` }}
-                        />
-                      </span>
-                      <span className="text-[11px] text-muted">
-                        {x.date}
-                        {x.day !== null && <> · {u.dayChange(fmtPct(x.day))}</>}
-                      </span>
-                    </td>
-                    <td className={`w-20 py-1.5 ps-2 align-middle font-semibold ${num}`}>
-                      <Change v={x.gap} digits={2} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <GapRows rows={rows} />
           <p className="text-xs text-muted">{u.gapLegend}</p>
+        </>
+      )}
+    </Card>
+  );
+}
+
+type MgTab = 'up' | 'down' | 'gaps';
+
+/** Phones: movers and gaps share one card, switched with a segmented control (design handoff). */
+function MoversGapsPhone({ data }: { data: WatchData }) {
+  const [tab, setTab] = useState<MgTab>('up');
+  const m = data.movers;
+  const gaps = gapRows(data);
+  return (
+    <Card id="movers-gaps-h" title={u.moversGaps}>
+      <Segmented
+        label={u.moversGaps}
+        options={[
+          { key: 'up', label: u.tabUp },
+          { key: 'down', label: u.tabDown },
+          { key: 'gaps', label: u.tabGaps },
+        ]}
+        value={tab}
+        onChange={setTab}
+        stretch
+      />
+      {tab === 'gaps' ? (
+        gaps.length === 0 ? (
+          <p className="text-sm text-muted">{w.gaps.none}</p>
+        ) : (
+          <>
+            <GapRows rows={gaps} />
+            <p className="text-xs text-muted">{w.gaps.intro}</p>
+            <p className="text-xs text-muted">{u.gapLegend}</p>
+          </>
+        )
+      ) : !m ? (
+        <p className="text-sm text-muted">{w.movers.none}</p>
+      ) : (
+        <>
+          <MoverRows xs={tab === 'up' ? m.gainers : m.losers} max={moverMax(m)} />
+          <p className="text-xs text-muted">{w.movers.asOf(m.date, m.n)}</p>
         </>
       )}
     </Card>
@@ -596,6 +777,13 @@ function NewsCard({ data }: { data: WatchData }) {
                   <span className="text-sm leading-snug font-medium text-fg">{first.title}</span>
                 )}
                 <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <span
+                    className="rounded border border-line px-1.5 py-px font-semibold text-fg"
+                    title={TIER_LABELS[cl.bestTier]}
+                  >
+                    {t.study.news.tier(cl.bestTier)}
+                  </span>
+                  {cl.opinionOnly && <span className="text-warn">{t.study.news.opinion}</span>}
                   {first.tickers.slice(0, 4).map((tk) => (
                     <span key={tk} className="rounded bg-raised px-1.5 py-px font-semibold text-fg">
                       {tk}
@@ -725,7 +913,7 @@ function EarningsPart({ data }: { data: CalendarData }) {
       {list.length === 0 ? (
         <p className="text-sm text-muted">{c.earningsNone}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <ScrollX label={c.earningsTitle}>
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
@@ -758,7 +946,7 @@ function EarningsPart({ data }: { data: CalendarData }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollX>
       )}
     </section>
   );
@@ -826,13 +1014,16 @@ export function Watch() {
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
       <header className="flex flex-col gap-1">
         {session && <p className="text-[13px] text-muted">{u.lastSession(session)}</p>}
-        <h1 className="text-[28px] leading-tight font-bold text-white">{w.title}</h1>
+        {/* On a phone the top bar shows the page title. */}
+        <h1 className="sr-only text-[28px] leading-tight font-bold text-white tablet:not-sr-only">
+          {w.title}
+        </h1>
         <p className="text-sm text-muted">{w.intro}</p>
         <p className="text-xs text-muted">{w.endOfDay}</p>
       </header>
       {bq.data && <BriefCard briefs={bq.data} />}
       {bq.isError && <Failure message={bq.error.message} />}
-      {wq.isPending && <p className="text-muted">{t.loading}</p>}
+      {wq.isPending && <SkeletonCards />}
       {wq.isError && <Failure message={wq.error.message} />}
       {wq.data && (
         <>
@@ -840,15 +1031,22 @@ export function Watch() {
           <WatchlistCard data={wq.data} />
           <div className={pairGrid}>
             <SectorsCard data={wq.data} />
-            <MoversCard data={wq.data} />
+            <div className="hidden tablet:contents">
+              <MoversCard data={wq.data} />
+            </div>
+            <div className="tablet:hidden">
+              <MoversGapsPhone data={wq.data} />
+            </div>
           </div>
           <div className={pairGrid}>
-            <GapsCard data={wq.data} />
+            <div className="hidden tablet:contents">
+              <GapsCard data={wq.data} />
+            </div>
             <NewsCard data={wq.data} />
           </div>
         </>
       )}
-      {q.isPending && <p className="text-muted">{t.loading}</p>}
+      {q.isPending && !wq.isPending && <SkeletonCards heights={['14rem']} />}
       {q.isError && <Failure message={q.error.message} />}
       {q.data && <CalendarCard data={q.data} now={now} />}
     </div>

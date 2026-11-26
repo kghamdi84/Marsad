@@ -1,17 +1,55 @@
-import { useEffect } from 'react';
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { DEFAULT_LOCAL_ZONE } from '@marsad/core';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import {
+  Activity,
+  Bell,
+  BookOpen,
+  ChartCandlestick,
+  ChevronRight,
+  Ellipsis,
+  Eye,
+  FlaskConical,
+  Gauge,
+  LogOut,
+  RefreshCw,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  DEFAULT_LOCAL_ZONE,
+  dualClock,
+  etDate,
+  nextRegularOpen,
+  type MarketCalendar,
+  type SessionInfo,
+} from '@marsad/core';
+import { loadPulse, viewPulse, type PulseView } from '../lib/pulse';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
 import { Clock } from './Clock';
+import { Sheet } from './Sheet';
 
-const tabs = [
-  { to: '/', label: t.nav.watch, key: '1' },
-  { to: '/study', label: t.nav.study, key: '2' },
-  { to: '/regime', label: t.nav.regime, key: '3' },
-  { to: '/alerts', label: t.nav.alerts, key: '4' },
-  { to: '/journal', label: t.nav.journal, key: '5' },
-] as const;
+const s = t.shell;
+
+interface Tab {
+  to: '/' | '/study' | '/regime' | '/alerts' | '/journal' | '/lab' | '/status';
+  label: string;
+  icon: LucideIcon;
+  key: string;
+}
+
+/** The five tabs of the phone tab bar, in order; the top bar adds Lab and Status. */
+const tabs: Tab[] = [
+  { to: '/', label: t.nav.watch, icon: Eye, key: '1' },
+  { to: '/study', label: t.nav.study, icon: ChartCandlestick, key: '2' },
+  { to: '/regime', label: t.nav.regime, icon: Gauge, key: '3' },
+  { to: '/alerts', label: t.nav.alerts, icon: Bell, key: '4' },
+  { to: '/journal', label: t.nav.journal, icon: BookOpen, key: '5' },
+];
+const moreTabs: Tab[] = [
+  { to: '/lab', label: t.nav.lab, icon: FlaskConical, key: '' },
+  { to: '/status', label: t.nav.status, icon: Activity, key: 's' },
+];
 
 function useNumberShortcuts() {
   const navigate = useNavigate();
@@ -21,74 +59,424 @@ function useNumberShortcuts() {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)))
         return;
-      const tab = tabs.find((x) => x.key === e.key);
+      const tab = [...tabs, ...moreTabs].find((x) => x.key && x.key === e.key);
       if (tab) void navigate({ to: tab.to });
-      else if (e.key === 's') void navigate({ to: '/status' });
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
 }
 
+function useNow(ms = 30_000): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), ms);
+    return () => clearInterval(id);
+  }, [ms]);
+  return now;
+}
+
+function sessionLabel(x: SessionInfo): string {
+  const m = s.market;
+  if (!x.calendarCovered) return m.uncovered;
+  switch (x.state) {
+    case 'regular':
+      return x.earlyClose ? m.earlyClose : m.regular;
+    case 'pre-market':
+      return m.preMarket;
+    case 'after-hours':
+      return m.afterHours;
+    case 'closed':
+      return x.holidayName ? m.holiday(x.holidayName) : m.closed;
+  }
+}
+
+interface Health {
+  label: string;
+  /** True when the label is a count of sources that need a look (shown as text on phones). */
+  count?: boolean;
+  /** Dot and text colour classes; the label always says the state in words. */
+  dot: string;
+  text: string;
+}
+
+function healthOf(v: PulseView | null, sources: number, failed: boolean): Health {
+  if (failed || !v) return { label: s.healthUnknown, dot: 'bg-faint', text: 'text-muted' };
+  if (sources === 0) return { label: s.noSources, dot: 'bg-faint', text: 'text-muted' };
+  if (v.stale.length > 0)
+    return { label: s.stale(v.stale.length), dot: 'bg-warn', text: 'text-warn', count: true };
+  if (v.unchecked.length > 0)
+    return {
+      label: s.unchecked(v.unchecked.length),
+      dot: 'bg-faint',
+      text: 'text-muted',
+      count: true,
+    };
+  return { label: s.fresh, dot: 'bg-up', text: 'text-fg' };
+}
+
+/** The market chip and the freshness dot: what the market is doing and whether the data can be trusted. */
+function usePulse() {
+  const q = useQuery({ queryKey: ['pulse'], queryFn: loadPulse, refetchInterval: 60_000 });
+  const now = useNow();
+  const view = q.data ? viewPulse(q.data, now) : null;
+  const market = view ? sessionLabel(view.session) : s.market.unknown;
+  const tone = !view?.session.calendarCovered
+    ? 'bg-faint/15 text-muted'
+    : view.session.state === 'regular'
+      ? 'bg-up/15 text-up'
+      : 'bg-warn/15 text-warn';
+  const health = healthOf(view, q.data?.sources.length ?? 0, q.isError);
+  return { q, now, view, market, tone, health };
+}
+
+type PullPhase = 'idle' | 'pulling' | 'armed' | 'refreshing' | 'done';
+const PULL_ARM = 72;
+
+/**
+ * Pull to refresh on phones: a downward drag from the top of the page refetches every query on screen. Home
+ * Screen apps have no browser reload, so this is the way to fetch fresh data there.
+ */
+function usePullToRefresh(onRefresh: () => Promise<unknown>) {
+  const [phase, setPhase] = useState<PullPhase>('idle');
+  const [doneAt, setDoneAt] = useState<Date | null>(null);
+  const refresh = useRef(onRefresh);
+  useEffect(() => {
+    refresh.current = onRefresh;
+  });
+  useEffect(() => {
+    let startY: number | null = null;
+    let armed = false;
+    let busy = false;
+    let hide: ReturnType<typeof setTimeout> | undefined;
+    const phone = () => window.matchMedia('(max-width: 759.98px)').matches;
+    const onStart = (e: TouchEvent) => {
+      const target = e.target as Element | null;
+      if (busy || window.scrollY > 0 || e.touches.length !== 1 || !phone()) return;
+      if (target?.closest('dialog')) return;
+      startY = e.touches[0]?.clientY ?? null;
+      armed = false;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY === null) return;
+      const dy = (e.touches[0]?.clientY ?? startY) - startY;
+      if (dy <= 8 || window.scrollY > 0) {
+        setPhase('idle');
+        armed = false;
+        return;
+      }
+      armed = dy >= PULL_ARM;
+      setPhase(armed ? 'armed' : 'pulling');
+    };
+    const onEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      if (!armed) {
+        setPhase('idle');
+        return;
+      }
+      armed = false;
+      busy = true;
+      setPhase('refreshing');
+      void refresh.current().finally(() => {
+        busy = false;
+        setDoneAt(new Date());
+        setPhase('done');
+        clearTimeout(hide);
+        hide = setTimeout(() => setPhase('idle'), 2500);
+      });
+    };
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
+    return () => {
+      clearTimeout(hide);
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+    };
+  }, []);
+  const text =
+    phase === 'pulling'
+      ? s.pull.idle
+      : phase === 'armed'
+        ? s.pull.release
+        : phase === 'refreshing'
+          ? s.pull.refreshing
+          : phase === 'done' && doneAt
+            ? s.pull.updated(dualClock(doneAt, DEFAULT_LOCAL_ZONE).et)
+            : '';
+  return { phase, text };
+}
+
+function TopTab({ tab }: { tab: Tab }) {
+  return (
+    <Link
+      to={tab.to}
+      activeOptions={{ exact: tab.to === '/' }}
+      className="flex min-h-11 items-center border-b-2 border-transparent px-2.5 text-sm whitespace-nowrap text-muted hover:text-fg"
+      activeProps={{ className: 'border-b-up! text-white font-semibold', 'aria-current': 'page' }}
+    >
+      {tab.label}
+    </Link>
+  );
+}
+
+function Logo() {
+  return (
+    <span className="flex flex-col leading-none">
+      <span lang="ar" dir="rtl" className="text-xs text-muted">
+        {s.logoArabic}
+      </span>
+      <span className="text-[19px] font-bold text-white">{t.appName}</span>
+    </span>
+  );
+}
+
+function MarketSheetBody({
+  view,
+  calendar,
+  now,
+  health,
+}: {
+  view: PulseView | null;
+  calendar: MarketCalendar | null;
+  now: Date;
+  health: Health;
+}) {
+  const c = dualClock(now, DEFAULT_LOCAL_ZONE);
+  const next = view?.session.calendarCovered && calendar ? nextRegularOpen(now, calendar) : null;
+  return (
+    <div className="flex flex-col gap-3.5">
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="flex flex-col gap-0.5 rounded-xl bg-surface p-3.5">
+          <span className="text-[0.8125rem] text-muted">{s.newYork}</span>
+          <span className="text-[1.75rem] font-bold text-white tabular-nums">{c.et}</span>
+          <span className="text-[0.8125rem] text-muted">{etDate(now)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 rounded-xl bg-surface p-3.5">
+          <span className="text-[0.8125rem] text-muted">{s.local}</span>
+          <span className="text-[1.75rem] font-bold text-white tabular-nums">{c.local}</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1 rounded-xl bg-surface p-3.5 text-[0.9375rem]">
+        <span className="font-semibold text-white">
+          {view ? sessionLabel(view.session) : s.market.unknown}
+        </span>
+        {view && !view.session.calendarCovered && (
+          <span className="text-muted">{s.uncoveredNote}</span>
+        )}
+        {next && (
+          <span className="text-fg">
+            {s.nextOpen(`${etDate(next)} ${dualClock(next, DEFAULT_LOCAL_ZONE).label}`)}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5 rounded-xl bg-surface p-3.5 text-[0.9375rem]">
+        <span className={`flex items-center gap-2 font-semibold ${health.text}`}>
+          <span aria-hidden="true" className={`size-2.5 rounded-full ${health.dot}`} />
+          {health.label}
+        </span>
+        {view && view.stale.length > 0 && (
+          <>
+            <span className="text-[0.8125rem] text-muted">{s.staleTitle}</span>
+            <ul className="list-disc ps-5 text-warn">
+              {view.stale.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        {view && view.unchecked.length > 0 && (
+          <>
+            <span className="text-[0.8125rem] text-muted">{s.uncheckedTitle}</span>
+            <ul className="list-disc ps-5 text-muted">
+              {view.unchecked.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        {view && view.stale.length === 0 && view.unchecked.length === 0 && (
+          <span className="text-muted">{s.allFresh}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SheetLink({ tab, label, onClick }: { tab: Tab; label?: string; onClick: () => void }) {
+  const Icon = tab.icon;
+  return (
+    <Link
+      to={tab.to}
+      onClick={onClick}
+      className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-white"
+    >
+      <Icon aria-hidden="true" size={22} className="text-up" />
+      <span className="flex-1">{label ?? tab.label}</span>
+      <ChevronRight aria-hidden="true" size={18} className="text-muted" />
+    </Link>
+  );
+}
+
 export function Shell() {
   useNumberShortcuts();
+  const qc = useQueryClient();
+  const { q, now, view, market, tone, health } = usePulse();
+  const pull = usePullToRefresh(() => qc.refetchQueries({ type: 'active' }));
+  const [sheet, setSheet] = useState<'none' | 'more' | 'market'>('none');
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const current = [...tabs, ...moreTabs].find((x) =>
+    x.to === '/' ? pathname === '/' : pathname.startsWith(x.to),
+  );
+  const moreActive = moreTabs.some((x) => pathname.startsWith(x.to));
+  const signOut = () => void supabase?.auth.signOut();
+  const chipAria = s.chipAria(market, health.label);
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between gap-4 border-b border-line bg-surface ps-4 pe-2 pt-[env(safe-area-inset-top)]">
-        <span className="font-semibold tracking-wide">{t.appName}</span>
-        <Clock localZone={DEFAULT_LOCAL_ZONE} />
-        <div className="flex items-center">
-          <Link
-            to="/lab"
-            className="flex min-h-11 items-center px-3 text-muted hover:text-fg"
-            activeProps={{
-              className: 'text-fg underline underline-offset-4',
-              'aria-current': 'page',
-            }}
+      {/* Tablet and desktop: one top bar with every tab. */}
+      <header className="sticky top-0 z-40 hidden border-b border-line bg-surface pt-[env(safe-area-inset-top)] tablet:block">
+        <div className="mx-auto flex min-h-14 max-w-7xl items-center gap-4 px-4">
+          <Logo />
+          <nav
+            aria-label={t.nav.primary}
+            className="flex min-w-0 flex-1 items-center overflow-x-auto"
           >
-            {t.nav.lab}
-          </Link>
-          <Link
-            to="/status"
-            className="flex min-h-11 items-center px-3 text-muted hover:text-fg"
-            activeProps={{
-              className: 'text-fg underline underline-offset-4',
-              'aria-current': 'page',
-            }}
-          >
-            {t.nav.status}
-          </Link>
+            {[...tabs, ...moreTabs].map((tab) => (
+              <TopTab key={tab.to} tab={tab} />
+            ))}
+          </nav>
           <button
             type="button"
-            className="min-h-11 px-3 text-muted hover:text-fg"
-            onClick={() => void supabase?.auth.signOut()}
+            aria-label={chipAria}
+            onClick={() => setSheet('market')}
+            className={`flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap ${tone}`}
+          >
+            <span aria-hidden="true" className={`size-2 rounded-full ${health.dot}`} />
+            {market}
+          </button>
+          <Clock localZone={DEFAULT_LOCAL_ZONE} localClassName="hidden xl:inline" />
+          <button
+            type="button"
+            className="min-h-11 px-2 text-sm whitespace-nowrap text-muted hover:text-fg"
+            onClick={signOut}
           >
             {t.nav.signOut}
           </button>
         </div>
       </header>
-      <div className="flex-1 overflow-auto p-4">
+
+      {/* Phone: the page title, the market chip and the freshness dot. */}
+      <header className="sticky top-0 z-40 border-b border-line bg-surface pt-[env(safe-area-inset-top)] tablet:hidden">
+        <div className="flex min-h-14 items-center gap-2 py-1.5 ps-4 pe-3">
+          <span className="shrink-0 text-[1.375rem] leading-tight font-bold text-white">
+            {current?.label ?? t.appName}
+          </span>
+          <button
+            type="button"
+            aria-label={chipAria}
+            onClick={() => setSheet('market')}
+            className={`ms-auto flex min-h-11 min-w-0 items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold ${tone}`}
+          >
+            <span className="truncate">{market}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={chipAria}
+            onClick={() => setSheet('market')}
+            className={`flex min-h-11 min-w-11 items-center gap-1.5 rounded-full px-2 text-[0.8125rem] whitespace-nowrap ${health.text}`}
+          >
+            <span aria-hidden="true" className={`size-2.5 flex-none rounded-full ${health.dot}`} />
+            {/* A count in words when something needs a look; otherwise the dot, with the state in the label. */}
+            {health.count ? health.label : null}
+          </button>
+        </div>
+      </header>
+
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-30 flex justify-center tablet:hidden"
+      >
+        {pull.phase !== 'idle' && (
+          <span className="flex items-center gap-2 rounded-full bg-raised px-3.5 py-2 text-[0.8125rem] text-fg shadow-lg">
+            <RefreshCw
+              aria-hidden="true"
+              size={16}
+              className={
+                pull.phase === 'refreshing' ? 'animate-spin motion-reduce:animate-none' : ''
+              }
+            />
+            {pull.text}
+          </span>
+        )}
+      </div>
+
+      <div className="flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] tablet:px-5 tablet:pb-10">
         <Outlet />
       </div>
+
+      {/* Phone: the bottom tab bar, with Lab, Status and Sign out under More. */}
       <nav
         aria-label={t.nav.primary}
-        className="sticky bottom-0 grid grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 border-t border-faint/30 bg-surface pb-[env(safe-area-inset-bottom)] tablet:hidden"
       >
-        {tabs.map((tab) => (
-          <Link
-            key={tab.to}
-            to={tab.to}
-            activeOptions={{ exact: tab.to === '/' }}
-            className="flex min-h-12 items-center justify-center border-t-2 border-transparent text-muted"
-            activeProps={{
-              className: 'border-t-focus! text-fg font-medium',
-              'aria-current': 'page',
-            }}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              activeOptions={{ exact: tab.to === '/' }}
+              className="group flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] text-muted"
+              activeProps={{ className: 'text-up! font-semibold', 'aria-current': 'page' }}
+            >
+              <Icon aria-hidden="true" size={24} strokeWidth={1.75} />
+              {tab.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={sheet === 'more'}
+          onClick={() => setSheet('more')}
+          className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] ${
+            moreActive ? 'font-semibold text-up' : 'text-muted'
+          }`}
+        >
+          <Ellipsis aria-hidden="true" size={24} strokeWidth={1.75} />
+          {s.more}
+        </button>
       </nav>
+
+      <Sheet open={sheet === 'more'} onClose={() => setSheet('none')} title={s.more}>
+        <div className="flex flex-col gap-2">
+          {moreTabs.map((tab) => (
+            <SheetLink key={tab.to} tab={tab} onClick={() => setSheet('none')} />
+          ))}
+          <button
+            type="button"
+            onClick={signOut}
+            className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-white"
+          >
+            <LogOut aria-hidden="true" size={22} className="text-muted" />
+            {t.nav.signOut}
+          </button>
+        </div>
+      </Sheet>
+      <Sheet open={sheet === 'market'} onClose={() => setSheet('none')} title={s.marketTitle}>
+        <MarketSheetBody
+          view={view}
+          calendar={q.data?.calendar ?? null}
+          now={now}
+          health={health}
+        />
+        <SheetLink tab={moreTabs[1] as Tab} label={s.openStatus} onClick={() => setSheet('none')} />
+      </Sheet>
     </div>
   );
 }
