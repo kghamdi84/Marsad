@@ -238,7 +238,7 @@
           "id": "1.15",
           "title": "Reliable scheduling for the polling jobs (ADR 0008): GitHub's scheduler has fired 1 scheduled run in a day",
           "status": "todo",
-          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Evidence and options in docs/adr/0008-scheduling.md. Needs Khaled's decision and a fine-grained GitHub token (Actions: read and write, this repository only) stored in Supabase Vault."
+          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Accepted by Khaled 2026-11-26 (option 2). Built: migration 20261229000000_scheduler.sql (Supabase Cron calls workflow_dispatch through pg_net; 26 schedules copied from the workflows and checked by a database test; scheduler-check writes a job_runs row every 15 minutes). Done once the first scheduler run reads ok on the Status page, after Khaled enables pg_cron and pg_net and stores the token (SETUP step 11)."
         }
       ]
     },

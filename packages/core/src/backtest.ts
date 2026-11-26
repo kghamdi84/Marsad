@@ -137,6 +137,47 @@ export interface BacktestReport {
   byRegime: { label: string; n: number; expectancy: number | null; sufficient: boolean }[];
   /** Max drawdown across shuffled trade orders: median and the worst 5%. */
   monteCarlo: { median: number; worst5: number; runs: number } | null;
+  /** Growth of 1 over the closed trades in exit order (see `equityCurve`). Absent in reports stored before it. */
+  equity?: EquityPoint[];
+}
+
+export interface EquityPoint {
+  /** The exit date of the trade that produced this value. */
+  date: string;
+  /** Growth of 1 after this trade, rounded to 6 decimals. */
+  equity: number;
+}
+
+/**
+ * Growth of 1 over closed trades taken one after another in exit-date order (ties by ticker), each at full size,
+ * the same convention as `maxDrawdown` and the Monte Carlo drawdowns. It is a sequence of trades, not a portfolio:
+ * trades that overlapped in time are not split. Long reports are thinned to about `maxPoints` evenly spaced
+ * points, always keeping the lowest, the highest and the last, so the deepest fall stays visible.
+ */
+export function equityCurve(trades: readonly Trade[], maxPoints = 200): EquityPoint[] {
+  const closed = trades
+    .filter((t) => !t.open)
+    .sort((a, b) => a.exitDate.localeCompare(b.exitDate) || a.ticker.localeCompare(b.ticker));
+  let e = 1;
+  const all = closed.map((t) => {
+    e *= 1 + t.ret;
+    return { date: t.exitDate, equity: Math.round(e * 1e6) / 1e6 };
+  });
+  if (all.length <= maxPoints) return all;
+  const keep = new Set<number>();
+  const step = (all.length - 1) / (maxPoints - 1);
+  for (let k = 0; k < maxPoints; k++) keep.add(Math.round(k * step));
+  let lo = 0;
+  let hi = 0;
+  all.forEach((p, i) => {
+    if (p.equity < (all[lo] as EquityPoint).equity) lo = i;
+    if (p.equity > (all[hi] as EquityPoint).equity) hi = i;
+  });
+  keep
+    .add(lo)
+    .add(hi)
+    .add(all.length - 1);
+  return [...keep].sort((a, b) => a - b).map((i) => all[i] as EquityPoint);
 }
 
 /** Report on closed trades (open ones are left out), with seeded intervals and simulations. */
@@ -191,6 +232,7 @@ export function backtestReport(
     expectancy: { value: stats.expectancy, ci90: enough ? bootstrap(rets, mean, { seed }) : null },
     winRate: { value: stats.winRate, ci90: enough ? bootstrap(rets, winRateOf, { seed }) : null },
     benchmark,
+    equity: equityCurve(closed),
     byRegime: [...groups.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([label, xs]) => ({

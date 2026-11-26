@@ -27,6 +27,8 @@ export interface LabRun {
       expectancy: { value: number | null; ci90: { low: number; high: number } | null };
       benchmark: { ticker: string; ret: number } | null;
       monteCarlo: { worst5: number } | null;
+      /** Growth of 1 by exit date; only in reports stored from backtest runs after 2026-11-26. */
+      equity?: { date: string; equity: number }[];
     };
   };
 }

@@ -186,3 +186,23 @@ If notifications stop: on the iPad, open **Settings**, **Notifications**, **Mars
 | Massive free tier                         | USD 0        | In use                    |
 
 Paid data plans and Supabase Pro are decided at Phase 5 and Phase 6. Claude asks before any of them.
+
+## Step 11. Start the jobs on time from Supabase (ADR 0008, free)
+
+GitHub's own timer skips most scheduled runs here. Supabase starts them instead, using a GitHub token that can do one thing: start this repository's workflows.
+
+1. **Supabase extensions.** In Supabase, open the Marsad project, tap **Database**, then **Extensions**. Search for `pg_cron` and turn it on. Search for `pg_net` and turn it on (if it asks for a schema, choose `extensions`).
+2. **GitHub token.** On github.com tap your picture, then **Settings**, **Developer settings**, **Personal access tokens**, **Fine-grained tokens**, **Generate new token**.
+   - Token name: `Marsad scheduler`. Expiration: the longest offered (1 year). When it expires, the Status page shows the `scheduler` job as an error.
+   - Repository access: **Only select repositories**, then **Marsad**.
+   - Permissions, Repository permissions: **Actions**, set to **Read and write**. Leave everything else as it is.
+   - Tap **Generate token** and copy it. Never paste it into chat.
+3. **Store it in Supabase Vault.** In Supabase tap **SQL Editor**, then **New query**, paste the line below, replace `PASTE_TOKEN_HERE` with the token (keep the quotes), and tap **Run**:
+
+   ```sql
+   select vault.create_secret('PASTE_TOKEN_HERE', 'github_actions_token', 'Marsad scheduler, ADR 0008');
+   ```
+
+   To replace an expired token later: `select vault.update_secret((select id from vault.secrets where name = 'github_actions_token'), 'NEW_TOKEN');`
+
+4. **Check.** Within 15 minutes the Status page lists a `scheduler` job run. "ok" means GitHub accepted every start; "skipped" means the token is not stored yet; "error" shows GitHub's reason.
