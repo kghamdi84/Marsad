@@ -38,7 +38,7 @@ import {
   type BarsByTicker,
   type StoredHolding,
 } from '../lib/journal';
-import { SkeletonCards, Tabs, cardClass, useRemembered, useWide } from '../components/Card';
+import { SkeletonCards, Tabs, cardClass, useRemembered } from '../components/Card';
 import { t } from '../strings';
 
 const j = t.journal;
@@ -375,25 +375,6 @@ function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   );
 }
 
-function HoldingRow({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
-  const last = bars.at(-1);
-  const u = last ? unrealized(h, last.close) : null;
-  return (
-    <tr>
-      <td className={`${td} font-medium`}>{h.ticker}</td>
-      <td className={`${td} ${num}`}>{h.shares}</td>
-      <td className={`${td} ${num}`}>{money(h.costBasis)}</td>
-      <td className={`${td} ${num}`}>
-        {last ? `${money(last.close)} (${last.date})` : t.regime.noData}
-      </td>
-      <td className={`${td} ${num}`}>{u ? `${pct(u.pct)} (USD ${money(u.usd)})` : ''}</td>
-      <td className={td}>
-        <HoldingControls h={h} bars={bars} />
-      </td>
-    </tr>
-  );
-}
-
 /** Phones: one card per holding, the numbers first and the controls below. */
 function HoldingCard({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   const hh = j.holdings;
@@ -401,7 +382,7 @@ function HoldingCard({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   const u = last ? unrealized(h, last.close) : null;
   const tone = !u ? 'text-fg' : u.usd > 0 ? 'text-up' : u.usd < 0 ? 'text-down' : 'text-fg';
   return (
-    <li className="flex flex-col gap-2 rounded-xl border border-line bg-bg/45 p-3">
+    <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <span className="flex flex-col">
           <span className="text-base font-bold text-white">{h.ticker}</span>
@@ -427,7 +408,6 @@ function Holdings() {
   const hh = j.holdings;
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
-  const wide = useWide();
   const [csv, setCsv] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
@@ -460,32 +440,12 @@ function Holdings() {
       {q.data &&
         (q.data.holdings.length === 0 ? (
           <p className="text-muted">{hh.none}</p>
-        ) : !wide ? (
-          <ul className="flex flex-col gap-2">
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 tablet:grid-cols-2 wide:grid-cols-3">
             {q.data.holdings.map((h) => (
               <HoldingCard key={h.id} h={h} bars={q.data.bars[h.ticker] ?? []} />
             ))}
           </ul>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className={th}>{hh.colTicker}</th>
-                  <th className={thNum}>{hh.colShares}</th>
-                  <th className={thNum}>{hh.colCost}</th>
-                  <th className={thNum}>{hh.colLast}</th>
-                  <th className={thNum}>{hh.colResult}</th>
-                  <th className={th}>{hh.colExits}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {q.data.holdings.map((h) => (
-                  <HoldingRow key={h.id} h={h} bars={q.data.bars[h.ticker] ?? []} />
-                ))}
-              </tbody>
-            </table>
-          </div>
         ))}
       <form onSubmit={submitCsv} className="flex flex-col gap-2">
         <label htmlFor="csv" className="text-sm font-medium">
@@ -860,7 +820,7 @@ type JournalTab = (typeof TABS)[number];
 export function Journal() {
   const [tab, setTab] = useRemembered<JournalTab>('marsad.journal.tab', TABS, 'positions');
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{j.title}</h1>
         <p className="text-sm text-muted">{j.intro}</p>
