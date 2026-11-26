@@ -17,7 +17,7 @@ Sign-in used an emailed link or code followed by an authenticator-app code, and 
 
 ## Restoring the second factor
 
-Write a migration with `update private.auth_policy set require_mfa = true;`, set `REQUIRE_MFA = true`, and update the e2e test "in password mode an aal1 session opens the app". Khaled's authenticator factor stays enrolled, so nothing else changes.
+In Supabase, set **Authentication**, **Multi-Factor**, **TOTP (App Authenticator)** back to **Enabled** (it showed Disabled on 2026-11-26 after the AAL1 session limit was turned off). Then write a migration with `update private.auth_policy set require_mfa = true;`, set `REQUIRE_MFA = true`, and update the e2e test "in password mode an aal1 session opens the app". Khaled's authenticator factor stays enrolled.
 
 ## Consequences
 
