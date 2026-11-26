@@ -28,6 +28,7 @@ describe('tickerSummary (hand-checked)', () => {
     expect(s?.gap).toBeCloseTo(123 / 120 - 1, 12);
     expect(s?.volumeRatio20).toBe(3); // 300 against the 20 sessions before it (all 100)
     expect(s?.fromHigh252).toBeNull(); // fewer than 252 bars
+    expect(s?.range252).toBeNull();
   });
 
   it('measures the distance from the 252-session high', () => {
@@ -37,6 +38,15 @@ describe('tickerSummary (hand-checked)', () => {
     );
     const s = tickerSummary(bars(closes));
     expect(s?.fromHigh252).toBeCloseTo((closes[259] as number) / 200 - 1, 12);
+    // The last 252 closes are bars 8..259: the low is bar 8 (close 9), the high bar 199 (200), the last close 150.
+    expect(s?.range252?.low).toBe(9);
+    expect(s?.range252?.high).toBe(200);
+    expect(s?.range252?.position).toBeCloseTo((150 - 9) / (200 - 9), 12);
+  });
+
+  it('puts a flat year in the middle of its range', () => {
+    const s = tickerSummary(bars(Array.from({ length: 252 }, () => 50)));
+    expect(s?.range252).toEqual({ low: 50, high: 50, position: 0.5 });
   });
 
   it('leaves out what it cannot compute', () => {
