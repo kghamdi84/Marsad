@@ -1516,18 +1516,60 @@ export const t = {
   status: {
     hero: {
       title: (ok: number, n: number) => `${ok} of ${n} sources healthy`,
-      stale: (n: number) => `${n} past ${n === 1 ? 'its' : 'their'} silence limit`,
-      legend:
-        'Blue: healthy or quiet as expected. Yellow: stale. Grey: not judged yet (no data or no calendar).',
+      line: (et: string, riyadh: string) =>
+        `Database OK \u00B7 checked ${et} ET \u00B7 ${riyadh} Riyadh`,
+      stale: (names: string[]) => `${names.join(', ')} ${names.length === 1 ? 'is' : 'are'} stale.`,
+      aria: (healthy: number, quiet: number, stale: number) =>
+        `${healthy} healthy, ${quiet} quiet by design, ${stale} stale`,
     },
+    design: {
+      fresh: {
+        live: 'Live',
+        delayed: 'Delayed',
+        stale: 'Stale',
+        unavailable: 'Unavailable',
+      } as Record<string, string>,
+      last: 'Last',
+      latency: 'Latency',
+      paused: (rules: string) => `Paused: ${rules}`,
+      aMonth: 'a month',
+      aiSpend: 'AI spend',
+      aiSpendValue: (today: string, month: string, calls: number) =>
+        `today $${today} \u00B7 month $${month} \u00B7 ${calls} calls`,
+      aiOffWarn: 'AI is off: set daily and monthly caps in Preferences to turn it on',
+      actions: 'GitHub Actions',
+      actionsValue: (minutes: number, runs: number) =>
+        `about ${new Intl.NumberFormat('en-US').format(minutes)} minutes \u00B7 ${new Intl.NumberFormat('en-US').format(runs)} runs this month`,
+      shariahTitle: 'Shariah screening aid',
+      shariahNote: 'Shown on Study. An aid from filed numbers, not a ruling.',
+      basis: 'Basis',
+      aiTitle: 'AI spending caps',
+      aiNote: 'Leave blank to keep AI off. Warning at 80%, templates at the cap.',
+      off: 'Off',
+      aiOffNote: 'AI stays off while either cap is blank.',
+      aiOnNote: 'AI is on within these caps.',
+    },
+    eventsDesign: { stale: 'Stale', recovered: 'Recovered', mismatch: 'Mismatch' } as Record<
+      string,
+      string
+    >,
     title: 'System status',
-    sources: 'Data sources',
-    jobs: 'Recent job runs',
+    sources: 'Data sources \u00B7 public.source_status',
+    jobs: 'Job runs, last 24 hours',
     strips: {
+      ok: 'OK',
+      skipped: 'Skipped',
+      error: 'Error',
+      sumOk: (n: number) => `${n} OK`,
+      sumSkipped: (n: number) => `${n} skipped`,
+      sumError: (n: number) => `${n} error${n === 1 ? '' : 's'}`,
+      axisStart: (t: string) => `${t} ET`,
+      axisMid: (t: string) => `${t} ET`,
+      axisNow: 'Now',
       title: 'Last 24 hours',
       aria: (job: string, n: number, errors: number, skipped: number) =>
         `${job}: ${n} run${n === 1 ? '' : 's'} in the last 24 hours, ${errors} with an error, ${skipped} skipped.`,
-      latestError: (when: string, error: string) => `Latest error ${when}: ${error}`,
+      latestError: (job: string, time: string, error: string) => `${job} ${time} UTC: ${error}`,
       legend:
         'Blue tick: ran OK. Grey: skipped. Red: error. Yellow: still running. Left edge 24 hours ago, right edge now.',
       none: 'No runs in the last 24 hours.',
@@ -1542,12 +1584,12 @@ export const t = {
     preferences: 'Preferences',
     shariahToggle: 'Show the Shariah screening aid on company pages',
     shariahBasis: 'Divide debt and cash by',
-    basisMarketCap: 'Market capitalization',
+    basisMarketCap: '36-month market value',
     basisAssets: 'Total assets',
     debtMax: 'Debt limit (%)',
-    cashMax: 'Cash limit (%)',
-    aiDailyCap: 'AI daily cap (USD, blank keeps AI off)',
-    aiMonthlyCap: 'AI monthly cap (USD, blank keeps AI off)',
+    cashMax: 'Cash and interest-bearing limit (%)',
+    aiDailyCap: 'Daily cap (USD)',
+    aiMonthlyCap: 'Monthly cap (USD)',
     capsInvalid: 'Caps must be above zero, or blank.',
     costs: 'Costs',
     costsIntro:
@@ -1570,6 +1612,21 @@ export const t = {
     noExports: 'No export yet. The first one is written on Sunday at 07:10 UTC.',
     exportFile: (date: string, file: string) => `${date}: ${file}`,
     push: {
+      d: {
+        sub: 'Web push to your devices. Three steps.',
+        remove: 'Remove',
+        keys: 'Keys',
+        device: 'This device',
+        test: 'Test it',
+        keysReady: 'Keys ready',
+        replaceWarn:
+          'Replacing keys turns off push on every device until each one is turned on again.',
+        deviceOn: 'Push is on for this device.',
+        turnedOn: 'Turned on',
+        testText:
+          'On iPhone and iPad, add Marsad to the Home Screen first. Then trigger a test push from the jobs workflow; each active device should show it within a minute.',
+        addedLine: (added: string, ok: string) => `Added ${added} \u00B7 last OK ${ok}`,
+      },
       title: 'Notifications',
       intro:
         'Push alerts, system alerts and briefs arrive as notifications on the devices you turn on here. A late notification says how late it is; an alert older than 2 hours (6 hours for normal priority, 3 hours for a brief) is not sent at all.',

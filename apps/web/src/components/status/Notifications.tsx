@@ -15,12 +15,26 @@ import {
   type PushState,
 } from '../../lib/push';
 import { cardClass } from '../Card';
-import { panelTitle } from '../study/Panel';
 import { t } from '../../strings';
 
 const x = t.status.push;
-const td = 'border-b border-line px-2 py-2 align-top';
-const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
+const d = x.d;
+const stepCard = 'flex flex-col gap-2.5 rounded-xl bg-bg p-3.5';
+const btnOutline =
+  'min-h-11 rounded-[10px] border border-muted/40 bg-transparent px-3.5 text-[13px] text-white disabled:opacity-50';
+function StepTitle({ n, children }: { n: number; children: string }) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold">
+      <span
+        aria-hidden="true"
+        className="flex size-6 items-center justify-center rounded-full bg-ink text-xs"
+      >
+        {n}
+      </span>
+      {children}
+    </h3>
+  );
+}
 
 function when(iso: string | null): string {
   if (iso === null) return x.never;
@@ -52,42 +66,53 @@ function Keys({ state }: { state: PushState }) {
     },
   });
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{x.step1}</h3>
+    <div className={stepCard}>
+      <StepTitle n={1}>{d.keys}</StepTitle>
       {state.publicKey === null ? (
         <>
-          <p className="text-sm text-muted">{x.noKeys}</p>
-          <Button
+          <p className="text-[13px] text-muted">{x.noKeys}</p>
+          <button
             type="button"
-            className="self-start"
+            className={`${btnOutline} self-start`}
             disabled={make.isPending}
             onClick={() => make.mutate()}
           >
             {x.createKeys}
-          </Button>
+          </button>
         </>
       ) : (
         <>
-          <p className="text-sm">{x.keysReady}</p>
-          {!confirm ? (
-            <Button type="button" className="self-start" onClick={() => setConfirm(true)}>
-              {x.replace}
-            </Button>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p role="alert" className="text-sm text-down">
-                {x.replaceWarning}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" disabled={make.isPending} onClick={() => make.mutate()}>
-                  {x.replaceConfirm}
-                </Button>
-                <Button type="button" onClick={() => setConfirm(false)}>
-                  {x.cancel}
-                </Button>
-              </div>
-            </div>
+          <p className="text-[13px] text-up">{d.keysReady}</p>
+          {confirm && (
+            <p role="alert" className="text-[13px] text-down">
+              {x.replaceWarning}
+            </p>
           )}
+          <div className="flex flex-wrap gap-2">
+            {!confirm ? (
+              <button type="button" className={btnOutline} onClick={() => setConfirm(true)}>
+                {x.replace}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={btnOutline}
+                  disabled={make.isPending}
+                  onClick={() => make.mutate()}
+                >
+                  {x.replaceConfirm}
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 px-3.5 text-[13px] text-muted"
+                  onClick={() => setConfirm(false)}
+                >
+                  {x.cancel}
+                </button>
+              </>
+            )}
+          </div>
         </>
       )}
       {privateKey !== null && (
@@ -135,24 +160,31 @@ function ThisDevice({ state }: { state: PushState }) {
     state.devices.some((d) => d.endpoint === state.thisEndpoint && d.disabledAt === null);
   const error = on.error;
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{x.step2}</h3>
-      {support === 'needs-home-screen' && <p className="text-sm">{x.needsHomeScreen}</p>}
-      {support === 'unsupported' && <p className="text-sm text-muted">{x.unsupported}</p>}
+    <div className={stepCard}>
+      <StepTitle n={2}>{d.device}</StepTitle>
+      {support === 'needs-home-screen' && (
+        <p className="text-[13px] text-fg">{x.needsHomeScreen}</p>
+      )}
+      {support === 'unsupported' && <p className="text-[13px] text-muted">{x.unsupported}</p>}
       {support === 'supported' &&
         (state.publicKey === null ? (
-          <p className="text-sm text-muted">{x.needsKeys}</p>
+          <p className="text-[13px] text-muted">{x.needsKeys}</p>
         ) : active ? (
-          <p className="text-sm">{x.on}</p>
+          <>
+            <p className="text-[13px] text-fg">{d.deviceOn}</p>
+            <span className="self-start rounded-[10px] bg-raised px-3.5 py-3 text-[13px] font-semibold">
+              {d.turnedOn}
+            </span>
+          </>
         ) : (
-          <Button
+          <button
             type="button"
-            className="self-start"
+            className="min-h-11 self-start rounded-[10px] bg-white px-3.5 text-[13px] font-semibold text-raised disabled:opacity-50"
             disabled={on.isPending}
             onClick={() => on.mutate()}
           >
             {x.turnOn}
-          </Button>
+          </button>
         ))}
       {error instanceof PushDenied ? (
         <p role="alert" className="text-sm text-down">
@@ -172,48 +204,44 @@ function ThisDevice({ state }: { state: PushState }) {
 function Devices({ state }: { state: PushState }) {
   const qc = useQueryClient();
   const remove = useMutation({
-    mutationFn: (d: PushDeviceRow) => removeDevice(d, state.thisEndpoint),
+    mutationFn: (dev: PushDeviceRow) => removeDevice(dev, state.thisEndpoint),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['push'] }),
   });
   return (
-    <div className="flex flex-col gap-2 overflow-x-auto">
-      <h3 className="text-sm font-semibold">{x.devices}</h3>
-      {state.devices.length === 0 ? (
-        <p className="text-sm text-muted">{x.noDevices}</p>
-      ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th className={th}>{x.colDevice}</th>
-              <th className={th}>{x.colAdded}</th>
-              <th className={th}>{x.colLastOk}</th>
-              <th className={th}>{x.colState}</th>
-              <th className={th}>
-                <span className="sr-only">{x.remove('')}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.devices.map((d) => (
-              <tr key={d.id}>
-                <td className={td}>{d.device || `#${d.id}`}</td>
-                <td className={td}>{when(d.createdAt)}</td>
-                <td className={td}>{when(d.lastOkAt)}</td>
-                <td className={td}>{stateText(d)}</td>
-                <td className={td}>
-                  <Button
-                    type="button"
-                    disabled={remove.isPending}
-                    onClick={() => remove.mutate(d)}
-                  >
-                    {x.remove(d.device || `#${d.id}`)}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <div className="flex flex-col">
+      <h3 className="sr-only">{x.devices}</h3>
+      {state.devices.length === 0 && <p className="text-sm text-muted">{x.noDevices}</p>}
+      {state.devices.map((dev) => {
+        const name = dev.device || `#${dev.id}`;
+        const bad = dev.disabledAt === null && dev.failures > 0;
+        return (
+          <div
+            key={dev.id}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-t border-line-soft py-3"
+          >
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">{name}</span>
+              <span className="text-xs text-muted">
+                {d.addedLine(when(dev.createdAt), when(dev.lastOkAt))}
+              </span>
+              <span
+                className={`text-xs ${dev.disabledAt !== null ? 'text-muted' : bad ? 'text-down' : 'text-up'}`}
+              >
+                {stateText(dev)}
+              </span>
+            </span>
+            <button
+              type="button"
+              aria-label={x.remove(name)}
+              disabled={remove.isPending}
+              onClick={() => remove.mutate(dev)}
+              className="min-h-11 rounded-[10px] border border-down/50 bg-transparent px-3.5 text-[13px] text-down disabled:opacity-50"
+            >
+              {d.remove}
+            </button>
+          </div>
+        );
+      })}
       {remove.isError && <ErrorText message={remove.error.message} />}
     </div>
   );
@@ -223,21 +251,25 @@ function Devices({ state }: { state: PushState }) {
 export function Notifications() {
   const q = useQuery({ queryKey: ['push'], queryFn: loadPushState });
   return (
-    <section aria-labelledby="push" className={`${cardClass} gap-3!`}>
-      <h2 id="push" className={panelTitle}>
-        {x.title}
-      </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+    <section aria-labelledby="push" className={`${cardClass} gap-4! p-5!`}>
+      <div className="flex flex-col gap-0.5">
+        <h2 id="push" className="text-[17px] font-semibold text-white">
+          {x.title}
+        </h2>
+        <span className="text-xs text-muted">{d.sub}</span>
+      </div>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data && (
         <>
-          <Keys state={q.data} />
-          <ThisDevice state={q.data} />
-          <Devices state={q.data} />
-          <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold">{x.step3}</h3>
-            <p className="text-sm">{x.testSteps}</p>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-2.5">
+            <Keys state={q.data} />
+            <ThisDevice state={q.data} />
+            <div className={stepCard}>
+              <StepTitle n={3}>{d.test}</StepTitle>
+              <p className="text-[13px] leading-[1.45] text-fg">{d.testText}</p>
+            </div>
           </div>
+          <Devices state={q.data} />
         </>
       )}
     </section>

@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  DEFAULT_LOCAL_ZONE,
   DEFAULT_SOURCE_POLICIES,
   PLAN_COSTS,
   actionsMinutes,
   aiSpend,
   buildCalendar,
   describeSourceHealth,
-  dualClock,
   formatAge,
   latencyByKind,
   toFixedHalfUp,
@@ -40,12 +38,6 @@ interface JobRow {
   rows_written: number | null;
   latency_ms: number | null;
   error: string | null;
-}
-
-function when(iso: string | null): string {
-  if (!iso) return t.status.never;
-  const d = new Date(iso);
-  return `${d.toISOString().slice(0, 10)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
 }
 
 interface AlertRow {
@@ -201,12 +193,16 @@ function PreferencesForm({ initial }: { initial: Prefs }) {
   });
   const pct = (v: number) => String(Math.round(v * 1000) / 10);
   const sh = p.shariah;
+  const d = t.status.design;
   const set = (patch: Partial<Prefs['shariah']>) => setP({ ...p, shariah: { ...sh, ...patch } });
   const cap = (v: string) => (v.trim() === '' ? null : Number(v));
+  const aiOff = p.ai.dailyUsd === null || p.ai.monthlyUsd === null;
+  const field =
+    'min-h-12 w-full rounded-[10px] border border-muted/35 bg-surface px-3 text-[17px] text-white';
   return (
     <form
       aria-label={t.status.preferences}
-      className={`${cardClass} gap-3!`}
+      className={`${cardClass} gap-4! p-5!`}
       onSubmit={(e) => {
         e.preventDefault();
         setMsg(null);
@@ -217,79 +213,120 @@ function PreferencesForm({ initial }: { initial: Prefs }) {
         save.mutate(p);
       }}
     >
-      <h2 className={panelTitle}>{t.status.preferences}</h2>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={sh.enabled}
-          onChange={(e) => set({ enabled: e.target.checked })}
-        />
-        {t.status.shariahToggle}
-      </label>
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          {t.status.shariahBasis}
-          <select
-            className="min-h-11 rounded-sm border border-line bg-bg px-2 text-fg"
-            value={sh.basis}
-            onChange={(e) => set({ basis: e.target.value === 'assets' ? 'assets' : 'market-cap' })}
-          >
-            <option value="market-cap">{t.status.basisMarketCap}</option>
-            <option value="assets">{t.status.basisAssets}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          {t.status.debtMax}
-          <input
-            inputMode="decimal"
-            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
-            defaultValue={pct(sh.debtMax)}
-            onChange={(e) => set({ debtMax: Number(e.target.value) / 100 })}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          {t.status.cashMax}
-          <input
-            inputMode="decimal"
-            className="min-h-11 w-24 rounded-sm border border-line bg-bg px-2 text-fg"
-            defaultValue={pct(sh.cashMax)}
-            onChange={(e) => set({ cashMax: Number(e.target.value) / 100 })}
-          />
-        </label>
+      <h2 className="text-[17px] font-semibold text-white">{t.status.preferences}</h2>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-4">
+        <div className="flex flex-col gap-3 rounded-xl bg-bg p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex flex-col">
+              <span className="text-[15px] font-semibold">{d.shariahTitle}</span>
+              <span className="text-xs text-muted">{d.shariahNote}</span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={sh.enabled}
+              aria-label={d.shariahTitle}
+              onClick={() => set({ enabled: !sh.enabled })}
+              className={`relative h-8 w-[52px] flex-none rounded-full ${sh.enabled ? 'bg-ink' : 'bg-faint/40'}`}
+            >
+              <span
+                className={`absolute top-1 size-6 rounded-full bg-white ${sh.enabled ? 'start-7' : 'start-1'}`}
+              />
+            </button>
+          </div>
+          <div role="radiogroup" aria-label={d.basis} className="grid grid-cols-2 gap-1.5">
+            {(
+              [
+                ['market-cap', t.status.basisMarketCap],
+                ['assets', t.status.basisAssets],
+              ] as const
+            ).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={sh.basis === k}
+                onClick={() => set({ basis: k })}
+                className={`min-h-11 rounded-[10px] border text-[13px] text-white ${
+                  sh.basis === k ? 'border-up bg-raised' : 'border-muted/35 bg-transparent'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
+              {t.status.debtMax}
+              <input
+                inputMode="decimal"
+                className={field}
+                defaultValue={pct(sh.debtMax)}
+                onChange={(e) => set({ debtMax: Number(e.target.value) / 100 })}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
+              {t.status.cashMax}
+              <input
+                inputMode="decimal"
+                className={field}
+                defaultValue={pct(sh.cashMax)}
+                onChange={(e) => set({ cashMax: Number(e.target.value) / 100 })}
+              />
+            </label>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 rounded-xl bg-bg p-3.5">
+          <span className="flex flex-col">
+            <span className="text-[15px] font-semibold">{d.aiTitle}</span>
+            <span className="text-xs text-muted">{d.aiNote}</span>
+          </span>
+          <div className="grid grid-cols-2 gap-2.5">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
+              {t.status.aiDailyCap}
+              <input
+                inputMode="decimal"
+                placeholder={d.off}
+                className={field}
+                defaultValue={p.ai.dailyUsd ?? ''}
+                onChange={(e) => setP({ ...p, ai: { ...p.ai, dailyUsd: cap(e.target.value) } })}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
+              {t.status.aiMonthlyCap}
+              <input
+                inputMode="decimal"
+                placeholder={d.off}
+                className={field}
+                defaultValue={p.ai.monthlyUsd ?? ''}
+                onChange={(e) => setP({ ...p, ai: { ...p.ai, monthlyUsd: cap(e.target.value) } })}
+              />
+            </label>
+          </div>
+          <span className={`text-[13px] ${aiOff ? 'text-muted' : 'text-up'}`}>
+            {aiOff ? d.aiOffNote : d.aiOnNote}
+          </span>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          {t.status.aiDailyCap}
-          <input
-            inputMode="decimal"
-            className="min-h-11 w-32 rounded-sm border border-line bg-bg px-2 text-fg"
-            defaultValue={p.ai.dailyUsd ?? ''}
-            onChange={(e) => setP({ ...p, ai: { ...p.ai, dailyUsd: cap(e.target.value) } })}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          {t.status.aiMonthlyCap}
-          <input
-            inputMode="decimal"
-            className="min-h-11 w-32 rounded-sm border border-line bg-bg px-2 text-fg"
-            defaultValue={p.ai.monthlyUsd ?? ''}
-            onChange={(e) => setP({ ...p, ai: { ...p.ai, monthlyUsd: cap(e.target.value) } })}
-          />
-        </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={save.isPending}
+          className="min-h-12 rounded-xl bg-white px-[22px] text-[15px] font-bold text-raised disabled:opacity-50"
+        >
+          {t.status.savePreferences}
+        </button>
+        {save.isError && (
+          <p role="alert" className="text-[13px] text-down">
+            {save.error.message}
+          </p>
+        )}
+        {msg && (
+          <p role="status" className="text-[13px] text-fg">
+            {msg}
+          </p>
+        )}
       </div>
-      <button
-        type="submit"
-        disabled={save.isPending}
-        className="min-h-11 self-start rounded-sm border border-line px-3 text-sm"
-      >
-        {t.status.savePreferences}
-      </button>
-      {save.isError && (
-        <p role="alert" className="text-down">
-          {save.error.message}
-        </p>
-      )}
-      {msg && <p className="text-sm">{msg}</p>}
     </form>
   );
 }
@@ -335,61 +372,72 @@ function Costs() {
   const ai = q.data ? aiSpend(q.data.usage, now, caps) : null;
   const gh = q.data ? actionsMinutes(q.data.runs, now) : null;
   const money = (v: number) => toFixedHalfUp(v, 2);
+  const total = PLAN_COSTS.reduce((n, c) => n + c.usdPerMonth, 0);
+  const d = t.status.design;
   return (
-    <ScrollX label={t.status.costs} className={`${cardClass} gap-3!`}>
-      <h2 className={panelTitle}>{t.status.costs}</h2>
-      <p className="mb-2 text-sm text-muted">{t.status.costsIntro}</p>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={th}>{t.status.colService}</th>
-            <th className={th}>{t.status.colPlan}</th>
-            <th className={thEnd}>{t.status.colMonthly}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {PLAN_COSTS.map((c) => (
-            <tr key={c.service}>
-              <td className={td}>
-                {c.service}
-                <span className="block text-xs text-muted">{c.note}</span>
-              </td>
-              <td className={td}>{c.plan}</td>
-              <td className={`${td} text-end tabular-nums`}>{money(c.usdPerMonth)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section aria-labelledby="cost-h" className={`${cardClass} p-5!`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="cost-h" className="text-[17px] font-semibold text-white">
+          {t.status.costs}
+        </h2>
+        <span className="text-[22px] font-bold">
+          ${money(total)} <span className="text-[13px] font-normal text-muted">{d.aMonth}</span>
+        </span>
+      </div>
+      <ul className="flex flex-col">
+        {PLAN_COSTS.map((c) => (
+          <li
+            key={c.service}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 border-t border-line-soft py-2"
+          >
+            <span className="text-sm font-semibold">{c.service}</span>
+            <span className="text-end text-[13px]">
+              {c.plan} {'\u00B7'} ${money(c.usdPerMonth)}
+            </span>
+            <span className="col-span-2 text-xs text-muted">{c.note}</span>
+          </li>
+        ))}
+      </ul>
       {q.isError && (
         <p role="alert" className="text-down">
           {q.error.message}
         </p>
       )}
-      {ai && (
-        <p className="mt-2 text-sm">
-          {t.status.aiSpend(money(ai.todayUsd), money(ai.monthUsd), ai.calls)}{' '}
-          {ai.budget ? (
-            <span className={ai.budget.state === 'ok' ? '' : 'font-medium text-down'}>
-              {t.status.aiBudget(
-                ai.budget.message,
-                String(ai.budget.dailyPct),
-                String(ai.budget.monthlyPct),
-              )}
-            </span>
-          ) : (
-            t.status.aiOff
-          )}
-        </p>
-      )}
-      {ai?.budget && (
-        <div className="flex flex-col gap-2">
-          <CapBar label={t.status.capBars.daily} pct={ai.budget.dailyPct} />
-          <CapBar label={t.status.capBars.monthly} pct={ai.budget.monthlyPct} />
-          <p className="text-xs text-muted">{t.status.capBars.tick}</p>
-        </div>
-      )}
-      {gh && <p className="text-sm">{t.status.actions(gh.minutes, gh.runs)}</p>}
-    </ScrollX>
+      <div className="flex flex-col gap-2 rounded-[10px] bg-bg p-3">
+        {ai && (
+          <>
+            <div className="flex flex-wrap justify-between gap-x-3 text-sm">
+              <span>{d.aiSpend}</span>
+              <span>{d.aiSpendValue(money(ai.todayUsd), money(ai.monthUsd), ai.calls)}</span>
+            </div>
+            {ai.budget ? (
+              <>
+                <span
+                  className={`text-xs ${ai.budget.state === 'ok' ? 'text-muted' : 'text-down'}`}
+                >
+                  {t.status.aiBudget(
+                    ai.budget.message,
+                    String(ai.budget.dailyPct),
+                    String(ai.budget.monthlyPct),
+                  )}
+                </span>
+                <CapBar label={t.status.capBars.daily} pct={ai.budget.dailyPct} />
+                <CapBar label={t.status.capBars.monthly} pct={ai.budget.monthlyPct} />
+                <p className="text-xs text-muted">{t.status.capBars.tick}</p>
+              </>
+            ) : (
+              <span className="text-xs text-warn">{d.aiOffWarn}</span>
+            )}
+          </>
+        )}
+        {gh && (
+          <div className="flex flex-wrap justify-between gap-x-3 border-t border-line-soft pt-1.5 text-sm">
+            <span>{d.actions}</span>
+            <span>{d.actionsValue(gh.minutes, gh.runs)}</span>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -432,52 +480,162 @@ function Exports() {
   );
 }
 
-/** "N of M sources healthy", one cell per source; the state of each is in words for screen readers and on hover. */
+const hm = (d: Date, zone: string) =>
+  d.toLocaleTimeString('en-GB', { timeZone: zone, hour: '2-digit', minute: '2-digit' });
+const dayHm = (d: Date, zone: string) =>
+  d.toLocaleString('en-GB', {
+    timeZone: zone,
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+/** "25 Nov 16:02 ET \u00B7 00:02 Riyadh": the New York time first, then Riyadh. */
+function dual(iso: string | null): string {
+  if (!iso) return t.status.never;
+  const d = new Date(iso);
+  return `${dayHm(d, 'America/New_York')} ET \u00B7 ${hm(d, 'Asia/Riyadh')} Riyadh`;
+}
+
+type Fresh = 'live' | 'delayed' | 'stale' | 'unavailable';
+const FRESH_STYLE: Record<Fresh, { badge: string; note: string; border: string }> = {
+  live: { badge: 'bg-up/15 text-up', note: 'text-up', border: 'border-line' },
+  delayed: { badge: 'bg-muted/15 text-fg', note: 'text-muted', border: 'border-line' },
+  stale: { badge: 'bg-warn/20 text-warn', note: 'text-warn', border: 'border-warn/60' },
+  unavailable: { badge: 'bg-crit/20 text-alarm', note: 'text-alarm', border: 'border-crit/60' },
+};
+const freshOf = (state: string): Fresh =>
+  state === 'ok'
+    ? 'live'
+    : state === 'not-expected'
+      ? 'delayed'
+      : state === 'stale'
+        ? 'stale'
+        : 'unavailable';
+
+function sourceViews(data: Awaited<ReturnType<typeof load>>) {
+  return data.sources.map((s) => {
+    const policy = DEFAULT_SOURCE_POLICIES.find((p) => p.source === s.source);
+    const v = policy
+      ? describeSourceHealth(
+          policy,
+          s.last_message_at ? new Date(s.last_message_at) : null,
+          new Date(data.checkedAt),
+          data.calendar,
+        )
+      : null;
+    return { row: s, view: v, fresh: freshOf(v ? v.state : 'never') };
+  });
+}
+
+/** "N of M sources healthy", one bar per source; each state is in words for screen readers and on hover. */
 function HealthHero({ data }: { data: Awaited<ReturnType<typeof load>> }) {
   const h = t.status.hero;
-  const views = data.sources.flatMap((s) => {
-    const policy = DEFAULT_SOURCE_POLICIES.find((p) => p.source === s.source);
-    if (!policy) return [];
-    const v = describeSourceHealth(
-      policy,
-      s.last_message_at ? new Date(s.last_message_at) : null,
-      new Date(data.checkedAt),
-      data.calendar,
-    );
-    return [{ name: s.display_name, state: v.state, label: v.label }];
-  });
-  if (views.length === 0) return null;
-  const healthy = views.filter((v) => v.state === 'ok' || v.state === 'not-expected').length;
-  const stale = views.filter((v) => v.state === 'stale').length;
-  const cell = (state: string) =>
-    state === 'ok' || state === 'not-expected'
+  const views = sourceViews(data).filter((v) => v.view !== null);
+  const hb = heartbeatText(data.heartbeatAt, data.checkedAt);
+  const checked = new Date(data.checkedAt);
+  const healthy = views.filter((v) => v.fresh === 'live' || v.fresh === 'delayed').length;
+  const quiet = views.filter((v) => v.fresh === 'delayed').length;
+  const stale = views.filter((v) => v.fresh === 'stale');
+  const cell = (f: Fresh) =>
+    f === 'live'
       ? 'bg-up'
-      : state === 'stale'
-        ? 'bg-warn'
-        : 'bg-faint/40';
+      : f === 'delayed'
+        ? 'bg-muted'
+        : f === 'stale'
+          ? 'bg-warn'
+          : 'bg-faint/40';
   return (
     <section
       aria-labelledby="health-h"
-      className="flex flex-col gap-3 rounded-2xl bg-raised p-4 tablet:rounded-xl tablet:p-5"
+      className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-raised p-5"
     >
-      <h2 id="health-h" className="text-xl font-bold text-white">
-        {h.title(healthy, views.length)}
-      </h2>
-      {stale > 0 && <p className="text-sm font-semibold text-warn">{h.stale(stale)}</p>}
-      <ul className="flex flex-wrap gap-1.5">
-        {views.map((v) => (
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] text-muted">
+          {h.line(hm(checked, 'America/New_York'), hm(checked, 'Asia/Riyadh'))}
+        </span>
+        <h1 id="health-h" className="text-[28px] leading-[1.15] font-bold text-white">
+          {views.length === 0 ? t.status.title : h.title(healthy, views.length)}
+        </h1>
+        {stale.length > 0 && (
+          <span className="text-sm text-fg">{h.stale(stale.map((v) => v.row.display_name))}</span>
+        )}
+        <span role="status" className={`text-[13px] ${hb.warn ? 'text-warn' : 'text-muted'}`}>
+          {hb.text}
+        </span>
+      </div>
+      {views.length > 0 && (
+        <ul aria-label={h.aria(healthy - quiet, quiet, stale.length)} className="flex gap-1">
+          {views.map((v) => (
+            <li
+              key={v.row.source}
+              title={`${v.row.display_name}: ${v.view?.label ?? ''}`}
+              className={`h-8 w-2.5 rounded-[3px] ${cell(v.fresh)}`}
+            >
+              <span className="sr-only">
+                {v.row.display_name}: {v.view?.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Sources({ data }: { data: Awaited<ReturnType<typeof load>> }) {
+  const d = t.status.design;
+  return (
+    <section aria-labelledby="src-h" className="flex flex-col gap-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="src-h" className="text-[17px] font-semibold text-white">
+          {t.status.sources}
+        </h2>
+        <ul className="flex flex-wrap gap-2.5 text-xs">
+          {(Object.keys(FRESH_STYLE) as Fresh[]).map((f) => (
+            <li key={f} className={`rounded px-2 py-0.5 ${FRESH_STYLE[f].badge}`}>
+              {d.fresh[f]}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] gap-2">
+        {sourceViews(data).map(({ row, view, fresh }) => (
           <li
-            key={v.name}
-            title={`${v.name}: ${v.label}`}
-            className={`h-6 w-6 rounded-md ${cell(v.state)}`}
+            key={row.source}
+            className={`flex flex-col gap-2 rounded-xl border bg-surface p-3.5 ${FRESH_STYLE[fresh].border}`}
           >
-            <span className="sr-only">
-              {v.name}: {v.label}
+            <div className="flex items-start justify-between gap-2.5">
+              <span className="flex min-w-0 flex-col">
+                <span className="text-[15px] font-semibold">{row.display_name}</span>
+                <span className="text-[11px] text-muted">
+                  {row.source} {'\u00B7'} {row.plan_tier}
+                </span>
+              </span>
+              <span
+                className={`flex-none rounded px-2 py-[3px] text-xs font-semibold ${FRESH_STYLE[fresh].badge}`}
+              >
+                {d.fresh[fresh]}
+              </span>
+            </div>
+            <div className="flex flex-wrap justify-between gap-x-2.5 text-xs">
+              <span>
+                <span className="text-muted">{d.last}</span> {dual(row.last_message_at)}
+              </span>
+              <span>
+                <span className="text-muted">{d.latency}</span>{' '}
+                {row.last_latency_ms === null
+                  ? t.status.none
+                  : `${new Intl.NumberFormat('en-US').format(row.last_latency_ms)} ms`}
+              </span>
+            </div>
+            <span className={`text-xs ${FRESH_STYLE[fresh].note}`}>
+              {view ? view.label : row.state.toUpperCase()}
+              {row.note ? `. ${row.note}` : ''}
             </span>
           </li>
         ))}
       </ul>
-      <p className="text-xs text-muted">{h.legend}</p>
     </section>
   );
 }
@@ -506,7 +664,7 @@ async function loadDayRuns() {
 
 const TICK: Record<string, string> = {
   ok: 'bg-up',
-  skipped: 'bg-muted/60',
+  skipped: 'bg-muted',
   error: 'bg-alarm',
   running: 'bg-warn',
 };
@@ -519,55 +677,90 @@ function JobStrips() {
   const start = Date.parse(q.data.since);
   const span = Date.parse(q.data.now) - start;
   const jobs = [...new Set(q.data.runs.map((r) => r.job))].sort();
+  const errors = q.data.runs.filter((r) => r.status === 'error' && r.error);
+  const lastErr = errors.at(-1);
+  const axis = (ms: number) => hm(new Date(ms), 'America/New_York');
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-[0.8125rem] font-bold text-muted">{x.title}</h3>
+    <section aria-labelledby="job-h" className={`${cardClass} p-5!`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="job-h" className="text-[17px] font-semibold text-white">
+          {t.status.jobs}
+        </h2>
+        <ul className="flex flex-wrap gap-3 text-xs text-fg">
+          {(
+            [
+              ['bg-up', x.ok],
+              ['bg-muted', x.skipped],
+              ['bg-alarm', x.error],
+            ] as const
+          ).map(([c, label]) => (
+            <li key={label} className="flex items-center gap-1.5">
+              <span aria-hidden="true" className={`size-2.5 rounded-[2px] ${c}`} />
+              {label}
+            </li>
+          ))}
+        </ul>
+      </div>
       {jobs.length === 0 ? (
         <p className="text-sm text-muted">{x.none}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {jobs.map((job) => {
-            const runs = q.data.runs.filter((r) => r.job === job);
-            const errors = runs.filter((r) => r.status === 'error');
-            const lastErr = errors.at(-1);
-            return (
-              <li
-                key={job}
-                className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] items-center gap-3"
-              >
-                <span className="truncate text-sm text-fg">{job}</span>
-                <span
-                  role="img"
-                  aria-label={x.aria(
-                    job,
-                    runs.length,
-                    errors.length,
-                    runs.filter((r) => r.status === 'skipped').length,
-                  )}
-                  className="relative h-5 rounded-md bg-bg"
+        <div className="overflow-x-auto">
+          <ul className="flex min-w-[600px] flex-col gap-1">
+            {jobs.map((job) => {
+              const runs = q.data.runs.filter((r) => r.job === job);
+              const n = (st: string) => runs.filter((r) => r.status === st).length;
+              const bad = n('error');
+              const skipped = n('skipped');
+              const summary =
+                bad > 0 ? x.sumError(bad) : skipped > 0 ? x.sumSkipped(skipped) : x.sumOk(n('ok'));
+              return (
+                <li
+                  key={job}
+                  className="grid min-h-[30px] grid-cols-[150px_minmax(0,1fr)_96px] items-center gap-3"
                 >
-                  {runs.map((r, i) => (
-                    <span
-                      key={`${r.started_at}-${i}`}
-                      className={`absolute top-1 h-3 w-0.5 rounded-full ${TICK[r.status] ?? 'bg-faint'}`}
-                      style={{
-                        insetInlineStart: `${Math.min(99.5, Math.max(0, ((Date.parse(r.started_at) - start) / span) * 100)).toFixed(2)}%`,
-                      }}
-                    />
-                  ))}
-                </span>
-                {lastErr?.error && (
-                  <span className="col-span-2 text-xs text-alarm">
-                    {x.latestError(when(lastErr.started_at), lastErr.error)}
+                  <span className="font-mono text-[13px]">{job}</span>
+                  <span
+                    role="img"
+                    aria-label={x.aria(job, runs.length, bad, skipped)}
+                    className="relative h-[18px] rounded bg-muted/10"
+                  >
+                    {runs.map((r, i) => (
+                      <span
+                        key={`${r.started_at}-${i}`}
+                        title={dual(r.started_at)}
+                        className={`absolute top-0.5 bottom-0.5 -ms-[3px] w-1.5 rounded-[2px] ${TICK[r.status] ?? 'bg-faint'}`}
+                        style={{
+                          insetInlineStart: `${Math.min(99.5, Math.max(0, ((Date.parse(r.started_at) - start) / span) * 100)).toFixed(2)}%`,
+                        }}
+                      />
+                    ))}
                   </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  <span
+                    className={`text-end text-xs ${bad > 0 ? 'text-alarm' : skipped > 0 ? 'text-fg' : 'text-muted'}`}
+                  >
+                    {summary}
+                  </span>
+                </li>
+              );
+            })}
+            <li className="grid grid-cols-[150px_minmax(0,1fr)_96px] gap-3 text-[11px] text-muted">
+              <span />
+              <span className="flex justify-between">
+                <span>{x.axisStart(axis(start))}</span>
+                <span>{x.axisMid(axis(start + span / 2))}</span>
+                <span>{x.axisNow}</span>
+              </span>
+              <span />
+            </li>
+          </ul>
+        </div>
       )}
-      <p className="text-xs text-muted">{x.legend}</p>
-    </div>
+      {lastErr?.error && (
+        <span className="text-xs text-alarm">
+          {x.latestError(lastErr.job, hm(new Date(lastErr.started_at), 'UTC'), lastErr.error)}
+        </span>
+      )}
+    </section>
   );
 }
 
@@ -593,148 +786,68 @@ function CapBar({ label, pct }: { label: string; pct: number }) {
   );
 }
 
+const EVENT_STYLE: Record<AlertRow['event'], string> = {
+  stale: 'bg-warn/20 text-warn',
+  mismatch: 'bg-muted/15 text-fg',
+  recovered: 'bg-up/15 text-up',
+};
+
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: load, refetchInterval: 30_000 });
-
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-4">
-      <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">
-        {t.status.title}
-      </h1>
-      {q.data && <HealthHero data={q.data} />}
-      <p role="status" className={q.isError ? 'text-down' : 'text-muted'}>
-        {q.isError
-          ? t.status.dbError(q.error.message)
-          : q.data
-            ? t.status.dbOk(when(q.data.checkedAt))
-            : t.loading}
-      </p>
-
-      <ScrollX label={t.status.sources} className={`${cardClass} gap-3!`}>
-        <h2 className={panelTitle}>{t.status.sources}</h2>
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th className={th}>{t.status.colSource}</th>
-              <th className={th}>{t.status.colState}</th>
-              <th className={th}>{t.status.colTier}</th>
-              <th className={th}>{t.status.colLast}</th>
-              <th className={thEnd}>{t.status.colLatency}</th>
-              <th className={th}>{t.status.colNote}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.data?.sources.map((s) => {
-              const policy = DEFAULT_SOURCE_POLICIES.find((p) => p.source === s.source);
-              const view = policy
-                ? describeSourceHealth(
-                    policy,
-                    s.last_message_at ? new Date(s.last_message_at) : null,
-                    new Date(q.data.checkedAt),
-                    q.data.calendar,
-                  )
-                : null;
-              return (
-                <tr key={s.source}>
-                  <td className={td}>{s.display_name}</td>
-                  {/* State is always spelled out; color is never the only signal. */}
-                  <td className={td}>{view ? view.label : s.state.toUpperCase()}</td>
-                  <td className={td}>{s.plan_tier}</td>
-                  <td className={td}>{when(s.last_message_at)}</td>
-                  <td className={`${td} text-end`}>
-                    {s.last_latency_ms === null ? t.status.none : `${s.last_latency_ms} ms`}
-                  </td>
-                  <td className={`${td} text-muted`}>{s.note}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </ScrollX>
-
-      {q.data && (
-        <p
-          role="status"
-          className={
-            heartbeatText(q.data.heartbeatAt, q.data.checkedAt).warn ? 'text-down' : 'text-muted'
-          }
-        >
-          {heartbeatText(q.data.heartbeatAt, q.data.checkedAt).text}
-        </p>
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
+      {q.data ? (
+        <HealthHero data={q.data} />
+      ) : (
+        <>
+          <h1 className="text-[28px] font-bold text-white">{t.status.title}</h1>
+          <p role="status" className={q.isError ? 'text-down' : 'text-muted'}>
+            {q.isError ? t.status.dbError(q.error.message) : t.loading}
+          </p>
+        </>
       )}
 
-      <Latency />
+      {q.data && <Sources data={q.data} />}
 
-      <ScrollX label={t.status.alerts} className={`${cardClass} gap-3!`}>
-        <h2 className={panelTitle}>{t.status.alerts}</h2>
-        {q.data && q.data.alerts.length === 0 ? (
-          <p className="text-muted">{t.status.noAlerts}</p>
-        ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={th}>{t.status.colWhen}</th>
-                <th className={th}>{t.status.colEvent}</th>
-                <th className={th}>{t.status.colHeadline}</th>
-                <th className={th}>{t.status.colPaused}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.data?.alerts.map((a) => (
-                <tr key={a.id}>
-                  <td className={td}>{when(a.created_at)}</td>
-                  <td className={td}>{t.status.events[a.event]}</td>
-                  <td className={td}>{a.headline}</td>
-                  <td className={`${td} text-muted`}>{a.paused_rules.join(', ')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </ScrollX>
+      <JobStrips />
 
-      <Costs />
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4">
+        <section aria-labelledby="sa-h" className={`${cardClass} gap-1! p-5!`}>
+          <h2 id="sa-h" className="mb-1.5 text-[17px] font-semibold text-white">
+            {t.status.alerts}
+          </h2>
+          {q.data && q.data.alerts.length === 0 && (
+            <p className="text-muted">{t.status.noAlerts}</p>
+          )}
+          {q.data?.alerts.map((a) => (
+            <div key={a.id} className="flex items-start gap-3 border-t border-line-soft py-3">
+              <span
+                className={`flex-none rounded px-2 py-0.5 text-[11px] font-semibold ${EVENT_STYLE[a.event]}`}
+              >
+                {t.status.eventsDesign[a.event]}
+              </span>
+              <span className="flex flex-1 flex-col gap-0.5">
+                <span className="text-sm">{a.headline}</span>
+                <span className="text-xs text-muted">{dual(a.created_at)}</span>
+                {a.paused_rules.length > 0 && (
+                  <span className="text-xs text-muted">
+                    {t.status.design.paused(a.paused_rules.join(', '))}
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+        </section>
+        <Costs />
+      </div>
 
       <Notifications />
 
       <Preferences />
 
-      <Exports />
+      <Latency />
 
-      <ScrollX label={t.status.jobs} className={`${cardClass} gap-3!`}>
-        <h2 className={panelTitle}>{t.status.jobs}</h2>
-        <JobStrips />
-        {q.data && q.data.jobs.length === 0 ? (
-          <p className="text-muted">{t.status.noJobs}</p>
-        ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={th}>{t.status.colJob}</th>
-                <th className={th}>{t.status.colStarted}</th>
-                <th className={th}>{t.status.colStatus}</th>
-                <th className={thEnd}>{t.status.colRows}</th>
-                <th className={thEnd}>{t.status.colLatency}</th>
-                <th className={th}>{t.status.colError}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.data?.jobs.map((j) => (
-                <tr key={j.id}>
-                  <td className={td}>{j.job}</td>
-                  <td className={td}>{when(j.started_at)}</td>
-                  <td className={`${td} uppercase`}>{j.status}</td>
-                  <td className={`${td} text-end`}>{j.rows_written ?? t.status.none}</td>
-                  <td className={`${td} text-end`}>
-                    {j.latency_ms === null ? t.status.none : `${j.latency_ms} ms`}
-                  </td>
-                  <td className={`${td} text-down`}>{j.error}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </ScrollX>
-    </section>
+      <Exports />
+    </div>
   );
 }

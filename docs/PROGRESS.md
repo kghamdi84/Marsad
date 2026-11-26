@@ -530,7 +530,8 @@ Matched to the handoff screenshots and checked by Playwright (desktop 1440, phon
 - Foundation: ink, crit, line-soft and ema tokens, IBM Plex Sans Arabic and Mono as files (CSP font-src 'self'), wide breakpoint.
 - Sign in: password, create account, link, code, Unavailable banner.
 - Lab: title, lifecycle filter strip, 3-up cards, gate ticks, details toggle, Not recommended grid.
+- Status: hero with source bars, source cards, job-run strips, system alerts, costs, three-step notifications, preferences panels. Alert latency and Weekly exports (not in the design) are kept below, not removed.
 
-Still to match, in order: Status (large gap: source cards, job-run ticks, costs list, notifications steps, preferences layout), Shell market sheet copy, Regime, Alerts, Journal, Watch, Study, member states.
+Still to match, in order: Shell market sheet copy, Regime, Alerts, Journal, Watch, Study, member states.
 
 Known data limits: no 90% bootstrap bars in the Regime event study, no Lab equity curves, no GitHub Actions minutes bar.
