@@ -527,6 +527,7 @@ Built on Claude Opus 5.5 at high effort, as the brief asks for the methodology. 
 ## Design handoff match (claude/marsad-design-match)
 
 Matched to the handoff screenshots and checked by Playwright (desktop 1440, phone 390) plus the axe scan:
+
 - Foundation: ink, crit, line-soft and ema tokens, IBM Plex Sans Arabic and Mono as files (CSP font-src 'self'), wide breakpoint.
 - Sign in: password, create account, link, code, Unavailable banner.
 - Lab: title, lifecycle filter strip, 3-up cards, gate ticks, details toggle, Not recommended grid.
