@@ -350,6 +350,16 @@ export const t = {
     },
     options: {
       title: 'Options positions',
+      definedOnly: 'Defined-risk only. Live marks need an options plan.',
+      daysLeft: 'days left',
+      legLine: (parts: string, contracts: string) => `${parts} · ${contracts}`,
+      nContracts: (n: number) => `${n} contract${n === 1 ? '' : 's'}`,
+      legShort: (long: boolean, strike: string, type: string, first: boolean) =>
+        `${long ? (first ? 'Long' : 'long') : first ? 'Short' : 'short'} ${strike} ${type === 'call' ? 'C' : 'P'}`,
+      barAria: (loss: string, gain: string) => `Maximum loss ${loss}, maximum gain ${gain}`,
+      beExpiry: (be: string, expiry: string) => `Breakeven ${be} · expires ${expiry}`,
+      details: 'Details',
+      detailsTitle: (label: string) => `${label}: details`,
       intro:
         'Defined-risk positions you placed in Sahm, entered by hand. Code shows the maximum loss and gain, breakevens, days to expiry and the result at expiry if the stock stays at its last close. The position value today needs option quotes (the options data plan), so it is shown as unavailable.',
       none: 'No open options positions.',

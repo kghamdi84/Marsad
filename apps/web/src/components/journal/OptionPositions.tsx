@@ -17,13 +17,17 @@ import {
   loadOptionPositions,
   type StoredOptionPosition,
 } from '../../lib/optionPositions';
-import { cardClass } from '../Card';
-import { panelTitle } from '../study/Panel';
+import { Sheet } from '../Sheet';
 import { t } from '../../strings';
 
 const x = t.journal.options;
 const usd = (v: number) => `${v < 0 ? '-' : ''}$${toFixedHalfUp(Math.abs(v), 2)}`;
 const selectCls = 'min-h-11 rounded-sm border border-line bg-bg px-2 text-fg';
+const usd0 = (v: number) => Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** '2027-01-16' as the design writes it: '16 Jan 2027'. */
+const dmy = (iso: string) =>
+  `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 
 function PositionCard({
   p,
@@ -41,53 +45,115 @@ function PositionCard({
     mutationFn: () => closeOptionPosition(p.id, today, note),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['option-positions'] }),
   });
+  const [open, setOpen] = useState(false);
   const legText = p.legs
     .map(
       (l) =>
         `${l.qty > 0 ? '+' : ''}${l.qty} ${p.underlying} ${l.strike} ${l.type} at ${toFixedHalfUp(l.price, 2)}`,
     )
     .join('; ');
+  const sizes = [...new Set(p.legs.map((l) => Math.abs(l.qty)))];
+  const legs = x.legLine(
+    p.legs.map((l, i) => x.legShort(l.qty > 0, String(l.strike), l.type, i === 0)).join(', '),
+    sizes.length === 1 ? x.nContracts(sizes[0] ?? 0) : sizes.map(x.nContracts).join(', '),
+  );
+  const gainFlex = v.maxGain ?? v.maxLoss;
+  const met = signals.filter((sg) => sg.met);
   return (
-    <li className="flex flex-col gap-1 rounded-sm border border-line p-3 text-sm">
-      <h3 className="font-semibold">
-        {p.label} ({p.underlying})
-      </h3>
-      <p className="font-mono text-xs">{legText}</p>
-      <p>
-        {x.premium(v.netPremium >= 0, usd(Math.abs(v.netPremium)))}.{' '}
-        {x.risk(usd(v.maxLoss), v.maxGain === null ? x.unlimited : usd(v.maxGain))}.
-      </p>
-      <p>{x.breakevens(v.breakevens.map((b) => toFixedHalfUp(b, 2)).join(', '))}.</p>
-      <p>{x.dte(v.dte, p.expiry)}.</p>
-      <p>
-        {v.close === null || v.atExpiryIfUnchanged === null
-          ? x.noClose
-          : x.atClose(usd(v.atExpiryIfUnchanged), toFixedHalfUp(v.close.value, 2), v.close.asOf)}
-      </p>
-      <p className="text-muted">{x.unavailable}</p>
-      <ul className="list-disc ps-5">
-        {signals.map((s) => (
-          <li key={s.rule} className={s.met ? 'font-medium' : ''}>
-            {s.met ? 'Now: ' : ''}
-            {s.text}
-          </li>
-        ))}
-      </ul>
-      <p>
-        <span className="font-medium">{x.bearCase}:</span> {p.bearCase}
-      </p>
-      <div className="flex flex-wrap items-end gap-2">
-        <Field
-          id={`close-note-${p.id}`}
-          label={x.closeNote}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-        <Button type="button" disabled={done.isPending} onClick={() => done.mutate()}>
-          {x.close}
-        </Button>
+    <li className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface px-4 py-3.5">
+      <div className="flex justify-between gap-2.5">
+        <span className="flex flex-col">
+          <h3 className="font-bold">{p.label}</h3>
+          <span className="text-[0.8125rem] text-muted">{legs}</span>
+        </span>
+        <span className="flex flex-col items-end">
+          <span className="text-xl font-bold tabular-nums">{v.dte}</span>
+          <span className="text-xs text-muted">{x.daysLeft}</span>
+        </span>
       </div>
-      {done.isError && <ErrorText message={done.error.message} />}
+      <div
+        role="img"
+        aria-label={x.barAria(
+          `$${usd0(v.maxLoss)}`,
+          v.maxGain === null ? x.unlimited : `$${usd0(v.maxGain)}`,
+        )}
+        className="flex h-8 overflow-hidden rounded-lg text-[0.8125rem] font-semibold whitespace-nowrap"
+      >
+        <span
+          aria-hidden="true"
+          className="flex items-center bg-down/22 px-2 text-down"
+          style={{ flex: Math.abs(v.maxLoss) }}
+        >
+          ▼ −${usd0(v.maxLoss)}
+        </span>
+        <span aria-hidden="true" className="w-[3px] bg-white" />
+        <span
+          aria-hidden="true"
+          className="flex items-center justify-end bg-up/18 px-2 text-up"
+          style={{ flex: Math.abs(gainFlex) }}
+        >
+          {v.maxGain === null ? x.unlimited : `▲ +$${usd0(v.maxGain)}`}
+        </span>
+      </div>
+      <span className="text-[0.8125rem]">
+        {x.beExpiry(v.breakevens.map((be) => toFixedHalfUp(be, 2)).join(', '), dmy(p.expiry))}
+      </span>
+      {met.map((sg) => (
+        <span key={sg.rule} className="text-[0.8125rem] font-semibold text-warn">
+          {sg.text}
+        </span>
+      ))}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="min-h-11 self-end px-1 text-[0.8125rem] text-muted underline"
+      >
+        {x.details}
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={x.detailsTitle(p.label)}>
+        <div className="flex flex-col gap-1.5 text-sm">
+          <p className="font-mono text-xs">{legText}</p>
+          <p>
+            {x.premium(v.netPremium >= 0, usd(Math.abs(v.netPremium)))}.{' '}
+            {x.risk(usd(v.maxLoss), v.maxGain === null ? x.unlimited : usd(v.maxGain))}.
+          </p>
+          <p>{x.breakevens(v.breakevens.map((be) => toFixedHalfUp(be, 2)).join(', '))}.</p>
+          <p>{x.dte(v.dte, p.expiry)}.</p>
+          <p>
+            {v.close === null || v.atExpiryIfUnchanged === null
+              ? x.noClose
+              : x.atClose(
+                  usd(v.atExpiryIfUnchanged),
+                  toFixedHalfUp(v.close.value, 2),
+                  v.close.asOf,
+                )}
+          </p>
+          <p className="text-muted">{x.unavailable}</p>
+          <ul className="list-disc ps-5">
+            {signals.map((sg) => (
+              <li key={sg.rule} className={sg.met ? 'font-medium' : ''}>
+                {sg.met ? 'Now: ' : ''}
+                {sg.text}
+              </li>
+            ))}
+          </ul>
+          <p>
+            <span className="font-medium">{x.bearCase}:</span> {p.bearCase}
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field
+              id={`close-note-${p.id}`}
+              label={x.closeNote}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <Button type="button" disabled={done.isPending} onClick={() => done.mutate()}>
+              {x.close}
+            </Button>
+          </div>
+          {done.isError && <ErrorText message={done.error.message} />}
+        </div>
+      </Sheet>
     </li>
   );
 }
@@ -158,7 +224,6 @@ function NewPosition() {
   });
   return (
     <form onSubmit={submit} aria-label={x.add} className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{x.add}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field id="op-underlying" label={x.underlying} {...field('underlying')} />
         <Field id="op-label" label={x.label} {...field('label')} />
@@ -189,7 +254,7 @@ function NewPosition() {
               onChange={(e) => setLeg(i, { side: e.target.value === 'short' ? 'short' : 'long' })}
             >
               <option value="long">{x.long}</option>
-              <option value="short">{x.short}</option>
+              <option value="short">{x.definedOnly}</option>
             </select>
           </label>
           <Field
@@ -247,24 +312,38 @@ function NewPosition() {
 /** Options positions on the Journal page (ADR 0034). */
 export function OptionPositions() {
   const q = useQuery({ queryKey: ['option-positions'], queryFn: loadOptionPositions });
+  const [adding, setAdding] = useState(false);
   return (
-    <section aria-labelledby="option-positions" className={`${cardClass} gap-3!`}>
-      <h2 id="option-positions" className={panelTitle}>
+    <section aria-labelledby="option-positions" className="flex flex-col gap-2.5">
+      <h2 id="option-positions" className="sr-only">
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <p className="text-[0.8125rem] text-muted">{x.definedOnly}</p>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.positions.length === 0 ? (
           <p className="text-muted">{x.none}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-2.5">
             {q.data.positions.map((p) => (
               <PositionCard key={p.id} p={p} close={q.data.closes[p.underlying] ?? null} />
             ))}
           </ul>
         ))}
-      <NewPosition />
+      <button
+        type="button"
+        aria-expanded={adding}
+        aria-controls="option-new"
+        onClick={() => setAdding(!adding)}
+        className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-white"
+      >
+        {x.add}
+      </button>
+      {adding && (
+        <div id="option-new" className="rounded-2xl border border-line bg-surface p-4">
+          <NewPosition />
+        </div>
+      )}
     </section>
   );
 }

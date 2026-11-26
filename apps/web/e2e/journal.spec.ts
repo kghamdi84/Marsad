@@ -453,25 +453,35 @@ test('options positions: the stored spread with its risk, exit rules and bear ca
   await page.goto('/journal');
   await openTab(page, 'Options');
   const s = page.getByRole('region', { name: 'Options positions' });
-  const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread (NVDA)' });
+  const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread' });
   // Debit 300, maximum gain 700, breakeven 103; at 105 the spread is worth +200 at expiry.
+  await expect(card).toContainText('Long 100 C, short 110 C · 1 contract');
+  await expect(card).toContainText('23days left');
   await expect(
-    card.getByText('Debit $300.00. Maximum loss -$300.00; maximum gain $700.00.'),
+    card.getByRole('img', { name: 'Maximum loss $300, maximum gain $700' }),
   ).toBeVisible();
-  await expect(card.getByText('Breakeven at expiry: 103.00.')).toBeVisible();
-  await expect(card.getByText('23 days to expiry (2026-12-18).')).toBeVisible();
+  await expect(card.getByText('Breakeven 103.00 · expires 18 Dec 2026')).toBeVisible();
+  await card.getByRole('button', { name: 'Details' }).click();
+  const sheet = page.getByRole('dialog');
   await expect(
-    card.getByText('At expiry, if the stock stays at 105.00 (close 2026-11-24): $200.00'),
+    sheet.getByText('Debit $300.00. Maximum loss -$300.00; maximum gain $700.00.'),
   ).toBeVisible();
-  await expect(card.getByText('Value today: unavailable (needs option quotes)')).toBeVisible();
-  await expect(card.getByText('Time exit at 21 days to expiry (now 23).')).toBeVisible();
+  await expect(sheet.getByText('Breakeven at expiry: 103.00.')).toBeVisible();
+  await expect(sheet.getByText('23 days to expiry (2026-12-18).')).toBeVisible();
   await expect(
-    card.getByText(
+    sheet.getByText('At expiry, if the stock stays at 105.00 (close 2026-11-24): $200.00'),
+  ).toBeVisible();
+  await expect(sheet.getByText('Value today: unavailable (needs option quotes)')).toBeVisible();
+  await expect(sheet.getByText('Time exit at 21 days to expiry (now 23).')).toBeVisible();
+  await expect(
+    sheet.getByText(
       'Profit take at 50% of the maximum gain ($350.00); needs option quotes to judge.',
     ),
   ).toBeVisible();
-  await expect(card.getByText('A data-center miss takes NVDA below 100.')).toBeVisible();
+  await expect(sheet.getByText('A data-center miss takes NVDA below 100.')).toBeVisible();
+  await page.keyboard.press('Escape');
 
+  await s.getByRole('button', { name: 'Add an options position' }).click();
   const form = page.getByRole('form', { name: 'Add an options position' });
   await form.getByLabel('Underlying ticker').fill('rklb');
   await form.getByLabel('Name (for example, Bull call spread)').fill('Short call');
