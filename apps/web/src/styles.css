@@ -5,17 +5,20 @@
 
 @theme {
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --color-bg: #0b0f14;
-  --color-surface: #111821;
-  --color-raised: #17212c;
-  --color-line: #263241;
-  --color-fg: #e6edf3;
-  --color-muted: #a3b0bd;
+  /* Marsad navy palette (Claude Design, 2026-11-26). */
+  --color-bg: #00123f;
+  --color-surface: #001a57;
+  --color-raised: #002475;
+  --color-line: rgba(138, 153, 178, 0.22);
+  --color-fg: #e8ecf3;
+  --color-muted: #b7c1d2;
+  --color-faint: #8a99b2;
   /* Color-blind-safe defaults: blue for up, orange for down. Never the only signal. */
-  --color-up: #5aa9ff;
-  --color-down: #ff9f43;
-  --color-warn: #ffd166;
-  --color-focus: #8ab4ff;
+  --color-up: #7fa8ff;
+  --color-down: #ff9f5a;
+  --color-warn: #f5d06f;
+  --color-alarm: #ff6b70;
+  --color-focus: #7fa8ff;
 }
 
 html {

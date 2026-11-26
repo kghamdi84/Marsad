@@ -881,6 +881,36 @@ export const t = {
 
   regime: {
     title: 'Regime',
+    ui: {
+      showDetails: 'Show details',
+      endOfDay: 'End of day',
+      sessions: (n: number) => `Last ${n} sessions`,
+      running: (n: number, date: string) =>
+        `Running ${n} session${n === 1 ? '' : 's'}, since ${date}`,
+      ribbonAria: (summary: string) => `Regime by session over the past year: ${summary}.`,
+      levelScale: ['Low: none', 'Elevated: 1 or 2', 'High: Sahm rule or 3+'],
+      levelAria: (level: string) => `Level scale: low, elevated, high. Current level ${level}.`,
+      tickNote: 'The white tick marks where each signal triggers.',
+      metCount: (n: number) => `${n} of 4 met`,
+      gaugeAria: (v: number) => `Composite ${v} of 100`,
+      today: (label: string) => `Today: ${label}`,
+      scaleNote:
+        'Bar: the middle half of outcomes (25th to 75th percentile). White line: the median.',
+      unavailable: 'Unavailable',
+      insufficientShort: (n: number) => `Insufficient history: ${n} of 30`,
+      notEnough: 'n/a',
+      needs30: 'needs 30',
+      horizonShort: (h: number) =>
+        h === 21 ? '1 month' : h === 63 ? '3 months' : h === 126 ? '6 months' : `${h} sessions`,
+      horizonSub: (h: number, n: number) => `${h} sessions · n = ${n}`,
+      articles: 'articles',
+      topicHeadlines: (name: string, n: number) =>
+        `${name}: newest ${n} headline${n === 1 ? '' : 's'}`,
+      noHeadlines: 'No headline stored for this topic in the last 40 days.',
+      percentileChip: (name: string, pct: string, date: string) =>
+        `${name} ${pct} percentile, ${date}`,
+      moreMeasures: 'More measures',
+    },
     intro:
       'What kind of market this is, from documented rules (ADR 0009), computed at the end of each day from stored data. It describes the market; it does not forecast it.',
     none: 'No regime has been computed yet. The regime job runs after the FRED job.',

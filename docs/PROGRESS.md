@@ -157,6 +157,18 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - **ADR 0025** (`thesis-1`): an append-only thesis card on every company page; the bear case and what would change the view are required by the app and the database; saving sets the status on open holdings of that ticker. The AI draft from cited sources waits for an Anthropic key.
 
+### Redesign, step 1: Regime page and the navy palette (2026-11-26)
+
+- From Khaled's Claude Design project "Market Watch Application" (Regime.dc.html): the navy palette is now the app-wide theme, and the Regime page leads with visuals (regime hero with input tiles and a year-long ribbon, recession signals with trigger ticks, capitulation condition tiles, Fear and Greed gauge with component bars, event-study interval bars by condition, breadth bars, geopolitics topic tiles with headlines). Every table, rule and source stays one tap away under "Show details".
+- Wired to real data only. Correction to the design: the stored event study gives the median and the middle half of outcomes (25th to 75th percentile), so the bars say that, not a 90% interval. The design's sample-only "Preview: on" toggle is not used.
+- Verified: Regime e2e 8 passed; full Playwright 142 passed (axe on every page); ./init.sh passes.
+
+### Sign-in, friends and keys (2026-11-26)
+
+- Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).
+- VAPID_PRIVATE_KEY secret added; the device is turned on from the iPhone next.
+- First email sent: close recap 2026-11-25 (started by hand at 23:06 UTC because GitHub's scheduler ran about 9 hours late).
+
 ### Khaled's setup, step by step (2026-11-25)
 
 - Email: RESEND_API_KEY and BRIEF_EMAIL_TO added as GitHub secrets (by Khaled's browser assistant); first real send is tonight's close recap.
