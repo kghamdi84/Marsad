@@ -33,6 +33,7 @@ import {
   type StoredBrief,
   type WatchData,
 } from '../lib/watch';
+import { loadQuoteView, quoteStatus, type QuoteView } from '../lib/quotes';
 import { t } from '../strings';
 
 const c = t.calendar;
@@ -286,12 +287,45 @@ function ChangePill({ v }: { v: number | null }) {
   );
 }
 
+/** The selected quote source's latest price (Tauric, ADR 0041), with its age in words by Marsad's clock. */
+function useLatest(view: QuoteView | undefined, now: Date) {
+  return (tk: string) => {
+    const q = view?.source === 'tauric' ? view.quotes[tk] : undefined;
+    if (!view || !q) return null;
+    const f = quoteStatus(q, view, now);
+    return {
+      price: toFixedHalfUp(q.price, 2),
+      change: q.change,
+      label: f.label,
+      stale: f.state === 'stale',
+    };
+  };
+}
+
+type Latest = ReturnType<ReturnType<typeof useLatest>>;
+
+function LatestCell({ latest }: { latest: Latest }) {
+  if (!latest) return <span className="text-xs text-muted">{u.latestNone}</span>;
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <span className="font-semibold text-white">{latest.price}</span>
+      <span className="text-xs whitespace-nowrap">
+        <Change v={latest.change} digits={2} />
+      </span>
+      <span className={`text-[11px] ${latest.stale ? 'text-warn' : 'text-muted'}`}>
+        {latest.label}
+      </span>
+    </span>
+  );
+}
+
 /** Phones: one row per ticker (close and day change); a tap shows the week, month, range and volume. */
 function PhoneRow({
   tk,
   bars,
   s,
   stale,
+  latest,
   open,
   onToggle,
 }: {
@@ -299,6 +333,8 @@ function PhoneRow({
   bars: readonly { close: number }[];
   s: TickerSummary | null;
   stale: boolean;
+  /** Set only when the viewer chose Tauric as the quote source. */
+  latest?: Latest | undefined;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -333,10 +369,21 @@ function PhoneRow({
               <Change v={s.change1d} />
             </span>
           )}
+          {latest !== undefined && (
+            <span className="text-xs text-muted tabular-nums">
+              {latest ? u.latestPhone(latest.price) : u.latestNone}
+            </span>
+          )}
         </span>
       </button>
       {open && (
         <div id={panel} className="flex flex-col gap-3 bg-raised/40 px-4 pt-1 pb-4">
+          {latest && (
+            <p className={`text-[0.8125rem] ${latest.stale ? 'text-warn' : 'text-muted'}`}>
+              {u.latestPhone(latest.price)} <Change v={latest.change} digits={2} /> {'\u00B7'}{' '}
+              {latest.label}
+            </p>
+          )}
           {s ? (
             <>
               {stale && <p className="text-[0.8125rem] text-warn">{u.olderDate(s.date)}</p>}
@@ -380,6 +427,14 @@ function WatchlistCard({ data }: { data: WatchData }) {
   const [period, setPeriod] = useRemembered<Period>('marsad.watch.period', PERIODS, '1d');
   const [sorted, setSorted] = useState(false);
   const [openTk, setOpenTk] = useState<string | null>(null);
+  const qv = useQuery({
+    queryKey: ['quote-view'],
+    queryFn: loadQuoteView,
+    refetchInterval: 60_000,
+  });
+  const now = useNow();
+  const tauric = qv.data?.source === 'tauric';
+  const latestOf = useLatest(qv.data, now);
   const rows = data.tickers.map((tk) => ({
     tk,
     bars: data.bars[tk] ?? [],
@@ -424,6 +479,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
             bars={bars}
             s={s}
             stale={!!s && s.date !== newest}
+            latest={tauric ? latestOf(tk) : undefined}
             open={openTk === tk}
             onToggle={() => setOpenTk(openTk === tk ? null : tk)}
           />
@@ -435,6 +491,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
             <tr>
               <th className={th}>{l.colTicker}</th>
               <th className={`${th} hidden md:table-cell`}>{u.colSpark}</th>
+              {tauric && <th className={thNum}>{u.latestCol}</th>}
               <th className={thNum}>{l.colClose}</th>
               <th className={thNum}>{u.colChange(u.periodLong[period] ?? period)}</th>
               <th className={`${th} hidden lg:table-cell`}>{u.colRange}</th>
@@ -467,6 +524,11 @@ function WatchlistCard({ data }: { data: WatchData }) {
                       }
                     />
                   </td>
+                  {tauric && (
+                    <td className={`${cell} ${num}`}>
+                      <LatestCell latest={latestOf(tk)} />
+                    </td>
+                  )}
                   {s ? (
                     <>
                       <td className={`${cell} ${num}`}>
@@ -499,6 +561,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
         </table>
       </div>
       <p className="text-xs text-muted">{newest ? u.footer(newest) : l.source}</p>
+      {tauric && <p className="text-xs text-muted">{u.latestFooter}</p>}
     </Card>
   );
 }

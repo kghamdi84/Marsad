@@ -67,6 +67,24 @@ describe('evaluateFreshness: delayed tier', () => {
   });
 });
 
+describe('evaluateFreshness: unknown tier (vendor delay not measured, ADR 0041)', () => {
+  // Before the fix a fresh value of unknown delay was labelled "Live". A feed of unproven speed must not.
+  it('is never live: a 10-second-old value reads "Delay not confirmed"', () => {
+    const f = fresh('2026-11-24T15:00:00Z', '2026-11-24T15:00:10Z', 'unknown');
+    expect(f.state).toBe('delayed');
+    expect(f.label).toBe('Delay not confirmed');
+  });
+  it('gets the delayed allowance (90 s plus 15 min in the regular session), then turns stale', () => {
+    expect(fresh('2026-11-24T14:45:00Z', '2026-11-24T15:01:00Z', 'unknown').state).toBe('delayed'); // 16 min
+    expect(fresh('2026-11-24T14:30:00Z', '2026-11-24T15:01:00Z', 'unknown').state).toBe('stale'); // 31 min
+  });
+  it('after the close it still says the value is the last one, and stays delayed', () => {
+    const f = fresh('2026-11-24T20:59:58Z', '2026-11-25T03:00:00Z', 'unknown');
+    expect(f.state).toBe('delayed');
+    expect(f.label).toBe('Market closed, last value 16:00 ET');
+  });
+});
+
 describe('evaluateFreshness: end-of-day tier', () => {
   it('is current when it holds the last completed trading day', () => {
     const f = fresh('2026-11-23T05:00:00Z', '2026-11-24T14:00:00Z', 'end-of-day'); // Monday's bar, Tuesday morning

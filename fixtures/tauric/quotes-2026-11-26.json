@@ -1,0 +1,343 @@
+{
+  "recordedAt": "2026-11-26",
+  "source": "tauric",
+  "endpoint": "POST /v1/quotes",
+  "status": 200,
+  "via": "Tauric MCP connector get_quotes (same operation and schema as REST POST /v1/quotes, checked against https://api.tauric.ai/openapi.json QuotesBatchResponse on 2026-11-26)",
+  "note": "Recorded on US Thanksgiving (market closed): stock quotes hold the 2026-11-25 close. The FX quote shows the misleading vendor age (price_age_seconds 5 while it was about 30 minutes old when read). The error shows that crypto pairs are quoted in USDT. Re-record from the REST API once TAURIC_API_KEY is set.",
+  "body": {
+    "object": "list",
+    "next_cursor": null,
+    "data": [
+      {
+        "instrument": {
+          "key": "security:AAPL",
+          "name": "Apple Inc.",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "quote_kind": "snapshot",
+        "price": 355.58,
+        "price_basis": "unadjusted",
+        "price_time": "2026-11-25T21:00:02.000000Z",
+        "refreshed_at": "2026-11-26T14:10:52.060945Z",
+        "stale": false,
+        "price_age_seconds": 61850,
+        "session_date": "2026-11-25",
+        "day": {
+          "kind": "session",
+          "date": "2026-11-25",
+          "open": 353.5875,
+          "high": 356.75,
+          "low": 345.13,
+          "volume": 53060252,
+          "turnover": null
+        },
+        "previous_close": {
+          "value": 354.07,
+          "date": "2026-11-24"
+        },
+        "change": {
+          "absolute": 1.51,
+          "absolute_unit": null,
+          "percent": 0.4265,
+          "from_value": 354.07,
+          "from_period": {
+            "start": "2026-11-24",
+            "end": "2026-11-24",
+            "kind": "calendar_day",
+            "label": "2026-11-24"
+          },
+          "to_value": 355.58,
+          "to_period": {
+            "start": "2026-11-25",
+            "end": "2026-11-25",
+            "kind": "calendar_day",
+            "label": "2026-11-25"
+          },
+          "basis": "previous_close",
+          "field_states": {}
+        },
+        "book": {
+          "bid": null,
+          "ask": null,
+          "bid_size": null,
+          "ask_size": null,
+          "crossed": null
+        },
+        "range_52w": {
+          "high": 360.83,
+          "low": 243.42
+        },
+        "market_state": "closed",
+        "market_cap": 5167353167872,
+        "market_cap_basis": "price_x_shares_outstanding",
+        "shares_outstanding": 14532182000,
+        "avg_volume": 43903492,
+        "field_states": {},
+        "key": "security:AAPL"
+      },
+      {
+        "instrument": {
+          "key": "security:NVDA",
+          "name": "NVIDIA Corporation",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "quote_kind": "snapshot",
+        "price": 149.3,
+        "price_basis": "unadjusted",
+        "price_time": "2026-11-25T21:00:01.000000Z",
+        "refreshed_at": "2026-11-26T14:10:52.060945Z",
+        "stale": false,
+        "price_age_seconds": 61851,
+        "session_date": "2026-11-25",
+        "day": {
+          "kind": "session",
+          "date": "2026-11-25",
+          "open": 144.02,
+          "high": 150.37,
+          "low": 141.17,
+          "volume": 359527027,
+          "turnover": null
+        },
+        "previous_close": {
+          "value": 155.38,
+          "date": "2026-11-24"
+        },
+        "change": {
+          "absolute": -6.08,
+          "absolute_unit": null,
+          "percent": -3.913,
+          "from_value": 155.38,
+          "from_period": {
+            "start": "2026-11-24",
+            "end": "2026-11-24",
+            "kind": "calendar_day",
+            "label": "2026-11-24"
+          },
+          "to_value": 149.3,
+          "to_period": {
+            "start": "2026-11-25",
+            "end": "2026-11-25",
+            "kind": "calendar_day",
+            "label": "2026-11-25"
+          },
+          "basis": "previous_close",
+          "field_states": {}
+        },
+        "book": {
+          "bid": null,
+          "ask": null,
+          "bid_size": null,
+          "ask_size": null,
+          "crossed": null
+        },
+        "range_52w": {
+          "high": 243.37,
+          "low": 124.5
+        },
+        "market_state": "closed",
+        "market_cap": 3605147156480,
+        "market_cap_basis": "price_x_shares_outstanding",
+        "shares_outstanding": 24147000000,
+        "avg_volume": 187678428,
+        "field_states": {},
+        "key": "security:NVDA"
+      },
+      {
+        "instrument": {
+          "key": "security:SPY",
+          "name": "State Street SPDR S&P 500 ETF Trust",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "etf",
+            "underlying_asset_class": "equity",
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "ARCX",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "quote_kind": "snapshot",
+        "price": 716.7,
+        "price_basis": "unadjusted",
+        "price_time": "2026-11-25T21:00:00.000000Z",
+        "refreshed_at": "2026-11-26T14:10:52.060945Z",
+        "stale": false,
+        "price_age_seconds": 61852,
+        "session_date": "2026-11-25",
+        "day": {
+          "kind": "session",
+          "date": "2026-11-25",
+          "open": 703.2,
+          "high": 718.43,
+          "low": 695.45,
+          "volume": 72380475,
+          "turnover": null
+        },
+        "previous_close": {
+          "value": 718.78,
+          "date": "2026-11-24"
+        },
+        "change": {
+          "absolute": -2.08,
+          "absolute_unit": null,
+          "percent": -0.2894,
+          "from_value": 718.78,
+          "from_period": {
+            "start": "2026-11-24",
+            "end": "2026-11-24",
+            "kind": "calendar_day",
+            "label": "2026-11-24"
+          },
+          "to_value": 716.7,
+          "to_period": {
+            "start": "2026-11-25",
+            "end": "2026-11-25",
+            "kind": "calendar_day",
+            "label": "2026-11-25"
+          },
+          "basis": "previous_close",
+          "field_states": {}
+        },
+        "book": {
+          "bid": null,
+          "ask": null,
+          "bid_size": null,
+          "ask_size": null,
+          "crossed": null
+        },
+        "range_52w": {
+          "high": 781.62,
+          "low": 629.28
+        },
+        "market_state": "closed",
+        "market_cap": null,
+        "market_cap_basis": null,
+        "shares_outstanding": 917782016,
+        "avg_volume": 48642879,
+        "field_states": {},
+        "key": "security:SPY"
+      },
+      {
+        "instrument": {
+          "key": "fx:EURUSD",
+          "name": "Euro/US Dollar",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 5,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "fx",
+            "instrument_type": "spot",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": null,
+          "continuous": null,
+          "listing": null,
+          "field_states": {}
+        },
+        "quote_kind": "snapshot",
+        "price": 1.0989,
+        "price_basis": "unadjusted",
+        "price_time": "2026-11-26T14:10:47.000000Z",
+        "refreshed_at": "2026-11-26T14:10:52.060945Z",
+        "stale": false,
+        "price_age_seconds": 5,
+        "session_date": null,
+        "day": {
+          "kind": "session",
+          "date": null,
+          "open": 1.09782,
+          "high": 1.09914,
+          "low": 1.09601,
+          "volume": null,
+          "turnover": null
+        },
+        "previous_close": null,
+        "change": null,
+        "book": {
+          "bid": null,
+          "ask": null,
+          "bid_size": null,
+          "ask_size": null,
+          "crossed": null
+        },
+        "range_52w": {
+          "high": 1.20236,
+          "low": 1.08844
+        },
+        "market_state": null,
+        "market_cap": null,
+        "market_cap_basis": null,
+        "shares_outstanding": null,
+        "avg_volume": null,
+        "field_states": {},
+        "key": "fx:EURUSD"
+      }
+    ],
+    "errors": [
+      {
+        "key": "crypto:BTC-USD",
+        "error": {
+          "type": "invalid_request_error",
+          "code": "not_registered",
+          "message": "`BTC-USD` is not a crypto spot pair served here; the standard pair is BTC-USDT. It is quoted in USDT, not USD",
+          "param": "instruments",
+          "retry": "change_request"
+        }
+      }
+    ]
+  }
+}

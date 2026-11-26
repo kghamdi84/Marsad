@@ -1,0 +1,46 @@
+name: Tauric reconcile
+
+# Second-source check (ADR 0041, integrity rule 5): Tauric's price and volume for the finished session against
+# Massive's stored daily bar, for the 14 starting tickers. Runs after the Massive bars job (22:30 UTC). A
+# disagreement fails the run, which the Status page and the health job report. One data credit per run.
+# Until the TAURIC_API_KEY repository secret exists, every run ends at the first step without failing.
+on:
+  schedule:
+    - cron: '20 23 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauric-api
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HAS_KEY: ${{ secrets.TAURIC_API_KEY != '' }}
+    steps:
+      - name: Waiting for the TAURIC_API_KEY secret
+        if: ${{ env.HAS_KEY != 'true' }}
+        run: echo "TAURIC_API_KEY is not set; nothing to do (ADR 0041)."
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        if: ${{ env.HAS_KEY == 'true' }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        if: ${{ env.HAS_KEY == 'true' }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: ${{ env.HAS_KEY == 'true' }}
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: ${{ env.HAS_KEY == 'true' }}
+      - name: Compare Tauric with Massive
+        if: ${{ env.HAS_KEY == 'true' }}
+        run: pnpm --filter @marsad/jobs tauric reconcile
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TAURIC_API_KEY: ${{ secrets.TAURIC_API_KEY }}

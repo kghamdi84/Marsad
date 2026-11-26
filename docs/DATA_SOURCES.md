@@ -68,6 +68,17 @@ Built on the vendor's section text so no filing HTML is parsed. Facts measured o
 - Known limits: the list at the top of Item 1A repeats each risk title, so a new risk can show twice; "U.S." before a capital letter splits a sentence the same way in both years, so it does not create false differences; a sentence cut by a page break at a full stop is still one sentence, but a risk rewritten into different sentences shows as removed plus new.
 - The vendor's history has holes, so the panel compares only two reports a fiscal year apart (350 to 380 days).
 
+## Tauric (Tauric Research), second quote source (ADR 0041)
+
+Measured 2026-11-26 through the Tauric connector (Standard tier) and the public `https://api.tauric.ai/openapi.json`; recorded in `fixtures/tauric/quotes-2026-11-26.json`.
+
+- REST: `POST https://api.tauric.ai/v1/quotes` with `Authorization: Bearer <key>`, body `{"instruments": ["security:AAPL", ...]}` (1 to 50 keys), answer `{object, next_cursor, data, errors}`. Errors are `{"error": {"type", "code", "message", "param", "retry"}}`; codes include `invalid_api_key`, `entitlement_required`, `rate_limit_exceeded` and `quota_exhausted`.
+- Limits: 3,000 data credits a day (one per successful request), 60 requests a minute; keys and the website share them. No price is published for the Standard tier.
+- Agreement with Massive: the 2026-11-25 closes of AAPL (355.58), NVDA (149.30) and SPY (716.70) matched Massive grouped daily to the cent. Session volume was 2.3% (AAPL) and 1.9% (NVDA) lower; opens differ by a few cents (AAPL 353.5875 against 353.475).
+- Not given: the delay for US stocks (unpublished), stock bid and ask (always null), live intraday bars (15-minute and hourly bars are added at the end of each session), CIK or FIGI on the quote. Crypto is quoted in USDT, not USD.
+- Misleading field: `price_age_seconds` is the age at Tauric's last refresh. An FX quote read at 14:41 UTC said 5 seconds and `stale: false` while it was from 14:10. Marsad ignores it and its `stale` flag.
+- Terms (tauric.ai/terms, effective 2026-11-11): display in your own applications is allowed; no resale, no sharing of keys; no SLA, and the service may change or stop at any time.
+
 ## Regime inputs: what the free data reaches (measured 2026-11-25)
 
 - **VIX3M is free on FRED** (`VXVCLS`, daily from 2007-12-04), so the VIX term structure (VIX over VIX3M) needs neither the Massive Indices plan nor the VXX fallback. VIX itself is `VIXCLS` (from 1990).

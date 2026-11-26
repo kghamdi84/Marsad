@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { economicCalendar, estimateNextEarnings } from '@marsad/core';
 import releaseDates from '../../../fixtures/fred/fred-release-dates-2026-11-25.json' with { type: 'json' };
+import upcoming from '../../../fixtures/massive/market-status-upcoming.json' with { type: 'json' };
 import { seedSession, scanAfterEach } from './helpers';
 
 scanAfterEach();
@@ -268,4 +269,71 @@ test('watch: the latest brief with its sections and email state', async ({ page 
   await expect(brief.getByText('08:30 ET GDP (high impact).')).toBeVisible();
   await expect(brief.getByText(/Not emailed: no email channel set up yet/)).toBeVisible();
   await expect(brief.getByText(/by templates from stored data \(no AI\)/)).toBeVisible();
+});
+
+// Quote source (ADR 0041). The clock is Tuesday 2026-11-24 15:03 UTC (10:03 ET, regular session). NVDA's Tauric
+// quote is 3 minutes old, RKLB's 33 minutes old (past the 90 s + 15 min allowance), MARA has none.
+test('watch: with Tauric chosen, its latest price sits next to the Massive close and is never called live', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  await page.clock.setFixedTime(new Date('2026-11-24T15:03:00Z'));
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/daily_bars**', (r) => r.fulfill(json(syntheticBars())));
+  await page.route('**/rest/v1/user_settings**', (r) =>
+    r.fulfill(json([{ quote_source: 'tauric' }])),
+  );
+  await page.route('**/rest/v1/market_holidays**', (r) => r.fulfill(json(upcoming.data)));
+  const quote = (ticker: string, price: number, change: number, priceTime: string) => ({
+    ticker,
+    price,
+    change,
+    quote_kind: 'snapshot',
+    price_time: priceTime,
+    session_date: '2026-11-24',
+    fetched_at: '2026-11-24T15:01:00Z',
+  });
+  await page.route('**/rest/v1/price_quotes**', (r) =>
+    r.fulfill(
+      json([
+        quote('NVDA', 122.5, 0.0124, '2026-11-24T15:00:00Z'),
+        quote('RKLB', 98.1, -0.0035, '2026-11-24T14:30:00Z'),
+      ]),
+    ),
+  );
+  await page.goto('/');
+  const list = page.getByRole('region', { name: 'Watchlist', exact: true });
+  await expect(list.getByRole('columnheader', { name: 'Latest (Tauric)' })).toBeVisible();
+  const nvda = list.getByRole('row', { name: /^NVDA/ });
+  await expect(nvda).toContainText('122.50');
+  await expect(nvda).toContainText('+1.24%');
+  await expect(nvda).toContainText('Delay not confirmed, 3m 0s old');
+  await expect(nvda).toContainText('121.00'); // the Massive close stays
+  await expect(list.getByRole('row', { name: /^RKLB/ })).toContainText('Stale, 33m 0s old');
+  await expect(list.getByRole('row', { name: /^MARA/ })).toContainText('No Tauric quote yet');
+  await expect(list).not.toContainText(/\bLive\b/);
+  await expect(list.getByText(/^Latest prices: Tauric, delay not confirmed/)).toBeVisible();
+});
+
+test('watch: with Massive chosen (the default) there is no Tauric column', async ({ page }) => {
+  await seedSession(page, 'aal2');
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(syntheticBars()),
+    }),
+  );
+  await page.goto('/');
+  const list = page.getByRole('region', { name: 'Watchlist', exact: true });
+  await expect(list.getByRole('row', { name: /^NVDA/ })).toContainText('121.00');
+  await expect(list.getByRole('columnheader', { name: 'Latest (Tauric)' })).toHaveCount(0);
 });
