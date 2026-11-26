@@ -92,11 +92,11 @@ function Row({
   const ch = sum?.change1d ?? null;
   const p = ch === null ? null : toFixedHalfUp(ch * 100, 1);
   return (
-    <li className="border-t border-line/60 first:border-0">
+    <li>
       <Link
         to="/study/$ticker"
         params={{ ticker: tk }}
-        className="grid min-h-[60px] grid-cols-[minmax(0,1fr)_64px_auto] items-center gap-3 px-4 py-2 hover:bg-raised/40 tablet:grid-cols-[minmax(0,1fr)_120px_auto]"
+        className="grid min-h-[60px] grid-cols-[minmax(0,1fr)_64px_auto] items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 hover:bg-raised/60"
       >
         <span className="flex min-w-0 flex-col">
           <span className="text-base font-bold text-white">{tk}</span>
@@ -156,8 +156,8 @@ export function Study() {
 
   const list = (title: string, id: string, tickers: readonly string[]) =>
     tickers.length > 0 && (
-      <Card id={id} title={title} className="gap-2! pb-2!">
-        <ul className="-mx-4 flex flex-col tablet:-mx-5">
+      <Card id={id} title={title} className="gap-3!">
+        <ul className="grid grid-cols-1 gap-3 tablet:grid-cols-2 wide:grid-cols-4">
           {tickers.map((tk) => (
             <Row
               key={tk}
@@ -176,7 +176,7 @@ export function Study() {
     );
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{s.title}</h1>
       <form onSubmit={open} role="search" className="flex flex-col gap-1.5">
         <label htmlFor="ticker" className="text-sm text-muted">
