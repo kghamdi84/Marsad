@@ -268,6 +268,7 @@ export const t = {
         `Stop ${stop}, now ${now}, targets ${targets}.`,
       barStop: 'Stop',
       barNow: 'Now',
+      trendBreakLabel: 'Trend break',
       barTarget: 'Target',
       thesisPill: (state: string) => `Thesis: ${state}`,
       thesisHint: 'Tap to change: intact, weakening, broken.',
