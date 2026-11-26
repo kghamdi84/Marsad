@@ -538,7 +538,7 @@ export function Alerts() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
-          <p className="text-[13px] text-muted">{a.intro}</p>
+          <p className="hidden text-[13px] text-muted tablet:block">{a.intro}</p>
         </div>
         {q.data && q.data.length > 0 && wide && (
           <Segmented
