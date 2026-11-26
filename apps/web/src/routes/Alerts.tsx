@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
   calibration,
+  rewardRisk,
+  wilson,
+  MIN_CASES,
+  type AlertInput,
   dualClock,
   etDate,
   summarize,
@@ -97,6 +101,143 @@ function AlertRow({
   );
 }
 
+const v = a.visual;
+
+/** Stop, signal and now on one bar with the targets, plus reward to risk per target, from the stored input. */
+function PlanVisual({ input }: { input: AlertInput }) {
+  const p = input.plan;
+  const entry = input.signalPrice ?? input.price;
+  if (!p || p.stop === undefined || entry === undefined) return null;
+  const targets = p.targets ?? [];
+  const now = input.price ?? entry;
+  const pts = [p.stop, entry, now, ...targets];
+  const lo = Math.min(...pts);
+  const hi = Math.max(...pts);
+  const pad = (hi - lo) * 0.06 || 1;
+  const at = (x: number) => `${toFixedHalfUp(((x - (lo - pad)) / (hi - lo + 2 * pad)) * 100, 1)}%`;
+  const f2 = (x: number) => toFixedHalfUp(x, 2);
+  const rr = targets.length ? rewardRisk(entry, p.stop, targets) : [];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div
+        role="img"
+        aria-label={v.planAria(f2(p.stop), f2(entry), f2(now), targets.map(f2).join(', ') || '-')}
+        className="relative mt-1 h-2 rounded-full bg-gradient-to-r from-down/65 via-muted/25 to-up/60"
+      >
+        <span
+          className="absolute -top-1 h-4 w-0.5 bg-fg/70"
+          style={{ insetInlineStart: at(entry) }}
+        />
+        {targets.map((tg) => (
+          <span
+            key={tg}
+            className="absolute -top-1 h-4 w-0.5 bg-up"
+            style={{ insetInlineStart: at(tg) }}
+          />
+        ))}
+        <span
+          className="absolute -top-1.5 -ms-2.5 size-5 rounded-full border-[3px] border-surface bg-white"
+          style={{ insetInlineStart: at(now) }}
+        />
+      </div>
+      <span className="flex justify-between text-[0.6875rem] text-muted tabular-nums">
+        <span>
+          {v.stop} {f2(p.stop)}
+        </span>
+        <span>
+          {v.now} {f2(now)}
+        </span>
+        <span>
+          {v.target} {targets.map(f2).join(', ') || '-'}
+        </span>
+      </span>
+      {rr.length > 0 && (
+        <ul aria-label={v.rrTitle} className="flex flex-wrap gap-1.5">
+          {rr.map((r, i) => (
+            <li key={i} className="rounded-full bg-up/15 px-2 py-0.5 text-xs font-semibold text-up">
+              {v.rr(toFixedHalfUp(r, 1))}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Loss rate by horizon with its 90% interval, only from 30 cases up. */
+function RiskVisual({ input }: { input: AlertInput }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {input.risk.map((r) => {
+        const label = v.horizons[r.horizon] ?? r.horizon;
+        if (r.n === null)
+          return (
+            <li key={r.horizon} className="flex justify-between text-sm">
+              <span>{label}</span>
+              <span className="text-muted">{v.notApplicable}</span>
+            </li>
+          );
+        if (r.n < MIN_CASES)
+          return (
+            <li key={r.horizon} className="flex justify-between gap-2 text-sm">
+              <span>{label}</span>
+              <span className="text-muted">{v.insufficient(r.n)}</span>
+            </li>
+          );
+        const rate = r.losses / r.n;
+        const w = wilson(r.losses, r.n);
+        const pc = (x: number) => toFixedHalfUp(x * 100, 1);
+        return (
+          <li key={r.horizon} className="flex flex-col gap-1 text-sm">
+            <span className="flex justify-between gap-2">
+              <span>{label}</span>
+              <span className="text-muted tabular-nums">{v.lossRate(pc(rate), r.n)}</span>
+            </span>
+            <span
+              role="img"
+              aria-label={v.ciAria(label, pc(rate), w ? pc(w.low) : '-', w ? pc(w.high) : '-', r.n)}
+              className="relative h-2 rounded-full bg-faint/20"
+            >
+              {w && (
+                <span
+                  className="absolute inset-y-0 rounded-full bg-down/35"
+                  style={{ insetInlineStart: `${pc(w.low)}%`, width: `${pc(w.high - w.low)}%` }}
+                />
+              )}
+              <span
+                className="absolute -top-1 h-4 w-0.5 bg-white"
+                style={{ insetInlineStart: `${pc(rate)}%` }}
+              />
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ChecklistVisual({ input }: { input: AlertInput }) {
+  const c = input.checklist;
+  if (!c) return null;
+  return (
+    <ul aria-label={v.checklist} className="grid grid-cols-1 gap-1 text-sm tablet:grid-cols-2">
+      {(Object.keys(v.checks) as (keyof NonNullable<AlertInput['checklist']>)[]).map((k) => (
+        <li key={k} className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={`flex size-5 items-center justify-center rounded text-xs font-bold ${c[k] ? 'bg-up/20 text-up' : 'bg-down/20 text-down'}`}
+          >
+            {c[k] ? '\u2713' : '\u2715'}
+          </span>
+          <span>
+            {v.checks[k]}: <span className="sr-only">{c[k] ? v.yes : v.no}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The full card, in the order the alert pipeline wrote it, with the feedback buttons. */
 function AlertDetail({ row }: { row: StoredAlertRow }) {
   const qc = useQueryClient();
@@ -143,6 +284,9 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
             <h3 className={`text-[0.8125rem] font-bold ${bear ? 'text-down' : 'text-muted'}`}>
               {sec.heading}
             </h3>
+            {row.input && sec.heading === 'Plan' && <PlanVisual input={row.input} />}
+            {row.input && sec.heading.startsWith('Risk') && <RiskVisual input={row.input} />}
+            {row.input && sec.heading === 'Checklist' && <ChecklistVisual input={row.input} />}
             {sec.lines.map((l) => (
               <p key={l} className="text-sm leading-snug text-fg">
                 {l}
@@ -200,12 +344,48 @@ function Scorecard() {
   const rows = summarize(q.data.alerts, q.data.outcomes);
   const pending = q.data.outcomes.filter((o) => o.status === 'pending').length;
   const cal = calibration(q.data.alerts, q.data.outcomes, '5d');
+  // One session scores first, so the strip fills soonest; the table below has every horizon.
+  const five = new Map(
+    q.data.outcomes.filter((o) => o.horizon === '1d').map((o) => [o.alertId, o]),
+  );
+  const strip = [...q.data.alerts]
+    .sort((x, y) => x.createdAt.localeCompare(y.createdAt))
+    .filter((al) => five.has(al.id))
+    .slice(-30)
+    .map((al) => five.get(al.id) as (typeof q.data.outcomes)[number]);
+  const tone = (o: (typeof strip)[number]) =>
+    o.status !== 'done' || o.ret === null
+      ? 'bg-faint/40'
+      : o.ret > 0
+        ? 'bg-up'
+        : o.ret < 0
+          ? 'bg-down'
+          : 'bg-muted';
   return (
     <section aria-labelledby="scorecard" className={`${cardClass} gap-3!`}>
       <h2 id="scorecard" className={panelTitle}>
         {s.title}
       </h2>
       <p className="text-sm text-muted">{s.intro}</p>
+      {strip.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted">{s.strip(strip.length)}</span>
+          <div
+            role="img"
+            aria-label={s.stripAria(
+              strip.filter((o) => o.status === 'done' && (o.ret ?? 0) > 0).length,
+              strip.filter((o) => o.status === 'done' && (o.ret ?? 0) < 0).length,
+              strip.filter((o) => o.status !== 'done').length,
+            )}
+            className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-0.5"
+          >
+            {strip.map((o) => (
+              <span key={o.alertId} className={`h-6 rounded-sm ${tone(o)}`} />
+            ))}
+          </div>
+          <span className="text-xs text-muted">{s.stripNote}</span>
+        </div>
+      )}
       {rows.length === 0 ? (
         <p className="text-muted">{s.none}</p>
       ) : (

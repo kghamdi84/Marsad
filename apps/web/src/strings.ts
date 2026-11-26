@@ -483,6 +483,31 @@ export const t = {
     noneHere: 'Nothing in this list.',
     openLab: 'Open the Lab',
     openCard: (headline: string) => `Open the card: ${headline}`,
+    visual: {
+      planAria: (stop: string, entry: string, now: string, targets: string) =>
+        `Stop ${stop}, signal ${entry}, now ${now}, targets ${targets}.`,
+      stop: 'Stop',
+      now: 'Now',
+      target: 'Target',
+      rr: (r: string) => `${r}R`,
+      rrTitle: 'Reward to risk per target, from the signal price',
+      horizons: { scalp: 'Scalp', swing: 'Swing', long: 'Long term' } as Record<string, string>,
+      lossRate: (pct: string, n: number) => `${pct}% loss rate, n = ${n}`,
+      ciAria: (label: string, pct: string, low: string, high: string, n: number) =>
+        `${label}: ${pct}% loss rate, 90% interval ${low} to ${high}%, n = ${n}.`,
+      insufficient: (n: number) => `Insufficient history (${n} of 30)`,
+      notApplicable: 'Does not apply',
+      checklist: 'Checklist',
+      checks: {
+        cleanSetup: 'Clean setup',
+        notExtended: 'Not extended',
+        riskDefined: 'Risk defined',
+        profitPlan: 'Profit plan',
+        bearCaseRead: 'Bear case read',
+      } as Record<string, string>,
+      yes: 'Yes',
+      no: 'No',
+    },
     none: 'No alerts yet. Halt alerts for watched tickers start with the next halts run; rule alerts start when rules go live.',
     decision: {
       push: 'Pushed',
@@ -520,6 +545,11 @@ export const t = {
       size: 'Size',
       expires: 'Expires (YYYY-MM-DD)',
       save: 'Save scenario',
+      steps: ['Watch', 'Triggers', 'Plan', 'Review'],
+      stepOf: (n: number, name: string) => `Step ${n} of 4: ${name}`,
+      next: 'Next',
+      back: 'Back',
+      reviewEmpty: 'Not set',
       saved: 'Scenario saved.',
       invalid:
         'Give a name, valid tickers, at least one trigger, an entry, an invalidation, a chase guard between 0% and 100% and an expiry date.',
@@ -532,6 +562,12 @@ export const t = {
     },
     scorecard: {
       tableLabel: 'Results by rule and horizon',
+      strip: (scored: number) =>
+        `Last ${scored} alert${scored === 1 ? '' : 's'} with a result after 1 session, oldest first`,
+      stripAria: (wins: number, losses: number, pending: number) =>
+        `${wins} gained, ${losses} lost, ${pending} still pending, in each alert's own direction before costs.`,
+      stripNote:
+        'Blue: gained. Orange: lost. Grey: pending or unavailable. No percentage until 30 are scored.',
       title: 'Scorecard',
       intro:
         'Each alert\u2019s result after 1, 5 and 20 sessions in the direction it pointed (an exit is right when the price falls), against SPY over the same sessions. Before costs. The +1 hour result needs intraday bars, which the current data plan does not include.',

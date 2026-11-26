@@ -1,4 +1,4 @@
-import type { CardSection, HorizonKey, Outcome, ScoredAlert } from '@marsad/core';
+import type { CardSection, HorizonKey, Outcome, ScoredAlert, AlertInput } from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -20,13 +20,17 @@ export interface StoredAlertRow {
   latencyMs: number | null;
   delivery: Record<string, string>;
   feedback: Verdict | null;
+  /** The stored input snapshot (rule 12); null for rows written before it was read here. */
+  input: AlertInput | null;
 }
 
 /** The newest alerts (not suppressed ones unless asked) with any feedback given. Reads go through row-level security. */
 export async function loadAlerts(includeSuppressed: boolean): Promise<StoredAlertRow[]> {
   let q = client()
     .from('alerts')
-    .select('id, created_at, kind, priority, ticker, decision, reasons, card, latency_ms, delivery')
+    .select(
+      'id, created_at, kind, priority, ticker, decision, reasons, card, latency_ms, delivery, input',
+    )
     .order('created_at', { ascending: false })
     .limit(50);
   if (!includeSuppressed) q = q.neq('decision', 'suppress');
@@ -54,6 +58,7 @@ export async function loadAlerts(includeSuppressed: boolean): Promise<StoredAler
     latencyMs: r['latency_ms'] === null ? null : Number(r['latency_ms']),
     delivery: (r['delivery'] ?? {}) as Record<string, string>,
     feedback: fb.get(String(r['id'])) ?? null,
+    input: r['input'] && typeof r['input'] === 'object' ? (r['input'] as AlertInput) : null,
   }));
 }
 

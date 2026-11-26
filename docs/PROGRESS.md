@@ -234,6 +234,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Study list: a Shariah chip (Within limits, Over a limit, Not checked) when the aid is switched on in Status, with a hidden "not a ruling" prefix for screen readers. The Financials panel and the list now share one helper (`lib/shariah.ts`), so they cannot disagree.
 - Verified: ./init.sh passes; full Playwright 162 with axe; tests for both tiles, the chart readout and the list chip.
 
+### Redesign leftovers, batch C: Alerts (2026-11-26)
+
+- The alert detail now reads the stored input snapshot (rule 12) as well as the card text: the plan as a bar (stop, signal tick, target ticks, a white "now" dot) with reward-to-risk chips per target (core `rewardRisk`); risk by horizon as a loss-rate tick with its 90% Wilson interval from 30 cases up, otherwise "Insufficient history (n of 30)" or "Does not apply"; the checklist with ticks and crosses (the words are there for screen readers). The text card stays below each visual as the record.
+- Scorecard: a strip of the last 30 alerts with a 1-session result (blue gained, orange lost, grey pending), counts in words for screen readers; the table keeps every horizon. 1 session rather than 5 because it scores first.
+- Catalyst scenarios on phones: "Write a scenario" opens a sheet with four steps (Watch, Triggers, Plan, Review) and Save on the review step; iPad and desktop keep the inline form.
+- With this batch every item on the redesign "not built yet" lists is done except the Lab equity curves, which wait until a stored backtest report carries curve data.
+- Verified: ./init.sh passes; full Playwright 166 with axe; new tests for the setup alert visuals, the strip and the phone scenario steps.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).
