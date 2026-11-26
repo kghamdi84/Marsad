@@ -259,6 +259,7 @@ function MarketSheetBody({
         <div className="flex flex-col gap-0.5 rounded-xl bg-surface p-3.5">
           <span className="text-[0.8125rem] text-muted">{s.local}</span>
           <span className="text-[1.75rem] font-bold text-white tabular-nums">{c.local}</span>
+          <span className="text-[0.8125rem] text-muted">{etDate(now)}</span>
         </div>
       </div>
       <div className="flex flex-col gap-1 rounded-xl bg-surface p-3.5 text-[0.9375rem]">
@@ -274,35 +275,42 @@ function MarketSheetBody({
           </span>
         )}
       </div>
-      <div className="flex flex-col gap-1.5 rounded-xl bg-surface p-3.5 text-[0.9375rem]">
-        <span className={`flex items-center gap-2 font-semibold ${health.text}`}>
-          <span aria-hidden="true" className={`size-2.5 rounded-full ${health.dot}`} />
-          {health.label}
-        </span>
-        {view && view.stale.length > 0 && (
-          <>
-            <span className="text-[0.8125rem] text-muted">{s.staleTitle}</span>
-            <ul className="list-disc ps-5 text-warn">
-              {view.stale.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </>
-        )}
-        {view && view.unchecked.length > 0 && (
-          <>
-            <span className="text-[0.8125rem] text-muted">{s.uncheckedTitle}</span>
-            <ul className="list-disc ps-5 text-muted">
-              {view.unchecked.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </>
-        )}
-        {view && view.stale.length === 0 && view.unchecked.length === 0 && (
-          <span className="text-muted">{s.allFresh}</span>
-        )}
-      </div>
+      <SourceAttention view={view} health={health} />
+    </div>
+  );
+}
+
+function SourceAttention({ view, health }: { view: PulseView | null; health: Health }) {
+  const stale = view?.stale ?? [];
+  const unchecked = view?.unchecked ?? [];
+  const n = stale.length + unchecked.length;
+  return (
+    <div className="flex flex-col gap-2.5">
+      <span role="status" className={`text-[0.9375rem] ${n > 0 ? 'text-fg' : health.text}`}>
+        {view ? s.attention(n) : health.label}
+      </span>
+      {stale.map((name) => (
+        <div key={name} className="flex items-start gap-3 rounded-xl bg-surface p-3.5">
+          <span className="rounded bg-warn/20 px-2 py-1 text-[0.8125rem] font-semibold text-warn">
+            {s.badgeStale}
+          </span>
+          <span className="flex flex-col gap-0.5">
+            <span className="font-bold text-white">{name}</span>
+            <span className="text-[0.9375rem] text-fg">{s.staleTitle}</span>
+          </span>
+        </div>
+      ))}
+      {unchecked.map((name) => (
+        <div key={name} className="flex items-start gap-3 rounded-xl bg-surface p-3.5">
+          <span className="rounded bg-muted/15 px-2 py-1 text-[0.8125rem] font-semibold text-fg">
+            {s.badgeUnchecked}
+          </span>
+          <span className="flex flex-col gap-0.5">
+            <span className="font-bold text-white">{name}</span>
+            <span className="text-[0.9375rem] text-muted">{s.uncheckedTitle}</span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

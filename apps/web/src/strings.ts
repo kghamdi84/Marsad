@@ -102,14 +102,20 @@ export const t = {
     healthUnknown: 'Health unavailable',
     chipAria: (market: string, health: string) =>
       `${market}. ${health}. Show times and source health`,
-    marketTitle: 'Market and sources',
+    marketTitle: 'Market and data',
+    attention: (n: number) =>
+      n === 0
+        ? 'Every source is fresh'
+        : `${n} ${n === 1 ? 'source needs' : 'sources need'} attention`,
+    badgeStale: 'Stale',
+    badgeUnchecked: 'Not judged',
     newYork: 'New York (ET)',
     local: 'Riyadh',
     nextOpen: (when: string) => `Next regular open: ${when}.`,
     uncoveredNote:
       'The holiday calendar is not loaded, so the session and session-dependent freshness cannot be judged.',
-    staleTitle: 'Past their silence limit',
-    uncheckedTitle: 'Not judged (calendar not loaded)',
+    staleTitle: 'Past its silence limit',
+    uncheckedTitle: 'Calendar not loaded, cannot judge',
     allFresh: 'Every reporting source is within its silence limit for this session.',
     openStatus: 'Open Status for every source',
     pull: {
