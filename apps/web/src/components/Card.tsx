@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../strings';
 
 /** Cards: 16 px padding and radius on phones, 20 px padding and 12 px radius from 760 px (design handoff). */
@@ -180,4 +180,19 @@ export function SkeletonCards({ heights = ['7rem', '11rem', '16rem'] }: { height
       ))}
     </div>
   );
+}
+
+/** True at 760 px and wider (the tablet and desktop layout); follows rotation and window resizes. */
+export function useWide(): boolean {
+  const query = '(min-width: 47.5rem)';
+  const [wide, setWide] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setWide(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return wide;
 }

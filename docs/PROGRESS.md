@@ -184,6 +184,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Shell fix: a long market label no longer squeezes the page title; the freshness text shows only when there is a count.
 - Verified: ./init.sh passes; full Playwright 152 (147 run, phone tests once) with axe; new e2e/mobile-watch.spec.ts.
 
+### Redesign, step 5: Regime on phones (2026-11-26)
+
+- From Mobile-Regime.dc.html, under 760 px: the hero, then a swipe row of four gauges (Fear and Greed, recession filter, breadth, capitulation watch), each opening its full card (tables, rules, sources) in a sheet; the event study stays on the page; the geopolitical panel, quality screen and the three measure cards are collapsed under "More context". The page picks the layout by width (`useWide`), so no card is rendered twice.
+- Fixed while testing: the gauge showed the stored composite unrounded (41.88); it now rounds the same way as the full card (42).
+- Verified: ./init.sh passes; full Playwright 154 (148 run, phone tests once) with axe.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

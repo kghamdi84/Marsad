@@ -25,7 +25,9 @@ import {
   type StoredEventStat,
   type StoredFearGreedDay,
 } from '../lib/regime';
-import { Card, Details, Tile, cardClass } from '../components/Card';
+import { ChevronRight } from 'lucide-react';
+import { Card, Details, SkeletonCards, Tile, cardClass, useWide } from '../components/Card';
+import { Sheet } from '../components/Sheet';
 import { QualityScreen } from '../components/regime/QualityScreen';
 import { t } from '../strings';
 
@@ -1194,25 +1196,275 @@ function MeasuresCard({
   );
 }
 
+type GaugeKey = 'fg' | 'rec' | 'breadth' | 'cap';
+
+interface Gauge {
+  key: GaugeKey;
+  title: string;
+  meta: string;
+  value: string;
+  sub: string;
+  /** One pip per input: met or high (up), not met (muted), no data (faint). Words carry the meaning. */
+  pips: ('on' | 'off' | 'none')[];
+  foot: string;
+}
+
+const PIP: Record<Gauge['pips'][number], string> = {
+  on: 'bg-up',
+  off: 'bg-muted/50',
+  none: 'bg-faint/20',
+};
+
+function gaugesOf(data: RegimeData): Gauge[] {
+  const out: Gauge[] = [];
+  const fg = data.fearGreed.filter((d) => d.composite !== null).at(-1);
+  out.push(
+    fg && fg.composite !== null
+      ? {
+          key: 'fg',
+          title: r.fearGreed.title,
+          meta: r.fearGreed.count(fg.available),
+          value: String(Math.round(fg.composite)),
+          sub: fg.label ? (r.fearGreed.labels[fg.label] ?? fg.label) : '',
+          pips: fg.components.map((c) =>
+            c.score === null ? 'none' : c.score >= 55 ? 'on' : 'off',
+          ),
+          foot: fg.date,
+        }
+      : {
+          key: 'fg',
+          title: r.fearGreed.title,
+          meta: '',
+          value: u.unavailable,
+          sub: '',
+          pips: [],
+          foot: r.fearGreed.none,
+        },
+  );
+  const day = data.days.at(-1);
+  out.push(
+    day
+      ? {
+          key: 'rec',
+          title: r.recession.title,
+          meta: u.signalsOf(day.available, day.signals.length),
+          value: r.recession.level[day.recessionLevel] ?? day.recessionLevel,
+          sub: u.triggeredN(day.triggered),
+          pips: day.signals.map((x) =>
+            x.state === 'triggered' ? 'on' : x.state === 'clear' ? 'off' : 'none',
+          ),
+          foot: day.date,
+        }
+      : {
+          key: 'rec',
+          title: r.recession.title,
+          meta: '',
+          value: u.unavailable,
+          sub: '',
+          pips: [],
+          foot: r.none,
+        },
+  );
+  const b = data.breadth.at(-1);
+  const pct = (a: number, n: number) => (n > 0 ? `${toFixedHalfUp((a / n) * 100, 1)}%` : null);
+  out.push(
+    b && pct(b.above50, b.n50)
+      ? {
+          key: 'breadth',
+          title: r.breadth.title,
+          meta: u.members(b.members),
+          value: pct(b.above50, b.n50) as string,
+          sub: u.above50Sub,
+          pips: [],
+          foot: `${b.date} \u00B7 ${u.above200(pct(b.above200, b.n200) ?? u.notEnough)}`,
+        }
+      : {
+          key: 'breadth',
+          title: r.breadth.title,
+          meta: '',
+          value: u.unavailable,
+          sub: '',
+          pips: [],
+          foot: r.breadth.none,
+        },
+  );
+  const cap = data.capitulation.latest;
+  out.push(
+    cap
+      ? {
+          key: 'cap',
+          title: r.capitulation.title,
+          meta: cap.date,
+          value: r.capitulation.state[cap.state] ?? cap.state,
+          sub: u.metCount(cap.conditions.filter((c) => c.met === true).length),
+          pips: cap.conditions.map((c) => (c.met === null ? 'none' : c.met ? 'on' : 'off')),
+          foot: r.capitulation.intro,
+        }
+      : {
+          key: 'cap',
+          title: r.capitulation.title,
+          meta: '',
+          value: u.unavailable,
+          sub: '',
+          pips: [],
+          foot: r.capitulation.none,
+        },
+  );
+  return out;
+}
+
+/** Phones: the four gauges as a swipe row; each opens its full card in a sheet (design handoff). */
+function GaugeRow({ data }: { data: RegimeData }) {
+  const [open, setOpen] = useState<GaugeKey | null>(null);
+  const gauges = gaugesOf(data);
+  const current = gauges.find((g) => g.key === open);
+  return (
+    <section aria-label={u.gauges} className="flex flex-col gap-2">
+      <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
+        {gauges.map((g) => (
+          <li key={g.key} className="w-[78%] flex-none snap-start">
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => setOpen(g.key)}
+              className="flex h-full w-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4 text-start"
+            >
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="text-[0.9375rem] font-semibold text-white">{g.title}</span>
+                <span className="text-xs text-muted">{g.meta}</span>
+              </span>
+              <span className="flex items-baseline gap-2">
+                <span
+                  className={`font-bold ${g.value === u.unavailable ? 'text-lg text-alarm' : 'text-[2rem] leading-none text-white'}`}
+                >
+                  {g.value}
+                </span>
+                {g.sub && <span className="text-sm text-fg">{g.sub}</span>}
+              </span>
+              {g.pips.length > 0 && (
+                <span aria-hidden="true" className="flex gap-1">
+                  {g.pips.map((p, i) => (
+                    <span key={i} className={`h-1.5 flex-1 rounded-full ${PIP[p]}`} />
+                  ))}
+                </span>
+              )}
+              <span className="line-clamp-2 text-[0.8125rem] text-muted">{g.foot}</span>
+              <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-up">
+                {u.details}
+                <ChevronRight aria-hidden="true" size={16} />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted">{u.swipeHint}</p>
+      <Sheet open={open !== null} onClose={() => setOpen(null)} title={current?.title ?? ''}>
+        {open === 'fg' && <FearGreedCard data={data} />}
+        {open === 'rec' && <RecessionCard data={data} />}
+        {open === 'breadth' && <BreadthCard data={data} />}
+        {open === 'cap' && <CapitulationCard data={data} />}
+      </Sheet>
+    </section>
+  );
+}
+
+/** Phones: the longer context cards, collapsed until tapped. */
+function Collapsed({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="group rounded-2xl border border-line bg-surface">
+      <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-white select-none">
+        {title}
+        <ChevronRight
+          aria-hidden="true"
+          size={18}
+          className="text-muted transition-transform group-open:rotate-90 motion-reduce:transition-none"
+        />
+      </summary>
+      <div className="flex flex-col gap-4 p-2 pt-0">{children}</div>
+    </details>
+  );
+}
+
 export function Regime() {
   const q = useQuery({ queryKey: ['regime'], queryFn: loadRegime });
   const v = r.volatility;
   const c = r.credit;
   const un = r.uncertainty;
   const grid = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4';
+  const wide = useWide();
   return (
     <section className="mx-auto flex max-w-[1280px] flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold text-white">{r.title}</h1>
+        {/* On a phone the top bar shows the page title. */}
+        <h1 className="sr-only text-xl font-semibold text-white tablet:not-sr-only">{r.title}</h1>
         <p className="text-sm text-muted">{r.intro}</p>
       </div>
-      {q.isPending && <p className="text-muted">{t.loading}</p>}
+      {q.isPending && <SkeletonCards />}
       {q.isError && (
         <p role="alert" className="text-down">
           {q.error.message}
         </p>
       )}
-      {q.data && (
+      {q.data && !wide && (
+        <>
+          <Hero data={q.data} />
+          <GaugeRow data={q.data} />
+          <StudyCard data={q.data} />
+          <h2 className="pt-2 text-[1.0625rem] font-semibold text-white">{u.moreContext}</h2>
+          <Collapsed title={r.geopolitics.title}>
+            <GeopoliticsCard data={q.data} />
+          </Collapsed>
+          <Collapsed title={t.regime.quality.title}>
+            <div className={cardClass}>
+              <QualityScreen capitulationOn={q.data.capitulation.latest?.state === 'on'} />
+            </div>
+          </Collapsed>
+          <Collapsed title={v.title}>
+            <MeasuresCard
+              id="volatility"
+              title={v.title}
+              rows={[
+                { label: v.vix, obs: q.data.series['VIXCLS'] ?? [] },
+                { label: v.vix3m, obs: q.data.series['VXVCLS'] ?? [] },
+              ]}
+              notes={[`${v.contango} ${v.backwardation}`, v.source]}
+            />
+          </Collapsed>
+          <Collapsed title={un.title}>
+            <MeasuresCard
+              id="uncertainty"
+              title={un.title}
+              rows={[
+                { label: un.gpr, obs: q.data.gpr, digits: 1 },
+                { label: un.epu, obs: q.data.series['USEPUINDXD'] ?? [], digits: 1 },
+              ]}
+              notes={[un.source]}
+            />
+          </Collapsed>
+          <Collapsed title={c.title}>
+            <MeasuresCard
+              id="credit"
+              title={c.title}
+              rows={[
+                { label: c.hy, obs: q.data.series['BAMLH0A0HYM2'] ?? [] },
+                { label: c.ig, obs: q.data.series['BAMLC0A0CM'] ?? [] },
+                {
+                  label: c.hyIg,
+                  obs: seriesDifference(
+                    q.data.series['BAMLH0A0HYM2'] ?? [],
+                    q.data.series['BAMLC0A0CM'] ?? [],
+                  ),
+                },
+                { label: c.dgs10, obs: q.data.series['DGS10'] ?? [] },
+                { label: c.curve3m, obs: q.data.series['T10Y3M'] ?? [] },
+                { label: c.curve2y, obs: q.data.series['T10Y2Y'] ?? [] },
+              ]}
+              notes={[c.source]}
+            />
+          </Collapsed>
+        </>
+      )}
+      {q.data && wide && (
         <>
           <Hero data={q.data} />
           <div className={grid}>
