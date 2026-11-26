@@ -25,6 +25,7 @@ import {
   type StoredEventStat,
   type StoredFearGreedDay,
 } from '../lib/regime';
+import { Card, Details, Tile, cardClass } from '../components/Card';
 import { QualityScreen } from '../components/regime/QualityScreen';
 import { t } from '../strings';
 
@@ -47,62 +48,6 @@ const LABEL_COLOR: Record<string, string> = {
 };
 const LABEL_ORDER = ['stress', 'bear', 'recovery', 'bull-correction', 'bull-calm'];
 
-const card = 'flex flex-col gap-4 rounded-xl border border-line bg-surface p-5';
-
-function Card({
-  id,
-  title,
-  subtitle,
-  aside,
-  className = '',
-  children,
-}: {
-  id: string;
-  title: string;
-  subtitle?: React.ReactNode;
-  aside?: React.ReactNode;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id} className={`${card} ${className}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 id={id} className="text-[17px] font-semibold text-white">
-            {title}
-          </h2>
-          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
-        </div>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** Full tables, rules and sources: one tap away, never dropped. */
-function Details({ children }: { children: React.ReactNode }) {
-  return (
-    <details className="group rounded-lg border border-line">
-      <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium text-up select-none">
-        {u.showDetails}
-      </summary>
-      <div className="flex flex-col gap-3 border-t border-line p-3">{children}</div>
-    </details>
-  );
-}
-
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-lg bg-bg/45 px-3 py-2.5">
-      <span className="text-xs text-muted">{label}</span>
-      <span className="text-[22px] font-bold text-white">{value}</span>
-      {note && <span className="text-[11px] text-muted">{note}</span>}
-    </div>
-  );
-}
-
-/** One measure per row: latest value, change over a month, one-year percentile and the date of the value. */
 function SnapshotTable({ rows }: { rows: { label: string; obs: Obs[]; digits?: number }[] }) {
   return (
     <div className="overflow-x-auto">
@@ -1280,7 +1225,7 @@ export function Regime() {
           </div>
           <div className={grid}>
             <BreadthCard data={q.data} />
-            <div className={card}>
+            <div className={cardClass}>
               <QualityScreen capitulationOn={q.data.capitulation.latest?.state === 'on'} />
             </div>
           </div>

@@ -163,6 +163,13 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Wired to real data only. Correction to the design: the stored event study gives the median and the middle half of outcomes (25th to 75th percentile), so the bars say that, not a 90% interval. The design's sample-only "Preview: on" toggle is not used.
 - Verified: Regime e2e 8 passed; full Playwright 142 passed (axe on every page); ./init.sh passes.
 
+### Redesign, step 2: Watch page (2026-11-26)
+
+- From Watch.dc.html: brief card with one tile per brief section and the email state; market strip tiles with 30-session sparklines; watchlist with a 1D/5D/1M period control (remembered in this browser), sort by change, sparkline, change pill, 52-week closing-range dot and volume bar (warn at 1.5x or more); tinted sector tiles; mover and gap bars (light: the gap, solid: what the close kept); news with ticker chips; one Calendar card with All, Economy and Earnings and an impact legend. A row whose last bar is older than the rest says so.
+- Core: `tickerSummary` gains `range252` (lowest and highest close of 252 sessions and the position between them), with hand-checked tests. Card, Details, Tile, Segmented and Sparkline are now shared components (`apps/web/src/components/Card.tsx`), used by Regime and Watch. lucide-react added for icons.
+- Not taken from the design: news source-tier badges (no tier data is stored for news yet) and its sample numbers.
+- Verified: ./init.sh passes (1,004 unit tests); full Playwright 142 passed with axe; web build ok.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

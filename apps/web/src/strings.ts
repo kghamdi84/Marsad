@@ -9,6 +9,7 @@ export const t = {
     body: 'This build has no Supabase address or publishable key. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Netlify, then redeploy.',
   },
   loading: 'Loading',
+  common: { showDetails: 'Show details' },
   signIn: {
     title: 'Sign in to Marsad',
     emailLabel: 'Email',
@@ -144,6 +145,37 @@ export const t = {
     news: {
       title: 'Watchlist news',
       none: 'No news stored for the watchlist yet.',
+    },
+    ui: {
+      lastSession: (date: string) => `Last completed session ${date}`,
+      emailed: 'Emailed',
+      noBriefTitle: 'No brief yet',
+      membersNote:
+        'Daily briefs and alerts go to the account owner. Markets, regime and company pages are shared.',
+      period: 'Change period',
+      periods: { '1d': '1D', '5d': '5D', '1m': '1M' } as Record<string, string>,
+      periodLong: { '1d': '1 day', '5d': '1 week', '1m': '1 month' } as Record<string, string>,
+      sortByChange: 'Sort by change',
+      colSpark: '30 sessions',
+      colChange: (period: string) => `Change, ${period}`,
+      colRange: '52-week range',
+      colVolume: 'Volume vs 20-day',
+      rangeAria: (low: string, high: string, pos: string, fromHigh: string) =>
+        `52-week closing range ${low} to ${high}; the last close sits at ${pos}% of it, ${fromHigh} from the high.`,
+      rangeNone: 'Needs a year of bars',
+      olderDate: (date: string) => `as of ${date}`,
+      footer: (date: string) =>
+        `Massive daily bars, split-adjusted \u00B7 close of ${date} \u00B7 click a ticker to study it`,
+      dayChange: (v: string) => `day ${v}`,
+      gapLegend: 'Light bar: the gap. Solid bar: how much of it the close kept.',
+      calendar: 'Calendar',
+      calType: 'Calendar type',
+      calAll: 'All',
+      calEconomy: 'Economy',
+      calEarnings: 'Earnings',
+      legendHigh: 'High impact',
+      legendMedium: 'Medium impact',
+      legendEarnings: 'Watchlist earnings (estimated from past filing dates)',
     },
   },
   journal: {
@@ -882,7 +914,6 @@ export const t = {
   regime: {
     title: 'Regime',
     ui: {
-      showDetails: 'Show details',
       endOfDay: 'End of day',
       sessions: (n: number) => `Last ${n} sessions`,
       running: (n: number, date: string) =>

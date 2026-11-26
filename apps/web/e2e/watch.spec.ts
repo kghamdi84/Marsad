@@ -191,9 +191,14 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   await expect(list.getByText('Showing the starting tickers')).toBeVisible();
   const nvda = list.getByRole('row', { name: /^NVDA/ });
   await expect(nvda).toContainText('121.00');
-  await expect(nvda).toContainText('+4.3%');
-  await expect(nvda).toContainText('+21.0%');
+  await expect(nvda).toContainText('+0.8%');
   await expect(nvda).toContainText('3.0x');
+  // The period control switches the change column: 1 week, then 1 month.
+  await list.getByRole('button', { name: '5D' }).click();
+  await expect(nvda).toContainText('+4.3%');
+  await list.getByRole('button', { name: '1M' }).click();
+  await expect(nvda).toContainText('+21.0%');
+  await expect(list.getByRole('button', { name: '1M' })).toHaveAttribute('aria-pressed', 'true');
   await expect(nvda.getByRole('link', { name: 'NVDA' })).toHaveAttribute('href', '/study/NVDA');
 
   const sectors = page.getByRole('region', { name: 'Sector heatmap' });

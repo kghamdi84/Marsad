@@ -31,6 +31,11 @@ export interface TickerSummary {
   change21d: number | null;
   /** Close against the highest close of the last 252 sessions (0 at a new high), null with fewer than 252. */
   fromHigh252: number | null;
+  /**
+   * The lowest and highest close of the last 252 sessions, and where the newest close sits between them (0 at the
+   * low, 1 at the high; 0.5 when they are equal). Null with fewer than 252 bars.
+   */
+  range252: { low: number; high: number; position: number } | null;
   /** The day's volume over the average of the 20 sessions before it. */
   volumeRatio20: number | null;
   /** Open against the previous close (the opening gap). */
@@ -48,10 +53,21 @@ export function tickerSummary(bars: readonly DailyBar[]): TickerSummary | null {
     return b && b.close > 0 ? last.close / b.close - 1 : null;
   };
   let fromHigh252: number | null = null;
+  let range252: TickerSummary['range252'] = null;
   if (n >= 252) {
     let hi = 0;
-    for (let i = n - 252; i < n; i++) hi = Math.max(hi, (bars[i] as DailyBar).close);
+    let lo = Infinity;
+    for (let i = n - 252; i < n; i++) {
+      const c = (bars[i] as DailyBar).close;
+      hi = Math.max(hi, c);
+      lo = Math.min(lo, c);
+    }
     fromHigh252 = last.close / hi - 1;
+    range252 = {
+      low: lo,
+      high: hi,
+      position: hi > lo ? (last.close - lo) / (hi - lo) : 0.5,
+    };
   }
   let volumeRatio20: number | null = null;
   if (n >= 21) {
@@ -67,6 +83,7 @@ export function tickerSummary(bars: readonly DailyBar[]): TickerSummary | null {
     change5d: ret(5),
     change21d: ret(21),
     fromHigh252,
+    range252,
     volumeRatio20,
     gap: prev && prev.close > 0 ? last.open / prev.close - 1 : null,
   };
