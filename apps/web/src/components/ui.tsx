@@ -1,3 +1,4 @@
+import { t } from '../strings';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 
 export function Button({ className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -31,16 +32,23 @@ export function Field({
       <input
         id={id}
         {...props}
-        className="min-h-11 rounded-sm border border-line bg-bg px-3 text-lg text-fg"
+        className="min-h-12 rounded-xl border border-line bg-bg px-3 text-lg text-fg aria-[invalid=true]:border-down"
       />
     </div>
   );
 }
 
+/** A centred card (sign-in, setup notices): full screen on a phone, at most 420 wide from 760 px. */
 export function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <main className="mx-auto mt-16 flex w-full max-w-md flex-col gap-4 rounded-sm border border-line bg-surface p-6">
-      <h1 className="text-xl font-semibold">{title}</h1>
+    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col gap-4 bg-bg px-4 pt-[calc(env(safe-area-inset-top)+3rem)] pb-[calc(env(safe-area-inset-bottom)+2rem)] tablet:mt-16 tablet:min-h-0 tablet:rounded-2xl tablet:border tablet:border-line tablet:bg-surface tablet:p-6">
+      <span className="flex flex-col leading-none">
+        <span lang="ar" dir="rtl" className="text-sm text-muted">
+          {t.shell.logoArabic}
+        </span>
+        <span className="text-[1.375rem] font-bold text-white">{t.appName}</span>
+      </span>
+      <h1 className="text-2xl font-bold text-white">{title}</h1>
       {children}
     </main>
   );

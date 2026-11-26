@@ -212,6 +212,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Not built from the design yet: thesis pill that cycles on tap, time-stop progress bar, the CSV drop zone with a duplicate preview, and the pinned Copy ticket button on phones.
 - Verified: ./init.sh passes; full Playwright 160 with axe.
 
+### Redesign, step 9: Lab, Status and Sign-in (2026-11-26)
+
+- Lab (Lab.dc.html): lifecycle strip with counts (Draft, Backtested, Shadow, Live, Demoted) and "Not testable yet" and "Not run yet" in words; All, Testable and Not testable filter; playbook cards with number, status badge, horizon chip and a 4-segment evidence meter; a lock on not-testable reasons; sources and the rule one tap away; the left-out list with a ban icon.
+- Status (Status.dc.html): a hero "N of M sources healthy" with one cell per source (state in words for screen readers and on hover, judged by the same policies as the table); every section a card whose table scrolls sideways in a keyboard-reachable region on narrow screens.
+- Sign-in (SignIn.dc.html): a centred card from 760 px and a full-screen page on phones with the bilingual logo; white primary buttons; a 10-segment password meter (yellow until 10 characters, then blue) and an orange border with "The two passwords are different." when the confirmation differs.
+- Not built from the design yet: Status job-run 24-hour strips and cost bars with an 80% tick, Lab equity curves (no stored report has them yet). The "sp.filter is not a function" crash mentioned in the handoff could not be found or reproduced in the current code.
+- Verified: ./init.sh passes; full Playwright 160 with axe.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

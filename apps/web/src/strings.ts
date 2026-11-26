@@ -36,6 +36,7 @@ export const t = {
     creating: 'Creating',
     passwordsDiffer: 'The two passwords are different.',
     passwordTooShort: 'Use at least 10 characters.',
+    meter: (n: number) => `${Math.min(n, 10)} of 10 characters`,
     alreadyRegistered:
       'An account with this email already exists. Sign in instead; to set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
     confirmSent: (email: string) =>
@@ -576,6 +577,18 @@ export const t = {
     rule: 'Rule (JSON, version stored with a content hash)',
     lastRun: (at: string, tickers: string) => `Last run ${at} on ${tickers}.`,
     noRun: 'Not run yet. The backtest lab runs each Sunday and by hand.',
+    ui: {
+      lifecycle: 'Rule lifecycle',
+      notTestableN: (n: number) => `Not testable yet: ${n}`,
+      notRunN: (n: number) => `Not run yet: ${n}`,
+      filter: 'Show playbooks',
+      filters: { all: 'All', testable: 'Testable', untestable: 'Not testable' } as Record<
+        string,
+        string
+      >,
+      evidence: (label: string) => `Evidence: ${label}`,
+      number: (n: number) => `Playbook ${n}`,
+    },
     trades: (all: number, oos: number) =>
       `${all} trades in all; ${oos} out of sample (walk-forward, holdout untouched).`,
     expectancy: (v: string, lo: string, hi: string) =>
@@ -1413,6 +1426,12 @@ export const t = {
   },
 
   status: {
+    hero: {
+      title: (ok: number, n: number) => `${ok} of ${n} sources healthy`,
+      stale: (n: number) => `${n} past ${n === 1 ? 'its' : 'their'} silence limit`,
+      legend:
+        'Blue: healthy or quiet as expected. Yellow: stale. Grey: not judged yet (no data or no calendar).',
+    },
     title: 'System status',
     sources: 'Data sources',
     jobs: 'Recent job runs',

@@ -14,6 +14,8 @@ import {
   type PushDeviceRow,
   type PushState,
 } from '../../lib/push';
+import { cardClass } from '../Card';
+import { panelTitle } from '../study/Panel';
 import { t } from '../../strings';
 
 const x = t.status.push;
@@ -221,8 +223,8 @@ function Devices({ state }: { state: PushState }) {
 export function Notifications() {
   const q = useQuery({ queryKey: ['push'], queryFn: loadPushState });
   return (
-    <section aria-labelledby="push" className="flex flex-col gap-3">
-      <h2 id="push" className="font-semibold">
+    <section aria-labelledby="push" className={`${cardClass} gap-3!`}>
+      <h2 id="push" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>

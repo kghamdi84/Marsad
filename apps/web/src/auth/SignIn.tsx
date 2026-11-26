@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { landingUrl, supabase } from '../lib/supabase';
 import { t } from '../strings';
+
+/** The main action on each step: white, 48 points tall (design handoff). */
+const primary = 'min-h-12! rounded-xl! border-0! bg-white! font-bold text-raised!';
 import { Button, ErrorText, Field, LinkButton, Panel } from '../components/ui';
 import { linkErrorFromUrl, parseSignInInput } from './signInInput';
 
@@ -112,7 +115,7 @@ export function SignIn() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} className={primary}>
             {busy ? t.signIn.signingIn : t.signIn.signInPassword}
           </Button>
           <LinkButton type="button" onClick={() => setStep('email')}>
@@ -144,6 +147,23 @@ export function SignIn() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <div className="-mt-2 flex flex-col gap-1">
+            <span aria-hidden="true" className="grid grid-cols-10 gap-1">
+              {Array.from({ length: 10 }, (_, i) => (
+                <span
+                  key={i}
+                  className={`h-1.5 rounded-full ${
+                    i < password.length
+                      ? password.length >= 10
+                        ? 'bg-up'
+                        : 'bg-warn'
+                      : 'bg-faint/25'
+                  }`}
+                />
+              ))}
+            </span>
+            <span className="text-xs text-muted">{t.signIn.meter(password.length)}</span>
+          </div>
           <Field
             id="new-password-2"
             label={t.signIn.confirmPasswordLabel}
@@ -151,9 +171,18 @@ export function SignIn() {
             autoComplete="new-password"
             required
             value={password2}
+            aria-invalid={password2.length > 0 && password2 !== password}
+            aria-describedby={
+              password2.length > 0 && password2 !== password ? 'pw-differ' : undefined
+            }
             onChange={(e) => setPassword2(e.target.value)}
           />
-          <Button type="submit" disabled={busy}>
+          {password2.length > 0 && password2 !== password && (
+            <p id="pw-differ" className="-mt-2 text-sm text-down">
+              {t.signIn.passwordsDiffer}
+            </p>
+          )}
+          <Button type="submit" disabled={busy} className={primary}>
             {busy ? t.signIn.creating : t.signIn.create}
           </Button>
           <LinkButton type="button" onClick={() => setStep('password')}>
@@ -171,7 +200,7 @@ export function SignIn() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} className={primary}>
             {busy ? t.signIn.sending : t.signIn.sendLink}
           </Button>
           <LinkButton type="button" onClick={() => setStep('password')}>
@@ -193,7 +222,7 @@ export function SignIn() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} className={primary}>
             {busy ? t.signIn.verifying : t.signIn.verify}
           </Button>
           <LinkButton type="button" onClick={() => setStep('email')}>
