@@ -37,6 +37,9 @@ async function mockPush(
   return { saved, deleted };
 }
 
+const dev = (section: ReturnType<Page['getByRole']>, name: string) =>
+  section.getByRole('button', { name: new RegExp(`^Remove ${name}`) }).locator('xpath=..');
+
 test('creating keys saves only the public key; the private key never leaves the page', async ({
   page,
 }) => {
@@ -63,7 +66,7 @@ test('creating keys saves only the public key; the private key never leaves the 
   expect(publicKey).toBe(ecdh.getPublicKey('base64url', 'uncompressed'));
   expect(sent.some((s) => s.includes(privateKey))).toBe(false);
 
-  await expect(section.getByText('Keys created.', { exact: false })).toBeVisible();
+  await expect(section.getByText('Keys ready')).toBeVisible();
   await expect(section.getByRole('button', { name: 'Turn on for this device' })).toBeVisible();
 });
 
@@ -108,14 +111,10 @@ test('the device list says which devices work, which fail and which the push ser
   });
   await page.goto('/status');
   const section = page.getByRole('region', { name: 'Notifications' });
-  await expect(section.getByRole('row', { name: /^iPad/ })).toContainText('Active');
-  await expect(section.getByRole('row', { name: /^iPhone/ })).toContainText(
-    'Failing (2 in a row): 500: server error',
-  );
-  await expect(section.getByRole('row', { name: /^iPhone/ })).toContainText('Never');
-  await expect(section.getByRole('row', { name: /^Mac/ })).toContainText(
-    'Stopped by the push service',
-  );
+  await expect(dev(section, 'iPad')).toContainText('Active');
+  await expect(dev(section, 'iPhone')).toContainText('Failing (2 in a row): 500: server error');
+  await expect(dev(section, 'iPhone')).toContainText('Never');
+  await expect(dev(section, 'Mac')).toContainText('Stopped by the push service');
   await section.getByRole('button', { name: 'Remove iPhone' }).click();
   await expect.poll(() => m.deleted.length).toBe(1);
   expect(m.deleted[0]).toContain('id=eq.2');

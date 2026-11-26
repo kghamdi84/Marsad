@@ -98,12 +98,12 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
   });
   await page.goto('/journal');
   const holdings = page.getByRole('region', { name: 'Holdings and exit conditions' });
-  const rklb = holdings.getByRole('row', { name: /^RKLB/ });
+  const rklb = holdings.getByRole('listitem').filter({ hasText: 'RKLB' });
   // 21.50 against a 24.00 cost: -10.4% (USD -250.00); the stop and the trend break both triggered.
   await expect(rklb).toContainText('-10.4% (USD -250.00)');
   await expect(rklb).toContainText('Triggered: Closed at 21.50, at or below the stop 22.00.');
   await expect(rklb).toContainText('below the 3-day SMA');
-  await expect(holdings.getByRole('row', { name: /^SOFI/ })).toContainText(
+  await expect(holdings.getByRole('listitem').filter({ hasText: 'SOFI' })).toContainText(
     'No exit conditions set: add a stop and a target.',
   );
 

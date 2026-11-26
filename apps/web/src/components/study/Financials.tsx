@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { etDate, peRatio, summarizeFinancials, toFixedHalfUp, type DailyBar } from '@marsad/core';
-import { loadPreferences } from '../../lib/settings';
-import { shariahAsOf } from '../../lib/shariah';
 import { loadFacts } from '../../lib/studyPanels';
 import { t } from '../../strings';
 import { Cell, PanelShell, num, td, th, thNum, usd } from './Panel';
@@ -21,10 +19,6 @@ export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar
   );
   const pe = s?.ttm && price ? peRatio(price.close, s.ttm.epsDiluted.value) : null;
   const f = t.study.financials;
-  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
-  const sh = prefs.data?.shariah;
-  const screen = sh?.enabled && q.data ? shariahAsOf(q.data, bars, sh, asOf) : null;
-  const x = t.study.shariah;
 
   return (
     <PanelShell id="financials" title={f.title} state={q}>
@@ -178,30 +172,6 @@ export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar
           <p className="text-xs text-muted">{f.valuation}</p>
           <p className="text-xs text-muted">Formulas: {s.formulaVersion}</p>
         </>
-      )}
-      {screen && (
-        <section aria-labelledby="shariah" className="flex flex-col gap-1 text-sm">
-          <h3 id="shariah" className="mt-2 font-medium">
-            {x.title}
-          </h3>
-          <p className="text-muted">{x.basis(screen.basis)}</p>
-          {screen.ratios.map((r) => (
-            <p key={r.name}>
-              {x.ratio(
-                r.name,
-                r.value === null ? x.unknown : `${toFixedHalfUp(r.value * 100, 1)}%`,
-                `${toFixedHalfUp(r.max * 100, 1)}%`,
-                r.pass === null ? x.unknown : r.pass ? x.pass : x.fail,
-              )}
-            </p>
-          ))}
-          <p className="font-medium">{x.verdict[screen.verdict]}</p>
-          <ul className="list-disc ps-5 text-xs text-muted">
-            {screen.caveats.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ul>
-        </section>
       )}
     </PanelShell>
   );

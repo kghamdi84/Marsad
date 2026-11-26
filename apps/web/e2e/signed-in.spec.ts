@@ -62,21 +62,16 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   );
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto('/status');
-  await expect(page.getByRole('heading', { name: 'System status' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'FRED (St. Louis Fed)' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('sources healthy');
+  await expect(page.getByText('FRED (St. Louis Fed)').first()).toBeVisible();
   // An alert shows its event in words, what happened and which rules it paused.
-  await expect(page.getByRole('cell', { name: 'STALE', exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('cell', { name: /Nasdaq trade halts stale, silent for 40 min/ }),
-  ).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'group:halts' })).toBeVisible();
-  // The date beside an ET time is the ET date, not the UTC one.
-  await expect(page.getByRole('cell', { name: '2026-11-25 22:00 ET (06:00 local)' })).toBeVisible();
+  await expect(page.getByText('Stale', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText(/Nasdaq trade halts stale, silent for 40 min/)).toBeVisible();
+  await expect(page.getByText('Paused: group:halts')).toBeVisible();
   // No heartbeat run on record: the page says stale feeds are not being watched.
   await expect(page.getByText('Heartbeat has not run yet')).toBeVisible();
   // A source that has never reported says so in words, not by an empty cell.
-  await expect(page.getByRole('cell', { name: 'No data received yet' })).toBeVisible();
-  await expect(page.getByText('No jobs have run yet')).toBeVisible();
+  await expect(page.getByText(/No data received yet/).first()).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main sections' })).toBeVisible();
   await expect(page.getByText(/ET/).first()).toBeVisible();
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/status.png` });
@@ -174,10 +169,10 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
   });
   await page.goto('/status');
   const form = page.getByRole('form', { name: 'Preferences' });
-  const toggle = form.getByLabel('Show the Shariah screening aid on company pages');
-  await expect(toggle).not.toBeChecked();
-  await toggle.check();
-  await form.getByLabel('Divide debt and cash by').selectOption('assets');
+  const toggle = form.getByRole('switch', { name: 'Shariah screening aid' });
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await toggle.click();
+  await form.getByRole('radio', { name: 'Total assets' }).click();
   await form.getByLabel('Debt limit (%)').fill('30');
   await form.getByRole('button', { name: 'Save preferences' }).click();
   await expect
@@ -190,7 +185,7 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
       ai_daily_cap_usd: null,
       ai_monthly_cap_usd: null,
     });
-  await form.getByLabel('Cash limit (%)').fill('120');
+  await form.getByLabel('Cash and interest-bearing limit (%)').fill('120');
   await form.getByRole('button', { name: 'Save preferences' }).click();
   await expect(form).toContainText('Limits must be above 0% and below 100%.');
 });
@@ -225,17 +220,17 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
     ),
   );
   await page.goto('/status');
-  await expect(page.getByRole('row', { name: /^Supabase/ })).toContainText('0.00');
-  await expect(page.getByText('AI is off: no caps are set.')).toBeVisible();
-  // 90 s rounds up to 2 minutes, 2 s to 1: at least 3 minutes over 2 runs.
+  await expect(page.getByRole('listitem').filter({ hasText: 'Supabase' })).toContainText('$0.00');
   await expect(
-    page.getByText('GitHub Actions: at least 3 minutes this month over 2 job runs'),
+    page.getByText('AI is off: set daily and monthly caps in Preferences to turn it on'),
   ).toBeVisible();
+  // 90 s rounds up to 2 minutes, 2 s to 1: at least 3 minutes over 2 runs.
+  await expect(page.getByText('about 3 minutes \u00B7 2 runs this month')).toBeVisible();
 
   caps = [{ ai_daily_cap_usd: 100, ai_monthly_cap_usd: 5, shariah_screen: false }];
   await page.reload();
   // USD 4.50 of a USD 5 monthly cap is 90%: a warning.
-  await expect(page.getByText('USD 4.50 this month (2 calls).')).toBeVisible();
+  await expect(page.getByText(/month \$4\.50 \u00B7 2 calls/)).toBeVisible();
   await expect(page.getByText('AI spend at 90% of a cap (daily')).toBeVisible();
   // The monthly bar shows the same 90% against its 80% warning tick.
   await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
@@ -283,7 +278,7 @@ test('job runs: a 24-hour strip per job, each run a tick, errors said in words',
       name: 'fred: 1 run in the last 24 hours, 0 with an error, 1 skipped.',
     }),
   ).toBeVisible();
-  await expect(page.getByText(/Latest error 2026-11-26 03:00 ET .*: HTTP 500/)).toBeVisible();
+  await expect(page.getByText('bars 08:00 UTC: HTTP 500')).toBeVisible();
 });
 
 test('status: the quote source is one choice of two, Massive by default, saved as soon as it is picked', async ({

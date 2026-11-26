@@ -29,6 +29,7 @@ import { Business } from '../components/study/Business';
 import { Holders13F } from '../components/study/Holders13F';
 import { QuarterlyRiskFactors } from '../components/study/QuarterlyRiskFactors';
 import { RiskFactors } from '../components/study/RiskFactors';
+import { ShariahAid } from '../components/study/ShariahAid';
 import { ShortData } from '../components/study/ShortData';
 import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
 import {
@@ -278,7 +279,17 @@ const RANGES = ['3m', '6m', '1y'] as const;
 type Range = (typeof RANGES)[number];
 const RANGE_SESSIONS: Record<Range, number> = { '3m': 63, '6m': 126, '1y': 252 };
 
-const SECTIONS = ['overview', 'financials', 'ownership', 'filings', 'news'] as const;
+const SECTIONS = [
+  'overview',
+  'financials',
+  'earnings',
+  'holders',
+  'short',
+  'risk',
+  'news',
+  'dividends',
+  'shariah',
+] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
 /** Tablet and desktop: one section at a time behind accessible tabs. */
@@ -604,22 +615,19 @@ export function StudyCompany() {
           </>
         );
       case 'financials':
-        return (
-          <>
-            {cikOf && <Financials cik={cikOf} bars={q.data.bars} />}
-            {cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}
-            <Dividends rows={dividends.data ?? []} />
-          </>
-        );
-      case 'ownership':
+        return <>{cikOf && <Financials cik={cikOf} bars={q.data.bars} />}</>;
+      case 'earnings':
+        return <>{cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}</>;
+      case 'holders':
         return (
           <>
             {cikOf && <Holders13F ticker={q.data.ticker} />}
             {cikOf && <Insiders cik={cikOf} />}
-            <ShortData ticker={q.data.ticker} />
           </>
         );
-      case 'filings':
+      case 'short':
+        return <ShortData ticker={q.data.ticker} />;
+      case 'risk':
         return (
           <>
             <section aria-labelledby="filings" className={`${cardClass} gap-3!`}>
@@ -633,13 +641,17 @@ export function StudyCompany() {
             {cikOf && <QuarterlyRiskFactors cik={cikOf} />}
           </>
         );
+      case 'dividends':
+        return <Dividends rows={dividends.data ?? []} />;
+      case 'shariah':
+        return cikOf ? <ShariahAid cik={cikOf} bars={q.data.bars} /> : null;
       case 'news':
         return <NewsPanel ticker={q.data.ticker} />;
     }
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4">
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <Link
         to="/study"
         className="inline-flex min-h-11 items-center self-start text-sm text-muted underline underline-offset-4"
