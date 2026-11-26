@@ -88,7 +88,9 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   return (
     <header className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur tablet:static tablet:mx-0 tablet:rounded-xl tablet:border-0 tablet:bg-raised tablet:p-5 tablet:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
-        <h1 className="text-[1.75rem] leading-tight font-bold text-white">{ticker}</h1>
+        <h1 className="text-xl leading-tight font-bold text-white tablet:text-[1.75rem]">
+          {ticker}
+        </h1>
         {data.company?.name && (
           <span className="truncate text-sm text-muted">{data.company.name}</span>
         )}
@@ -673,7 +675,10 @@ export function StudyCompany() {
 
       {q.data && summary && (
         <>
-          <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          {/* The design puts the chart first on a phone; the tiles follow it. */}
+          {wide && (
+            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          )}
           <Card
             id="chart"
             title={t.study.chart}
@@ -745,6 +750,9 @@ export function StudyCompany() {
               )}
             </div>
           </Card>
+          {!wide && (
+            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          )}
         </>
       )}
 
