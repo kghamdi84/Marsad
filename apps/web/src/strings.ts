@@ -985,6 +985,15 @@ export const t = {
       percentileChip: (name: string, pct: string, date: string) =>
         `${name} ${pct} percentile, ${date}`,
       moreMeasures: 'More measures',
+      gauges: 'Gauges',
+      details: 'Details',
+      moreContext: 'More context',
+      above50Sub: 'above 50-day',
+      above200: (pct: string) => `${pct} above 200-day`,
+      members: (n: number) => `${n.toLocaleString('en-US')} members`,
+      signalsOf: (a: number, n: number) => `${a} of ${n} signals available`,
+      triggeredN: (n: number) => `${n} triggered`,
+      swipeHint: 'Swipe for more',
     },
     intro:
       'What kind of market this is, from documented rules (ADR 0009), computed at the end of each day from stored data. It describes the market; it does not forecast it.',

@@ -535,3 +535,37 @@ test('regime: the quality screen lists passing companies with its counts and cav
   await expect(s.getByRole('link', { name: 'JNJ' })).toHaveAttribute('href', '/study/JNJ');
   await expect(s.getByText(/not a recommendation/)).toBeVisible();
 });
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test('regime: four gauges in a swipe row open their full cards; context is collapsed', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop',
+      'One phone run is enough; the viewport is set here.',
+    );
+    await mock(page);
+    await page.goto('/regime');
+    const gauges = page.getByRole('region', { name: 'Gauges' });
+    await expect(gauges.getByRole('button', { name: /^Recession filter/ })).toContainText(
+      'Elevated',
+    );
+    const fgButton = gauges.getByRole('button', { name: /^Fear and Greed composite/ });
+    await expect(fgButton).toContainText('42Fear');
+    await fgButton.click();
+    const sheet = page.getByRole('dialog', { name: 'Fear and Greed composite' });
+    await expect(sheet.getByTestId('fear-greed-value')).toHaveText('42, Fear');
+    await sheet.getByRole('button', { name: 'Close' }).click();
+    await expect(sheet).toBeHidden();
+
+    // The event study stays on the page; the longer context waits behind a tap.
+    await expect(
+      page.getByRole('region', { name: 'What happened next (event study)' }),
+    ).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeHidden();
+    await page.locator('summary', { hasText: 'Geopolitical panel' }).click();
+    await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeVisible();
+  });
+});
