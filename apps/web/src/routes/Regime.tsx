@@ -25,8 +25,9 @@ import {
   type StoredEventStat,
   type StoredFearGreedDay,
 } from '../lib/regime';
-import { ChevronRight } from 'lucide-react';
-import { Card, Details, SkeletonCards, Tile, cardClass, useWide } from '../components/Card';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { monthYear, weekdayDayMonth } from '../lib/dates';
+import { Card, Details, SkeletonCards, cardClass, useWide } from '../components/Card';
 import { Sheet } from '../components/Sheet';
 import { QualityScreen } from '../components/regime/QualityScreen';
 import { t } from '../strings';
@@ -133,57 +134,54 @@ function Hero({ data }: { data: RegimeData }) {
   const summary = LABEL_ORDER.filter((k) => counts[k])
     .map((k) => `${name(k)} ${counts[k]}`)
     .join(', ');
+  const fromHigh = x.drawdown === null ? r.noData : pct(x.drawdown);
   return (
-    <section aria-labelledby="label" className="flex flex-col gap-4 rounded-xl bg-raised p-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h2 id="label" className="text-[13px] font-normal text-muted">
-            {r.labelTitle}
-          </h2>
-          <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="size-4 rounded"
-              style={{ background: LABEL_COLOR[last.label] }}
-            />
-            <p className="text-[40px] leading-none font-bold text-white">{name(last.label)}</p>
+    <section
+      aria-labelledby="label"
+      className="flex flex-col gap-3.5 rounded-2xl bg-raised px-4 py-[18px] tablet:p-5"
+    >
+      <h2 id="label" className="sr-only">
+        {r.labelTitle}
+      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <span className="text-[13px] text-muted">
+          {u.heroMeta(last.ruleVersion, weekdayDayMonth(last.date))}
+        </span>
+        <span className="rounded-sm bg-muted/15 px-2 py-[3px] text-xs font-semibold text-fg">
+          {u.delayedEod}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="size-4 flex-none rounded"
+          style={{ background: LABEL_COLOR[last.label] }}
+        />
+        <p className="text-4xl leading-[1.05] font-bold text-white">{name(last.label)}</p>
+      </div>
+      <p className="text-[15px] leading-[1.45] text-fg">{r.reasons[last.reason] ?? last.reason}</p>
+      <p className="sr-only">{r.asOf(last.date, last.ruleVersion)}</p>
+      <div className="grid grid-cols-3 gap-2 tablet:grid-cols-4">
+        {[
+          [u.runningTile, u.sessShort(run.sessions)],
+          [u.fromHighTile, fromHigh],
+          [r.inputs.vix, x.vix === null ? r.noData : fixed(x.vix)],
+          [r.inputs.vix3m, x.vix3m === null ? r.noData : fixed(x.vix3m)],
+        ].map(([k, v], i) => (
+          <div
+            key={k}
+            className={`min-w-0 flex-col gap-0.5 rounded-[10px] bg-bg/50 p-2.5 ${i === 3 ? 'hidden tablet:flex' : 'flex'}`}
+          >
+            <span className="text-xs text-muted">{k}</span>
+            <span className="text-lg font-bold text-white tabular-nums">{v}</span>
           </div>
-          <p className="text-[15px] text-fg">{r.reasons[last.reason] ?? last.reason}</p>
-          <p className="text-sm text-muted">{r.asOf(last.date, last.ruleVersion)}</p>
-        </div>
-        <span className="rounded-full bg-muted/15 px-2.5 py-1 text-xs text-fg">{u.endOfDay}</span>
+        ))}
       </div>
-      <div className="grid grid-cols-2 gap-3 wide:grid-cols-4">
-        <Tile
-          label={r.inputs.sp500}
-          value={fixed(x.sp500)}
-          note={`${r.inputs.srcSp500} \u00B7 ${last.date}`}
-        />
-        <Tile
-          label={r.inputs.vix}
-          value={x.vix === null ? r.noData : fixed(x.vix)}
-          note={`${r.inputs.srcVix} \u00B7 ${last.date}`}
-        />
-        <Tile
-          label={r.inputs.vix3m}
-          value={x.vix3m === null ? r.noData : fixed(x.vix3m)}
-          note={`${r.inputs.srcVix3m} \u00B7 ${last.date}`}
-        />
-        <Tile
-          label={r.inputs.drawdown}
-          value={x.drawdown === null ? r.noData : pct(x.drawdown)}
-          note={x.drawdown === null ? last.date : r.inputs.high(fixed(x.sp500 / (1 + x.drawdown)))}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap justify-between gap-2 text-xs text-muted">
-          <span>{u.sessions(data.days.length)}</span>
-          <span>{u.running(run.sessions, run.since)}</span>
-        </div>
+      <div className="flex flex-col gap-1.5">
         <div
           role="img"
           aria-label={u.ribbonAria(summary)}
-          className="flex h-[26px] overflow-hidden rounded-md"
+          className="flex h-[22px] overflow-hidden rounded-md"
         >
           {runs.map((x2) => (
             <span
@@ -193,25 +191,33 @@ function Hero({ data }: { data: RegimeData }) {
             />
           ))}
         </div>
-        <div className="flex justify-between text-[11px] text-muted">
-          <span>{data.days[0]?.date}</span>
-          <span>{last.date}</span>
+        <div className="flex justify-between text-xs text-muted">
+          <span>{data.days[0] ? monthYear(data.days[0].date) : ''}</span>
+          <span>{u.ribbonPast}</span>
+          <span>{u.ribbonNow}</span>
         </div>
-        <p className="sr-only">{r.pastYear}</p>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
-          {LABEL_ORDER.map((k) => (
-            <li key={k} className="flex items-center gap-1.5 whitespace-nowrap">
-              <span
-                aria-hidden="true"
-                className="size-3 rounded-sm"
-                style={{ background: LABEL_COLOR[k] }}
-              />
-              {name(k)} <span className="text-muted">{counts[k] ?? 0}</span>
-            </li>
-          ))}
-        </ul>
+        <p className="sr-only">
+          {r.pastYear} {u.sessions(data.days.length)} {u.running(run.sessions, run.since)}
+        </p>
       </div>
-      <ContextLine data={data} />
+      <ul className="flex flex-wrap gap-1.5">
+        {LABEL_ORDER.map((k) => (
+          <li
+            key={k}
+            className="flex items-center gap-1.5 rounded-full bg-bg/50 px-2.5 py-1 text-[13px] whitespace-nowrap"
+          >
+            <span
+              aria-hidden="true"
+              className="size-2.5 rounded-[3px]"
+              style={{ background: LABEL_COLOR[k] }}
+            />
+            {name(k)} <span className="text-muted">{counts[k] ?? 0}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden tablet:block">
+        <ContextLine data={data} />
+      </div>
       <p className="text-xs text-muted">{r.inputsSource}</p>
     </section>
   );
@@ -862,8 +868,12 @@ function StudyCard({ data }: { data: RegimeData }) {
   const M = Math.ceil(span * 20) / 20;
   const pos = (v: number) => width((v + M) / (2 * M));
   return (
-    <Card id="study" title={s.title} subtitle={s.note(any.dataFrom, any.dataTo)}>
-      <div role="group" aria-label={s.colCondition} className="flex flex-wrap gap-1.5">
+    <Card id="study" title={s.title} subtitle={u.studySub(monthYear(any.dataFrom))}>
+      <div
+        role="group"
+        aria-label={s.colCondition}
+        className="flex overflow-x-auto rounded-xl bg-bg p-[3px] [scrollbar-width:none]"
+      >
         {CONDITIONS.map((c) => {
           const on = c === cond;
           return (
@@ -872,73 +882,62 @@ function StudyCard({ data }: { data: RegimeData }) {
               type="button"
               aria-pressed={on}
               onClick={() => setCond(c)}
-              className={`min-h-11 rounded-lg border px-3 text-[13px] text-white ${on ? 'border-up bg-raised' : 'border-faint/40 bg-transparent'}`}
+              className={`min-h-11 flex-[1_0_auto] rounded-[9px] px-2.5 text-[13px] font-semibold whitespace-nowrap ${on ? 'bg-raised text-white' : 'text-muted'}`}
             >
               {c === today ? u.today(name(c)) : name(c)}
             </button>
           );
         })}
       </div>
-      <ul className="flex flex-col gap-3.5">
+      <ul className="flex flex-col">
         {rows.map(({ h, x }) => (
-          <li
-            key={h}
-            className="grid min-h-10 grid-cols-[132px_minmax(0,1fr)_96px] items-center gap-3"
-          >
-            <span className="flex flex-col text-[13px] text-white">
-              {u.horizonShort(h)}
-              <span className="text-[11px] text-muted">{u.horizonSub(h, x?.n ?? 0)}</span>
-            </span>
-            {ok(x) ? (
-              <div aria-hidden="true" className="relative h-7">
-                <span className="absolute inset-x-0 top-[13px] h-0.5 bg-faint/20" />
-                <span className="absolute inset-y-0 start-1/2 w-px bg-muted/60" />
-                <span
-                  className="absolute top-[7px] h-3.5 rounded bg-up/35"
-                  style={{ insetInlineStart: pos(x.q1), width: width((x.q3 - x.q1) / (2 * M)) }}
-                />
-                <span
-                  className="absolute top-0.5 h-6 w-1 -ms-0.5 rounded-sm bg-white"
-                  style={{ insetInlineStart: pos(x.median) }}
-                />
-              </div>
-            ) : (
-              <div className="flex h-7 items-center rounded-md border border-dashed border-muted/40 px-2.5 text-xs whitespace-nowrap text-muted">
-                {x ? u.insufficientShort(x.n) : r.noData}
-              </div>
-            )}
-            <span className="flex flex-col text-end">
+          <li key={h} className="flex flex-col gap-1.5 border-t border-line-soft pt-2.5 pb-1">
+            <div className="flex items-baseline justify-between gap-2.5">
+              <span className="text-[15px] text-white">
+                {u.horizonSessions(h)}{' '}
+                <span className="text-[13px] text-muted">{u.nEquals(x?.n ?? 0)}</span>
+              </span>
               <span
-                className="text-[17px] font-bold"
-                style={{
-                  color: ok(x)
-                    ? x.median >= 0
-                      ? 'var(--color-up)'
-                      : 'var(--color-down)'
-                    : 'var(--color-muted)',
-                }}
+                className={`text-lg font-bold tabular-nums ${ok(x) ? (x.median >= 0 ? 'text-up' : 'text-down') : 'text-muted'}`}
               >
                 {ok(x) ? pct(x.median) : u.notEnough}
               </span>
-              <span className="text-[11px] text-muted">
-                {ok(x) ? `${pct(x.q1)} to ${pct(x.q3)}` : u.needs30}
-              </span>
-            </span>
+            </div>
+            {ok(x) ? (
+              <>
+                <div aria-hidden="true" className="relative h-[22px]">
+                  <span className="absolute inset-x-0 top-2.5 h-0.5 bg-faint/20" />
+                  <span className="absolute inset-y-0 start-1/2 w-px bg-muted/60" />
+                  <span
+                    className="absolute top-[5px] h-3 rounded bg-up/35"
+                    style={{ insetInlineStart: pos(x.q1), width: width((x.q3 - x.q1) / (2 * M)) }}
+                  />
+                  <span
+                    className="absolute top-px h-5 w-1 -ms-0.5 rounded-sm bg-white"
+                    style={{ insetInlineStart: pos(x.median) }}
+                  />
+                </div>
+                <span className="text-[13px] text-muted">{u.middleHalf(pct(x.q1), pct(x.q3))}</span>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1.5 rounded-[10px] border border-dashed border-muted/40 px-3 py-2.5">
+                <span className="text-sm text-fg">{x ? u.insufficientOf(x.n) : r.noData}</span>
+                {x && (
+                  <span aria-hidden="true" className="flex gap-0.5">
+                    {Array.from({ length: 30 }, (_, i) => (
+                      <span
+                        key={i}
+                        className={`h-1.5 flex-1 rounded-[1px] ${i < x.n ? 'bg-up' : 'bg-faint/25'}`}
+                      />
+                    ))}
+                  </span>
+                )}
+              </div>
+            )}
           </li>
         ))}
-        <li
-          aria-hidden="true"
-          className="grid grid-cols-[132px_minmax(0,1fr)_96px] gap-3 text-[11px] text-muted"
-        >
-          <span />
-          <span className="flex justify-between">
-            <span>{pct(-M, 0)}</span>
-            <span>0</span>
-            <span>{pct(M, 0)}</span>
-          </span>
-          <span />
-        </li>
       </ul>
+      <p className="text-xs text-muted">{s.note(any.dataFrom, any.dataTo)}</p>
       <p className="text-xs text-muted">{u.scaleNote}</p>
       <Details>
         <div className="overflow-x-auto">
@@ -1361,15 +1360,29 @@ function GaugeRow({ data }: { data: RegimeData }) {
 }
 
 /** Phones: the longer context cards, collapsed until tapped. */
-function Collapsed({ title, children }: { title: string; children: React.ReactNode }) {
+function Collapsed({
+  title,
+  sum,
+  value,
+  children,
+}: {
+  title: string;
+  sum: string;
+  value?: string | null;
+  children: React.ReactNode;
+}) {
   return (
     <details className="group rounded-2xl border border-line bg-surface">
-      <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-white select-none">
-        {title}
-        <ChevronRight
+      <summary className="flex min-h-16 cursor-pointer items-center gap-3 px-4 py-3 text-white select-none">
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="font-semibold">{title}</span>
+          <span className="text-[13px] text-muted">{sum}</span>
+        </span>
+        {value && <span className="font-bold whitespace-nowrap text-up">{value}</span>}
+        <ChevronDown
           aria-hidden="true"
           size={18}
-          className="text-muted transition-transform group-open:rotate-90 motion-reduce:transition-none"
+          className="flex-none text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
         />
       </summary>
       <div className="flex flex-col gap-4 p-2 pt-0">{children}</div>
@@ -1384,12 +1397,21 @@ export function Regime() {
   const un = r.uncertainty;
   const grid = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4';
   const wide = useWide();
+  const capOn = q.data?.capitulation.latest?.state === 'on';
+  const vixLast = q.data?.series['VIXCLS']?.at(-1)?.value;
+  const vix3mLast = q.data?.series['VXVCLS']?.at(-1)?.value;
+  const volRatio =
+    vixLast !== undefined && vix3mLast ? toFixedHalfUp(vixLast / vix3mLast, 2) : null;
+  const pctOf = (label: string, obs: Obs[]) => {
+    const snap = seriesSnapshot(obs);
+    return snap ? u.accPct(label, r.ordinal(Math.round(snap.percentile))) : null;
+  };
   return (
     <section className="mx-auto flex max-w-[1280px] flex-col gap-4">
       <div>
         {/* On a phone the top bar shows the page title. */}
         <h1 className="sr-only text-xl font-semibold text-white tablet:not-sr-only">{r.title}</h1>
-        <p className="text-sm text-muted">{r.intro}</p>
+        <p className="hidden text-sm text-muted tablet:block">{r.intro}</p>
       </div>
       {q.isPending && <SkeletonCards />}
       {q.isError && (
@@ -1402,16 +1424,20 @@ export function Regime() {
           <Hero data={q.data} />
           <GaugeRow data={q.data} />
           <StudyCard data={q.data} />
-          <h2 className="pt-2 text-[1.0625rem] font-semibold text-white">{u.moreContext}</h2>
-          <Collapsed title={r.geopolitics.title}>
-            <GeopoliticsCard data={q.data} />
-          </Collapsed>
-          <Collapsed title={t.regime.quality.title}>
+          <h2 className="sr-only">{u.moreContext}</h2>
+          <Collapsed
+            title={t.regime.quality.title}
+            sum={u.accQuality}
+            value={capOn ? u.accActive : u.accInactive}
+          >
             <div className={cardClass}>
-              <QualityScreen capitulationOn={q.data.capitulation.latest?.state === 'on'} />
+              <QualityScreen capitulationOn={capOn} />
             </div>
           </Collapsed>
-          <Collapsed title={v.title}>
+          <Collapsed title={r.geopolitics.title} sum={u.accGeo}>
+            <GeopoliticsCard data={q.data} />
+          </Collapsed>
+          <Collapsed title={v.title} sum={u.accVol} value={volRatio}>
             <MeasuresCard
               id="volatility"
               title={v.title}
@@ -1422,7 +1448,7 @@ export function Regime() {
               notes={[`${v.contango} ${v.backwardation}`, v.source]}
             />
           </Collapsed>
-          <Collapsed title={un.title}>
+          <Collapsed title={un.title} sum={u.accUnc} value={pctOf(u.gprShort, q.data.gpr)}>
             <MeasuresCard
               id="uncertainty"
               title={un.title}
@@ -1433,7 +1459,11 @@ export function Regime() {
               notes={[un.source]}
             />
           </Collapsed>
-          <Collapsed title={c.title}>
+          <Collapsed
+            title={c.title}
+            sum={u.accCredit}
+            value={pctOf(u.hyShort, q.data.series['BAMLH0A0HYM2'] ?? [])}
+          >
             <MeasuresCard
               id="credit"
               title={c.title}

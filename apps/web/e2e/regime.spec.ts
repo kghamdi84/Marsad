@@ -292,7 +292,7 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(rec.getByRole('row', { name: /Jobless claims/ })).toContainText('197,750');
 
   // The event study: 16 stress episodes with a 63-session return is not enough to show numbers.
-  const study = page.getByRole('region', { name: 'What happened next (event study)' });
+  const study = page.getByRole('region', { name: 'What the S&P did next' });
   await expect(study.getByRole('row', { name: /^Stress/ })).toContainText(
     'Insufficient history: 16 episodes, 30 needed',
   );
@@ -561,9 +561,7 @@ test.describe('on a phone', () => {
     await expect(sheet).toBeHidden();
 
     // The event study stays on the page; the longer context waits behind a tap.
-    await expect(
-      page.getByRole('region', { name: 'What happened next (event study)' }),
-    ).toBeVisible();
+    await expect(page.getByRole('region', { name: 'What the S&P did next' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeHidden();
     await page.locator('summary', { hasText: 'Geopolitical panel' }).click();
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeVisible();

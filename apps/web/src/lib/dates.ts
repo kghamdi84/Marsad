@@ -14,3 +14,7 @@ export const weekdayDayMonth = (iso: string) => {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
   return `${DAYS[d.getUTCDay()] ?? ''} ${dayMonth(iso)}`;
 };
+
+/** '2025-11-21' as 'Nov 2025'. */
+export const monthYear = (iso: string) =>
+  `${MONTHS[Number(iso.slice(5, 7)) - 1] ?? ''} ${iso.slice(0, 4)}`;
