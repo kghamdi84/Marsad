@@ -81,7 +81,7 @@ async function setup(page: Page) {
   await page.route('**/rest/v1/splits**', empty);
   await page.route('**/rest/v1/daily_bars**', (r) => json(r, bars()));
   await page.route('**/rest/v1/instruments**', (r) =>
-    json(r, [{ cik: '0001045810', name: 'NVIDIA CORP' }]),
+    json(r, [{ ticker: 'NVDA', cik: '0001045810', name: 'NVIDIA CORP' }]),
   );
   await page.route('**/rest/v1/filings**', empty);
   await page.route('**/rest/v1/financial_facts**', (r) => json(r, factRows()));
@@ -394,6 +394,8 @@ test('earnings: each release matched to its quarter, the move in the session tha
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto('/study/NVDA');
   await openSection(page, 'Financials');
+  // The key tile estimates the next release from the same 8-K filings, with its range.
+  await expect(page.getByText(/^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/).first()).toBeVisible();
   const panel = page.getByRole('region', { name: 'Earnings history' });
   const table = panel.getByRole('table');
   // Newest first. A release with no 10-Q yet: the reaction is 2026-11-18 (after the close on the 17th),
@@ -743,6 +745,8 @@ test('short data: both definitions, the lag, and the real rows', async ({ page }
   await setup(page);
   await page.goto('/study/NVDA');
   await openSection(page, 'Ownership');
+  // The key tile reads the same stored rows as the panel.
+  await expect(page.getByText(/M shares$/).first()).toBeVisible();
   const panel = page.getByRole('region', { name: 'Short interest and short volume' });
   await expect(
     panel.getByText(/Short interest: shares sold short and not yet covered/),
@@ -887,6 +891,18 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
   await expect(aid).toContainText('Passes the financial ratios.');
   await expect(aid).toContainText('Sahm’s own Shariah label takes precedence.');
   await expect(aid).toContainText('Business activity is not screened');
+
+  // The Study list shows the same verdict as a chip, from the same helper.
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    json(
+      r,
+      bars().map((b) => ({ ...b, ticker: 'NVDA' })),
+    ),
+  );
+  await page.goto('/study');
+  const nvda = page.getByRole('link', { name: /^NVDA/ });
+  await expect(nvda).toContainText('Within limits');
+  await expect(nvda).toContainText('Shariah screening aid, not a ruling:');
 });
 
 test('chart markers: a halt on its session and an after-close alert on the next session', async ({

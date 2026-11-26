@@ -227,6 +227,13 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Core: `sessionsHeld` (the time-stop exit now uses it, so the bar and the exit cannot disagree) and `markDuplicateHoldings`, both with hand-checked tests.
 - Verified: ./init.sh passes; full Playwright 162 with axe.
 
+### Redesign leftovers, batch B: Study (2026-11-26)
+
+- Company page tiles: next earnings (estimated from the stored results 8-Ks with the same core function as the Watch calendar, with its range and an overdue flag) and short interest (latest settlement, days to cover, date; the same cached read as the Short panel).
+- Chart: pointing at it, or touch and hold on a phone, shows the day and close ("Wed 25 Nov · 182.40"); the crosshair goes when the finger lifts.
+- Study list: a Shariah chip (Within limits, Over a limit, Not checked) when the aid is switched on in Status, with a hidden "not a ruling" prefix for screen readers. The Financials panel and the list now share one helper (`lib/shariah.ts`), so they cannot disagree.
+- Verified: ./init.sh passes; full Playwright 162 with axe; tests for both tiles, the chart readout and the list chip.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

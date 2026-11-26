@@ -4,6 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
   buildEventMarkers,
+  estimateNextEarnings,
+  toFixedHalfUp,
+  type EarningsEstimate,
   describeEightK,
   disclosureLag,
   dualClock,
@@ -32,6 +35,8 @@ import {
   loadDividends,
   loadEarningsFilings,
   loadInsiders,
+  loadShortData,
+  type ShortData as ShortRows,
 } from '../lib/studyPanels';
 import { ThesisCard } from '../components/study/ThesisCard';
 import { ChevronRight, Lock } from 'lucide-react';
@@ -112,7 +117,18 @@ function TileBox({ label, children }: { label: string; children: React.ReactNode
 }
 
 /** Key tiles: the range, RSI 14 with its zones, the trend and the two averages. */
-function Summary({ data, s }: { data: StudyData; s: BarSummary }) {
+function Summary({
+  data,
+  s,
+  earnings,
+  short,
+}: {
+  data: StudyData;
+  s: BarSummary;
+  earnings: EarningsEstimate | null | undefined;
+  short: ShortRows | undefined;
+}) {
+  const si = short?.interest[0];
   const staleLine =
     data.lastCompletedDay && s.asOf < data.lastCompletedDay
       ? t.study.stale(s.asOf, data.lastCompletedDay)
@@ -125,7 +141,7 @@ function Summary({ data, s }: { data: StudyData; s: BarSummary }) {
       <h2 id="summary" className="sr-only">
         {t.study.summary}
       </h2>
-      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-4 tablet:gap-3">
+      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-3 tablet:gap-3">
         <TileBox label={t.study.range(s.rangeSessions)}>
           <div
             role="img"
@@ -184,6 +200,42 @@ function Summary({ data, s }: { data: StudyData; s: BarSummary }) {
               {s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}
             </span>
           </span>
+        </TileBox>
+        <TileBox label={ui.nextEarnings}>
+          {earnings === undefined ? (
+            <span className="text-sm text-muted">{t.loading}</span>
+          ) : earnings === null ? (
+            <span className="text-sm text-muted">{ui.noEarnings}</span>
+          ) : (
+            <>
+              <span className="text-lg font-bold text-white tabular-nums">{earnings.date}</span>
+              <span className="text-[0.6875rem] text-muted">
+                {ui.earningsRange(earnings.from, earnings.to)}
+              </span>
+              {earnings.overdue && (
+                <span className="text-[0.6875rem] text-warn">{ui.earningsOverdue}</span>
+              )}
+            </>
+          )}
+        </TileBox>
+        <TileBox label={ui.shortInterest}>
+          {short === undefined ? (
+            <span className="text-sm text-muted">{t.loading}</span>
+          ) : !si ? (
+            <span className="text-sm text-muted">{ui.noShort}</span>
+          ) : (
+            <>
+              <span className="text-lg font-bold text-white tabular-nums">
+                {ui.shortShares(toFixedHalfUp(si.shortInterest / 1e6, 1))}
+              </span>
+              <span className="text-[0.6875rem] text-muted">
+                {ui.shortSub(
+                  si.daysToCover === null ? null : toFixedHalfUp(si.daysToCover, 1),
+                  si.date,
+                )}
+              </span>
+            </>
+          )}
         </TileBox>
       </div>
       <p
@@ -422,6 +474,24 @@ export function StudyCompany() {
     queryFn: () => loadInsiders(cik as string),
     enabled: cik !== undefined,
   });
+  const shortQ = useQuery({
+    queryKey: ['short', ticker],
+    queryFn: () => loadShortData(ticker as string),
+    enabled: ticker !== null,
+  });
+  // Estimated from the stored results 8-Ks (item 2.02), like the Watch calendar; undefined while loading.
+  const earningsEstimate = useMemo(
+    () =>
+      results.data
+        ? estimateNextEarnings(
+            results.data.map((f) => f.filingDate),
+            etDate(new Date()),
+          )
+        : cik === undefined && q.data
+          ? null
+          : undefined,
+    [results.data, cik, q.data],
+  );
   const markers = useMemo(
     () =>
       q.data
@@ -568,7 +638,7 @@ export function StudyCompany() {
 
       {q.data && summary && (
         <>
-          <Summary data={q.data} s={summary} />
+          <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
           <Card
             id="chart"
             title={t.study.chart}

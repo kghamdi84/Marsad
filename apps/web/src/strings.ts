@@ -937,6 +937,22 @@ export const t = {
       rangeAria: (low: string, high: string, pos: string) =>
         `Range ${low} to ${high}; the last close sits at ${pos}% of it.`,
       chartRange: 'Chart range',
+      readout: (day: string, close: string) => `${day} \u00B7 ${close}`,
+      nextEarnings: 'Next earnings (estimated)',
+      earningsRange: (from: string, to: string) => `${from} to ${to}`,
+      earningsOverdue: 'Overdue: no newer results filing yet',
+      noEarnings: 'No results filings stored',
+      shortInterest: 'Short interest',
+      shortShares: (m: string) => `${m}M shares`,
+      shortSub: (days: string | null, date: string) =>
+        days === null ? `as of ${date}` : `${days} days to cover \u00B7 as of ${date}`,
+      noShort: 'Not stored for this ticker',
+      shariahChip: {
+        'passes-ratios': 'Within limits',
+        'fails-ratios': 'Over a limit',
+        unknown: 'Not checked',
+      } as Record<string, string>,
+      shariahPrefix: 'Shariah screening aid, not a ruling:',
       ranges: { '3m': '3M', '6m': '6M', '1y': '1Y' } as Record<string, string>,
       sections: 'Company sections',
       sectionNames: {
