@@ -43,7 +43,7 @@ export function Panel({ title, children }: { title: string; children: ReactNode 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col gap-4 bg-bg px-4 pt-[calc(env(safe-area-inset-top)+3rem)] pb-[calc(env(safe-area-inset-bottom)+2rem)] tablet:mt-16 tablet:min-h-0 tablet:rounded-2xl tablet:border tablet:border-line tablet:bg-surface tablet:p-6">
       <span className="flex flex-col leading-none">
-        <span lang="ar" dir="rtl" className="text-sm text-muted">
+        <span lang="ar" className="text-start text-sm text-muted">
           {t.shell.logoArabic}
         </span>
         <span className="text-[1.375rem] font-bold text-white">{t.appName}</span>

@@ -227,7 +227,7 @@ function TopTab({ tab }: { tab: Tab }) {
 function Logo() {
   return (
     <span className="flex flex-col leading-none">
-      <span lang="ar" dir="rtl" className="text-xs text-muted">
+      <span lang="ar" className="text-start text-xs text-muted">
         {s.logoArabic}
       </span>
       <span className="text-[19px] font-bold text-white">{t.appName}</span>

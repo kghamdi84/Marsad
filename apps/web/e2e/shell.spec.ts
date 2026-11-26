@@ -5,7 +5,7 @@ scanAfterEach();
 
 test('signed-out visitors see only the sign-in screen', async ({ page }) => {
   await page.goto('/status');
-  await expect(page.getByRole('heading', { name: 'Sign in to Marsad' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 });
@@ -19,9 +19,9 @@ test('requesting a sign-in link never asks Supabase to create a user', async ({ 
   await page.goto('/');
   await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
-  await expect(page.getByLabel('Sign-in link or code')).toBeVisible();
-  await expect(page.getByText('Tap Sign in in that email')).toBeVisible();
+  await page.getByRole('button', { name: 'Email me a link', exact: true }).click();
+  await expect(page.getByLabel('Link or code')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check your email', level: 1 })).toBeVisible();
   expect(body).toMatchObject({ email: 'owner@example.com', create_user: false });
   // Implicit flow: no code challenge, so the link works in whichever browser opens it.
   expect(body).toMatchObject({ code_challenge: null });
@@ -45,9 +45,9 @@ test('a rejected code shows the error text', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
-  await page.getByLabel('Sign-in link or code').fill('123456');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Email me a link', exact: true }).click();
+  await page.getByLabel('Link or code').fill('123456');
+  await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByRole('alert')).toContainText('expired');
 });
 
@@ -120,13 +120,13 @@ test('pasting the copied sign-in link verifies its token here', async ({ page })
   await page.goto('/');
   await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
+  await page.getByRole('button', { name: 'Email me a link', exact: true }).click();
   await page
-    .getByLabel('Sign-in link or code')
+    .getByLabel('Link or code')
     .fill(
       'https://e2e-test-project.supabase.co/auth/v1/verify?token=abc123hash&type=magiclink&redirect_to=https://marsad-k84.netlify.app/',
     );
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByRole('navigation').first()).toBeVisible();
   expect(verifyBody).toMatchObject({ token_hash: 'abc123hash', type: 'magiclink' });
 });
@@ -143,10 +143,10 @@ test('pasting something else says so without calling Supabase', async ({ page })
   await page.goto('/');
   await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByRole('button', { name: 'Email me a sign-in link', exact: true }).click();
-  await page.getByLabel('Sign-in link or code').fill('https://example.com/not-the-link');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('alert')).toContainText('not the sign-in link');
+  await page.getByRole('button', { name: 'Email me a link', exact: true }).click();
+  await page.getByLabel('Link or code').fill('https://example.com/not-the-link');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByRole('alert')).toContainText('Paste the whole link or the 6-digit code.');
   expect(verifyCalls).toBe(0);
 });
 
@@ -233,15 +233,15 @@ test('a friend creates an account with email and password and lands in the app (
   await page.goto('/');
   await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Email').fill('friend@example.com');
-  await page.getByLabel('Password (at least 10 characters)').fill('short');
+  await page.getByLabel('Password, at least 10 characters').fill('short');
   await page.getByLabel('Password again').fill('short');
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('alert')).toContainText('at least 10 characters');
+  await expect(page.getByRole('alert')).toContainText('Use at least 10 characters.');
   expect(body).toBeNull();
-  await page.getByLabel('Password (at least 10 characters)').fill('a long password');
+  await page.getByLabel('Password, at least 10 characters').fill('a long password');
   await page.getByLabel('Password again').fill('a long passwrd');
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('alert')).toContainText('different');
+  await expect(page.getByRole('alert')).toContainText('The two passwords differ.');
   await page.getByLabel('Password again').fill('a long password');
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('navigation').first()).toBeVisible();
@@ -263,8 +263,50 @@ test('creating an account with an email that exists says to sign in instead', as
   await page.goto('/');
   await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Email').fill('owner@example.com');
-  await page.getByLabel('Password (at least 10 characters)').fill('a long password');
+  await page.getByLabel('Password, at least 10 characters').fill('a long password');
   await page.getByLabel('Password again').fill('a long password');
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('alert')).toContainText('already exists');
+});
+
+test('the sign-in copy and errors match the design (Sign in, Create an account, link steps)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByText('New here? Friends of the owner can join as members.')).toBeVisible();
+  await expect(
+    page.getByText('Not investment advice. Prices are end of day unless marked Live.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Enter your email.');
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Enter your password.');
+  await page.getByRole('button', { name: 'Create an account' }).click();
+  await expect(page.getByRole('heading', { name: 'Create an account', level: 1 })).toBeVisible();
+  await expect(
+    page.getByText(
+      'Members see Watch, Study and Regime. Alerts, briefs and the journal stay with the owner.',
+    ),
+  ).toBeVisible();
+  await page.getByLabel('Password, at least 10 characters').fill('abcdef');
+  await expect(page.getByRole('img', { name: '6 of 10 characters' })).toBeVisible();
+  await page.getByRole('button', { name: 'I already have an account' }).click();
+  await page.getByRole('button', { name: 'Email me a sign-in link instead' }).click();
+  await expect(page.getByRole('heading', { name: 'Get a sign-in link', level: 1 })).toBeVisible();
+  await expect(
+    page.getByText('Only existing accounts get a link. New accounts need a password.').first(),
+  ).toBeAttached();
+  await page.getByRole('button', { name: 'Use my password' }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+});
+
+test('a sign-in service that does not answer shows the Unavailable banner', async ({ page }) => {
+  await page.route('**/auth/v1/token**', (r) => r.abort('failed'));
+  await page.goto('/');
+  await page.getByLabel('Email').fill('owner@example.com');
+  await page.getByLabel('Password').fill('correct horse battery');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Unavailable');
+  await expect(page.getByRole('alert')).toContainText('Sign-in service is not responding.');
 });

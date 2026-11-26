@@ -3,16 +3,25 @@
 @import '@fontsource/ibm-plex-sans/500.css';
 @import '@fontsource/ibm-plex-sans/600.css';
 @import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+@import '@fontsource/ibm-plex-sans-arabic/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
 
 @theme {
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   /* 760 px: the phone shell below, the top bar with every tab at and above (Claude Design handoff). */
   --breakpoint-tablet: 47.5rem;
+  /* 1280 px: the compact or the full top-bar cluster (Claude Design handoff). */
+  --breakpoint-wide: 80rem;
   /* Marsad navy palette (Claude Design, 2026-11-26). */
   --color-bg: #00123f;
   --color-surface: #001a57;
   --color-raised: #002475;
   --color-line: rgba(138, 153, 178, 0.22);
+  --color-line-soft: rgba(138, 153, 178, 0.14);
   --color-fg: #e8ecf3;
   --color-muted: #b7c1d2;
   --color-faint: #8a99b2;
@@ -22,6 +31,12 @@
   --color-warn: #f5d06f;
   --color-alarm: #ff6b70;
   --color-focus: #7fa8ff;
+  /* Filled toggles, checked boxes, earnings markers. */
+  --color-ink: #0033a0;
+  /* Critical priority badge, Stress, high-impact events: fill only, never text. */
+  --color-crit: #ed1c24;
+  /* EMA 20 line only. */
+  --color-ema: #c9a8ff;
 }
 
 html {
