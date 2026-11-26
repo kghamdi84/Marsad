@@ -190,6 +190,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Fixed while testing: the gauge showed the stored composite unrounded (41.88); it now rounds the same way as the full card (42).
 - Verified: ./init.sh passes; full Playwright 154 (148 run, phone tests once) with axe.
 
+### Redesign, step 6: Study (2026-11-26)
+
+- From Study.dc.html and Mobile-Study.dc.html. List: search first (filters as you type; Open looks up any ticker), then the starting stocks and benchmark ETFs as rows with a 30-session sparkline, close, day change and the estimated earnings date where the calendar job has one (one read for all sparklines).
+- Company page: a header with ticker, name, last close, change and a freshness badge (sticky on phones); key tiles for the 52-week range, RSI 14 with its 30 and 70 zones, the trend and the two averages; the chart card with 3M, 6M and 1Y (long averages still drawn from full history), indicator chips and a marker lane with lettered circles and a legend. Sections: tabs on iPad and desktop (Overview, Financials, Ownership, Filings and risk, News), accordions on phones with the overview open first; closed sections load nothing. Range, indicators and section are remembered in this browser.
+- Every Study panel now uses the card style and a pulsing placeholder while it loads.
+- Not built from the design yet: the short-interest and next-earnings tiles on the company page, the Shariah chip in the list, and touch-and-hold crosshair on the chart.
+- Verified: ./init.sh passes; full Playwright 156 with axe; Study tests open the right section first; new phone test for the accordions.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

@@ -53,11 +53,14 @@ export default function PriceChart({
   markers,
   toggles,
   height = 420,
+  visibleSessions,
 }: {
   bars: readonly DailyBar[];
   markers: readonly ChartMarker[];
   toggles: ChartToggles;
   height?: number;
+  /** Show only the newest sessions (the rest stay loaded, so long averages are drawn from full history). */
+  visibleSessions?: number;
 }) {
   const host = useRef<HTMLDivElement>(null);
 
@@ -183,8 +186,13 @@ export default function PriceChart({
     createSeriesMarkers(candles, placed);
 
     chart.timeScale().fitContent();
+    if (visibleSessions && bars.length > visibleSessions)
+      chart.timeScale().setVisibleLogicalRange({
+        from: bars.length - visibleSessions,
+        to: bars.length - 0.5,
+      });
     return () => chart.remove();
-  }, [bars, markers, toggles, height]);
+  }, [bars, markers, toggles, height, visibleSessions]);
 
   return <div ref={host} className="w-full" style={{ minHeight: height }} />;
 }

@@ -196,3 +196,24 @@ export function useWide(): boolean {
   }, []);
   return wide;
 }
+
+/** A choice remembered in this browser only; storage can be missing or blocked, so every access is guarded. */
+export function useRemembered<K extends string>(key: string, allowed: readonly K[], fallback: K) {
+  const [v, setV] = useState<K>(() => {
+    try {
+      const s = localStorage.getItem(key);
+      return s && (allowed as readonly string[]).includes(s) ? (s as K) : fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  const set = (k: K) => {
+    setV(k);
+    try {
+      localStorage.setItem(key, k);
+    } catch {
+      // Not remembered; the choice still applies to this visit.
+    }
+  };
+  return [v, set] as const;
+}

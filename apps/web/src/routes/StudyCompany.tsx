@@ -34,6 +34,16 @@ import {
   loadInsiders,
 } from '../lib/studyPanels';
 import { ThesisCard } from '../components/study/ThesisCard';
+import { ChevronRight, Lock } from 'lucide-react';
+import {
+  Card,
+  Segmented,
+  SkeletonCards,
+  cardClass,
+  useRemembered,
+  useWide,
+} from '../components/Card';
+import { panelTitle } from '../components/study/Panel';
 import { t } from '../strings';
 
 const PriceChart = lazy(() => import('../components/PriceChart'));
@@ -43,66 +53,244 @@ const td = 'border-b border-line px-2 py-2 align-top';
 const money = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const ui = t.study.ui;
+
+/** The header: ticker, name, last close with its change, and whether the newest session is stored. */
+function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSummary | null }) {
+  const stale = !!s && !!data.lastCompletedDay && s.asOf < data.lastCompletedDay;
+  const change = s?.changePct ?? null;
+  const arrow = change === null ? '' : change > 0 ? '\u25B2' : change < 0 ? '\u25BC' : '';
+  const tint =
+    change === null
+      ? ''
+      : change > 0
+        ? 'bg-up/15 text-up'
+        : change < 0
+          ? 'bg-down/15 text-down'
+          : '';
+  return (
+    <header className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur tablet:static tablet:mx-0 tablet:rounded-xl tablet:border-0 tablet:bg-raised tablet:p-5 tablet:backdrop-blur-none">
+      <div className="flex min-w-0 flex-col">
+        <h1 className="text-[1.75rem] leading-tight font-bold text-white">{ticker}</h1>
+        {data.company?.name && (
+          <span className="truncate text-sm text-muted">{data.company.name}</span>
+        )}
+      </div>
+      {s && (
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[1.375rem] font-bold text-white tabular-nums">
+            ${money(s.lastClose)}
+          </span>
+          <span className="flex items-center gap-2">
+            <span className={`rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums ${tint}`}>
+              {change === null
+                ? t.study.unavailable
+                : `${arrow} ${change > 0 ? '+' : ''}${change.toFixed(2)}%`}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                stale ? 'bg-warn/15 text-warn' : 'bg-muted/15 text-fg'
+              }`}
+            >
+              {stale ? ui.staleBadge : ui.endOfDay}
+            </span>
+          </span>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function TileBox({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-line bg-surface p-3 tablet:p-3.5">
+      <span className="text-xs text-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Key tiles: the range, RSI 14 with its zones, the trend and the two averages. */
 function Summary({ data, s }: { data: StudyData; s: BarSummary }) {
   const staleLine =
     data.lastCompletedDay && s.asOf < data.lastCompletedDay
       ? t.study.stale(s.asOf, data.lastCompletedDay)
       : t.study.current;
-  const change = s.changePct;
-  const arrow = change === null ? '' : change > 0 ? '▲' : change < 0 ? '▼' : '';
+  const span = s.high52w - s.low52w;
+  const pos = span > 0 ? Math.min(1, Math.max(0, (s.lastClose - s.low52w) / span)) : 0.5;
+  const posPct = (pos * 100).toFixed(0);
   return (
     <section aria-labelledby="summary" className="flex flex-col gap-2">
-      <h2 id="summary" className="font-semibold">
+      <h2 id="summary" className="sr-only">
         {t.study.summary}
       </h2>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-        <div>
-          <dt className="text-muted">{t.study.lastClose}</dt>
-          <dd className="text-lg font-medium">${money(s.lastClose)}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.change}</dt>
-          <dd
-            className={`text-lg font-medium ${change !== null && change < 0 ? 'text-down' : 'text-up'}`}
+      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-4 tablet:gap-3">
+        <TileBox label={t.study.range(s.rangeSessions)}>
+          <div
+            role="img"
+            aria-label={ui.rangeAria(`$${money(s.low52w)}`, `$${money(s.high52w)}`, posPct)}
+            className="relative mt-1 h-1.5 rounded-full bg-gradient-to-r from-down/55 to-up/60"
           >
-            {change === null
-              ? t.study.unavailable
-              : `${arrow} ${change > 0 ? '+' : ''}${change.toFixed(2)}%`}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.range(s.rangeSessions)}</dt>
-          <dd className="text-lg font-medium">
-            ${money(s.low52w)} to ${money(s.high52w)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.trend}</dt>
-          <dd>{t.study.trendLabels[s.trend]}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.rsi}</dt>
-          <dd>{s.rsi14 === null ? t.study.unavailable : s.rsi14.toFixed(1)}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.sma50}</dt>
-          <dd>{s.sma50 === null ? t.study.unavailable : `$${money(s.sma50)}`}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">{t.study.sma200}</dt>
-          <dd>{s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}</dd>
-        </div>
-      </dl>
+            <span
+              className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-white"
+              style={{ insetInlineStart: `${posPct}%` }}
+            />
+          </div>
+          <span className="flex justify-between text-[0.8125rem] text-fg tabular-nums">
+            <span>${money(s.low52w)}</span>
+            <span>${money(s.high52w)}</span>
+          </span>
+        </TileBox>
+        <TileBox label={t.study.rsi}>
+          {s.rsi14 === null ? (
+            <span className="text-sm text-muted">{t.study.unavailable}</span>
+          ) : (
+            <>
+              <span className="text-xl font-bold text-white tabular-nums">
+                {s.rsi14.toFixed(1)}
+              </span>
+              <div
+                role="img"
+                aria-label={ui.rsiAria(s.rsi14.toFixed(1))}
+                className="relative h-1.5 rounded-full bg-faint/20"
+              >
+                <span className="absolute inset-y-0 start-0 w-[30%] rounded-s-full bg-up/35" />
+                <span className="absolute inset-y-0 end-0 w-[30%] rounded-e-full bg-down/35" />
+                <span
+                  className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-white"
+                  style={{ insetInlineStart: `${Math.min(100, Math.max(0, s.rsi14)).toFixed(1)}%` }}
+                />
+              </div>
+              <span className="text-[0.6875rem] text-muted">{ui.rsiZones}</span>
+            </>
+          )}
+        </TileBox>
+        <TileBox label={t.study.trend}>
+          <span className="text-sm leading-snug font-semibold text-white">
+            {t.study.trendLabels[s.trend]}
+          </span>
+        </TileBox>
+        <TileBox label={ui.averages}>
+          <span className="flex justify-between gap-2 text-sm">
+            <span className="text-muted">{t.study.sma50}</span>
+            <span className="text-white tabular-nums">
+              {s.sma50 === null ? t.study.unavailable : `$${money(s.sma50)}`}
+            </span>
+          </span>
+          <span className="flex justify-between gap-2 text-sm">
+            <span className="text-muted">{t.study.sma200}</span>
+            <span className="text-white tabular-nums">
+              {s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}
+            </span>
+          </span>
+        </TileBox>
+      </div>
       <p
-        className={staleLine === t.study.current ? 'text-sm text-muted' : 'text-sm text-down'}
+        className={staleLine === t.study.current ? 'text-xs text-muted' : 'text-sm text-warn'}
         role="status"
       >
         {staleLine}
       </p>
-      <p className="text-sm text-muted">
+      <p className="text-xs text-muted">
         {t.study.provenance(s.asOf, s.sessions, s.formulaVersion)}
       </p>
     </section>
+  );
+}
+
+const RANGES = ['3m', '6m', '1y'] as const;
+type Range = (typeof RANGES)[number];
+const RANGE_SESSIONS: Record<Range, number> = { '3m': 63, '6m': 126, '1y': 252 };
+
+const SECTIONS = ['overview', 'financials', 'ownership', 'filings', 'news'] as const;
+type SectionKey = (typeof SECTIONS)[number];
+
+/** Tablet and desktop: one section at a time behind accessible tabs (arrow keys move between them). */
+function SectionTabs({
+  value,
+  onChange,
+  render,
+}: {
+  value: SectionKey;
+  onChange: (k: SectionKey) => void;
+  render: (k: SectionKey) => React.ReactNode;
+}) {
+  const move = (dir: number) => {
+    const i = SECTIONS.indexOf(value);
+    const next = SECTIONS[(i + dir + SECTIONS.length) % SECTIONS.length] as SectionKey;
+    onChange(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        role="tablist"
+        aria-label={ui.sections}
+        className="flex gap-1 overflow-x-auto border-b border-line"
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') move(1);
+          if (e.key === 'ArrowLeft') move(-1);
+        }}
+      >
+        {SECTIONS.map((k) => (
+          <button
+            key={k}
+            id={`tab-${k}`}
+            type="button"
+            role="tab"
+            aria-selected={k === value}
+            aria-controls={`tabpanel-${k}`}
+            tabIndex={k === value ? 0 : -1}
+            onClick={() => onChange(k)}
+            className={`min-h-11 border-b-2 px-3 text-sm whitespace-nowrap ${
+              k === value
+                ? 'border-up font-semibold text-white'
+                : 'border-transparent text-muted hover:text-fg'
+            }`}
+          >
+            {ui.sectionNames[k]}
+          </button>
+        ))}
+      </div>
+      <div
+        id={`tabpanel-${value}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${value}`}
+        className="flex flex-col gap-4"
+      >
+        {render(value)}
+      </div>
+    </div>
+  );
+}
+
+/** Phones: every section as a collapsible block, the overview open first; closed ones load nothing. */
+function SectionAccordions({ render }: { render: (k: SectionKey) => React.ReactNode }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({ overview: true });
+  return (
+    <div className="flex flex-col gap-3">
+      {SECTIONS.map((k) => (
+        <details
+          key={k}
+          open={!!open[k]}
+          onToggle={(e) => {
+            const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+            setOpen((o) => (o[k] === isOpen ? o : { ...o, [k]: isOpen }));
+          }}
+          className="group rounded-2xl border border-line bg-surface"
+        >
+          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-white select-none">
+            {ui.sectionNames[k]}
+            <ChevronRight
+              aria-hidden="true"
+              size={18}
+              className="text-muted transition-transform group-open:rotate-90 motion-reduce:transition-none"
+            />
+          </summary>
+          {open[k] && <div className="flex flex-col gap-3 p-2 pt-0">{render(k)}</div>}
+        </details>
+      ))}
+    </div>
   );
 }
 
@@ -200,10 +388,43 @@ const defaultToggles: ChartToggles = {
   volume: true,
 };
 
+/** The indicator toggles, remembered in this browser only (storage may be blocked, so every access is guarded). */
+function useStoredToggles() {
+  const key = 'marsad.study.toggles';
+  const [v, setV] = useState<ChartToggles>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? (JSON.parse(raw) as Partial<ChartToggles>) : {};
+      const out = { ...defaultToggles };
+      for (const k of Object.keys(out) as (keyof ChartToggles)[])
+        if (typeof parsed[k] === 'boolean') out[k] = parsed[k];
+      return out;
+    } catch {
+      return defaultToggles;
+    }
+  });
+  const set = (next: ChartToggles) => {
+    setV(next);
+    try {
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // Not remembered; the choice still applies to this visit.
+    }
+  };
+  return [v, set] as const;
+}
+
 export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
-  const [toggles, setToggles] = useState<ChartToggles>(defaultToggles);
+  const [toggles, setToggles] = useStoredToggles();
+  const [range, setRange] = useRemembered<Range>('marsad.study.range', RANGES, '1y');
+  const [section, setSection] = useRemembered<SectionKey>(
+    'marsad.study.section',
+    SECTIONS,
+    'overview',
+  );
+  const wide = useWide();
   const q = useQuery({
     queryKey: ['study', ticker],
     queryFn: () => loadStudy(ticker as string),
@@ -277,129 +498,192 @@ export function StudyCompany() {
       </p>
     );
 
-  const toggle = (k: keyof ChartToggles, label: string) => (
-    <label key={k} className="flex min-h-11 items-center gap-2">
-      <input
-        type="checkbox"
-        className="size-5"
-        checked={toggles[k]}
-        onChange={(e) => setToggles({ ...toggles, [k]: e.target.checked })}
-      />
+  const chip = (k: keyof ChartToggles, label: string) => (
+    <button
+      key={k}
+      type="button"
+      aria-pressed={toggles[k]}
+      onClick={() => setToggles({ ...toggles, [k]: !toggles[k] })}
+      className={`min-h-11 rounded-full border px-3 text-sm ${
+        toggles[k] ? 'border-up/60 bg-up/15 font-semibold text-white' : 'border-line text-muted'
+      }`}
+    >
       {label}
-    </label>
+    </button>
   );
 
-  return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-6">
-      <div>
-        <Link
-          to="/study"
-          className="inline-flex min-h-11 items-center text-sm text-muted underline underline-offset-4"
-        >
-          {t.study.back}
-        </Link>
-        <h1 className="text-xl font-semibold">
-          {ticker}
-          {q.data?.company?.name ? (
-            <span className="ms-2 font-normal text-muted">{q.data.company.name}</span>
-          ) : null}
-        </h1>
-      </div>
+  const render = (k: SectionKey): React.ReactNode => {
+    if (!q.data) return null;
+    const cikOf = q.data.company?.cik;
+    switch (k) {
+      case 'overview':
+        return (
+          <>
+            <ThesisCard ticker={q.data.ticker} />
+            {cikOf && <Business cik={cikOf} />}
+            <section aria-labelledby="more" className={`${cardClass} gap-3!`}>
+              <h2 id="more" className={panelTitle}>
+                {t.study.placeholdersTitle}
+              </h2>
+              <ul className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
+                {t.study.placeholders.map((p) => (
+                  <li
+                    key={p.name}
+                    className="flex gap-3 rounded-xl border border-dashed border-line p-3"
+                  >
+                    <Lock aria-hidden="true" size={18} className="mt-0.5 flex-none text-muted" />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-medium text-white">{p.name}</span>
+                      <span className="text-sm">
+                        <span className="font-medium">{p.state}.</span>{' '}
+                        <span className="text-muted">{p.why}</span>
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </>
+        );
+      case 'financials':
+        return (
+          <>
+            {cikOf && <Financials cik={cikOf} bars={q.data.bars} />}
+            {cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}
+            <Dividends rows={dividends.data ?? []} />
+          </>
+        );
+      case 'ownership':
+        return (
+          <>
+            {cikOf && <Holders13F ticker={q.data.ticker} />}
+            {cikOf && <Insiders cik={cikOf} />}
+            <ShortData ticker={q.data.ticker} />
+          </>
+        );
+      case 'filings':
+        return (
+          <>
+            <section aria-labelledby="filings" className={`${cardClass} gap-3!`}>
+              <h2 id="filings" className={panelTitle}>
+                {t.study.filings}
+              </h2>
+              <p className="text-sm text-muted">{t.study.filingsNote}</p>
+              <FilingsTable data={q.data} />
+            </section>
+            {cikOf && <RiskFactors cik={cikOf} />}
+            {cikOf && <QuarterlyRiskFactors cik={cikOf} />}
+          </>
+        );
+      case 'news':
+        return <NewsPanel ticker={q.data.ticker} />;
+    }
+  };
 
-      {q.isPending && <p className="text-muted">{t.loading}</p>}
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-4">
+      <Link
+        to="/study"
+        className="inline-flex min-h-11 items-center self-start text-sm text-muted underline underline-offset-4"
+      >
+        {t.study.back}
+      </Link>
+
+      {!q.data && <h1 className="text-[1.75rem] font-bold text-white">{ticker}</h1>}
+      {q.isPending && <SkeletonCards heights={['6rem', '7rem', '22rem']} />}
       {q.isError && (
         <p role="alert" className="text-down">
           {q.error.message}
         </p>
       )}
 
+      {q.data && <Header ticker={ticker} data={q.data} s={summary} />}
       {q.data && !q.data.company && <p className="text-sm text-muted">{t.study.noCompany}</p>}
       {q.data && q.data.bars.length === 0 && <p className="text-muted">{t.study.noBars}</p>}
 
       {q.data && summary && (
         <>
           <Summary data={q.data} s={summary} />
-          <section aria-labelledby="chart" className="flex flex-col gap-2">
-            <h2 id="chart" className="font-semibold">
-              {t.study.chart}
-            </h2>
-            <fieldset className="flex flex-wrap gap-x-4">
-              <legend className="text-sm text-muted">{t.study.indicators}</legend>
-              {toggle('sma50', t.study.sma50)}
-              {toggle('sma200', t.study.sma200)}
-              {toggle('ema20', t.study.ema20)}
-              {toggle('rsi', t.study.rsi)}
-              {toggle('volume', t.study.volume)}
-            </fieldset>
+          <Card
+            id="chart"
+            title={t.study.chart}
+            aside={
+              <Segmented
+                label={ui.chartRange}
+                options={RANGES.map((k) => ({ key: k, label: ui.ranges[k] ?? k }))}
+                value={range}
+                onChange={setRange}
+              />
+            }
+          >
+            <div role="group" aria-label={t.study.indicators} className="flex flex-wrap gap-2">
+              {chip('sma50', t.study.sma50)}
+              {chip('sma200', t.study.sma200)}
+              {chip('ema20', t.study.ema20)}
+              {chip('rsi', t.study.rsi)}
+              {chip('volume', t.study.volume)}
+            </div>
             <div
               role="figure"
               aria-label={t.study.chartLabel(ticker, summary.asOf)}
-              className="rounded-sm border border-line"
+              className="overflow-hidden rounded-lg"
             >
-              <Suspense fallback={<p className="p-4 text-muted">{t.loading}</p>}>
-                <PriceChart bars={q.data.bars} markers={markers} toggles={toggles} />
+              <Suspense fallback={<SkeletonCards heights={[wide ? '360px' : '260px']} />}>
+                <PriceChart
+                  bars={q.data.bars}
+                  markers={markers}
+                  toggles={toggles}
+                  height={wide ? 360 : 260}
+                  visibleSessions={RANGE_SESSIONS[range]}
+                />
               </Suspense>
             </div>
-            <h3 className="text-sm text-muted">{t.study.markers}</h3>
-            <p className="text-sm text-muted">{t.study.markersNote}</p>
-            {markers.length === 0 ? (
-              <p className="text-sm text-muted">{t.study.noMarkers}</p>
-            ) : (
-              <ul className="text-sm">
-                {markers.map((m) => (
-                  <li key={`${m.date}-${m.label}`}>
-                    {m.date}: {m.label}
-                    {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            <div className="flex flex-col gap-2">
+              <h3 className="text-[0.9375rem] font-semibold text-white">{t.study.markers}</h3>
+              <p className="text-xs text-muted">{t.study.markersNote}</p>
+              {markers.length === 0 ? (
+                <p className="text-sm text-muted">{t.study.noMarkers}</p>
+              ) : (
+                <>
+                  <ul className="flex max-h-72 flex-col overflow-y-auto">
+                    {[...markers].reverse().map((m) => (
+                      <li
+                        key={`${m.date}-${m.label}`}
+                        className="flex min-h-11 items-center gap-3 border-b border-line/60 py-1.5 text-sm last:border-0"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`flex size-8 flex-none items-center justify-center rounded-full text-xs font-bold ${
+                            m.materiality === 'high'
+                              ? 'bg-warn/20 text-warn'
+                              : m.kind === 'halt'
+                                ? 'bg-down/20 text-down'
+                                : 'bg-up/15 text-up'
+                          }`}
+                        >
+                          {ui.markerLetters[m.kind] ?? '?'}
+                        </span>
+                        <span>
+                          {m.date}: {m.label}
+                          {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted">{ui.markerLegend}</p>
+                </>
+              )}
+            </div>
+          </Card>
         </>
       )}
 
-      {q.data && (
-        <section aria-labelledby="filings" className="flex flex-col gap-2">
-          <h2 id="filings" className="font-semibold">
-            {t.study.filings}
-          </h2>
-          <p className="text-sm text-muted">{t.study.filingsNote}</p>
-          <FilingsTable data={q.data} />
-        </section>
-      )}
-
-      {q.data && <ThesisCard ticker={q.data.ticker} />}
-      {q.data?.company && <Financials cik={q.data.company.cik} bars={q.data.bars} />}
-      {q.data?.company && <Business cik={q.data.company.cik} />}
-      {q.data?.company && <RiskFactors cik={q.data.company.cik} />}
-      {q.data?.company && <QuarterlyRiskFactors cik={q.data.company.cik} />}
-      {q.data?.company && <Holders13F ticker={q.data.ticker} />}
-      {q.data?.company && (
-        <Earnings cik={q.data.company.cik} bars={q.data.bars} splits={q.data.splits} />
-      )}
-      {q.data?.company && <Insiders cik={q.data.company.cik} />}
-      {q.data && <ShortData ticker={q.data.ticker} />}
-      {q.data && <NewsPanel ticker={q.data.ticker} />}
-      {q.data && <Dividends rows={dividends.data ?? []} />}
-
-      {q.data && (
-        <section aria-labelledby="more" className="flex flex-col gap-2">
-          <h2 id="more" className="font-semibold">
-            {t.study.placeholdersTitle}
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {t.study.placeholders.map((p) => (
-              <li key={p.name} className="rounded-sm border border-line p-3">
-                <p className="font-medium">{p.name}</p>
-                <p className="text-sm">
-                  <span className="font-medium">{p.state}.</span>{' '}
-                  <span className="text-muted">{p.why}</span>
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </section>
+      {q.data &&
+        (wide ? (
+          <SectionTabs value={section} onChange={setSection} render={render} />
+        ) : (
+          <SectionAccordions render={render} />
+        ))}
+    </div>
   );
 }

@@ -4,7 +4,9 @@ import { diffRiskFactors } from '@marsad/core';
 import { ErrorText } from '../ui';
 import { loadQuarterlySections } from '../../lib/studyPanels';
 import { Result } from './RiskFactors';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
+import { panelTitle } from './Panel';
 
 const k = t.study.quarterly;
 
@@ -56,8 +58,8 @@ function Body({ cik }: { cik: string }) {
 export function QuarterlyRiskFactors({ cik }: { cik: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section aria-labelledby="quarterly" className="flex flex-col gap-2">
-      <h2 id="quarterly" className="font-semibold">
+    <section aria-labelledby="quarterly" className={`${cardClass} gap-3!`}>
+      <h2 id="quarterly" className={panelTitle}>
         {k.title}
       </h2>
       <p className="text-sm text-muted">{k.intro}</p>

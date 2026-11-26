@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lines, validateThesis, type ThesisDraft, type ThesisStatus } from '@marsad/core';
 import { Button, ErrorText } from '../ui';
 import { loadTheses, saveThesis, type ThesisVersion } from '../../lib/thesis';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
+import { panelTitle } from './Panel';
 
 const x = t.study.thesis;
 const area = 'rounded-sm border border-line bg-bg p-2 text-sm text-fg';
@@ -147,8 +149,8 @@ export function ThesisCard({ ticker }: { ticker: string }) {
   const [saved, setSaved] = useState(false);
   const [latest, ...older] = q.data ?? [];
   return (
-    <section aria-labelledby="thesis" className="flex flex-col gap-3">
-      <h2 id="thesis" className="font-semibold">
+    <section aria-labelledby="thesis" className={`${cardClass} gap-3!`}>
+      <h2 id="thesis" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>

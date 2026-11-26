@@ -1,6 +1,27 @@
 import type { ReactNode } from 'react';
 import { formatFactValue, type Metric } from '@marsad/core';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
+
+/** The title style every Study panel shares. */
+export const panelTitle = 'text-[17px] font-semibold text-white';
+
+/** A pulsing placeholder while a panel loads; the text says Loading for screen readers. */
+export function LoadingBar() {
+  return (
+    <div aria-busy="true" className="flex flex-col gap-2">
+      <span className="sr-only">{t.loading}</span>
+      <span
+        aria-hidden="true"
+        className="h-4 w-2/5 animate-pulse rounded-md bg-muted/15 motion-reduce:animate-none"
+      />
+      <span
+        aria-hidden="true"
+        className="h-16 animate-pulse rounded-lg bg-muted/10 motion-reduce:animate-none"
+      />
+    </div>
+  );
+}
 
 export const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
 export const td = 'border-b border-line px-2 py-2 align-top';
@@ -21,11 +42,11 @@ export function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2">
-      <h2 id={id} className="font-semibold">
+    <section aria-labelledby={id} className={`${cardClass} gap-3!`}>
+      <h2 id={id} className={panelTitle}>
         {title}
       </h2>
-      {state.isPending && <p className="text-muted">{t.loading}</p>}
+      {state.isPending && <LoadingBar />}
       {state.isError && (
         <p role="alert" className="text-down">
           {t.study.panelError(title, state.error?.message ?? '')}
