@@ -39,6 +39,7 @@ import {
   Card,
   Segmented,
   SkeletonCards,
+  Tabs,
   cardClass,
   useRemembered,
   useWide,
@@ -205,7 +206,7 @@ const RANGE_SESSIONS: Record<Range, number> = { '3m': 63, '6m': 126, '1y': 252 }
 const SECTIONS = ['overview', 'financials', 'ownership', 'filings', 'news'] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
-/** Tablet and desktop: one section at a time behind accessible tabs (arrow keys move between them). */
+/** Tablet and desktop: one section at a time behind accessible tabs. */
 function SectionTabs({
   value,
   onChange,
@@ -215,52 +216,16 @@ function SectionTabs({
   onChange: (k: SectionKey) => void;
   render: (k: SectionKey) => React.ReactNode;
 }) {
-  const move = (dir: number) => {
-    const i = SECTIONS.indexOf(value);
-    const next = SECTIONS[(i + dir + SECTIONS.length) % SECTIONS.length] as SectionKey;
-    onChange(next);
-    document.getElementById(`tab-${next}`)?.focus();
-  };
   return (
-    <div className="flex flex-col gap-4">
-      <div
-        role="tablist"
-        aria-label={ui.sections}
-        className="flex gap-1 overflow-x-auto border-b border-line"
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') move(1);
-          if (e.key === 'ArrowLeft') move(-1);
-        }}
-      >
-        {SECTIONS.map((k) => (
-          <button
-            key={k}
-            id={`tab-${k}`}
-            type="button"
-            role="tab"
-            aria-selected={k === value}
-            aria-controls={`tabpanel-${k}`}
-            tabIndex={k === value ? 0 : -1}
-            onClick={() => onChange(k)}
-            className={`min-h-11 border-b-2 px-3 text-sm whitespace-nowrap ${
-              k === value
-                ? 'border-up font-semibold text-white'
-                : 'border-transparent text-muted hover:text-fg'
-            }`}
-          >
-            {ui.sectionNames[k]}
-          </button>
-        ))}
-      </div>
-      <div
-        id={`tabpanel-${value}`}
-        role="tabpanel"
-        aria-labelledby={`tab-${value}`}
-        className="flex flex-col gap-4"
-      >
-        {render(value)}
-      </div>
-    </div>
+    <Tabs
+      label={ui.sections}
+      idPrefix="study"
+      options={SECTIONS.map((k) => ({ key: k, label: ui.sectionNames[k] ?? k }))}
+      value={value}
+      onChange={onChange}
+    >
+      {render(value)}
+    </Tabs>
   );
 }
 

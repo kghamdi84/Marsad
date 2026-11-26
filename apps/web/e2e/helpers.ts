@@ -92,3 +92,8 @@ export async function openSection(
 ) {
   await page.getByRole('tab', { name }).click();
 }
+
+/** Opens a tab by its name on pages that show one section at a time (Journal, Lab). */
+export async function openTab(page: Page, name: string) {
+  await page.getByRole('tab', { name, exact: true }).click();
+}

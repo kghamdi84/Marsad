@@ -567,5 +567,9 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeHidden();
     await page.locator('summary', { hasText: 'Geopolitical panel' }).click();
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeVisible();
+    // The page never scrolls sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
   });
 });

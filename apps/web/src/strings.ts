@@ -226,6 +226,30 @@ export const t = {
     title: 'Journal',
     intro:
       'Size a trade before you place it in Sahm, and keep every holding\u2019s exit conditions in view. Marsad never places orders; holding is never the default.',
+    ui: {
+      kpis: 'Portfolio at a glance',
+      value: 'Portfolio value',
+      gain: 'Open gain',
+      gainSub: (pct: string) => `${pct} on cost`,
+      beta: 'Beta to SPY',
+      attention: 'Needs attention',
+      attentionSub: 'exit hit or no exit rules',
+      unpriced: (n: number) => `${n} without a stored price, left out`,
+      tabsLabel: 'Journal sections',
+      tabs: {
+        positions: 'Positions',
+        trade: 'New trade',
+        options: 'Options',
+        exposure: 'Exposure',
+        trades: 'Trades',
+        review: 'Weekly review',
+      } as Record<string, string>,
+      barAria: (stop: string, now: string, targets: string) =>
+        `Stop ${stop}, now ${now}, targets ${targets}.`,
+      barStop: 'Stop',
+      barNow: 'Now',
+      barTarget: 'Target',
+    },
     sizer: {
       title: 'Pre-trade checklist and position sizer',
       ticker: 'Ticker',

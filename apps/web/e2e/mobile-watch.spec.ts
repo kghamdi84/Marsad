@@ -75,4 +75,6 @@ test('phone watch: list rows expand, movers and gaps share one card', async ({ p
   await expect(mg.getByRole('row', { name: /DN1/ })).toContainText('-8.0%');
   await mg.getByRole('button', { name: 'Gaps' }).click();
   await expect(mg.getByRole('row').first()).toContainText('+2.50%');
+  // The page never scrolls sideways on a phone.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

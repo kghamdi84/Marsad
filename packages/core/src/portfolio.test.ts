@@ -7,6 +7,7 @@ import {
   positionSize,
   rewardRisk,
   sahmTicket,
+  portfolioTotals,
   unrealized,
   type Holding,
 } from './portfolio.js';
@@ -169,5 +170,31 @@ describe('exitSignals (hand-checked)', () => {
   });
   it('unrealized result', () => {
     expect(unrealized({ shares: 100, costBasis: 24 }, 27)).toEqual({ usd: 300, pct: 27 / 24 - 1 });
+  });
+});
+
+describe('portfolioTotals (hand-checked)', () => {
+  it('sums value and cost of priced holdings and lists the rest', () => {
+    // 10 RKLB bought at 20, now 25 (value 250, cost 200); 4 SOFI bought at 10, now 8 (value 32, cost 40);
+    // HOOD has no price. Value 282, cost 240, gain 42, gain on cost 42 / 240 = 17.5%.
+    const prices: Record<string, number> = { RKLB: 25, SOFI: 8 };
+    const r = portfolioTotals(
+      [
+        { ticker: 'RKLB', shares: 10, costBasis: 20 },
+        { ticker: 'SOFI', shares: 4, costBasis: 10 },
+        { ticker: 'HOOD', shares: 3, costBasis: 30 },
+      ],
+      (t) => prices[t] ?? null,
+    );
+    expect(r.value).toBe(282);
+    expect(r.cost).toBe(240);
+    expect(r.gainUsd).toBe(42);
+    expect(r.gainPct).toBeCloseTo(0.175, 12);
+    expect(r.unpriced).toEqual(['HOOD']);
+  });
+
+  it('gives no percentage when nothing is priced', () => {
+    const r = portfolioTotals([{ ticker: 'X', shares: 1, costBasis: 5 }], () => null);
+    expect(r).toMatchObject({ value: 0, cost: 0, gainUsd: 0, gainPct: null, unpriced: ['X'] });
   });
 });

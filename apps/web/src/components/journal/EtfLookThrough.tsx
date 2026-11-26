@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { etfOverlap, lookThrough, toFixedHalfUp } from '@marsad/core';
 import { ErrorText } from '../ui';
-import { num, td, th, thNum } from '../study/Panel';
+import { num, td, th, thNum, panelTitle } from '../study/Panel';
 import { loadEtfHoldings } from '../../lib/etf';
 import type { BarsByTicker, StoredHolding } from '../../lib/journal';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
 
 const x = t.journal.etf;
@@ -43,8 +44,8 @@ export function EtfLookThrough({
     })),
   );
   return (
-    <section aria-labelledby="etf-look-through" className="flex flex-col gap-3">
-      <h2 id="etf-look-through" className="font-semibold">
+    <section aria-labelledby="etf-look-through" className={`${cardClass} gap-3!`}>
+      <h2 id="etf-look-through" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>

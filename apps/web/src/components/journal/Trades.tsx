@@ -17,8 +17,9 @@ import {
   type JournalTrade,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../ui';
-import { num, td, th, thNum } from '../study/Panel';
+import { num, td, th, thNum, panelTitle } from '../study/Panel';
 import { addScreenshot, addTrade, closeTrade, loadTrades, screenshotUrl } from '../../lib/journal';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
 
 const x = t.journal.trades;
@@ -346,8 +347,8 @@ export function Trades() {
   const vs = q.data ? adherenceVsResult(q.data.trades) : null;
   const r2 = (v: number | null) => (v === null ? '–' : signed(v, 'R'));
   return (
-    <section aria-labelledby="trades" className="flex flex-col gap-3">
-      <h2 id="trades" className="font-semibold">
+    <section aria-labelledby="trades" className={`${cardClass} gap-3!`}>
+      <h2 id="trades" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>

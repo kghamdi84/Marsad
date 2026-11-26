@@ -222,6 +222,44 @@ export function exitSignals(h: Holding, bars: readonly DailyBar[]): ExitSignal[]
 }
 
 /** Unrealized result of a holding at a price: USD and fraction. */
+export interface PortfolioTotals {
+  /** Market value of the holdings that have a price. */
+  value: number;
+  /** What those holdings cost. */
+  cost: number;
+  gainUsd: number;
+  /** Gain on cost; null when nothing is priced. */
+  gainPct: number | null;
+  /** Holdings left out because no price is stored. */
+  unpriced: string[];
+}
+
+/** Value, cost and open gain of the holdings, from each ticker's last close. Unpriced holdings are listed, not guessed. */
+export function portfolioTotals(
+  holdings: readonly Pick<Holding, 'ticker' | 'shares' | 'costBasis'>[],
+  lastClose: (ticker: string) => number | null,
+): PortfolioTotals {
+  let value = 0;
+  let cost = 0;
+  const unpriced: string[] = [];
+  for (const h of holdings) {
+    const p = lastClose(h.ticker);
+    if (p === null) {
+      unpriced.push(h.ticker);
+      continue;
+    }
+    value += p * h.shares;
+    cost += h.costBasis * h.shares;
+  }
+  return {
+    value,
+    cost,
+    gainUsd: value - cost,
+    gainPct: cost > 0 ? value / cost - 1 : null,
+    unpriced,
+  };
+}
+
 export function unrealized(
   h: Pick<Holding, 'shares' | 'costBasis'>,
   price: number,

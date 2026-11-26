@@ -217,3 +217,69 @@ export function useRemembered<K extends string>(key: string, allowed: readonly K
   };
   return [v, set] as const;
 }
+
+/** Accessible tabs: one panel at a time, arrow keys move between tabs, the tab row scrolls on narrow screens. */
+export function Tabs<K extends string>({
+  label,
+  idPrefix,
+  options,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  idPrefix: string;
+  options: readonly { key: K; label: string }[];
+  value: K;
+  onChange: (k: K) => void;
+  children: ReactNode;
+}) {
+  const move = (dir: number) => {
+    const i = options.findIndex((o) => o.key === value);
+    const next = options[(i + dir + options.length) % options.length];
+    if (!next) return;
+    onChange(next.key);
+    document.getElementById(`${idPrefix}-tab-${next.key}`)?.focus();
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        role="tablist"
+        aria-label={label}
+        className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 tablet:mx-0 tablet:px-0"
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') move(1);
+          if (e.key === 'ArrowLeft') move(-1);
+        }}
+      >
+        {options.map((o) => (
+          <button
+            key={o.key}
+            id={`${idPrefix}-tab-${o.key}`}
+            type="button"
+            role="tab"
+            aria-selected={o.key === value}
+            aria-controls={`${idPrefix}-panel-${o.key}`}
+            tabIndex={o.key === value ? 0 : -1}
+            onClick={() => onChange(o.key)}
+            className={`min-h-11 flex-none border-b-2 px-3 text-sm whitespace-nowrap ${
+              o.key === value
+                ? 'border-up font-semibold text-white'
+                : 'border-transparent text-muted hover:text-fg'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <div
+        id={`${idPrefix}-panel-${value}`}
+        role="tabpanel"
+        aria-labelledby={`${idPrefix}-tab-${value}`}
+        className="flex flex-col gap-4"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}

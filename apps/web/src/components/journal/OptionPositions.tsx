@@ -17,6 +17,8 @@ import {
   loadOptionPositions,
   type StoredOptionPosition,
 } from '../../lib/optionPositions';
+import { cardClass } from '../Card';
+import { panelTitle } from '../study/Panel';
 import { t } from '../../strings';
 
 const x = t.journal.options;
@@ -246,8 +248,8 @@ function NewPosition() {
 export function OptionPositions() {
   const q = useQuery({ queryKey: ['option-positions'], queryFn: loadOptionPositions });
   return (
-    <section aria-labelledby="option-positions" className="flex flex-col gap-3">
-      <h2 id="option-positions" className="font-semibold">
+    <section aria-labelledby="option-positions" className={`${cardClass} gap-3!`}>
+      <h2 id="option-positions" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>

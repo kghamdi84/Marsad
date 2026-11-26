@@ -10,6 +10,7 @@ import {
   exitSignals,
   parseHoldingsCsv,
   exposureReport,
+  portfolioTotals,
   positionSize,
   rewardRisk,
   rotationSignal,
@@ -25,7 +26,7 @@ import { Button, ErrorText, Field } from '../components/ui';
 import { EtfLookThrough } from '../components/journal/EtfLookThrough';
 import { OptionPositions } from '../components/journal/OptionPositions';
 import { Trades } from '../components/journal/Trades';
-import { num, td, th, thNum } from '../components/study/Panel';
+import { num, td, th, thNum, panelTitle } from '../components/study/Panel';
 import {
   addHoldings,
   closeHolding,
@@ -35,6 +36,7 @@ import {
   type BarsByTicker,
   type StoredHolding,
 } from '../lib/journal';
+import { SkeletonCards, Tabs, cardClass, useRemembered, useWide } from '../components/Card';
 import { t } from '../strings';
 
 const j = t.journal;
@@ -83,8 +85,8 @@ function Sizer() {
       : null;
   const complete = checklistComplete(ticked);
   return (
-    <section aria-labelledby="sizer" className="flex flex-col gap-3">
-      <h2 id="sizer" className="font-semibold">
+    <section aria-labelledby="sizer" className={`${cardClass} gap-3!`}>
+      <h2 id="sizer" className={panelTitle}>
         {s.title}
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -202,7 +204,61 @@ function Sizer() {
   );
 }
 
-function HoldingRow({ h, bars }: { h: StoredHolding; bars: Parameters<typeof exitSignals>[1] }) {
+/**
+ * The stop, now and target bar: where the last close sits between the stop and the targets, with the cost as a
+ * tick. Positions on the bar are only for the eye; the numbers beside it are the record.
+ */
+function PlanBar({ h, last, hit }: { h: StoredHolding; last: number | null; hit: boolean }) {
+  const pts = [h.stop, h.costBasis, last, ...h.targets].filter((v): v is number => v !== null);
+  if (last === null || h.stop === null || pts.length < 2) return null;
+  const lo = Math.min(...pts);
+  const hi = Math.max(...pts);
+  const pad = (hi - lo) * 0.06 || 1;
+  const at = (v: number) => `${toFixedHalfUp(((v - (lo - pad)) / (hi - lo + 2 * pad)) * 100, 1)}%`;
+  const ui = j.ui;
+  return (
+    <div className="mb-2 flex min-w-48 flex-col gap-1">
+      <div
+        role="img"
+        aria-label={ui.barAria(
+          money(h.stop),
+          money(last),
+          h.targets.map(money).join(', ') || j.holdings.none2,
+        )}
+        className={`relative h-2 rounded-full bg-gradient-to-r from-down/65 via-muted/25 to-up/60 ${hit ? 'ring-2 ring-down' : ''}`}
+      >
+        <span
+          className="absolute -top-1 h-4 w-0.5 bg-fg/70"
+          style={{ insetInlineStart: at(h.costBasis) }}
+        />
+        {h.targets.map((tg) => (
+          <span
+            key={tg}
+            className="absolute -top-1 h-4 w-0.5 bg-up"
+            style={{ insetInlineStart: at(tg) }}
+          />
+        ))}
+        <span
+          className="absolute -top-1.5 -ms-2.5 size-5 rounded-full border-[3px] border-surface bg-white"
+          style={{ insetInlineStart: at(last) }}
+        />
+      </div>
+      <span className="flex justify-between text-[0.6875rem] text-muted tabular-nums">
+        <span>
+          {ui.barStop} {money(h.stop)}
+        </span>
+        <span>
+          {ui.barTarget} {h.targets.length ? h.targets.map(money).join(', ') : j.holdings.none2}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+type HoldingBars = Parameters<typeof exitSignals>[1];
+
+/** A holding's plan bar, exit rules, triggered exits and its sector, thesis and close controls. */
+function HoldingControls({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
   const qc = useQueryClient();
   const close = useMutation({
     mutationFn: () => closeHolding(h.id, etDate(new Date())),
@@ -215,9 +271,81 @@ function HoldingRow({ h, bars }: { h: StoredHolding; bars: Parameters<typeof exi
   });
   const hh = j.holdings;
   const last = bars.at(-1);
-  const u = last ? unrealized(h, last.close) : null;
   const exits = exitSignals(h, bars);
   const hasRules = h.stop !== null || h.targets.length > 0 || h.trendBreak || h.timeStopSessions;
+  return (
+    <>
+      <PlanBar h={h} last={last?.close ?? null} hit={exits.length > 0} />
+      {hasRules ? (
+        <span className="text-xs text-muted">
+          {hh.rules(
+            h.stop === null ? hh.none2 : money(h.stop),
+            h.targets.length ? h.targets.map(money).join(', ') : hh.none2,
+            h.trendBreak ? `${h.trendBreak.ind}${h.trendBreak.period}` : hh.none2,
+            h.timeStopSessions === null ? hh.none2 : String(h.timeStopSessions),
+          )}
+        </span>
+      ) : (
+        <span className="text-xs text-down">{hh.noRules}</span>
+      )}
+      {exits.map((e) => (
+        <span key={e.kind} className="block text-sm font-medium">
+          {hh.triggered}: {e.detail}
+        </span>
+      ))}
+      <div className="mt-1 flex flex-wrap gap-2">
+        <label className="flex flex-col text-xs text-muted">
+          {hh.sector}
+          <select
+            className={select}
+            value={h.sectorEtf ?? ''}
+            onChange={(e) =>
+              meta.mutate({ sectorEtf: e.target.value || null, thesisStatus: h.thesisStatus })
+            }
+          >
+            <option value="">{hh.sectorNone}</option>
+            {SECTOR_ETFS.map((s) => (
+              <option key={s.ticker} value={s.ticker}>
+                {s.ticker} ({s.sector})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col text-xs text-muted">
+          {hh.thesis}
+          <select
+            className={select}
+            value={h.thesisStatus}
+            onChange={(e) =>
+              meta.mutate({
+                sectorEtf: h.sectorEtf,
+                thesisStatus: e.target.value as ThesisStatus,
+              })
+            }
+          >
+            {(['intact', 'weakening', 'broken'] as const).map((k) => (
+              <option key={k} value={k}>
+                {hh.thesisStatus[k]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {meta.isError && <ErrorText message={meta.error.message} />}
+      <button
+        type="button"
+        className="mt-1 min-h-11 text-sm text-muted underline"
+        onClick={() => close.mutate()}
+      >
+        {hh.close}
+      </button>
+    </>
+  );
+}
+
+function HoldingRow({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
+  const last = bars.at(-1);
+  const u = last ? unrealized(h, last.close) : null;
   return (
     <tr>
       <td className={`${td} font-medium`}>{h.ticker}</td>
@@ -228,71 +356,38 @@ function HoldingRow({ h, bars }: { h: StoredHolding; bars: Parameters<typeof exi
       </td>
       <td className={`${td} ${num}`}>{u ? `${pct(u.pct)} (USD ${money(u.usd)})` : ''}</td>
       <td className={td}>
-        {hasRules ? (
-          <span className="text-xs text-muted">
-            {hh.rules(
-              h.stop === null ? hh.none2 : money(h.stop),
-              h.targets.length ? h.targets.map(money).join(', ') : hh.none2,
-              h.trendBreak ? `${h.trendBreak.ind}${h.trendBreak.period}` : hh.none2,
-              h.timeStopSessions === null ? hh.none2 : String(h.timeStopSessions),
-            )}
-          </span>
-        ) : (
-          <span className="text-xs text-down">{hh.noRules}</span>
-        )}
-        {exits.map((e) => (
-          <span key={e.kind} className="block text-sm font-medium">
-            {hh.triggered}: {e.detail}
-          </span>
-        ))}
-        <div className="mt-1 flex flex-wrap gap-2">
-          <label className="flex flex-col text-xs text-muted">
-            {hh.sector}
-            <select
-              className={select}
-              value={h.sectorEtf ?? ''}
-              onChange={(e) =>
-                meta.mutate({ sectorEtf: e.target.value || null, thesisStatus: h.thesisStatus })
-              }
-            >
-              <option value="">{hh.sectorNone}</option>
-              {SECTOR_ETFS.map((s) => (
-                <option key={s.ticker} value={s.ticker}>
-                  {s.ticker} ({s.sector})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col text-xs text-muted">
-            {hh.thesis}
-            <select
-              className={select}
-              value={h.thesisStatus}
-              onChange={(e) =>
-                meta.mutate({
-                  sectorEtf: h.sectorEtf,
-                  thesisStatus: e.target.value as ThesisStatus,
-                })
-              }
-            >
-              {(['intact', 'weakening', 'broken'] as const).map((k) => (
-                <option key={k} value={k}>
-                  {hh.thesisStatus[k]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {meta.isError && <ErrorText message={meta.error.message} />}
-        <button
-          type="button"
-          className="mt-1 min-h-11 text-sm text-muted underline"
-          onClick={() => close.mutate()}
-        >
-          {hh.close}
-        </button>
+        <HoldingControls h={h} bars={bars} />
       </td>
     </tr>
+  );
+}
+
+/** Phones: one card per holding, the numbers first and the controls below. */
+function HoldingCard({ h, bars }: { h: StoredHolding; bars: HoldingBars }) {
+  const hh = j.holdings;
+  const last = bars.at(-1);
+  const u = last ? unrealized(h, last.close) : null;
+  const tone = !u ? 'text-fg' : u.usd > 0 ? 'text-up' : u.usd < 0 ? 'text-down' : 'text-fg';
+  return (
+    <li className="flex flex-col gap-2 rounded-xl border border-line bg-bg/45 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex flex-col">
+          <span className="text-base font-bold text-white">{h.ticker}</span>
+          <span className="text-xs text-muted">
+            {hh.colShares} {h.shares} {'\u00B7'} {hh.colCost} {money(h.costBasis)}
+          </span>
+        </span>
+        <span className="flex flex-col items-end tabular-nums">
+          <span className="text-white">{last ? money(last.close) : t.regime.noData}</span>
+          {u && (
+            <span className={`text-[0.8125rem] font-semibold ${tone}`}>
+              {pct(u.pct)} (USD {money(u.usd)})
+            </span>
+          )}
+        </span>
+      </div>
+      <HoldingControls h={h} bars={bars} />
+    </li>
   );
 }
 
@@ -300,6 +395,7 @@ function Holdings() {
   const hh = j.holdings;
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
+  const wide = useWide();
   const [csv, setCsv] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
@@ -318,14 +414,20 @@ function Holdings() {
     if (r.errors.length === 0 && r.holdings.length > 0) add.mutate(r.holdings);
   };
   return (
-    <section aria-labelledby="holdings" className="flex flex-col gap-3">
-      <h2 id="holdings" className="font-semibold">
+    <section aria-labelledby="holdings" className={`${cardClass} gap-3!`}>
+      <h2 id="holdings" className={panelTitle}>
         {hh.title}
       </h2>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.holdings.length === 0 ? (
           <p className="text-muted">{hh.none}</p>
+        ) : !wide ? (
+          <ul className="flex flex-col gap-2">
+            {q.data.holdings.map((h) => (
+              <HoldingCard key={h.id} h={h} bars={q.data.bars[h.ticker] ?? []} />
+            ))}
+          </ul>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
@@ -351,7 +453,7 @@ function Holdings() {
         <label htmlFor="csv" className="text-sm font-medium">
           {hh.csvTitle}
         </label>
-        <p className="text-xs text-muted">{hh.csvHelp}</p>
+        <p className="text-xs break-all text-muted">{hh.csvHelp}</p>
         <textarea
           id="csv"
           rows={4}
@@ -372,18 +474,10 @@ function Holdings() {
   );
 }
 
-function Exposure({
-  holdings,
-  bars,
-  vix,
-}: {
-  holdings: StoredHolding[];
-  bars: BarsByTicker;
-  vix: DatedValue[];
-}) {
-  const x = j.exposure;
+/** Each priced holding with its betas, as the exposure report and the KPI tiles both take them. */
+function positionsOf(holdings: StoredHolding[], bars: BarsByTicker, vix: DatedValue[]) {
   const spy = bars['SPY'] ?? [];
-  const positions = holdings.flatMap((h) => {
+  return holdings.flatMap((h) => {
     const b = bars[h.ticker] ?? [];
     const last = b.at(-1);
     if (!last) return [];
@@ -400,13 +494,26 @@ function Exposure({
       },
     ];
   });
+}
+
+function Exposure({
+  holdings,
+  bars,
+  vix,
+}: {
+  holdings: StoredHolding[];
+  bars: BarsByTicker;
+  vix: DatedValue[];
+}) {
+  const x = j.exposure;
+  const positions = positionsOf(holdings, bars, vix);
   const r = exposureReport(positions);
   const pairs = correlationPairs(
     [...new Set(holdings.map((h) => h.ticker))].map((t) => ({ ticker: t, bars: bars[t] ?? [] })),
   ).filter((p) => p.high);
   return (
-    <section aria-labelledby="exposure" className="flex flex-col gap-3">
-      <h2 id="exposure" className="font-semibold">
+    <section aria-labelledby="exposure" className={`${cardClass} gap-3!`}>
+      <h2 id="exposure" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>
@@ -525,8 +632,8 @@ function Rotation({ holdings, bars }: { holdings: StoredHolding[]; bars: BarsByT
   );
   if (rows.length === 0) return null;
   return (
-    <section aria-labelledby="rotation" className="flex flex-col gap-3">
-      <h2 id="rotation" className="font-semibold">
+    <section aria-labelledby="rotation" className={`${cardClass} gap-3!`}>
+      <h2 id="rotation" className={panelTitle}>
         {x.title}
       </h2>
       <p className="text-sm text-muted">{x.intro}</p>
@@ -583,8 +690,8 @@ function WeeklyReview() {
   const q = useQuery({ queryKey: ['weekly-review'], queryFn: loadWeeklyReview });
   const x = j.review;
   return (
-    <section aria-labelledby="weekly-review" className="flex flex-col gap-2">
-      <h2 id="weekly-review" className="font-semibold">
+    <section aria-labelledby="weekly-review" className={`${cardClass} gap-3!`}>
+      <h2 id="weekly-review" className={panelTitle}>
         {q.data ? q.data.title : x.title}
       </h2>
       {q.isError && <ErrorText message={q.error.message} />}
@@ -603,19 +710,99 @@ function WeeklyReview() {
   );
 }
 
-export function Journal() {
+/** The four numbers to read first: value, open gain, beta to SPY and how many positions need a look. */
+function Kpis() {
+  const q = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
+  const ui = j.ui;
+  if (q.isPending) return <SkeletonCards heights={['6rem']} />;
+  if (!q.data || q.data.holdings.length === 0) return null;
+  const { holdings, bars, vix } = q.data;
+  const last = (tk: string) => bars[tk]?.at(-1)?.close ?? null;
+  const tot = portfolioTotals(holdings, last);
+  const r = exposureReport(positionsOf(holdings, bars, vix));
+  const attention = holdings.filter((h) => {
+    const hasRules = h.stop !== null || h.targets.length > 0 || h.trendBreak || h.timeStopSessions;
+    return !hasRules || exitSignals(h, bars[h.ticker] ?? []).length > 0;
+  }).length;
+  const tile =
+    'flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-surface p-3 tablet:p-4';
+  const gainTone = tot.gainUsd > 0 ? 'text-up' : tot.gainUsd < 0 ? 'text-down' : 'text-white';
   return (
-    <section className="mx-auto flex max-w-4xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">{j.title}</h1>
+    <section
+      aria-label={ui.kpis}
+      className="grid grid-cols-2 gap-2 tablet:grid-cols-4 tablet:gap-3"
+    >
+      <div className={tile}>
+        <span className="text-xs text-muted">{ui.value}</span>
+        <span className="text-xl font-bold text-white tabular-nums">USD {money(tot.value)}</span>
+        {tot.unpriced.length > 0 && (
+          <span className="text-[0.6875rem] text-warn">{ui.unpriced(tot.unpriced.length)}</span>
+        )}
+      </div>
+      <div className={tile}>
+        <span className="text-xs text-muted">{ui.gain}</span>
+        <span className={`text-xl font-bold tabular-nums ${gainTone}`}>
+          {tot.gainUsd > 0 ? '+' : ''}
+          {money(tot.gainUsd)}
+        </span>
+        {tot.gainPct !== null && (
+          <span className="text-[0.8125rem] text-muted">{ui.gainSub(pct(tot.gainPct))}</span>
+        )}
+      </div>
+      <div className={tile}>
+        <span className="text-xs text-muted">{ui.beta}</span>
+        <span className="text-xl font-bold text-white tabular-nums">
+          {toFixedHalfUp(r.portfolioBeta, 2)}
+        </span>
+        <span className="relative h-1.5 rounded-full bg-faint/20" aria-hidden="true">
+          <span
+            className="absolute inset-y-0 start-0 rounded-full bg-up"
+            style={{
+              width: `${toFixedHalfUp(Math.min(Math.max(r.portfolioBeta, 0) / 2, 1) * 100, 1)}%`,
+            }}
+          />
+          <span className="absolute -top-1 start-1/2 h-3.5 w-0.5 bg-white" />
+        </span>
+      </div>
+      <div className={tile}>
+        <span className="text-xs text-muted">{ui.attention}</span>
+        <span
+          className={`text-xl font-bold tabular-nums ${attention > 0 ? 'text-down' : 'text-white'}`}
+        >
+          {attention}
+        </span>
+        <span className="text-[0.6875rem] text-muted">{ui.attentionSub}</span>
+      </div>
+    </section>
+  );
+}
+
+const TABS = ['positions', 'trade', 'options', 'exposure', 'trades', 'review'] as const;
+type JournalTab = (typeof TABS)[number];
+
+export function Journal() {
+  const [tab, setTab] = useRemembered<JournalTab>('marsad.journal.tab', TABS, 'positions');
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{j.title}</h1>
         <p className="text-sm text-muted">{j.intro}</p>
       </div>
-      <Sizer />
-      <Holdings />
-      <OptionPositions />
-      <Portfolio />
-      <Trades />
-      <WeeklyReview />
-    </section>
+      <Kpis />
+      <Tabs
+        label={j.ui.tabsLabel}
+        idPrefix="journal"
+        options={TABS.map((k) => ({ key: k, label: j.ui.tabs[k] ?? k }))}
+        value={tab}
+        onChange={setTab}
+      >
+        {tab === 'positions' && <Holdings />}
+        {tab === 'trade' && <Sizer />}
+        {tab === 'options' && <OptionPositions />}
+        {tab === 'exposure' && <Portfolio />}
+        {tab === 'trades' && <Trades />}
+        {tab === 'review' && <WeeklyReview />}
+      </Tabs>
+    </div>
   );
 }

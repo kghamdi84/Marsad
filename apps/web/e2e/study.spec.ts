@@ -229,5 +229,9 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toHaveCount(0);
     await page.locator('summary', { hasText: 'Ownership' }).click();
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
+    // The page never scrolls sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
   });
 });
