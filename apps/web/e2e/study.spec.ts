@@ -241,3 +241,29 @@ test.describe('on a phone', () => {
     );
   });
 });
+
+test('with Tauric as the quote source, its latest price sits under the Massive close, by Marsad clock (ADR 0041)', async ({
+  page,
+}) => {
+  await mock(page, '2026-11-24');
+  await page.route('**/rest/v1/user_settings**', (r) => json(r, [{ quote_source: 'tauric' }]));
+  await page.route('**/rest/v1/price_quotes**', (r) =>
+    json(r, [
+      {
+        ticker: 'NVDA',
+        price: 300.4,
+        change: 0.003,
+        quote_kind: 'snapshot',
+        price_time: '2026-11-24T21:00:00Z',
+        session_date: '2026-11-24',
+        fetched_at: '2026-11-24T21:05:00Z',
+      },
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  await expect(page.getByText('$300.00').first()).toBeVisible();
+  // 20:00 ET, market closed: the quote is the last one of the session, and it is still not called live.
+  await expect(page.getByTestId('latest-quote')).toHaveText(
+    'Latest from Tauric $300.40 · Market closed, last value 16:00 ET',
+  );
+});

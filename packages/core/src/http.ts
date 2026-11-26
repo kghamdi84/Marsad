@@ -22,7 +22,7 @@ export interface FetchResponse {
 
 export type FetchLike = (
   url: string,
-  init?: { headers?: Record<string, string> },
+  init?: { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string },
 ) => Promise<FetchResponse>;
 
 /** Allows bursts up to `capacity`, then `refillPerSecond` requests per second. */
@@ -157,6 +157,9 @@ export interface HttpClientOptions {
 
 export interface RequestOptions {
   headers?: Record<string, string>;
+  /** POST sends `body`; the default is GET. */
+  method?: 'GET' | 'POST';
+  body?: string;
   /** When set, a successful response is cached and served for this many milliseconds. */
   cacheTtlMs?: number;
 }
@@ -178,9 +181,20 @@ export class HttpClient {
     this.classify = o.classify ?? classifyFailure;
   }
 
-  async get(url: string, req: RequestOptions = {}): Promise<HttpResult> {
+  get(url: string, req: RequestOptions = {}): Promise<HttpResult> {
+    return this.request(url, { ...req, method: 'GET' });
+  }
+
+  /** A POST with a body (for example a batch request). Cached by URL and body when `cacheTtlMs` is set. */
+  post(url: string, body: string, req: RequestOptions = {}): Promise<HttpResult> {
+    return this.request(url, { ...req, method: 'POST', body });
+  }
+
+  private async request(url: string, req: RequestOptions): Promise<HttpResult> {
     const { clock, cache } = this.o;
-    const cached = req.cacheTtlMs && cache ? cache.get(url, clock.now()) : undefined;
+    const post = req.method === 'POST';
+    const cacheKey = post ? `POST ${url}\n${req.body ?? ''}` : url;
+    const cached = req.cacheTtlMs && cache ? cache.get(cacheKey, clock.now()) : undefined;
     if (cached !== undefined) {
       return { ok: true, status: 200, body: cached, fromCache: true, attempts: 0, latencyMs: 0 };
     }
@@ -196,12 +210,16 @@ export class HttpClient {
       const started = clock.now();
       let retryAfterMs: number | null = null;
       try {
-        const init = req.headers ? { headers: req.headers } : undefined;
+        const init = post
+          ? { method: 'POST' as const, headers: req.headers ?? {}, body: req.body ?? '' }
+          : req.headers
+            ? { headers: req.headers }
+            : undefined;
         const res = await this.o.fetch(url, init);
         const body = await res.text();
         const latencyMs = clock.now() - started;
         if (res.status >= 200 && res.status < 300) {
-          if (req.cacheTtlMs && cache) cache.set(url, body, req.cacheTtlMs, clock.now());
+          if (req.cacheTtlMs && cache) cache.set(cacheKey, body, req.cacheTtlMs, clock.now());
           return {
             ok: true,
             status: res.status,

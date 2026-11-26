@@ -270,3 +270,35 @@ test('job runs: a 24-hour strip per job, each run a tick, errors said in words',
   ).toBeVisible();
   await expect(page.getByText(/Latest error 2026-11-26 03:00 ET .*: HTTP 500/)).toBeVisible();
 });
+
+test('status: the quote source is one choice of two, Massive by default, saved as soon as it is picked', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  let saved: unknown = null;
+  await page.route('**/rest/v1/**', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/user_settings**', (r) => {
+    if (r.request().method() === 'POST') {
+      saved = r.request().postDataJSON();
+      return r.fulfill({ status: 201, body: '' });
+    }
+    // Like the database: after a save, the row reads back what was saved.
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(saved ? [saved] : []),
+    });
+  });
+  await page.goto('/status');
+  const card = page.getByRole('region', { name: 'Quote source' });
+  const massive = card.getByRole('radio', { name: /Massive \(default\)/ });
+  const tauric = card.getByRole('radio', { name: /Tauric/ });
+  await expect(massive).toBeChecked();
+  await expect(tauric).not.toBeChecked();
+  await expect(card).toContainText('never "Live"');
+  await tauric.check();
+  await expect.poll(() => saved).toEqual({ quote_source: 'tauric' });
+  await expect(card.getByRole('status')).toHaveText('Quote source set to Tauric.');
+});

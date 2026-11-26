@@ -242,6 +242,14 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - With this batch every item on the redesign "not built yet" lists is done except the Lab equity curves, which wait until a stored backtest report carries curve data.
 - Verified: ./init.sh passes; full Playwright 166 with axe; new tests for the setup alert visuals, the strip and the phone scenario steps.
 
+### Tauric as a second quote source (2026-11-26, ADR 0041)
+
+- Khaled asked for Tauric next to Massive with a one-of-two switch for live prices. Three independent reviews (architecture, data integrity, vendor terms) all said "go with changes"; the build follows their common conditions. Measured first: Tauric's 2026-11-25 closes equal Massive's to the cent (AAPL, NVDA, SPY), volume about 2% lower, delay for US stocks unpublished, and its own age field misleading (a 30-minute-old FX quote read 5 seconds).
+- Fixed a real defect found by the review: a value of `unknown` plan tier was labelled "Live". It now reads "Delay not confirmed" with the delayed allowance, then "Stale" (known-answer tests).
+- Built: Tauric adapter (`POST /v1/quotes`, batch of 50, own failure classes, POST support in the shared HTTP client), recorded fixture, `user_settings.quote_source` (per person, Massive by default), `price_quotes` (member-readable, job-written), `tauric` source row and health policy (pauses no rule), `tauric-quotes` job every 5 minutes in the session, nightly `tauric-reconcile` against Massive daily bars, Status radio card, "Latest (Tauric)" column on Watch and a line under the company price.
+- Display only: bars, indicators, backtests, rules and alerts stay on Massive.
+- Waiting on Khaled: create a Tauric API key and add it as the GitHub repository secret `TAURIC_API_KEY`. Until then both workflows stop at their first step without failing.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

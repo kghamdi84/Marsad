@@ -7,6 +7,10 @@
  * - VIX close vs FRED VIXCLS: 0.05 index points (both are the official close; rounding only).
  * - 10-year yield, vendor vs FRED DGS10: 0.02 percentage points (2 basis points).
  * - Vendor VWAP vs VWAP computed from minute bars: 0.1% (different bar sets can differ slightly).
+ * - Tauric session close vs Massive daily close (ADR 0041): 0.05% or 1 cent, whichever is larger. Both are the
+ *   official close; on 2026-11-25 AAPL, NVDA and SPY agreed to the cent.
+ * - Tauric session volume vs Massive daily volume: 5%. The vendors count different venue sets: on 2026-11-25
+ *   Tauric was 2.3% (AAPL) and 1.9% (NVDA) lower, so 5% leaves room without hiding a missing session.
  */
 import type { SystemAlert } from './health.js';
 
@@ -14,6 +18,9 @@ export const TOLERANCES = {
   vixAbs: 0.05,
   yieldAbs: 0.02,
   vwapRel: 0.001,
+  closeRel: 0.0005,
+  closeAbs: 0.01,
+  volumeRel: 0.05,
 } as const;
 
 export interface CheckResult {
@@ -154,4 +161,48 @@ export function reportAlerts(report: ReconciliationReport): SystemAlert[] {
     lastGoodAt: null,
     createdAt: report.ranAt,
   }));
+}
+
+/**
+ * A second-source check of one ticker's session (ADR 0041): Tauric's price for a finished session against
+ * Massive's daily bar for the same date. Different dates are a failed check, never a silent skip, because a
+ * vendor that stopped updating is exactly what this check is for.
+ */
+export function reconcileSessionClose(
+  ticker: string,
+  tauric: { sessionDate: string | null; price: number; dayVolume: number | null },
+  massive: { date: string; close: number; volume: number } | null,
+): CheckResult[] {
+  const name = `${ticker} close`;
+  if (massive === null || tauric.sessionDate !== massive.date) {
+    const detail =
+      massive === null
+        ? 'Massive has no daily bar, cannot verify'
+        : `sessions differ: Tauric ${tauric.sessionDate ?? 'none'}, Massive ${massive.date}`;
+    return [
+      {
+        name,
+        ok: false,
+        left: { label: 'Tauric close', value: tauric.price },
+        right: { label: 'Massive close', value: massive?.close ?? null },
+        diff: null,
+        tolerance: 0,
+        detail,
+      },
+    ];
+  }
+  return [
+    compareValues(
+      `${name} ${massive.date}`,
+      { label: 'Tauric close', value: tauric.price },
+      { label: 'Massive close', value: massive.close },
+      { abs: TOLERANCES.closeAbs, rel: TOLERANCES.closeRel },
+    ),
+    compareValues(
+      `${ticker} volume ${massive.date}`,
+      { label: 'Tauric volume', value: tauric.dayVolume },
+      { label: 'Massive volume', value: massive.volume },
+      { rel: TOLERANCES.volumeRel },
+    ),
+  ];
 }

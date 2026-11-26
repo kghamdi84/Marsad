@@ -19,6 +19,7 @@ import {
   type Materiality,
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
+import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { Dividends } from '../components/study/Dividends';
 import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
@@ -64,6 +65,14 @@ const ui = t.study.ui;
 /** The header: ticker, name, last close with its change, and whether the newest session is stored. */
 function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSummary | null }) {
   const stale = !!s && !!data.lastCompletedDay && s.asOf < data.lastCompletedDay;
+  // The viewer's quote source (ADR 0041): with Tauric, its latest price sits under the Massive close.
+  const qv = useQuery({
+    queryKey: ['quote-view'],
+    queryFn: loadQuoteView,
+    refetchInterval: 60_000,
+  });
+  const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
+  const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
   const change = s?.changePct ?? null;
   const arrow = change === null ? '' : change > 0 ? '\u25B2' : change < 0 ? '\u25BC' : '';
   const tint =
@@ -101,6 +110,14 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
               {stale ? ui.staleBadge : ui.endOfDay}
             </span>
           </span>
+          {tq && latest && (
+            <span
+              data-testid="latest-quote"
+              className={`text-xs tabular-nums ${latest.state === 'stale' ? 'text-warn' : 'text-muted'}`}
+            >
+              {ui.latestLine(money(tq.price), latest.label)}
+            </span>
+          )}
         </div>
       )}
     </header>

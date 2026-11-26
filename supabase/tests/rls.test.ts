@@ -78,6 +78,8 @@ beforeAll(async () => {
       values ('E-test', 'NVDA', date '2024-06-10', 1, 10, 'forward_split');
     insert into public.daily_bars (ticker, date, open, high, low, close, volume)
       values ('NVDA', date '2026-11-20', 188.0, 190.0, 186.0, 189.0, 1000000);
+    insert into public.price_quotes (ticker, source, price, quote_kind, price_time, session_date, fetched_at)
+      values ('NVDA', 'tauric', 149.3, 'snapshot', '2026-11-25T21:00:01Z', date '2026-11-25', now());
     insert into public.financial_facts (fact_key, cik, taxonomy, concept, unit, period_end, value, accession, form, filed)
       values ('k1', '0001045810', 'us-gaap', 'Revenues', 'USD', date '2026-07-26', 96221000000, '0001045810-26-000100', '10-Q', date '2026-08-26');
     insert into public.insider_filings (accession, issuer_cik, status) values ('0001696841-26-000016', '0001045810', 'ok');
@@ -268,14 +270,14 @@ describe('system tables', () => {
   it('the owner with MFA reads job runs and source status', async () => {
     await as(owner2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(14); // five seeded sources plus massive_reference, massive_bars, the four Study sources, massive_sections, massive_breadth and massive_topics
+      expect(await count(tx, 'public.source_status')).toBe(15); // five seeded sources plus massive_reference, massive_bars, the four Study sources, massive_sections, massive_breadth, massive_topics and tauric
     });
   });
 
   it('a member account (a friend, ADR 0040) reads the shared job runs and source status', async () => {
     await as(other2, async (tx) => {
       expect(await count(tx, 'public.job_runs')).toBe(1);
-      expect(await count(tx, 'public.source_status')).toBe(14);
+      expect(await count(tx, 'public.source_status')).toBe(15);
     });
   });
 
@@ -298,6 +300,7 @@ describe('system tables', () => {
       ['splits', 1],
       ['system_alerts', 0],
       ['daily_bars', 1],
+      ['price_quotes', 1],
     ] as const) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) =>
@@ -311,6 +314,36 @@ describe('system tables', () => {
         /permission denied/,
       );
     }
+  });
+
+  it('quote source (ADR 0041): each person sets their own, Massive by default, only the two vendors; quotes are read-only', async () => {
+    await as(owner2, async (tx) => {
+      const r = await tx.query<{ quote_source: string }>(
+        'select quote_source from public.user_settings',
+      );
+      expect(r.rows).toEqual([{ quote_source: 'massive' }]);
+      await tx.query(`update public.user_settings set quote_source = 'tauric'`);
+      await expect(
+        tx.query(`update public.user_settings set quote_source = 'yahoo'`),
+      ).rejects.toThrow(/check constraint/);
+    });
+    // A friend changes only their own row; the owner's stays as it was.
+    await as(other2, async (tx) => {
+      const r = await tx.query(
+        `update public.user_settings set quote_source = 'tauric' where owner_id = '${OWNER}'`,
+      );
+      expect(r.affectedRows ?? 0).toBe(0);
+    });
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(`update public.price_quotes set price = 1 where ticker = 'NVDA'`),
+      ),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      db.query(
+        `insert into public.price_quotes (ticker, source, price, quote_kind, fetched_at) values ('AAPL', 'yahoo', 1, 'snapshot', now())`,
+      ),
+    ).rejects.toThrow(/check constraint/);
   });
 
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {

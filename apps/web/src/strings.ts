@@ -203,6 +203,11 @@ export const t = {
         `52-week closing range ${low} to ${high}; the last close sits at ${pos}% of it, ${fromHigh} from the high.`,
       rangeNone: 'Needs a year of bars',
       olderDate: (date: string) => `as of ${date}`,
+      latestCol: 'Latest (Tauric)',
+      latestNone: 'No Tauric quote yet',
+      latestPhone: (price: string) => `Tauric ${price}`,
+      latestFooter:
+        'Latest prices: Tauric, delay not confirmed (choose the source on the Status page). Close, change and charts: Massive.',
       footer: (date: string) =>
         `Massive daily bars, split-adjusted \u00B7 close of ${date} \u00B7 click a ticker to study it`,
       dayChange: (v: string) => `day ${v}`,
@@ -967,6 +972,7 @@ export const t = {
     ui: {
       endOfDay: 'End of day',
       staleBadge: 'Stale',
+      latestLine: (price: string, label: string) => `Latest from Tauric $${price} · ${label}`,
       averages: 'Averages',
       rsiZones: 'Under 30 oversold, over 70 overbought',
       rsiAria: (v: string) => `RSI 14 at ${v} on a scale of 0 to 100; zones at 30 and 70.`,
@@ -1513,6 +1519,19 @@ export const t = {
       tick: 'The tick marks the 80% warning.',
     },
     alerts: 'System alerts',
+    quoteSource: {
+      title: 'Quote source',
+      intro:
+        'Which vendor gives the latest price on the Watch list and company pages. Closes, changes, charts, indicators, backtests and alerts always use Massive daily bars, whatever you pick. Your choice applies to your account only.',
+      legend: 'Show the latest price from',
+      massive: 'Massive (default)',
+      massiveNote:
+        'End-of-day closes only on the current free plan. Prices during the session need the Massive Stocks plan.',
+      tauric: 'Tauric',
+      tauricNote:
+        'Snapshot quotes every 5 minutes in the regular session. Tauric does not publish its delay for US stocks, so its prices read "Delay not confirmed", never "Live", until a live session is measured. A nightly check compares its closes with Massive.',
+      saved: (name: string) => `Quote source set to ${name}.`,
+    },
     preferences: 'Preferences',
     shariahToggle: 'Show the Shariah screening aid on company pages',
     shariahBasis: 'Divide debt and cash by',
