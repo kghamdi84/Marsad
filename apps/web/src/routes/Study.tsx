@@ -8,23 +8,76 @@ import {
   normalizeTicker,
   tickerSummary,
   toFixedHalfUp,
+  etDate,
   type DailyBar,
+  type ShariahSettings,
 } from '@marsad/core';
 import { Card, Sparkline } from '../components/Card';
+import { loadPreferences } from '../lib/settings';
+import { shariahAsOf } from '../lib/shariah';
+import { loadFacts } from '../lib/studyPanels';
+import { supabase } from '../lib/supabase';
 import { loadCalendar, loadRecentBars } from '../lib/watch';
 import { t } from '../strings';
 
 const s = t.study;
+
+async function loadCiks(tickers: readonly string[]): Promise<Record<string, string>> {
+  if (!supabase) throw new Error('not configured');
+  const r = await supabase
+    .from('instruments')
+    .select('ticker, cik')
+    .in('ticker', [...tickers]);
+  if (r.error) throw new Error(r.error.message);
+  const out: Record<string, string> = {};
+  for (const x of (r.data ?? []) as { ticker: string; cik: string | null }[])
+    if (x.cik) out[x.ticker] = x.cik;
+  return out;
+}
+
+const CHIP: Record<string, string> = {
+  'passes-ratios': 'bg-up/15 text-up',
+  'fails-ratios': 'border border-down/60 text-down',
+  unknown: 'bg-muted/15 text-muted',
+};
+
+/** The Shariah screening aid for one listed company (only when the aid is switched on in Status). */
+function ShariahChip({
+  cik,
+  bars,
+  settings,
+}: {
+  cik: string;
+  bars: readonly DailyBar[];
+  settings: ShariahSettings;
+}) {
+  const q = useQuery({ queryKey: ['facts', cik], queryFn: () => loadFacts(cik) });
+  const verdict = q.data
+    ? (shariahAsOf(q.data, bars, settings, etDate(new Date()))?.verdict ?? 'unknown')
+    : null;
+  if (verdict === null) return null;
+  const label = s.ui.shariahChip[verdict] ?? verdict;
+  return (
+    <span
+      className={`w-fit rounded-full px-2 py-px text-[0.6875rem] font-semibold ${CHIP[verdict] ?? CHIP['unknown']}`}
+    >
+      <span className="sr-only">{s.ui.shariahPrefix} </span>
+      {label}
+    </span>
+  );
+}
 const ALL = [...STARTING_STOCKS, ...CORE_ETFS];
 
 function Row({
   tk,
   bars,
   earnings,
+  shariah,
 }: {
   tk: string;
   bars: readonly DailyBar[];
   earnings: string | null;
+  shariah: React.ReactNode;
 }) {
   const sum = tickerSummary(bars);
   const line = bars.map((b) => b.close);
@@ -50,6 +103,7 @@ function Row({
           {earnings && (
             <span className="truncate text-xs text-muted">{s.earningsAround(earnings)}</span>
           )}
+          {shariah}
         </span>
         <Sparkline values={line} className={tone} />
         <span className="flex flex-col items-end gap-0.5 tabular-nums">
@@ -75,6 +129,13 @@ export function Study() {
   const [error, setError] = useState<string | null>(null);
   const bars = useQuery({ queryKey: ['study-list-bars'], queryFn: () => loadRecentBars(ALL) });
   const cal = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
+  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  const sh = prefs.data?.shariah.enabled ? prefs.data.shariah : null;
+  const ciks = useQuery({
+    queryKey: ['ciks', STARTING_STOCKS],
+    queryFn: () => loadCiks(STARTING_STOCKS),
+    enabled: sh !== null,
+  });
   const earnings = useMemo(() => {
     const m: Record<string, string> = {};
     for (const e of cal.data?.earnings?.estimates ?? []) m[e.ticker] = e.date;
@@ -98,7 +159,17 @@ export function Study() {
       <Card id={id} title={title} className="gap-2! pb-2!">
         <ul className="-mx-4 flex flex-col tablet:-mx-5">
           {tickers.map((tk) => (
-            <Row key={tk} tk={tk} bars={bars.data?.[tk] ?? []} earnings={earnings[tk] ?? null} />
+            <Row
+              key={tk}
+              tk={tk}
+              bars={bars.data?.[tk] ?? []}
+              earnings={earnings[tk] ?? null}
+              shariah={
+                sh && ciks.data?.[tk] ? (
+                  <ShariahChip cik={ciks.data[tk]} bars={bars.data?.[tk] ?? []} settings={sh} />
+                ) : null
+              }
+            />
           ))}
         </ul>
       </Card>

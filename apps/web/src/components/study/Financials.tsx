@@ -1,15 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  etDate,
-  peRatio,
-  shariahScreen,
-  sharesOutstanding,
-  summarizeFinancials,
-  toFixedHalfUp,
-  type DailyBar,
-} from '@marsad/core';
+import { etDate, peRatio, summarizeFinancials, toFixedHalfUp, type DailyBar } from '@marsad/core';
 import { loadPreferences } from '../../lib/settings';
+import { shariahAsOf } from '../../lib/shariah';
 import { loadFacts } from '../../lib/studyPanels';
 import { t } from '../../strings';
 import { Cell, PanelShell, num, td, th, thNum, usd } from './Panel';
@@ -30,19 +23,7 @@ export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar
   const f = t.study.financials;
   const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
   const sh = prefs.data?.shariah;
-  const shares = q.data ? sharesOutstanding(q.data, asOf) : null;
-  const screen =
-    sh?.enabled && s?.balance
-      ? shariahScreen(
-          {
-            longTermDebt: s.balance.longTermDebt.value,
-            cash: s.balance.cash.value,
-            assets: s.balance.assets.value,
-            marketCap: price && shares ? price.close * shares.value : null,
-          },
-          sh,
-        )
-      : null;
+  const screen = sh?.enabled && q.data ? shariahAsOf(q.data, bars, sh, asOf) : null;
   const x = t.study.shariah;
 
   return (

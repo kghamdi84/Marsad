@@ -4,12 +4,22 @@ import {
   ColorType,
   HistogramSeries,
   LineSeries,
+  TrackingModeExitMode,
   createChart,
   createSeriesMarkers,
   type SeriesMarker,
   type Time,
 } from 'lightweight-charts';
-import { ema, rsi, sma, type ChartMarker, type DailyBar, type MarkerKind } from '@marsad/core';
+import {
+  ema,
+  rsi,
+  sma,
+  toFixedHalfUp,
+  type ChartMarker,
+  type DailyBar,
+  type MarkerKind,
+} from '@marsad/core';
+import { t } from '../strings';
 
 /** The short text drawn on the chart for each marker kind; the full label is in the list beneath it. */
 const MARKER_TEXT: Record<MarkerKind, string> = {
@@ -63,6 +73,7 @@ export default function PriceChart({
   visibleSessions?: number;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const readout = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = host.current;
@@ -86,6 +97,8 @@ export default function PriceChart({
       grid: { vertLines: { color: grid }, horzLines: { color: grid } },
       rightPriceScale: { borderColor: grid },
       timeScale: { borderColor: grid },
+      // On a touch screen, touch and hold shows the crosshair; it goes when the finger lifts.
+      trackingMode: { exitMode: TrackingModeExitMode.OnTouchEnd },
     });
 
     const dates = bars.map((b) => b.date);
@@ -185,6 +198,27 @@ export default function PriceChart({
       }));
     createSeriesMarkers(candles, placed);
 
+    // The day and close under the crosshair (pointer or touch and hold); hidden when the crosshair leaves.
+    const byDate = new Map(bars.map((b) => [b.date, b.close]));
+    chart.subscribeCrosshairMove((param) => {
+      const box = readout.current;
+      if (!box) return;
+      const day = typeof param.time === 'string' ? param.time : null;
+      const close = day ? byDate.get(day) : undefined;
+      if (!day || close === undefined || !param.point) {
+        box.hidden = true;
+        return;
+      }
+      const label = new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      });
+      box.textContent = t.study.ui.readout(label, toFixedHalfUp(close, 2));
+      box.hidden = false;
+    });
+
     chart.timeScale().fitContent();
     if (visibleSessions && bars.length > visibleSessions)
       chart.timeScale().setVisibleLogicalRange({
@@ -194,5 +228,16 @@ export default function PriceChart({
     return () => chart.remove();
   }, [bars, markers, toggles, height, visibleSessions]);
 
-  return <div ref={host} className="w-full" style={{ minHeight: height }} />;
+  return (
+    <div className="relative">
+      <div ref={host} className="w-full" style={{ minHeight: height }} />
+      <div
+        ref={readout}
+        hidden
+        aria-hidden="true"
+        data-testid="chart-readout"
+        className="pointer-events-none absolute start-2 top-2 z-10 rounded-md bg-raised px-2 py-1 text-xs font-semibold text-white tabular-nums shadow"
+      />
+    </div>
+  );
 }

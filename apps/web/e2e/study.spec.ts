@@ -107,6 +107,12 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     .first();
   await expect(canvas).toBeVisible();
   expect((await canvas.boundingBox())?.width).toBeGreaterThan(300);
+  // Pointing at the chart shows the day and close under the crosshair.
+  const box = await canvas.boundingBox();
+  if (box) await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4);
+  await expect(page.getByTestId('chart-readout')).toHaveText(
+    /^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d+\.\d{2}$/,
+  );
 
   // 08:57 ET pre-market on the 23rd, so the 8-K marker sits on the 23rd's bar.
   await expect(
