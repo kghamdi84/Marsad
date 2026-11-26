@@ -938,3 +938,116 @@ describe('system alerts', () => {
     ).rejects.toThrow(/check constraint/);
   });
 });
+
+describe('scheduler (ADR 0008)', () => {
+  const workflowsDir = join(here, '..', '..', '.github', 'workflows');
+
+  /** Clears what the scheduler writes, so other tests keep their counts. */
+  async function reset() {
+    await db.exec(`
+      delete from private.workflow_dispatches;
+      delete from net.http_request_queue;
+      delete from net._http_response;
+      delete from vault.secrets;
+      delete from public.job_runs where job = 'scheduler';`);
+  }
+
+  it("every workflow's schedule is copied exactly into Supabase Cron, plus the 15-minute check", async () => {
+    const expected: string[] = [];
+    for (const file of readdirSync(workflowsDir).filter((f) => f.endsWith('.yml'))) {
+      for (const m of readFileSync(join(workflowsDir, file), 'utf8').matchAll(
+        /^\s+- cron: '([^']+)'/gm,
+      ))
+        expected.push(`${file} ${m[1]}`);
+    }
+    const r = await db.query<{ jobname: string; schedule: string; command: string }>(
+      'select jobname, schedule, command from cron.job',
+    );
+    const actual = r.rows
+      .filter((j) => j.jobname.startsWith('gh-'))
+      .map((j) => `${/dispatch_workflow\('([^']+)'\)/.exec(j.command)?.[1]} ${j.schedule}`);
+    expect(expected.length).toBeGreaterThan(20);
+    expect(actual.sort()).toEqual(expected.sort());
+    expect(r.rows.find((j) => j.jobname === 'scheduler-check')).toMatchObject({
+      schedule: '*/15 * * * *',
+      command: 'select private.check_workflow_dispatches()',
+    });
+  });
+
+  it('without the token nothing is sent, and the Status page is told so', async () => {
+    await reset();
+    await db.query(`select private.dispatch_workflow('halts.yml')`);
+    expect((await db.query('select * from net.http_request_queue')).rows).toEqual([]);
+    await db.query(`update private.workflow_dispatches set sent_at = now() - interval '5 minutes'`);
+    await db.query('select private.check_workflow_dispatches()');
+    const run = await db.query<{ status: string; error: string; details: unknown }>(
+      `select status, error, details from public.job_runs where job = 'scheduler'`,
+    );
+    expect(run.rows).toEqual([
+      {
+        status: 'skipped',
+        error: 'GitHub token not stored in Supabase Vault yet (ADR 0008); nothing was sent',
+        details: { sent: 1, accepted: 0, refused: 0, noToken: 1, noReply: 0 },
+      },
+    ]);
+    await reset();
+  });
+
+  it("with the token: a POST to the workflow's dispatch URL; a refusal is recorded with GitHub's reply", async () => {
+    await reset();
+    await db.query(
+      `insert into vault.secrets (name, secret) values ('github_actions_token', 'test-token')`,
+    );
+    await db.query(`select private.dispatch_workflow('halts.yml')`);
+    await db.query(`select private.dispatch_workflow('health.yml')`);
+    const q = await db.query<{
+      id: number;
+      url: string;
+      headers: Record<string, string>;
+      body: unknown;
+    }>('select id, url, headers, body from net.http_request_queue order by id');
+    expect(q.rows.map((x) => x.url)).toEqual([
+      'https://api.github.com/repos/kghamdi84/Marsad/actions/workflows/halts.yml/dispatches',
+      'https://api.github.com/repos/kghamdi84/Marsad/actions/workflows/health.yml/dispatches',
+    ]);
+    expect(q.rows[0]?.headers['Authorization']).toBe('Bearer test-token');
+    expect(q.rows[0]?.body).toEqual({ ref: 'main' });
+    // GitHub refuses the first (a bad token) and accepts the second (204, no body).
+    await db.query(
+      `insert into net._http_response (id, status_code, content) values ($1, 401, '{"message":"Bad credentials"}'), ($2, 204, '')`,
+      [q.rows[0]?.id, q.rows[1]?.id],
+    );
+    await db.query(`update private.workflow_dispatches set sent_at = now() - interval '5 minutes'`);
+    await db.query('select private.check_workflow_dispatches()');
+    const run = await db.query<{
+      status: string;
+      rows_written: number;
+      error: string;
+      details: unknown;
+    }>(`select status, rows_written, error, details from public.job_runs where job = 'scheduler'`);
+    expect(run.rows).toEqual([
+      {
+        status: 'error',
+        rows_written: 1,
+        error: 'halts.yml: HTTP 401 {"message":"Bad credentials"}',
+        details: { sent: 2, accepted: 1, refused: 1, noToken: 0, noReply: 0 },
+      },
+    ]);
+    await reset();
+  });
+
+  it('refuses a name that is not a workflow file, and signed-in users cannot call the scheduler', async () => {
+    await expect(db.query(`select private.dispatch_workflow('x; select 1')`)).rejects.toThrow(
+      /not a workflow file name/,
+    );
+    await expect(
+      as(owner2, (tx) => tx.query(`select private.dispatch_workflow('halts.yml')`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(owner2, (tx) => tx.query(`select private.check_workflow_dispatches()`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(anon, (tx) => tx.query(`select private.dispatch_workflow('halts.yml')`)),
+    ).rejects.toThrow(/permission denied/);
+  });
+});

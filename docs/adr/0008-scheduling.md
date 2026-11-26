@@ -1,6 +1,6 @@
 # ADR 0008: Reliable scheduling for the polling jobs
 
-- Status: proposed (needs Khaled's decision and one token only he can create)
+- Status: accepted (Khaled, 2026-11-26), option 2; built in migration `20261229000000_scheduler.sql`
 - Date: 2026-11-24
 
 ## Context
@@ -40,3 +40,15 @@ Option 2 now, option 3 when Phase 5 builds the tick. It costs nothing, keeps eve
 ## Consequences
 
 Until this is accepted the jobs run when a run is started by hand or when GitHub happens to fire the schedule. The Status page says so in words: a source that stops speaking shows as STALE, and the alerts table records it.
+
+## Decision and build (2026-11-26)
+
+Khaled chose option 2 after a second measurement: on 2026-11-25 and 26 the 15-minute heartbeat fired 9 times in two days, hours apart.
+
+- `private.dispatch_workflow(file)` posts `{"ref": "main"}` to `https://api.github.com/repos/kghamdi84/Marsad/actions/workflows/<file>/dispatches` through `pg_net`, with the token read from Supabase Vault (`github_actions_token`). The file name must match `^[a-z0-9-]+\.yml$`. Without the token nothing is sent; the attempt is still recorded.
+- 26 Supabase Cron jobs (`gh-<workflow>`) copy every `cron:` line of `.github/workflows` exactly, in UTC. A database test reads the workflow files and fails if a schedule is added, removed or changed on one side only.
+- `scheduler-check` runs every 15 minutes: for the dispatches sent 17 to 2 minutes earlier it reads GitHub's replies (`net._http_response`, 204 is accepted) and writes one `scheduler` row to `job_runs`: `ok`, `error` with GitHub's reply (for example an expired token, HTTP 401), or `skipped` with "GitHub token not stored in Supabase Vault yet". The Status page shows it in Recent job runs and the 24-hour strips.
+- The functions and the dispatch log live in the `private` schema; signed-in users and anon cannot call them (tested).
+- The workflows keep their own `schedule:` as a backup. Known risk: Massive workflows share one concurrency group, and GitHub cancels a pending run when another joins the group, so a late GitHub-scheduled duplicate can cancel a queued run of another Massive workflow. The schedules are hours apart and every job is idempotent; if the Status page shows a missed run, the GitHub schedules can be removed.
+
+What Khaled does (SETUP step 11): enable `pg_cron` and `pg_net` (Database, Extensions), create a fine-grained GitHub token (Actions: read and write, this repository only) and store it in Vault. When the token expires, the `scheduler` row turns to an error saying so.

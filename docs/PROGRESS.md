@@ -251,6 +251,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Khaled added `TAURIC_API_KEY` the same day. First live `tauric-reconcile` (run 45847822729, manual): the key works; 10 of 14 closes equal Massive's; it failed on MARA, HIMS, RGTI and BBAI (Tauric does not carry them) and DIA volume (10.3% lower, close equal). Khaled chose to report both instead of failing; closes and session dates stay strict.
 - Status page dates: the date beside an ET time was the UTC date (a day ahead from 19:00 ET); fixed to the ET date, found in Khaled's screenshot.
 
+### Reliable scheduling from Supabase Cron (2026-11-26, ADR 0008 accepted)
+
+- Khaled accepted ADR 0008 after the heartbeat (every 15 minutes) fired only 9 times in two days.
+- Built: `private.dispatch_workflow` posts to GitHub's workflow_dispatch API through `pg_net` with a token from Supabase Vault; 26 Supabase Cron jobs copy every workflow schedule exactly (a database test reads the workflow files); `scheduler-check` writes a `scheduler` job run every 15 minutes (ok, error with GitHub's reply, or skipped until the token exists).
+- Waiting on Khaled (SETUP step 11): enable `pg_cron` and `pg_net`, create a fine-grained GitHub token (Actions read and write, Marsad only) and store it in Vault as `github_actions_token`.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).
