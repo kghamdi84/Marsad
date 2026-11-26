@@ -272,7 +272,7 @@ test('watch: the latest brief with its sections and email state', async ({ page 
 });
 
 // Quote source (ADR 0041). The clock is Tuesday 2026-11-24 15:03 UTC (10:03 ET, regular session). NVDA's Tauric
-// quote is 3 minutes old, RKLB's 33 minutes old (past the 90 s + 15 min allowance), MARA has none.
+// quote is 3 minutes old, RKLB's 33 minutes old (past the 90 s + 15 min allowance); MARA is not covered by Tauric.
 test('watch: with Tauric chosen, its latest price sits next to the Massive close and is never called live', async ({
   page,
 }) => {
@@ -306,6 +306,9 @@ test('watch: with Tauric chosen, its latest price sits next to the Massive close
       ]),
     ),
   );
+  await page.route('**/rest/v1/job_runs**', (r) =>
+    r.fulfill(json([{ details: { notCovered: ['MARA', 'HIMS', 'RGTI', 'BBAI'] } }])),
+  );
   await page.goto('/');
   const list = page.getByRole('region', { name: 'Watchlist', exact: true });
   await expect(list.getByRole('columnheader', { name: 'Latest (Tauric)' })).toBeVisible();
@@ -315,7 +318,9 @@ test('watch: with Tauric chosen, its latest price sits next to the Massive close
   await expect(nvda).toContainText('Delay not confirmed, 3m 0s old');
   await expect(nvda).toContainText('121.00'); // the Massive close stays
   await expect(list.getByRole('row', { name: /^RKLB/ })).toContainText('Stale, 33m 0s old');
-  await expect(list.getByRole('row', { name: /^MARA/ })).toContainText('No Tauric quote yet');
+  // MARA: Tauric said "not registered" in the newest run (live 2026-11-26); SOFI simply has no quote yet.
+  await expect(list.getByRole('row', { name: /^MARA/ })).toContainText('Not covered by Tauric');
+  await expect(list.getByRole('row', { name: /^SOFI/ })).toContainText('No Tauric quote yet');
   await expect(list).not.toContainText(/\bLive\b/);
   await expect(list.getByText(/^Latest prices: Tauric, delay not confirmed/)).toBeVisible();
 });

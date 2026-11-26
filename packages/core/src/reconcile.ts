@@ -9,8 +9,9 @@
  * - Vendor VWAP vs VWAP computed from minute bars: 0.1% (different bar sets can differ slightly).
  * - Tauric session close vs Massive daily close (ADR 0041): 0.05% or 1 cent, whichever is larger. Both are the
  *   official close; on 2026-11-25 AAPL, NVDA and SPY agreed to the cent.
- * - Tauric session volume vs Massive daily volume: 5%. The vendors count different venue sets: on 2026-11-25
- *   Tauric was 2.3% (AAPL) and 1.9% (NVDA) lower, so 5% leaves room without hiding a missing session.
+ * - Tauric session volume vs Massive daily volume: reported, never failed (Khaled's choice, 2026-11-26). The
+ *   vendors count different venue sets: on 2026-11-25 Tauric was 1.0% (SPY), 1.9% (NVDA), 2.3% (AAPL) and
+ *   10.3% (DIA) lower while every close agreed. Marsad shows no Tauric volume, so the gap is recorded only.
  */
 import type { SystemAlert } from './health.js';
 
@@ -20,7 +21,6 @@ export const TOLERANCES = {
   vwapRel: 0.001,
   closeRel: 0.0005,
   closeAbs: 0.01,
-  volumeRel: 0.05,
 } as const;
 
 export interface CheckResult {
@@ -163,24 +163,32 @@ export function reportAlerts(report: ReconciliationReport): SystemAlert[] {
   }));
 }
 
+/** One ticker's second-source result: the close check, and the volume gap reported alongside it. */
+export interface SessionCloseResult {
+  check: CheckResult;
+  /** Tauric volume over Massive volume, minus 1 (-0.103 is 10.3% lower); null when not comparable. */
+  volumeGap: number | null;
+}
+
 /**
  * A second-source check of one ticker's session (ADR 0041): Tauric's price for a finished session against
  * Massive's daily bar for the same date. Different dates are a failed check, never a silent skip, because a
- * vendor that stopped updating is exactly what this check is for.
+ * vendor that stopped updating is exactly what this check is for. Volume is reported, not checked: the vendors
+ * count different venues (see the tolerances above).
  */
 export function reconcileSessionClose(
   ticker: string,
   tauric: { sessionDate: string | null; price: number; dayVolume: number | null },
   massive: { date: string; close: number; volume: number } | null,
-): CheckResult[] {
+): SessionCloseResult {
   const name = `${ticker} close`;
   if (massive === null || tauric.sessionDate !== massive.date) {
     const detail =
       massive === null
         ? 'Massive has no daily bar, cannot verify'
         : `sessions differ: Tauric ${tauric.sessionDate ?? 'none'}, Massive ${massive.date}`;
-    return [
-      {
+    return {
+      check: {
         name,
         ok: false,
         left: { label: 'Tauric close', value: tauric.price },
@@ -189,20 +197,20 @@ export function reconcileSessionClose(
         tolerance: 0,
         detail,
       },
-    ];
+      volumeGap: null,
+    };
   }
-  return [
-    compareValues(
+  const gap =
+    tauric.dayVolume !== null && massive.volume > 0
+      ? Math.round((tauric.dayVolume / massive.volume - 1) * 10_000) / 10_000
+      : null;
+  return {
+    check: compareValues(
       `${name} ${massive.date}`,
       { label: 'Tauric close', value: tauric.price },
       { label: 'Massive close', value: massive.close },
       { abs: TOLERANCES.closeAbs, rel: TOLERANCES.closeRel },
     ),
-    compareValues(
-      `${ticker} volume ${massive.date}`,
-      { label: 'Tauric volume', value: tauric.dayVolume },
-      { label: 'Massive volume', value: massive.volume },
-      { rel: TOLERANCES.volumeRel },
-    ),
-  ];
+    volumeGap: gap,
+  };
 }

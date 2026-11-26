@@ -26,6 +26,8 @@ export interface QuoteView {
   source: QuoteSource;
   /** Latest Tauric quotes by ticker; empty when Massive is selected. */
   quotes: Record<string, StoredQuote>;
+  /** Tickers Tauric says it does not carry, from the newest successful Tauric job run. */
+  notCovered: string[];
   calendar: MarketCalendar;
 }
 
@@ -40,8 +42,9 @@ export async function loadQuoteView(): Promise<QuoteView> {
   const s = await db.from('user_settings').select('quote_source').maybeSingle();
   if (s.error) throw new Error(`user_settings: ${s.error.message}`);
   const source: QuoteSource = s.data?.['quote_source'] === 'tauric' ? 'tauric' : 'massive';
-  if (source === 'massive') return { source, quotes: {}, calendar: buildCalendar([], 'NYSE') };
-  const [q, h] = await Promise.all([
+  if (source === 'massive')
+    return { source, quotes: {}, notCovered: [], calendar: buildCalendar([], 'NYSE') };
+  const [q, h, runs] = await Promise.all([
     db
       .from('price_quotes')
       .select('ticker, price, change, quote_kind, price_time, session_date, fetched_at')
@@ -51,9 +54,24 @@ export async function loadQuoteView(): Promise<QuoteView> {
       .from('market_holidays')
       .select('date, exchange, name, status, open_at, close_at')
       .eq('exchange', 'NYSE'),
+    db
+      .from('job_runs')
+      .select('details')
+      .in('job', ['tauric-quotes', 'tauric-reconcile'])
+      .eq('status', 'ok')
+      .order('started_at', { ascending: false })
+      .limit(1),
   ]);
   if (q.error) throw new Error(`price_quotes: ${q.error.message}`);
   if (h.error) throw new Error(`market_holidays: ${h.error.message}`);
+  // The coverage list only refines "No Tauric quote yet" into "Not covered by Tauric"; if it cannot be read, the
+  // quotes still show and a missing one keeps the plainer wording.
+  const details = runs.error
+    ? undefined
+    : ((runs.data ?? [])[0] as { details?: { notCovered?: unknown } } | undefined)?.details;
+  const notCovered = Array.isArray(details?.notCovered)
+    ? details.notCovered.filter((x): x is string => typeof x === 'string')
+    : [];
   const quotes: Record<string, StoredQuote> = {};
   for (const r of (q.data ?? []) as Record<string, unknown>[]) {
     const ticker = String(r['ticker']);
@@ -75,7 +93,7 @@ export async function loadQuoteView(): Promise<QuoteView> {
     ...(x['open_at'] ? { open: x['open_at'] } : {}),
     ...(x['close_at'] ? { close: x['close_at'] } : {}),
   }));
-  return { source, quotes, calendar: buildCalendar(rows, 'NYSE') };
+  return { source, quotes, notCovered, calendar: buildCalendar(rows, 'NYSE') };
 }
 
 export async function saveQuoteSource(source: QuoteSource): Promise<void> {

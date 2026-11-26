@@ -48,6 +48,15 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
           headline: 'Nasdaq trade halts stale, silent for 40 min, regular session',
           paused_rules: ['group:halts'],
         },
+        {
+          // 03:00 UTC on the 26th is 22:00 ET on the 25th (06:00 in Riyadh on the 26th).
+          id: 2,
+          created_at: '2026-11-26T03:00:00Z',
+          event: 'recovered',
+          source: 'sec_edgar',
+          headline: 'SEC EDGAR recovered, 1 rules resumed',
+          paused_rules: ['group:filings'],
+        },
       ]),
     }),
   );
@@ -61,6 +70,8 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
     page.getByRole('cell', { name: /Nasdaq trade halts stale, silent for 40 min/ }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name: 'group:halts' })).toBeVisible();
+  // The date beside an ET time is the ET date, not the UTC one.
+  await expect(page.getByRole('cell', { name: '2026-11-25 22:00 ET (06:00 local)' })).toBeVisible();
   // No heartbeat run on record: the page says stale feeds are not being watched.
   await expect(page.getByText('Heartbeat has not run yet')).toBeVisible();
   // A source that has never reported says so in words, not by an empty cell.

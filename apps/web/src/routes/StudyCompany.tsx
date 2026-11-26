@@ -73,6 +73,7 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   });
   const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
+  const notCovered = qv.data?.source === 'tauric' && !tq && qv.data.notCovered.includes(ticker);
   const change = s?.changePct ?? null;
   const arrow = change === null ? '' : change > 0 ? '\u25B2' : change < 0 ? '\u25BC' : '';
   const tint =
@@ -116,6 +117,11 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
               className={`text-xs tabular-nums ${latest.state === 'stale' ? 'text-warn' : 'text-muted'}`}
             >
               {ui.latestLine(money(tq.price), latest.label)}
+            </span>
+          )}
+          {notCovered && (
+            <span data-testid="latest-quote" className="text-xs text-muted">
+              {ui.latestNotCovered(ticker)}
             </span>
           )}
         </div>

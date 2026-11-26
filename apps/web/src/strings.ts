@@ -205,6 +205,7 @@ export const t = {
       olderDate: (date: string) => `as of ${date}`,
       latestCol: 'Latest (Tauric)',
       latestNone: 'No Tauric quote yet',
+      latestNotCovered: 'Not covered by Tauric',
       latestPhone: (price: string) => `Tauric ${price}`,
       latestFooter:
         'Latest prices: Tauric, delay not confirmed (choose the source on the Status page). Close, change and charts: Massive.',
@@ -972,6 +973,7 @@ export const t = {
     ui: {
       endOfDay: 'End of day',
       staleBadge: 'Stale',
+      latestNotCovered: (tk: string) => `Tauric does not cover ${tk}`,
       latestLine: (price: string, label: string) => `Latest from Tauric $${price} · ${label}`,
       averages: 'Averages',
       rsiZones: 'Under 30 oversold, over 70 overbought',

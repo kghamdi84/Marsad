@@ -291,7 +291,8 @@ function ChangePill({ v }: { v: number | null }) {
 function useLatest(view: QuoteView | undefined, now: Date) {
   return (tk: string) => {
     const q = view?.source === 'tauric' ? view.quotes[tk] : undefined;
-    if (!view || !q) return null;
+    if (!view) return null;
+    if (!q) return view.notCovered.includes(tk) ? ('not-covered' as const) : null;
     const f = quoteStatus(q, view, now);
     return {
       price: toFixedHalfUp(q.price, 2),
@@ -304,8 +305,11 @@ function useLatest(view: QuoteView | undefined, now: Date) {
 
 type Latest = ReturnType<ReturnType<typeof useLatest>>;
 
+const noLatest = (latest: Latest) => (latest === 'not-covered' ? u.latestNotCovered : u.latestNone);
+
 function LatestCell({ latest }: { latest: Latest }) {
-  if (!latest) return <span className="text-xs text-muted">{u.latestNone}</span>;
+  if (!latest || latest === 'not-covered')
+    return <span className="text-xs text-muted">{noLatest(latest)}</span>;
   return (
     <span className="flex flex-col items-end gap-0.5">
       <span className="font-semibold text-white">{latest.price}</span>
@@ -371,14 +375,14 @@ function PhoneRow({
           )}
           {latest !== undefined && (
             <span className="text-xs text-muted tabular-nums">
-              {latest ? u.latestPhone(latest.price) : u.latestNone}
+              {latest && latest !== 'not-covered' ? u.latestPhone(latest.price) : noLatest(latest)}
             </span>
           )}
         </span>
       </button>
       {open && (
         <div id={panel} className="flex flex-col gap-3 bg-raised/40 px-4 pt-1 pb-4">
-          {latest && (
+          {latest && latest !== 'not-covered' && (
             <p className={`text-[0.8125rem] ${latest.stale ? 'text-warn' : 'text-muted'}`}>
               {u.latestPhone(latest.price)} <Change v={latest.change} digits={2} /> {'\u00B7'}{' '}
               {latest.label}
