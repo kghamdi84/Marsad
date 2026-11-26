@@ -151,48 +151,74 @@ describe('runTauricReconcileJob', () => {
     expect(run.error).toMatch(
       /^Tauric and Massive disagree: RKLB close \(Tauric gave no quote, cannot verify\)/,
     );
-    expect(run.error).not.toMatch(/NVDA/); // NVDA and SPY agree to the cent and within the volume tolerance
+    expect(run.error).not.toMatch(/NVDA/); // NVDA and SPY agree to the cent
   });
 
-  it('passes when every starting ticker agrees', async () => {
-    const tickers = [
-      'NVDA',
-      'RKLB',
-      'MARA',
-      'SOFI',
-      'HOOD',
-      'OKLO',
-      'IONQ',
-      'HIMS',
-      'RGTI',
-      'BBAI',
-      'SPY',
-      'QQQ',
-      'IWM',
-      'DIA',
-    ];
-    const body = {
-      object: 'list',
-      next_cursor: null,
-      errors: [],
-      data: tickers.map((tk) => ({
+  // The live run of 2026-11-26: Tauric does not carry MARA, HIMS, RGTI and BBAI, and its volume counts fewer
+  // venues (DIA 10.3% lower) while every close agrees. Both are reported in the run, neither fails it.
+  const tickers = [
+    'NVDA',
+    'RKLB',
+    'MARA',
+    'SOFI',
+    'HOOD',
+    'OKLO',
+    'IONQ',
+    'HIMS',
+    'RGTI',
+    'BBAI',
+    'SPY',
+    'QQQ',
+    'IWM',
+    'DIA',
+  ];
+  const uncovered = ['MARA', 'HIMS', 'RGTI', 'BBAI'];
+  const answer = (close: (tk: string) => number) => ({
+    object: 'list',
+    next_cursor: null,
+    errors: uncovered.map((tk) => ({
+      key: `security:${tk}`,
+      error: {
+        type: 'invalid_request_error',
+        code: 'not_registered',
+        message: 'x',
+        param: 'instruments',
+        retry: 'change_request',
+      },
+    })),
+    data: tickers
+      .filter((tk) => !uncovered.includes(tk))
+      .map((tk) => ({
         key: `security:${tk}`,
         quote_kind: 'snapshot',
-        price: 10,
+        price: close(tk),
         price_time: '2026-11-25T21:00:00Z',
         session_date: '2026-11-25',
-        day: { volume: 1000 },
+        day: { volume: tk === 'DIA' ? 897 : 1000 },
         field_states: {},
         instrument: {},
       })),
-    };
-    const bars = Object.fromEntries(
-      tickers.map((tk) => [tk, { date: '2026-11-25', close: 10, volume: 1030 }]),
-    );
-    const t = deps(at, 200, JSON.stringify(body), bars);
+  });
+  const bars = Object.fromEntries(
+    tickers.map((tk) => [tk, { date: '2026-11-25', close: 10, volume: 1000 }]),
+  );
+
+  it('passes when every covered ticker agrees, listing what Tauric does not carry and the volume gaps', async () => {
+    const t = deps(at, 200, JSON.stringify(answer(() => 10)), bars);
     const run = await runTauricReconcileJob(t.deps);
     expect(run.status).toBe('ok');
-    expect(run.rows_written).toBe(28);
+    expect(run.rows_written).toBe(10);
+    expect(run.details).toMatchObject({ checks: 10, notCovered: uncovered });
+    expect((run.details as { volumeGaps: Record<string, number> }).volumeGaps['DIA']).toBe(-0.103);
     expect(t.log.runs[0]?.job).toBe('tauric-reconcile');
+  });
+
+  it('still fails on a covered ticker whose close disagrees', async () => {
+    const t = deps(at, 200, JSON.stringify(answer((tk) => (tk === 'QQQ' ? 10.5 : 10))), bars);
+    const run = await runTauricReconcileJob(t.deps);
+    expect(run.status).toBe('error');
+    expect(run.error).toMatch(
+      /^Tauric and Massive disagree: QQQ close 2026-11-25 \(differs by 0\.5000/,
+    );
   });
 });

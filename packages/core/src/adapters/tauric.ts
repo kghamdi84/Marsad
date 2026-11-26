@@ -126,6 +126,19 @@ export function parseTauricQuotes(json: unknown): TauricQuotes | null {
   return { quotes, missing };
 }
 
+/**
+ * Vendor answers that mean "Tauric does not carry this ticker", as opposed to a quote that is missing today.
+ * A ticker it does not cover is reported, never counted as a disagreement with Massive.
+ */
+const NOT_COVERED = new Set(['not_registered', 'not_supported', 'delisted']);
+
+/** Tickers the vendor says it does not cover, from a batch's `missing` list. */
+export function notCoveredTickers(missing: TauricQuotes['missing']): string[] {
+  return missing
+    .filter((m) => m.key.startsWith('security:') && NOT_COVERED.has(m.code))
+    .map((m) => m.key.slice('security:'.length));
+}
+
 const AUTH_CODES = new Set([
   'missing_api_key',
   'invalid_api_key',

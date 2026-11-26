@@ -8,6 +8,7 @@ import { reconcileSessionClose } from '../reconcile.js';
 import {
   classifyTauricFailure,
   fetchTauricQuotes,
+  notCoveredTickers,
   parseTauricQuotes,
   quoteFreshness,
   type TauricQuote,
@@ -179,41 +180,66 @@ describe('reconcileSessionClose (Tauric against Massive, recorded 2026-11-25 ses
   const q = (t: string) =>
     parseTauricQuotes(recorded.body)?.quotes.find((x) => x.ticker === t) as TauricQuote;
 
-  it('AAPL agrees: same close to the cent, volume 2.3% lower (inside 5%)', () => {
+  it('AAPL agrees: same close to the cent; volume 2.3% lower is reported, not failed', () => {
     // Massive grouped daily 2026-11-25 (read through the Massive connector on 2026-11-26): close 355.58, volume 54,285,255.
-    const checks = reconcileSessionClose('AAPL', q('AAPL'), {
+    const r = reconcileSessionClose('AAPL', q('AAPL'), {
       date: '2026-11-25',
       close: 355.58,
       volume: 54285255,
     });
-    expect(checks.map((c) => [c.name, c.ok])).toEqual([
-      ['AAPL close 2026-11-25', true],
-      ['AAPL volume 2026-11-25', true],
-    ]);
+    expect([r.check.name, r.check.ok]).toEqual(['AAPL close 2026-11-25', true]);
+    expect(r.volumeGap).toBe(-0.0226); // 53,060,252 / 54,285,255 - 1
+  });
+
+  it('the live run of 2026-11-26: DIA volume 10.3% lower with the close equal is no failure', () => {
+    // Tauric DIA 501.27, volume 4,234,967; Massive DIA 501.27, volume 4,721,531 (both 2026-11-25).
+    const r = reconcileSessionClose(
+      'DIA',
+      { sessionDate: '2026-11-25', price: 501.27, dayVolume: 4234967 },
+      { date: '2026-11-25', close: 501.27, volume: 4721531 },
+    );
+    expect(r.check.ok).toBe(true);
+    expect(r.volumeGap).toBe(-0.1031);
   });
 
   it('a close 10 cents apart fails: the allowance is the larger of 1 cent and 0.05% (7.5 cents here)', () => {
-    const [close] = reconcileSessionClose('NVDA', q('NVDA'), {
+    const { check } = reconcileSessionClose('NVDA', q('NVDA'), {
       date: '2026-11-25',
       close: 149.4,
       volume: 366571890,
     });
     // 0.05% of 149.40 is 0.0747: the larger allowance. 0.10 apart is outside it.
-    expect(close?.tolerance).toBeCloseTo(0.0747, 4);
-    expect(close?.ok).toBe(false);
+    expect(check.tolerance).toBeCloseTo(0.0747, 4);
+    expect(check.ok).toBe(false);
   });
 
   it('different sessions are a failure, never a silent skip', () => {
-    const [c] = reconcileSessionClose('SPY', q('SPY'), {
+    const { check, volumeGap } = reconcileSessionClose('SPY', q('SPY'), {
       date: '2026-11-24',
       close: 718.78,
       volume: 1,
     });
-    expect(c?.ok).toBe(false);
-    expect(c?.detail).toBe('sessions differ: Tauric 2026-11-25, Massive 2026-11-24');
-    expect(reconcileSessionClose('SPY', q('SPY'), null)[0]?.detail).toBe(
+    expect(check.ok).toBe(false);
+    expect(check.detail).toBe('sessions differ: Tauric 2026-11-25, Massive 2026-11-24');
+    expect(volumeGap).toBeNull();
+    expect(reconcileSessionClose('SPY', q('SPY'), null).check.detail).toBe(
       'Massive has no daily bar, cannot verify',
     );
+  });
+});
+
+describe('notCoveredTickers', () => {
+  it('names the tickers Tauric does not carry, not a quote missing for another reason', () => {
+    expect(
+      notCoveredTickers([
+        { key: 'security:MARA', code: 'not_registered' },
+        { key: 'security:XYZ', code: 'not_supported' },
+        { key: 'security:OLD', code: 'delisted' },
+        { key: 'security:NVDA', code: 'temporarily_unavailable' },
+        { key: 'security:AAPL', code: 'no-price' },
+        { key: 'crypto:BTC-USD', code: 'not_registered' },
+      ]),
+    ).toEqual(['MARA', 'XYZ', 'OLD']);
   });
 });
 

@@ -248,7 +248,8 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Fixed a real defect found by the review: a value of `unknown` plan tier was labelled "Live". It now reads "Delay not confirmed" with the delayed allowance, then "Stale" (known-answer tests).
 - Built: Tauric adapter (`POST /v1/quotes`, batch of 50, own failure classes, POST support in the shared HTTP client), recorded fixture, `user_settings.quote_source` (per person, Massive by default), `price_quotes` (member-readable, job-written), `tauric` source row and health policy (pauses no rule), `tauric-quotes` job every 5 minutes in the session, nightly `tauric-reconcile` against Massive daily bars, Status radio card, "Latest (Tauric)" column on Watch and a line under the company price.
 - Display only: bars, indicators, backtests, rules and alerts stay on Massive.
-- Waiting on Khaled: create a Tauric API key and add it as the GitHub repository secret `TAURIC_API_KEY`. Until then both workflows stop at their first step without failing.
+- Khaled added `TAURIC_API_KEY` the same day. First live `tauric-reconcile` (run 45847822729, manual): the key works; 10 of 14 closes equal Massive's; it failed on MARA, HIMS, RGTI and BBAI (Tauric does not carry them) and DIA volume (10.3% lower, close equal). Khaled chose to report both instead of failing; closes and session dates stay strict.
+- Status page dates: the date beside an ET time was the UTC date (a day ahead from 19:00 ET); fixed to the ET date, found in Khaled's screenshot.
 
 ### Sign-in, friends and keys (2026-11-26)
 

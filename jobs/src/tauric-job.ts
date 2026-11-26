@@ -5,6 +5,7 @@ import {
   buildReport,
   fetchTauricQuotes,
   lastRegularClose,
+  notCoveredTickers,
   quoteFreshness,
   reconcileSessionClose,
   runJob,
@@ -81,7 +82,10 @@ export async function runTauricQuotesJob(deps: TauricJobDeps): Promise<JobRunRec
       const fetchedAt = new Date(r.data.provenance.fetchedAt);
       const rows = await store.upsertQuotes(got.quotes, fetchedAt);
       const states = got.quotes.map((q) => quoteFreshness(q, at, calendar).state);
-      const missing = got.missing.map((m) => `${m.key} (${m.code})`);
+      const notCovered = notCoveredTickers(got.missing);
+      const missing = got.missing
+        .filter((m) => !notCovered.includes(m.key.slice('security:'.length)))
+        .map((m) => `${m.key} (${m.code})`);
       await store.updateSourceStatus({
         source: 'tauric',
         lastMessageAt: fetchedAt,
@@ -90,12 +94,19 @@ export async function runTauricQuotesJob(deps: TauricJobDeps): Promise<JobRunRec
         state: worstState(states),
         note:
           `${got.quotes.length} of ${tickers.length} quotes; delay not confirmed (ADR 0041)` +
+          (notCovered.length > 0 ? `; not covered by Tauric: ${notCovered.join(', ')}` : '') +
           (missing.length > 0 ? `; no quote: ${missing.slice(0, 5).join(', ')}` : '') +
           (left > 0 ? `; ${left} watchlist tickers over the 50-ticker batch` : ''),
       });
       return {
         rows,
-        details: { tickers: tickers.length, quotes: got.quotes.length, missing, overLimit: left },
+        details: {
+          tickers: tickers.length,
+          quotes: got.quotes.length,
+          notCovered,
+          missing,
+          overLimit: left,
+        },
       };
     },
     () => now().getTime(),
@@ -106,8 +117,10 @@ export async function runTauricQuotesJob(deps: TauricJobDeps): Promise<JobRunRec
 
 /**
  * Nightly second-source check (ADR 0041, integrity rule 5): Tauric's price for the finished session against
- * Massive's daily bar for every starting ticker. Any disagreement beyond tolerance, a session one vendor lacks,
- * or nothing compared at all fails the run, so it shows on the Status page and the health job reports it.
+ * Massive's daily bar for every starting ticker Tauric covers. A close beyond tolerance, a session one vendor
+ * lacks, a covered ticker with no quote, or nothing compared at all fails the run, so it shows on the Status page
+ * and the health job reports it. Tickers Tauric says it does not carry, and volume gaps (different venue sets),
+ * are recorded in the run details, not failed (Khaled's choice, 2026-11-26).
  */
 export async function runTauricReconcileJob(deps: TauricJobDeps): Promise<JobRunRecord> {
   const { store, now, http, cfg } = deps;
@@ -118,8 +131,11 @@ export async function runTauricReconcileJob(deps: TauricJobDeps): Promise<JobRun
       const r = await fetchTauricQuotes(http, cfg, tickers);
       if (!r.ok) throw new Error(`Tauric quotes unavailable: ${r.display} (${r.kind})`);
       const quotes = new Map((r.data.value?.quotes ?? []).map((q) => [q.ticker, q]));
+      const notCovered = notCoveredTickers(r.data.value?.missing ?? []);
       const checks: CheckResult[] = [];
+      const volumeGaps: Record<string, number> = {};
       for (const t of tickers) {
+        if (notCovered.includes(t)) continue;
         const q = quotes.get(t);
         const bar = await store.getLatestDailyBar(t);
         if (!q) {
@@ -134,8 +150,12 @@ export async function runTauricReconcileJob(deps: TauricJobDeps): Promise<JobRun
           });
           continue;
         }
-        checks.push(...reconcileSessionClose(t, q, bar));
+        const res = reconcileSessionClose(t, q, bar);
+        checks.push(res.check);
+        if (res.volumeGap !== null) volumeGaps[t] = res.volumeGap;
       }
+      if (checks.length === 0)
+        throw new Error('Nothing to compare: Tauric covers none of the starting tickers');
       const report = buildReport(checks, now());
       if (report.failed.length > 0) {
         throw new Error(
@@ -145,7 +165,10 @@ export async function runTauricReconcileJob(deps: TauricJobDeps): Promise<JobRun
           ),
         );
       }
-      return { rows: checks.length, details: { checks: checks.length, tickers: tickers.length } };
+      return {
+        rows: checks.length,
+        details: { checks: checks.length, tickers: tickers.length, notCovered, volumeGaps },
+      };
     },
     () => now().getTime(),
   );

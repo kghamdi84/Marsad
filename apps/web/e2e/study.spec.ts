@@ -247,6 +247,7 @@ test('with Tauric as the quote source, its latest price sits under the Massive c
 }) => {
   await mock(page, '2026-11-24');
   await page.route('**/rest/v1/user_settings**', (r) => json(r, [{ quote_source: 'tauric' }]));
+  await page.route('**/rest/v1/job_runs**', (r) => json(r, []));
   await page.route('**/rest/v1/price_quotes**', (r) =>
     json(r, [
       {
@@ -266,4 +267,18 @@ test('with Tauric as the quote source, its latest price sits under the Massive c
   await expect(page.getByTestId('latest-quote')).toHaveText(
     'Latest from Tauric $300.40 · Market closed, last value 16:00 ET',
   );
+});
+
+test('with Tauric chosen, a ticker it does not carry says so under the close (ADR 0041)', async ({
+  page,
+}) => {
+  await mock(page, '2026-11-24');
+  await page.route('**/rest/v1/user_settings**', (r) => json(r, [{ quote_source: 'tauric' }]));
+  await page.route('**/rest/v1/price_quotes**', (r) => json(r, []));
+  await page.route('**/rest/v1/job_runs**', (r) =>
+    json(r, [{ details: { notCovered: ['NVDA'] } }]),
+  );
+  await page.goto('/study/NVDA');
+  await expect(page.getByText('$300.00').first()).toBeVisible();
+  await expect(page.getByTestId('latest-quote')).toHaveText('Tauric does not cover NVDA');
 });
