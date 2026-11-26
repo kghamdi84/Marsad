@@ -256,12 +256,19 @@ async function mock(page: Page) {
   );
 }
 
+/** The redesigned cards keep their full tables, rules and sources under "Show details". */
+async function openDetails(page: import('@playwright/test').Page) {
+  await expect(page.getByRole('region', { name: 'Market regime' })).toBeVisible();
+  for (const d of await page.getByText('Show details', { exact: true }).all()) await d.click();
+}
+
 test('regime: the label with its reason and inputs, the recession filter, the event study and every panel with its source and date', async ({
   page,
 }) => {
   await mock(page);
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto('/regime');
+  await openDetails(page);
 
   // The label on 2026-11-23: VIX 26.62 at or above VIX3M 25.50, with the S&P 500 below its 50-day average.
   const label = page.getByRole('region', { name: 'Market regime' });
@@ -381,9 +388,11 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(geo.getByRole('row', { name: /^Conflict/ })).toContainText('0');
   // The newest tariff headline, linked.
   await expect(
-    geo.getByRole('link', {
-      name: '3 Stocks to Watch From the Transport Equipment & Leasing Industry',
-    }),
+    geo
+      .getByRole('link', {
+        name: '3 Stocks to Watch From the Transport Equipment & Leasing Industry',
+      })
+      .first(),
   ).toHaveAttribute('href', /^https:\/\//);
   await expect(geo.getByRole('row', { name: /WTI crude oil/ })).toContainText('2026-11-17');
   await expect(geo.getByRole('row', { name: /Broad US dollar index/ })).toContainText('2026-11-20');
@@ -419,6 +428,7 @@ test('regime: capitulation on, with its staged plan, exits and bear case', async
   await page.route('**/rest/v1/capitulation_daily**', (r) => json(r, [day]));
   await page.route('**/rest/v1/capitulation_plans**', (r) => json(r, [{ plan }]));
   await page.goto('/regime');
+  await openDetails(page);
   const cap = page.getByRole('region', { name: 'Capitulation watch' });
   await expect(cap.getByTestId('capitulation-state')).toHaveText('On');
   await expect(cap.getByRole('row', { name: /Marsad universe above/ })).toContainText('9.0%');
