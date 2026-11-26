@@ -77,7 +77,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
       'Gray and Vogel, Quantitative Momentum',
     ],
     summary:
-      'Own an ETF while its 12-month return is positive. The cross-sectional part (owning the strongest sectors) needs ranking and comes with rule-dsl-2.',
+      'Own an ETF while its 12-month return is positive. The cross-sectional part needs ranking and comes with rule-dsl-2.',
     rule: {
       id: 'etf-time-series-momentum',
       name: 'ETF with a positive 12-month return',
@@ -100,7 +100,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
     summary: 'Exit lagging single names with weakening theses into the sector ETF or index.',
     rule: null,
     notTestableBecause:
-      'Compares a stock with its sector ETF and its thesis; needs holdings (Phase 6) and two-ticker rules.',
+      'Compares a stock with its sector ETF and its thesis; needs holdings and two-ticker rules.',
     testOn: [],
   },
   {
@@ -129,7 +129,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
     rating: 'weak-to-moderate',
     sources: ["O'Neil, How to Make Money in Stocks", 'Minervini, Trade Like a Stock Market Wizard'],
     summary:
-      'Price above rising 50-, 150- and 200-day averages and within 25% of the 52-week high; exit below the 50-day average or at an 8% stop. Test before trusting.',
+      'Price above rising 50-, 150- and 200-day averages and within 25% of the 52-week high; exit below the 50-day or at an 8% stop.',
     rule: {
       id: 'trend-template-breakout',
       name: 'Trend template with an 8% stop',
@@ -205,7 +205,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
     summary:
       'Buy premium when IV rank is low, use defined-risk spreads when it is high, avoid long premium through earnings.',
     rule: null,
-    notTestableBecause: 'Needs options data (Phase 5 plan decision).',
+    notTestableBecause: 'Needs options data (a plan decision).',
     testOn: [],
   },
   {
@@ -219,7 +219,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
       'Zweig breadth thrust (confirmation)',
     ],
     summary:
-      'Staged index-ETF entries under the capitulation watch, gated by the recession filter (ADR 0011); verified with the in-app event study.',
+      'Staged index-ETF entries under the capitulation watch, gated by the recession filter.',
     rule: null,
     notTestableBecause:
       'Runs from the capitulation watch (VIX, breadth, composite, recession filter), not from bars alone; its event study is on the Regime page.',
@@ -233,7 +233,7 @@ export const PLAYBOOKS: readonly Playbook[] = [
     rating: 'weak',
     sources: ['Barber, Lee, Liu and Odean, Journal of Financial Markets (2014)'],
     summary:
-      'Your own setup, held to the strictest gates. Less than 1% of day traders earn predictable positive returns after fees; alerts are sized small and scored honestly.',
+      'Your own setup, held to the strictest gates. Less than 1% of day traders earn predictable positive returns after fees.',
     rule: null,
     notTestableBecause: 'Needs intraday bars (a real-time plan).',
     testOn: [],

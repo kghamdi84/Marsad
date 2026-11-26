@@ -513,7 +513,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
                     <Link
                       to="/study/$ticker"
                       params={{ ticker: tk }}
-                      className="inline-flex min-h-11 min-w-11 items-center text-white underline decoration-faint underline-offset-4 hover:decoration-up"
+                      className="inline-flex min-h-11 min-w-11 items-center text-white hover:text-up"
                     >
                       {tk}
                     </Link>
@@ -1064,14 +1064,13 @@ export function Watch() {
   const now = useNow();
   const session = wq.data ? tickerSummary(wq.data.bars['SPY'] ?? [])?.date : undefined;
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <header className="flex flex-col gap-1">
         {session && <p className="text-[13px] text-muted">{u.lastSession(session)}</p>}
         {/* On a phone the top bar shows the page title. */}
         <h1 className="sr-only text-[28px] leading-tight font-bold text-white tablet:not-sr-only">
           {w.title}
         </h1>
-        <p className="text-sm text-muted">{w.intro}</p>
         <p className="text-xs text-muted">{w.endOfDay}</p>
       </header>
       {bq.data && <BriefCard briefs={bq.data} />}

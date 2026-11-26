@@ -42,5 +42,6 @@ export default defineConfig({
       },
     }),
   ],
-  build: { sourcemap: false },
+  // Fonts must stay files: the production CSP allows font-src 'self' only, not data: URIs.
+  build: { sourcemap: false, assetsInlineLimit: 0 },
 });

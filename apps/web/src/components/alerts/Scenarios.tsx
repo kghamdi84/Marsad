@@ -42,16 +42,40 @@ function ScenarioItem({ s }: { s: StoredScenario }) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['scenarios'] }),
   });
   return (
-    <li className="flex flex-col gap-1 rounded-sm border border-line p-3 text-sm">
-      <h3 className="font-semibold">
-        {s.name} ({s.tickers.join(', ')})
-      </h3>
+    <li
+      className={`flex flex-col gap-2 rounded-xl border p-4 text-sm ${s.active ? 'border-line bg-surface' : 'border-line/60 bg-surface/50 text-muted'}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-semibold text-white">{s.name}</h3>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={s.active}
+          aria-label={s.active ? x.pause : x.resume}
+          onClick={() => toggle.mutate()}
+          disabled={toggle.isPending}
+          className="flex min-h-11 min-w-11 flex-none items-center justify-center"
+        >
+          <span
+            aria-hidden="true"
+            className={`relative h-6 w-11 rounded-full ${s.active ? 'bg-ink' : 'bg-faint/40'}`}
+          >
+            <span
+              className={`absolute top-0.5 size-5 rounded-full bg-white ${s.active ? 'end-0.5' : 'start-0.5'}`}
+            />
+          </span>
+        </button>
+      </div>
+      <ul aria-label={s.tickers.join(', ')} className="flex flex-wrap gap-1.5">
+        {s.tickers.map((tk) => (
+          <li key={tk} className="rounded bg-bg px-2 py-0.5 text-xs font-semibold text-fg">
+            {tk}
+          </li>
+        ))}
+      </ul>
       <p>{x.triggersLine(triggerText(s))}</p>
       <p>{x.planLine(s.plan.entry, pctText(s.plan.chaseGuardPct), s.plan.invalidation)}</p>
       <p className="text-muted">{x.expiresLine(s.expiresOn, s.active)}</p>
-      <Button type="button" onClick={() => toggle.mutate()} disabled={toggle.isPending}>
-        {s.active ? x.pause : x.resume}
-      </Button>
       {toggle.isError && <ErrorText message={toggle.error.message} />}
     </li>
   );
@@ -277,7 +301,7 @@ export function Scenarios() {
         (q.data.length === 0 ? (
           <p className="text-muted">{x.none}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="grid grid-cols-1 gap-3 tablet:grid-cols-2 wide:grid-cols-3">
             {q.data.map((s) => (
               <ScenarioItem key={s.id} s={s} />
             ))}

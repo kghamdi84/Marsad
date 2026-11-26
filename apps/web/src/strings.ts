@@ -11,44 +11,51 @@ export const t = {
   loading: 'Loading',
   common: { showDetails: 'Show details' },
   signIn: {
-    title: 'Sign in to Marsad',
+    title: 'Sign in',
     emailLabel: 'Email',
-    sendLink: 'Email me a sign-in link',
-    sending: 'Sending',
-    linkSent: (email: string) =>
-      `We sent a sign-in email to ${email}. Tap Sign in in that email. You are then signed in wherever the link opens.`,
-    pasteHelp:
-      'To sign in here instead (for example, in the Home Screen app): in the email, touch and hold Sign in, choose Copy Link, then paste it below. A 6-digit code also works if the email has one.',
-    codeLabel: 'Sign-in link or code',
-    verify: 'Sign in',
-    verifying: 'Signing in',
-    notALinkOrCode:
-      'That is not the sign-in link from the email or a 6-digit code. Copy the whole Sign in link and try again.',
-    linkFailed: (reason: string) =>
-      `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
-    useDifferentEmail: 'Use a different email',
-    noAccount: 'New here? Create an account with your email and a password.',
-    createAccount: 'Create an account',
-    createTitle: 'Create a Marsad account',
-    newPasswordLabel: 'Password (at least 10 characters)',
-    confirmPasswordLabel: 'Password again',
-    create: 'Create account',
-    creating: 'Creating',
-    passwordsDiffer: 'The two passwords are different.',
-    passwordTooShort: 'Use at least 10 characters.',
-    meter: (n: number) => `${Math.min(n, 10)} of 10 characters`,
-    alreadyRegistered:
-      'An account with this email already exists. Sign in instead; to set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
-    confirmSent: (email: string) =>
-      `Almost done: Supabase sent a confirmation email to ${email}. Open it, then sign in here with your password.`,
-    haveAccount: 'I already have an account',
     passwordLabel: 'Password',
     signInPassword: 'Sign in',
     signingIn: 'Signing in',
+    useLink: 'Email me a sign-in link instead',
+    noAccount: 'New here? Friends of the owner can join as members.',
+    createAccount: 'Create an account',
+    createIntro:
+      'Members see Watch, Study and Regime. Alerts, briefs and the journal stay with the owner.',
+    newPasswordLabel: 'Password, at least 10 characters',
+    confirmPasswordLabel: 'Password again',
+    create: 'Create account',
+    creating: 'Creating',
+    haveAccount: 'I already have an account',
+    meter: (n: number) => `${Math.min(n, 10)} of 10 characters`,
+    linkTitle: 'Get a sign-in link',
+    sendLink: 'Email me a link',
+    sending: 'Sending',
+    linkNote: 'Only existing accounts get a link. New accounts need a password.',
+    usePassword: 'Use my password',
+    checkTitle: 'Check your email',
+    linkSentPage: (email: string) =>
+      `We sent a link to ${email}. Open it on this device, or paste the link or the 6-digit code here.`,
+    linkSentPhone: (email: string) =>
+      `We sent a link to ${email}. Open it on this phone, or paste the link or 6-digit code.`,
+    codeLabel: 'Link or code',
+    verify: 'Verify',
+    verifying: 'Verifying',
+    useDifferentEmail: 'Use a different email',
+    footer: 'Not investment advice. Prices are end of day unless marked Live.',
+    unavailable: 'Unavailable',
+    unavailableBody: 'Sign-in service is not responding. Your data is safe; try again in a minute.',
+    enterEmail: 'Enter your email.',
+    enterPassword: 'Enter your password.',
+    passwordTooShort: 'Use at least 10 characters.',
+    passwordsDiffer: 'The two passwords differ.',
+    notALinkOrCode: 'Paste the whole link or the 6-digit code.',
+    confirmSent: (email: string) => `Account created. Confirm it from the email sent to ${email}.`,
+    linkFailed: (reason: string) =>
+      `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
+    alreadyRegistered:
+      'An account with this email already exists. Sign in instead; to set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
     badCredentials:
       'The email or password is wrong. To set a new password, run the Set password workflow in GitHub (SETUP step 2b).',
-    useLink: 'Email me a sign-in link instead',
-    usePassword: 'Sign in with a password instead',
   },
   mfa: {
     enrollTitle: 'Set up two-factor authentication',
@@ -95,14 +102,20 @@ export const t = {
     healthUnknown: 'Health unavailable',
     chipAria: (market: string, health: string) =>
       `${market}. ${health}. Show times and source health`,
-    marketTitle: 'Market and sources',
+    marketTitle: 'Market and data',
+    attention: (n: number) =>
+      n === 0
+        ? 'Every source is fresh'
+        : `${n} ${n === 1 ? 'source needs' : 'sources need'} attention`,
+    badgeStale: 'Stale',
+    badgeUnchecked: 'Not judged',
     newYork: 'New York (ET)',
     local: 'Riyadh',
     nextOpen: (when: string) => `Next regular open: ${when}.`,
     uncoveredNote:
       'The holiday calendar is not loaded, so the session and session-dependent freshness cannot be judged.',
-    staleTitle: 'Past their silence limit',
-    uncheckedTitle: 'Not judged (calendar not loaded)',
+    staleTitle: 'Past its silence limit',
+    uncheckedTitle: 'Calendar not loaded, cannot judge',
     allFresh: 'Every reporting source is within its silence limit for this session.',
     openStatus: 'Open Status for every source',
     pull: {
@@ -480,7 +493,7 @@ export const t = {
   alerts: {
     title: 'Alerts',
     intro:
-      'Every signal Marsad judged, with the decision and its reasons. Few, clean, complete: each alert keeps its inputs, rule version and delivery log.',
+      'Every signal Marsad judged, with the decision and its reasons. Each alert keeps its inputs, rule version and delivery log.',
     showSuppressed: 'Show suppressed signals too',
     tabs: { sent: 'Sent', held: 'Held back', all: 'All' } as Record<string, string>,
     tabsLabel: 'Which alerts',
@@ -525,6 +538,7 @@ export const t = {
     latency: (seconds: string) => `End-to-end latency ${seconds} s.`,
     delivery: (push: string) => `Delivery: ${push}.`,
     feedback: 'Feedback',
+    feedbackPrompt: 'Was this alert useful?',
     verdicts: { useful: 'Useful', noise: 'Noise', acted: 'Acted on' } as Record<string, string>,
     saved: 'Saved.',
     at: (when: string) => `Created ${when}.`,
@@ -568,6 +582,10 @@ export const t = {
     },
     scorecard: {
       tableLabel: 'Results by rule and horizon',
+      perAlertLabel: 'Result of each recent alert by horizon',
+      colAlert: 'Alert',
+      sessions: (n: string) => (n === '1' ? '1 session' : `${n} sessions`),
+      pendingCell: 'Pending',
       strip: (scored: number) =>
         `Last ${scored} alert${scored === 1 ? '' : 's'} with a result after 1 session, oldest first`,
       stripAria: (wins: number, losses: number, pending: number) =>
@@ -599,9 +617,18 @@ export const t = {
     },
   },
   lab: {
-    title: 'Backtest lab',
-    intro:
-      'The seeded playbooks, each with its evidence and sources, tested by Marsad on stored data. A playbook earns live status only through these tests, never through its citation: published anomalies tend to weaken (McLean and Pontiff, 2016).',
+    title: 'Lab',
+    intro: (n: number) =>
+      `${n} playbooks \u00B7 every one starts as a draft and earns live status only through Marsad's own tests`,
+    stage: {
+      notTestable: 'Not testable yet',
+      notRun: 'Not run yet',
+      draft: 'Draft',
+      backtested: 'Backtested',
+      shadow: 'Shadow',
+      live: 'Live',
+      demoted: 'Demoted',
+    } as Record<string, string>,
     rating: {
       strong: 'Strong',
       moderate: 'Moderate',
@@ -630,16 +657,26 @@ export const t = {
     lastRun: (at: string, tickers: string) => `Last run ${at} on ${tickers}.`,
     noRun: 'Not run yet. The backtest lab runs each Sunday and by hand.',
     ui: {
-      lifecycle: 'Rule lifecycle',
-      notTestableN: (n: number) => `Not testable yet: ${n}`,
-      notRunN: (n: number) => `Not run yet: ${n}`,
-      filter: 'Show playbooks',
-      filters: { all: 'All', testable: 'Testable', untestable: 'Not testable' } as Record<
-        string,
-        string
-      >,
+      lifecycle: 'Lifecycle',
+      gateNote:
+        'Draft to Backtested needs 30 out-of-sample trades and an expectancy interval above zero after costs. Shadow logs alerts without sending. Demoted rules return to draft.',
       evidence: (label: string) => `Evidence: ${label}`,
-      number: (n: number) => `Playbook ${n}`,
+      evidenceDot: (label: string) => `Evidence \u00B7 ${label.toLowerCase()}`,
+      queued: 'Rule written. Not run yet: queued for the next backtest job.',
+      insufficientHistory: 'Insufficient history',
+      oosOf30: (n: number) => `${n} of 30 out of sample`,
+      lastRunDate: (date: string, all: number, oos: number) =>
+        oos === 0
+          ? `Last run ${date} \u00B7 ${all} trades in total, all inside the training window`
+          : `Last run ${date} \u00B7 ${all} trades in total, ${oos} out of sample`,
+      showDetails: 'Show details',
+      hideDetails: 'Hide details',
+      costsPerSide: 'Costs per side',
+      costsValue: (c: number, s: number, f: number) =>
+        `${c} bps fee, ${s} bps slippage, ${f} bps FX`,
+      trialsCounted: 'Trials counted',
+      testedOn: (tickers: string) => `Tested on ${tickers}`,
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     },
     trades: (all: number, oos: number) =>
       `${all} trades in all; ${oos} out of sample (walk-forward, holdout untouched).`,
@@ -659,7 +696,7 @@ export const t = {
     gate: (reason: string) => `Gate to backtested: ${reason}.`,
     costs: (c: number, s: number, f: number) =>
       `Costs per side: commission ${c}, slippage ${s}, currency ${f} basis points.`,
-    leftOut: 'Left out, and why',
+    leftOut: 'Not recommended',
   },
   calendar: {
     title: 'Economic calendar',
@@ -1008,9 +1045,13 @@ export const t = {
       sectionNames: {
         overview: 'Overview',
         financials: 'Financials',
-        ownership: 'Ownership',
-        filings: 'Filings and risk',
+        earnings: 'Earnings',
+        holders: 'Holders and insiders',
+        short: 'Short data',
+        risk: 'Risk factors',
         news: 'News',
+        dividends: 'Dividends',
+        shariah: 'Shariah aid',
       } as Record<string, string>,
       markerLetters: {
         'high-8k': 'F',
@@ -1053,6 +1094,8 @@ export const t = {
     missing: 'Not available on the free plan',
     shariah: {
       title: 'Shariah screening aid',
+      off: 'The Shariah screening aid is off. Turn it on in Status, under Preferences.',
+      noBalance: 'No balance sheet is stored for this company, so the ratios cannot be computed.',
       basis: (b: string) =>
         b === 'assets'
           ? 'Ratios over total assets.'
@@ -1504,18 +1547,60 @@ export const t = {
   status: {
     hero: {
       title: (ok: number, n: number) => `${ok} of ${n} sources healthy`,
-      stale: (n: number) => `${n} past ${n === 1 ? 'its' : 'their'} silence limit`,
-      legend:
-        'Blue: healthy or quiet as expected. Yellow: stale. Grey: not judged yet (no data or no calendar).',
+      line: (et: string, riyadh: string) =>
+        `Database OK \u00B7 checked ${et} ET \u00B7 ${riyadh} Riyadh`,
+      stale: (names: string[]) => `${names.join(', ')} ${names.length === 1 ? 'is' : 'are'} stale.`,
+      aria: (healthy: number, quiet: number, stale: number) =>
+        `${healthy} healthy, ${quiet} quiet by design, ${stale} stale`,
     },
+    design: {
+      fresh: {
+        live: 'Live',
+        delayed: 'Delayed',
+        stale: 'Stale',
+        unavailable: 'Unavailable',
+      } as Record<string, string>,
+      last: 'Last',
+      latency: 'Latency',
+      paused: (rules: string) => `Paused: ${rules}`,
+      aMonth: 'a month',
+      aiSpend: 'AI spend',
+      aiSpendValue: (today: string, month: string, calls: number) =>
+        `today $${today} \u00B7 month $${month} \u00B7 ${calls} calls`,
+      aiOffWarn: 'AI is off: set daily and monthly caps in Preferences to turn it on',
+      actions: 'GitHub Actions',
+      actionsValue: (minutes: number, runs: number) =>
+        `about ${new Intl.NumberFormat('en-US').format(minutes)} minutes \u00B7 ${new Intl.NumberFormat('en-US').format(runs)} runs this month`,
+      shariahTitle: 'Shariah screening aid',
+      shariahNote: 'Shown on Study. An aid from filed numbers, not a ruling.',
+      basis: 'Basis',
+      aiTitle: 'AI spending caps',
+      aiNote: 'Leave blank to keep AI off. Warning at 80%, templates at the cap.',
+      off: 'Off',
+      aiOffNote: 'AI stays off while either cap is blank.',
+      aiOnNote: 'AI is on within these caps.',
+    },
+    eventsDesign: { stale: 'Stale', recovered: 'Recovered', mismatch: 'Mismatch' } as Record<
+      string,
+      string
+    >,
     title: 'System status',
-    sources: 'Data sources',
-    jobs: 'Recent job runs',
+    sources: 'Data sources \u00B7 public.source_status',
+    jobs: 'Job runs, last 24 hours',
     strips: {
+      ok: 'OK',
+      skipped: 'Skipped',
+      error: 'Error',
+      sumOk: (n: number) => `${n} OK`,
+      sumSkipped: (n: number) => `${n} skipped`,
+      sumError: (n: number) => `${n} error${n === 1 ? '' : 's'}`,
+      axisStart: (t: string) => `${t} ET`,
+      axisMid: (t: string) => `${t} ET`,
+      axisNow: 'Now',
       title: 'Last 24 hours',
       aria: (job: string, n: number, errors: number, skipped: number) =>
         `${job}: ${n} run${n === 1 ? '' : 's'} in the last 24 hours, ${errors} with an error, ${skipped} skipped.`,
-      latestError: (when: string, error: string) => `Latest error ${when}: ${error}`,
+      latestError: (job: string, time: string, error: string) => `${job} ${time} UTC: ${error}`,
       legend:
         'Blue tick: ran OK. Grey: skipped. Red: error. Yellow: still running. Left edge 24 hours ago, right edge now.',
       none: 'No runs in the last 24 hours.',
@@ -1543,12 +1628,12 @@ export const t = {
     preferences: 'Preferences',
     shariahToggle: 'Show the Shariah screening aid on company pages',
     shariahBasis: 'Divide debt and cash by',
-    basisMarketCap: 'Market capitalization',
+    basisMarketCap: '36-month market value',
     basisAssets: 'Total assets',
     debtMax: 'Debt limit (%)',
-    cashMax: 'Cash limit (%)',
-    aiDailyCap: 'AI daily cap (USD, blank keeps AI off)',
-    aiMonthlyCap: 'AI monthly cap (USD, blank keeps AI off)',
+    cashMax: 'Cash and interest-bearing limit (%)',
+    aiDailyCap: 'Daily cap (USD)',
+    aiMonthlyCap: 'Monthly cap (USD)',
     capsInvalid: 'Caps must be above zero, or blank.',
     costs: 'Costs',
     costsIntro:
@@ -1571,6 +1656,21 @@ export const t = {
     noExports: 'No export yet. The first one is written on Sunday at 07:10 UTC.',
     exportFile: (date: string, file: string) => `${date}: ${file}`,
     push: {
+      d: {
+        sub: 'Web push to your devices. Three steps.',
+        remove: 'Remove',
+        keys: 'Keys',
+        device: 'This device',
+        test: 'Test it',
+        keysReady: 'Keys ready',
+        replaceWarn:
+          'Replacing keys turns off push on every device until each one is turned on again.',
+        deviceOn: 'Push is on for this device.',
+        turnedOn: 'Turned on',
+        testText:
+          'On iPhone and iPad, add Marsad to the Home Screen first. Then trigger a test push from the jobs workflow; each active device should show it within a minute.',
+        addedLine: (added: string, ok: string) => `Added ${added} \u00B7 last OK ${ok}`,
+      },
       title: 'Notifications',
       intro:
         'Push alerts, system alerts and briefs arrive as notifications on the devices you turn on here. A late notification says how late it is; an alert older than 2 hours (6 hours for normal priority, 3 hours for a brief) is not sent at all.',

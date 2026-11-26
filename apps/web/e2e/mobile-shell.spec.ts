@@ -90,7 +90,7 @@ test('phone: the market chip and freshness say the session and the stale source 
   await expect(chip).toBeVisible();
   await expect(page.getByRole('banner').getByText('1 stale')).toBeVisible();
   await chip.click();
-  const sheet = page.getByRole('dialog', { name: 'Market and sources' });
+  const sheet = page.getByRole('dialog', { name: 'Market and data' });
   await expect(sheet.getByText('Nasdaq trade halts')).toBeVisible();
   await expect(sheet.getByText('New York (ET)')).toBeVisible();
   await expect(sheet.getByText('10:00', { exact: true })).toBeVisible();

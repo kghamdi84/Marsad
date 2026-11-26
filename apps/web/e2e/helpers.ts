@@ -88,7 +88,16 @@ export function scanAfterEach() {
 /** The Study company page shows one section at a time on iPad and desktop; this opens one by its tab name. */
 export async function openSection(
   page: Page,
-  name: 'Overview' | 'Financials' | 'Ownership' | 'Filings and risk' | 'News',
+  name:
+    | 'Overview'
+    | 'Financials'
+    | 'Earnings'
+    | 'Holders and insiders'
+    | 'Short data'
+    | 'Risk factors'
+    | 'News'
+    | 'Dividends'
+    | 'Shariah aid',
 ) {
   await page.getByRole('tab', { name }).click();
 }
