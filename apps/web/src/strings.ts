@@ -49,8 +49,7 @@ export const t = {
     passwordTooShort: 'Use at least 10 characters.',
     passwordsDiffer: 'The two passwords differ.',
     notALinkOrCode: 'Paste the whole link or the 6-digit code.',
-    confirmSent: (email: string) =>
-      `Account created. Confirm it from the email sent to ${email}.`,
+    confirmSent: (email: string) => `Account created. Confirm it from the email sent to ${email}.`,
     linkFailed: (reason: string) =>
       `The sign-in link did not work (${reason}). Each link works once and expires after a short time. Request a new one.`,
     alreadyRegistered:
@@ -601,9 +600,18 @@ export const t = {
     },
   },
   lab: {
-    title: 'Backtest lab',
-    intro:
-      'The seeded playbooks, each with its evidence and sources, tested by Marsad on stored data. A playbook earns live status only through these tests, never through its citation: published anomalies tend to weaken (McLean and Pontiff, 2016).',
+    title: 'Lab',
+    intro: (n: number) =>
+      `${n} playbooks \u00B7 every one starts as a draft and earns live status only through Marsad's own tests`,
+    stage: {
+      notTestable: 'Not testable yet',
+      notRun: 'Not run yet',
+      draft: 'Draft',
+      backtested: 'Backtested',
+      shadow: 'Shadow',
+      live: 'Live',
+      demoted: 'Demoted',
+    } as Record<string, string>,
     rating: {
       strong: 'Strong',
       moderate: 'Moderate',
@@ -632,16 +640,26 @@ export const t = {
     lastRun: (at: string, tickers: string) => `Last run ${at} on ${tickers}.`,
     noRun: 'Not run yet. The backtest lab runs each Sunday and by hand.',
     ui: {
-      lifecycle: 'Rule lifecycle',
-      notTestableN: (n: number) => `Not testable yet: ${n}`,
-      notRunN: (n: number) => `Not run yet: ${n}`,
-      filter: 'Show playbooks',
-      filters: { all: 'All', testable: 'Testable', untestable: 'Not testable' } as Record<
-        string,
-        string
-      >,
+      lifecycle: 'Lifecycle',
+      gateNote:
+        'Draft to Backtested needs 30 out-of-sample trades and an expectancy interval above zero after costs. Shadow logs alerts without sending. Demoted rules return to draft.',
       evidence: (label: string) => `Evidence: ${label}`,
-      number: (n: number) => `Playbook ${n}`,
+      evidenceDot: (label: string) => `Evidence \u00B7 ${label.toLowerCase()}`,
+      queued: 'Rule written. Not run yet: queued for the next backtest job.',
+      insufficientHistory: 'Insufficient history',
+      oosOf30: (n: number) => `${n} of 30 out of sample`,
+      lastRunDate: (date: string, all: number, oos: number) =>
+        oos === 0
+          ? `Last run ${date} \u00B7 ${all} trades in total, all inside the training window`
+          : `Last run ${date} \u00B7 ${all} trades in total, ${oos} out of sample`,
+      showDetails: 'Show details',
+      hideDetails: 'Hide details',
+      costsPerSide: 'Costs per side',
+      costsValue: (c: number, s: number, f: number) =>
+        `${c} bps fee, ${s} bps slippage, ${f} bps FX`,
+      trialsCounted: 'Trials counted',
+      testedOn: (tickers: string) => `Tested on ${tickers}`,
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     },
     trades: (all: number, oos: number) =>
       `${all} trades in all; ${oos} out of sample (walk-forward, holdout untouched).`,
@@ -655,7 +673,7 @@ export const t = {
     gate: (reason: string) => `Gate to backtested: ${reason}.`,
     costs: (c: number, s: number, f: number) =>
       `Costs per side: commission ${c}, slippage ${s}, currency ${f} basis points.`,
-    leftOut: 'Left out, and why',
+    leftOut: 'Not recommended',
   },
   calendar: {
     title: 'Economic calendar',

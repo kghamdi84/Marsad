@@ -64,13 +64,13 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
     ),
   );
   await page.goto('/lab');
-  await expect(page.getByRole('heading', { name: 'Backtest lab' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lab', exact: true })).toBeVisible();
   const trend = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: 'Index core with a trend filter' }) });
   await expect(
     trend.getByText('Playbook 1. Evidence: Moderate. Horizon: Long term. Status: Backtested.'),
-  ).toBeVisible();
+  ).toBeAttached();
   await expect(
     trend.getByText('Out-of-sample expectancy +1.23% per trade (90% interval +0.21% to +2.34%).'),
   ).toBeVisible();
@@ -86,17 +86,14 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: /trend template/ }) });
   // Fewer than 30 trades: no percentage at all, only "insufficient history".
-  await expect(
-    breakout.getByText(
-      'Insufficient history: 4 out-of-sample trades, 30 needed for any percentage.',
-    ),
-  ).toBeVisible();
+  await expect(breakout.getByText('Insufficient history', { exact: true })).toBeVisible();
+  await expect(breakout.getByText('4 of 30 out of sample')).toBeVisible();
   await expect(breakout.getByText(/Win rate/)).toHaveCount(0);
 
   const dual = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: 'Dual momentum rotation' }) });
-  await expect(dual.getByText(/Not testable yet: Needs ranking across assets/)).toBeVisible();
-  await expect(page.getByText(/Copying congressional trades\./)).toBeVisible();
+  await expect(dual.getByText(/Needs ranking across assets/)).toBeVisible();
+  await expect(page.getByText('Copying congressional trades', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Lab' })).toHaveAttribute('aria-current', 'page');
 });
