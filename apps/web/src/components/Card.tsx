@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { t } from '../strings';
 
-export const cardClass = 'flex flex-col gap-4 rounded-xl border border-line bg-surface p-5';
+/** Cards: 16 px padding and radius on phones, 20 px padding and 12 px radius from 760 px (design handoff). */
+export const cardClass =
+  'flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 tablet:rounded-xl tablet:p-5';
 
 /** A titled page card (the redesign's surface panel). The title labels the region for assistive technology. */
 export function Card({
@@ -63,14 +65,21 @@ export function Segmented<K extends string>({
   options,
   value,
   onChange,
+  stretch = false,
 }: {
   label: string;
   options: readonly { key: K; label: string }[];
   value: K;
   onChange: (k: K) => void;
+  /** Fill the width with equal segments (phones). */
+  stretch?: boolean;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-[10px] bg-bg p-[3px]">
+    <div
+      role="group"
+      aria-label={label}
+      className={`${stretch ? 'grid auto-cols-fr grid-flow-col' : 'flex'} rounded-[10px] bg-bg p-[3px]`}
+    >
       {options.map((o) => (
         <button
           key={o.key}
@@ -149,6 +158,26 @@ export function ScrollX({
       className={`overflow-x-auto focus:outline focus:outline-focus ${className}`}
     >
       {children}
+    </div>
+  );
+}
+
+/** Pulsing placeholder cards while a page's data first loads; the text says Loading for screen readers. */
+export function SkeletonCards({ heights = ['7rem', '11rem', '16rem'] }: { heights?: string[] }) {
+  return (
+    <div aria-busy="true" className="flex flex-col gap-3">
+      <span className="sr-only">{t.loading}</span>
+      {heights.map((h, i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          style={{ height: h }}
+          className="flex animate-pulse flex-col gap-2.5 rounded-2xl bg-surface p-4 motion-reduce:animate-none tablet:rounded-xl"
+        >
+          <span className="h-3 w-2/5 rounded-md bg-muted/15" />
+          <span className="h-5 w-3/5 rounded-md bg-muted/10" />
+        </div>
+      ))}
     </div>
   );
 }

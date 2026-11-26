@@ -178,6 +178,12 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 - Shared `Sheet` (native modal dialog: focus kept inside, Escape and backdrop close) and `ScrollX` (keyboard-reachable sideways scroll for wide tables).
 - Verified: ./init.sh passes; full Playwright 150 (146 run, the 4 phone tests run once) with axe; new e2e/mobile-shell.spec.ts at 390 by 844 covers the tab bar, More, the market chip and sheet, a holiday, and pull to refresh.
 
+### Redesign, step 4: Watch on phones (2026-11-26)
+
+- From Mobile-Watch.dc.html, under 760 px: the page title moves to the top bar (the heading stays for screen readers); brief and strip tiles go two-up, sectors three-up; the watchlist is a list (ticker, sparkline, close, day change) whose rows expand to 1 day, 1 week and 1 month, the 52-week bar, volume and "Study NVDA"; movers and gaps share one card with Up, Down and Gaps; the earnings table scrolls sideways (keyboard-reachable). Skeleton cards replace "Loading". Phone cards use 16 px padding and radius.
+- Shell fix: a long market label no longer squeezes the page title; the freshness text shows only when there is a count.
+- Verified: ./init.sh passes; full Playwright 152 (147 run, phone tests once) with axe; new e2e/mobile-watch.spec.ts.
+
 ### Sign-in, friends and keys (2026-11-26)
 
 - Password sign-in live (ADR 0039); Set password workflow run #1 ok. Friends can create accounts (ADR 0040); Supabase: sign-ups on, email confirmation off, AAL1 session limit off; TOTP shows Disabled (not needed in password mode; re-enable when restoring the second factor).

@@ -93,6 +93,8 @@ function sessionLabel(x: SessionInfo): string {
 
 interface Health {
   label: string;
+  /** True when the label is a count of sources that need a look (shown as text on phones). */
+  count?: boolean;
   /** Dot and text colour classes; the label always says the state in words. */
   dot: string;
   text: string;
@@ -102,9 +104,14 @@ function healthOf(v: PulseView | null, sources: number, failed: boolean): Health
   if (failed || !v) return { label: s.healthUnknown, dot: 'bg-faint', text: 'text-muted' };
   if (sources === 0) return { label: s.noSources, dot: 'bg-faint', text: 'text-muted' };
   if (v.stale.length > 0)
-    return { label: s.stale(v.stale.length), dot: 'bg-warn', text: 'text-warn' };
+    return { label: s.stale(v.stale.length), dot: 'bg-warn', text: 'text-warn', count: true };
   if (v.unchecked.length > 0)
-    return { label: s.unchecked(v.unchecked.length), dot: 'bg-faint', text: 'text-muted' };
+    return {
+      label: s.unchecked(v.unchecked.length),
+      dot: 'bg-faint',
+      text: 'text-muted',
+      count: true,
+    };
   return { label: s.fresh, dot: 'bg-up', text: 'text-fg' };
 }
 
@@ -365,14 +372,14 @@ export function Shell() {
       {/* Phone: the page title, the market chip and the freshness dot. */}
       <header className="sticky top-0 z-40 border-b border-line bg-surface pt-[env(safe-area-inset-top)] tablet:hidden">
         <div className="flex min-h-14 items-center gap-2 py-1.5 ps-4 pe-3">
-          <span className="min-w-0 flex-1 truncate text-[1.375rem] leading-tight font-bold text-white">
+          <span className="shrink-0 text-[1.375rem] leading-tight font-bold text-white">
             {current?.label ?? t.appName}
           </span>
           <button
             type="button"
             aria-label={chipAria}
             onClick={() => setSheet('market')}
-            className={`flex min-h-11 max-w-[11rem] items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold ${tone}`}
+            className={`ms-auto flex min-h-11 min-w-0 items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold ${tone}`}
           >
             <span className="truncate">{market}</span>
           </button>
@@ -383,7 +390,8 @@ export function Shell() {
             className={`flex min-h-11 min-w-11 items-center gap-1.5 rounded-full px-2 text-[0.8125rem] whitespace-nowrap ${health.text}`}
           >
             <span aria-hidden="true" className={`size-2.5 flex-none rounded-full ${health.dot}`} />
-            {health.label === s.fresh ? null : health.label}
+            {/* A count in words when something needs a look; otherwise the dot, with the state in the label. */}
+            {health.count ? health.label : null}
           </button>
         </div>
       </header>
