@@ -41,6 +41,13 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
               expectancy: { value: 0.0123, ci90: { low: 0.0021, high: 0.0234 } },
               benchmark: { ticker: 'SPY', ret: 0.154 },
               monteCarlo: { worst5: -0.2011 },
+              // Growth of 1 by exit date (synthetic, not market data): dips to 0.9, ends at 1.18.
+              equity: [
+                { date: '2024-02-01', equity: 1.02 },
+                { date: '2024-06-03', equity: 0.9 },
+                { date: '2025-01-10', equity: 1.05 },
+                { date: '2026-10-30', equity: 1.18 },
+              ],
             },
           },
         },
@@ -81,6 +88,13 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
   await expect(
     trend.getByText('Costs per side: commission 5, slippage 5, currency 0 basis points.'),
   ).toBeVisible();
+  // The stored curve is drawn, with its numbers in words for screen readers.
+  await expect(trend.getByText('Equity curve, out of sample')).toBeVisible();
+  await expect(
+    trend.getByRole('img', {
+      name: 'Equity curve of 4 out-of-sample trades from 2024-02-01 to 2026-10-30: growth of 1 ends at 1.18, lowest 0.90.',
+    }),
+  ).toBeVisible();
 
   const breakout = page
     .getByRole('listitem')
@@ -92,6 +106,8 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
     ),
   ).toBeVisible();
   await expect(breakout.getByText(/Win rate/)).toHaveCount(0);
+  // A report stored before curves existed shows none (the design's rule).
+  await expect(breakout.getByText('Equity curve, out of sample')).toHaveCount(0);
 
   const dual = page
     .getByRole('listitem')

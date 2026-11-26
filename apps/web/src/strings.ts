@@ -650,6 +650,12 @@ export const t = {
     winRate: (v: string) => `Win rate ${v}.`,
     drawdown: (dd: string, mc: string) => `Maximum drawdown ${dd}; Monte Carlo worst 5% ${mc}.`,
     benchmark: (t: string, v: string) => `${t} over the same dates: ${v}.`,
+    equityTitle: 'Equity curve, out of sample',
+    equityNote:
+      'Growth of 1, the walk-forward test trades taken one after another by exit date at full size (the same convention as the drawdown). A sequence of trades, not a portfolio.',
+    equityAria: (n: number, from: string, to: string, end: string, low: string) =>
+      `Equity curve of ${n} out-of-sample trades from ${from} to ${to}: growth of 1 ends at ${end}, lowest ${low}.`,
+    equitySummary: (end: string, low: string) => `Ends at ${end}; lowest ${low}.`,
     gate: (reason: string) => `Gate to backtested: ${reason}.`,
     costs: (c: number, s: number, f: number) =>
       `Costs per side: commission ${c}, slippage ${s}, currency ${f} basis points.`,

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import known from '../../../fixtures/backtest/sma-cross-known.json';
-import { backtest, backtestReport, walkForward, walkForwardSplit, type Costs } from './backtest.js';
+import {
+  backtest,
+  backtestReport,
+  equityCurve,
+  walkForward,
+  walkForwardSplit,
+  type Costs,
+  type Trade,
+} from './backtest.js';
+import { maxDrawdown } from './stats.js';
 import type { RuleDoc } from './rules.js';
 import type { DailyBar } from './study.js';
 
@@ -226,6 +235,68 @@ describe('backtestReport', () => {
       ticker: 'SPY',
       ret: 220 / 210 - 1,
     });
+  });
+});
+
+describe('equityCurve (growth of 1, trades one after another by exit date)', () => {
+  const tr = (ticker: string, exitDate: string, ret: number, open = false): Trade => ({
+    ticker,
+    signalDate: exitDate,
+    entryDate: exitDate,
+    entryPrice: 1,
+    exitDate,
+    exitPrice: 1,
+    reason: 'exit',
+    bars: 1,
+    ret,
+    open,
+  });
+
+  it('compounds in exit order, ties by ticker, and leaves open trades out (by hand)', () => {
+    // Exit order: d1 B -50%, d1 C +0%, d2 A +10%, d3 A +20%. Growth: 0.5, 0.5, 0.55, 0.66. The open trade is out.
+    const c = equityCurve([
+      tr('A', 'd3', 0.2),
+      tr('A', 'd2', 0.1),
+      tr('C', 'd1', 0),
+      tr('B', 'd1', -0.5),
+      tr('Z', 'd4', 9, true),
+    ]);
+    expect(c).toEqual([
+      { date: 'd1', equity: 0.5 },
+      { date: 'd1', equity: 0.5 },
+      { date: 'd2', equity: 0.55 },
+      { date: 'd3', equity: 0.66 },
+    ]);
+    // Same convention as maxDrawdown: the deepest fall of this curve is that function's answer.
+    expect(maxDrawdown([-0.5, 0, 0.1, 0.2])).toBeCloseTo(-0.5, 12);
+  });
+
+  it('thins a long report but keeps the lowest, the highest and the last point', () => {
+    // 1,000 trades of +0.1% except one -60% at trade 700: 1.001^700 is about 2.01, times 0.4 is about 0.80, below
+    // the start (1.001), so trade 700 is the lowest point; it falls between the evenly spaced samples (step 5.02).
+    const trades = Array.from({ length: 1000 }, (_, i) =>
+      tr('X', `d${String(i).padStart(4, '0')}`, i === 700 ? -0.6 : 0.001),
+    );
+    const full = equityCurve(trades, 5000);
+    const thin = equityCurve(trades);
+    expect(full).toHaveLength(1000);
+    expect(thin.length).toBeGreaterThanOrEqual(200);
+    expect(thin.length).toBeLessThanOrEqual(203);
+    const low = Math.min(...full.map((p) => p.equity));
+    const high = Math.max(...full.map((p) => p.equity));
+    expect(thin.some((p) => p.equity === low && p.date === 'd0700')).toBe(true);
+    expect(thin.some((p) => p.equity === high)).toBe(true);
+    expect(thin.at(-1)).toEqual(full.at(-1));
+    // Dates stay in order.
+    expect(thin.map((p) => p.date)).toEqual([...thin.map((p) => p.date)].sort());
+  });
+
+  it('is part of every new backtest report', () => {
+    const r = backtestReport([tr('A', 'd2', 0.1), tr('A', 'd1', -0.1)]);
+    expect(r.equity).toEqual([
+      { date: 'd1', equity: 0.9 },
+      { date: 'd2', equity: 0.99 },
+    ]);
   });
 });
 

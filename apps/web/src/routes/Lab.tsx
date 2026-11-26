@@ -10,6 +10,59 @@ import { t } from '../strings';
 const l = t.lab;
 const pct = (v: number) => `${v > 0 ? '+' : ''}${toFixedHalfUp(v * 100, 2)}%`;
 
+type EquityPoints = NonNullable<NonNullable<LabRun['report']['outOfSample']>['equity']>;
+
+/** The stored out-of-sample equity curve, drawn only when the report carries one (the design's rule). */
+function EquityChart({ points }: { points: EquityPoints }) {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last || points.length < 2) return null;
+  const values = points.map((p) => p.equity);
+  const lo = Math.min(1, ...values);
+  const hi = Math.max(1, ...values);
+  const span = hi - lo || 1;
+  const W = 320;
+  const H = 96;
+  const x = (i: number) => (i / (points.length - 1)) * W;
+  const y = (v: number) => H - ((v - lo) / span) * H;
+  const path = points.map((p, i) => `${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ');
+  const fmt = (v: number) => toFixedHalfUp(v, 2);
+  const low = Math.min(...values);
+  return (
+    <figure className="flex flex-col gap-1">
+      <figcaption className="text-xs font-semibold text-fg">{l.equityTitle}</figcaption>
+      <svg
+        role="img"
+        aria-label={l.equityAria(points.length, first.date, last.date, fmt(last.equity), fmt(low))}
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="h-24 w-full"
+      >
+        <line
+          x1="0"
+          x2={W}
+          y1={y(1)}
+          y2={y(1)}
+          className="stroke-faint"
+          strokeDasharray="3 3"
+          strokeWidth="1"
+        />
+        <polyline
+          points={path}
+          fill="none"
+          className={last.equity >= 1 ? 'stroke-up' : 'stroke-down'}
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <p className="text-xs text-muted" aria-hidden="true">
+        {first.date} to {last.date} {'\u00B7'} {l.equitySummary(fmt(last.equity), fmt(low))}
+      </p>
+      <p className="text-xs text-muted">{l.equityNote}</p>
+    </figure>
+  );
+}
+
 function RunSummary({ run }: { run: LabRun }) {
   const o = run.report.outOfSample;
   const c = run.params.costs;
@@ -42,6 +95,7 @@ function RunSummary({ run }: { run: LabRun }) {
         o && <p className="text-muted">{l.insufficient(o.stats.n)}</p>
       )}
       {o?.benchmark && <p>{l.benchmark(o.benchmark.ticker, pct(o.benchmark.ret))}</p>}
+      {o?.equity && <EquityChart points={o.equity} />}
       {run.report.gate && <p>{l.gate(run.report.gate.reason)}</p>}
       {c && (
         <p className="text-xs text-muted">{l.costs(c.commissionBps, c.slippageBps, c.fxBps)}</p>
