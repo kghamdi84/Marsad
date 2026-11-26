@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Mail } from 'lucide-react';
 import {
   DEFAULT_LOCAL_ZONE,
+  TIER_LABELS,
   clusterNews,
   dualClock,
   etDate,
@@ -596,6 +597,13 @@ function NewsCard({ data }: { data: WatchData }) {
                   <span className="text-sm leading-snug font-medium text-fg">{first.title}</span>
                 )}
                 <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <span
+                    className="rounded border border-line px-1.5 py-px font-semibold text-fg"
+                    title={TIER_LABELS[cl.bestTier]}
+                  >
+                    {t.study.news.tier(cl.bestTier)}
+                  </span>
+                  {cl.opinionOnly && <span className="text-warn">{t.study.news.opinion}</span>}
                   {first.tickers.slice(0, 4).map((tk) => (
                     <span key={tk} className="rounded bg-raised px-1.5 py-px font-semibold text-fg">
                       {tk}

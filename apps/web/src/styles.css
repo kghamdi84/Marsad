@@ -2,9 +2,12 @@
 @import '@fontsource/ibm-plex-sans/400.css';
 @import '@fontsource/ibm-plex-sans/500.css';
 @import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
 
 @theme {
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  /* 760 px: the phone shell below, the top bar with every tab at and above (Claude Design handoff). */
+  --breakpoint-tablet: 47.5rem;
   /* Marsad navy palette (Claude Design, 2026-11-26). */
   --color-bg: #00123f;
   --color-surface: #001a57;

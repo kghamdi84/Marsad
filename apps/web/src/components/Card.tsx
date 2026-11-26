@@ -130,3 +130,25 @@ export function Sparkline({
     </svg>
   );
 }
+
+/** A box that scrolls sideways (a wide table on a narrow screen): reachable by keyboard and named (WCAG 2.1.1). */
+export function ScrollX({
+  label,
+  className = '',
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label={label}
+      className={`overflow-x-auto focus:outline focus:outline-focus ${className}`}
+    >
+      {children}
+    </div>
+  );
+}

@@ -73,6 +73,44 @@ export const t = {
     primary: 'Main sections',
   },
   clock: { et: 'ET', local: 'local' },
+  shell: {
+    logoArabic: '\u0645\u0631\u0635\u062F',
+    more: 'More',
+    close: 'Close',
+    market: {
+      regular: 'Open',
+      earlyClose: 'Open, early close',
+      preMarket: 'Pre-market',
+      afterHours: 'After hours',
+      closed: 'Closed',
+      holiday: (name: string) => `Closed, ${name}`,
+      uncovered: 'Calendar not loaded',
+      unknown: 'Market state unavailable',
+    },
+    fresh: 'All fresh',
+    stale: (n: number) => `${n} stale`,
+    unchecked: (n: number) => `${n} unchecked`,
+    noSources: 'No source status yet',
+    healthUnknown: 'Health unavailable',
+    chipAria: (market: string, health: string) =>
+      `${market}. ${health}. Show times and source health`,
+    marketTitle: 'Market and sources',
+    newYork: 'New York (ET)',
+    local: 'Riyadh',
+    nextOpen: (when: string) => `Next regular open: ${when}.`,
+    uncoveredNote:
+      'The holiday calendar is not loaded, so the session and session-dependent freshness cannot be judged.',
+    staleTitle: 'Past their silence limit',
+    uncheckedTitle: 'Not judged (calendar not loaded)',
+    allFresh: 'Every reporting source is within its silence limit for this session.',
+    openStatus: 'Open Status for every source',
+    pull: {
+      idle: 'Pull to refresh',
+      release: 'Release to refresh',
+      refreshing: 'Refreshing',
+      updated: (time: string) => `Updated ${time} ET`,
+    },
+  },
   watch: {
     title: 'Watch',
     intro:
@@ -133,7 +171,7 @@ export const t = {
     },
     brief: {
       title: 'Latest brief',
-      none: 'No brief yet. The pre-market brief is built about 60 minutes before the open, the close recap after the close (trading days).',
+      none: 'The pre-market brief is built about 60 minutes before the open, the close recap after the close (trading days).',
       made: (at: string) => `Built ${at}, by templates from stored data (no AI).`,
       email: (state: string) =>
         state === 'sent'

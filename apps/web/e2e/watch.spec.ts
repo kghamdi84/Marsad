@@ -225,6 +225,8 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   );
   // A non-https vendor link is shown as text, never as a link.
   await expect(news.getByText('Unsafe link headline')).toBeVisible();
+  // Each story carries its source tier in words.
+  await expect(news.getByText(/^Tier \d/).first()).toBeVisible();
   await expect(news.getByRole('link', { name: 'Unsafe link headline' })).toHaveCount(0);
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/watch-dashboard.png`, fullPage: true });

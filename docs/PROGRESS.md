@@ -167,8 +167,16 @@ After merge: the Supabase integration applies `20261128000000_insider_holdings.s
 
 - From Watch.dc.html: brief card with one tile per brief section and the email state; market strip tiles with 30-session sparklines; watchlist with a 1D/5D/1M period control (remembered in this browser), sort by change, sparkline, change pill, 52-week closing-range dot and volume bar (warn at 1.5x or more); tinted sector tiles; mover and gap bars (light: the gap, solid: what the close kept); news with ticker chips; one Calendar card with All, Economy and Earnings and an impact legend. A row whose last bar is older than the rest says so.
 - Core: `tickerSummary` gains `range252` (lowest and highest close of 252 sessions and the position between them), with hand-checked tests. Card, Details, Tile, Segmented and Sparkline are now shared components (`apps/web/src/components/Card.tsx`), used by Regime and Watch. lucide-react added for icons.
-- Not taken from the design: news source-tier badges (no tier data is stored for news yet) and its sample numbers.
+- Not taken from the design: its sample numbers. (Correction, step 3: news stories now carry the source tier and the opinion label, from the same `clusterNews` result the Study page uses.)
 - Verified: ./init.sh passes (1,004 unit tests); full Playwright 142 passed with axe; web build ok.
+
+### Redesign, step 3: phone shell (2026-11-26)
+
+- From MobileShell.dc.html. Under 760 px: a compact top bar (page title, market-state chip, freshness dot with a count in words), a bottom tab bar with icons (Watch, Study, Regime, Alerts, Journal, More), and sheets for More (Lab, Status, Sign out) and for the market (ET and Riyadh clocks, session, next regular open, stale or unjudged sources). Pull to refresh refetches every query on screen and says "Updated HH:MM ET". Safe-area insets on both bars.
+- At 760 px and up: one top bar with the bilingual logo, all seven tabs, the market chip, the clock (ET only below 1280 px; the market sheet has both) and Sign out. The old bottom bar is gone on iPad and desktop.
+- Market state and freshness come from `sessionInfo` and `describeSourceHealth` (the Status page's rules); a missing holiday calendar says "Calendar not loaded" instead of guessing, and no source rows say "No source status yet", never "All fresh".
+- Shared `Sheet` (native modal dialog: focus kept inside, Escape and backdrop close) and `ScrollX` (keyboard-reachable sideways scroll for wide tables).
+- Verified: ./init.sh passes; full Playwright 150 (146 run, the 4 phone tests run once) with axe; new e2e/mobile-shell.spec.ts at 390 by 844 covers the tab bar, More, the market chip and sheet, a holiday, and pull to refresh.
 
 ### Sign-in, friends and keys (2026-11-26)
 
