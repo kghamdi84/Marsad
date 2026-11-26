@@ -113,6 +113,37 @@ async function seriesOf(id: string): Promise<Obs[]> {
     .reverse();
 }
 
+/** The newest closes of several tickers in one read (for list sparklines), oldest first per ticker. */
+export async function loadRecentBars(
+  tickers: readonly string[],
+  sessions = 30,
+): Promise<Record<string, DailyBar[]>> {
+  const r = await client()
+    .from('daily_bars')
+    .select('ticker, date, open, high, low, close, volume, vwap')
+    .in('ticker', [...tickers])
+    .order('date', { ascending: false })
+    .limit(tickers.length * (sessions + 10));
+  if (r.error) throw new Error(`daily_bars: ${r.error.message}`);
+  const out: Record<string, DailyBar[]> = {};
+  for (const x of (r.data ?? []) as Record<string, unknown>[]) {
+    const tk = String(x['ticker']);
+    const list = (out[tk] ??= []);
+    if (list.length >= sessions) continue;
+    list.push({
+      date: String(x['date']),
+      open: num(x['open']),
+      high: num(x['high']),
+      low: num(x['low']),
+      close: num(x['close']),
+      volume: num(x['volume']),
+      vwap: x['vwap'] === null ? null : num(x['vwap']),
+    });
+  }
+  for (const k of Object.keys(out)) out[k]?.reverse();
+  return out;
+}
+
 /** Everything the Watch dashboard shows besides the calendars. Every read goes through row-level security. */
 export async function loadWatch(): Promise<WatchData> {
   const items = await client()

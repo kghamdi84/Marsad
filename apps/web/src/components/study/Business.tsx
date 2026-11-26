@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorText } from '../ui';
 import { loadBusinessSection } from '../../lib/studyPanels';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
+import { panelTitle } from './Panel';
 
 const b = t.study.business;
 
@@ -42,8 +44,8 @@ function Text({ cik }: { cik: string }) {
 export function Business({ cik }: { cik: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section aria-labelledby="business" className="flex flex-col gap-2">
-      <h2 id="business" className="font-semibold">
+    <section aria-labelledby="business" className={`${cardClass} gap-3!`}>
+      <h2 id="business" className={panelTitle}>
         {b.title}
       </h2>
       <p className="text-sm text-muted">{b.intro}</p>

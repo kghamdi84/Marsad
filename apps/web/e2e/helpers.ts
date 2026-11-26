@@ -84,3 +84,11 @@ export function scanAfterEach() {
     expect(await axeViolations(page)).toEqual([]);
   });
 }
+
+/** The Study company page shows one section at a time on iPad and desktop; this opens one by its tab name. */
+export async function openSection(
+  page: Page,
+  name: 'Overview' | 'Financials' | 'Ownership' | 'Filings and risk' | 'News',
+) {
+  await page.getByRole('tab', { name }).click();
+}

@@ -11,7 +11,9 @@ import {
   type WordSegment,
 } from '@marsad/core';
 import { loadRiskFactorSections } from '../../lib/studyPanels';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
+import { panelTitle } from './Panel';
 
 const FIRST = 12;
 
@@ -183,8 +185,8 @@ export function RiskFactors({ cik }: { cik: string }) {
   const [open, setOpen] = useState(false);
   const r = t.study.risk;
   return (
-    <section aria-labelledby="risk" className="flex flex-col gap-2">
-      <h2 id="risk" className="font-semibold">
+    <section aria-labelledby="risk" className={`${cardClass} gap-3!`}>
+      <h2 id="risk" className={panelTitle}>
         {r.title}
       </h2>
       <p className="text-sm text-muted">{r.intro}</p>

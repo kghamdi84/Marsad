@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { seedSession, scanAfterEach } from './helpers';
+import { openSection, seedSession, scanAfterEach } from './helpers';
 
 scanAfterEach();
 
@@ -108,7 +108,19 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
   await expect(canvas).toBeVisible();
   expect((await canvas.boundingBox())?.width).toBeGreaterThan(300);
 
+  // 08:57 ET pre-market on the 23rd, so the 8-K marker sits on the 23rd's bar.
+  await expect(
+    page.getByText('2026-11-23: 8-K: Executive or director change (High)'),
+  ).toBeVisible();
+
+  // Anything the free plan cannot give says so, and says what it would take (Overview, open first).
+  await expect(page.getByText('Requires a higher Massive plan.').first()).toBeVisible();
+  await expect(
+    page.getByText('Earnings against estimates, surprise and implied move'),
+  ).toBeVisible();
+
   // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag.
+  await openSection(page, 'Filings and risk');
   await expect(page.getByText('Item 5.02: Executive or director change')).toBeVisible();
   await expect(page.getByText('Item 9.01: Attached documents and exhibits')).toBeVisible();
   await expect(page.getByText('High', { exact: true }).first()).toBeVisible();
@@ -119,22 +131,12 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     'href',
     'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm',
   );
-  // 08:57 ET pre-market on the 23rd, so the 8-K marker sits on the 23rd's bar.
-  await expect(
-    page.getByText('2026-11-23: 8-K: Executive or director change (High)'),
-  ).toBeVisible();
-
-  // Anything the free plan cannot give says so, and says what it would take.
-  await expect(page.getByText('Requires a higher Massive plan.').first()).toBeVisible();
-  await expect(
-    page.getByText('Earnings against estimates, surprise and implied move'),
-  ).toBeVisible();
-  // Not built yet says so, with the reason, rather than leaving a gap.
-  await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
   // Quarterly risk factors are built now (ADR 0036): their own section, loaded when opened.
   await expect(
     page.getByRole('heading', { name: 'Risk factors, quarter over quarter (10-Q)' }),
   ).toBeVisible();
+  await openSection(page, 'Ownership');
+  await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/study.png`, fullPage: true });
 });
@@ -155,6 +157,7 @@ test('a ticker with no stored bars says so instead of showing an empty chart', a
   await page.goto('/study/RKLB');
   await expect(page.getByText(/No daily bars stored for this ticker yet/)).toBeVisible();
   await expect(page.getByText(/No company record yet/)).toBeVisible();
+  await openSection(page, 'Filings and risk');
   await expect(page.getByText('No filings stored for this company.')).toBeVisible();
 });
 
@@ -209,4 +212,22 @@ test('the chart draws under the production Content Security Policy, with no viol
   await expect(canvas).toBeVisible();
   expect((await canvas.boundingBox())?.width).toBeGreaterThan(300);
   expect(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)).toEqual([]);
+});
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test('study: sections are accordions, the overview open first', async ({ page }, info) => {
+    test.skip(
+      info.project.name !== 'desktop',
+      'One phone run is enough; the viewport is set here.',
+    );
+    await mock(page, '2026-11-24');
+    await page.goto('/study/NVDA');
+    await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Thesis card' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toHaveCount(0);
+    await page.locator('summary', { hasText: 'Ownership' }).click();
+    await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
+  });
 });

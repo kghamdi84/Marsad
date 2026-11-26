@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toFixedHalfUp } from '@marsad/core';
-import { num, td, th, thNum } from './Panel';
+import { num, td, th, thNum, panelTitle } from './Panel';
 import { ErrorText } from '../ui';
 import { loadHolders } from '../../lib/studyPanels';
+import { cardClass } from '../Card';
 import { t } from '../../strings';
 
 const h = t.study.holders;
@@ -66,8 +67,8 @@ function List({ ticker }: { ticker: string }) {
 export function Holders13F({ ticker }: { ticker: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section aria-labelledby="holders13f" className="flex flex-col gap-2">
-      <h2 id="holders13f" className="font-semibold">
+    <section aria-labelledby="holders13f" className={`${cardClass} gap-3!`}>
+      <h2 id="holders13f" className={panelTitle}>
         {h.title}
       </h2>
       <p className="text-sm text-muted">{h.intro}</p>
