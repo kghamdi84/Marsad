@@ -4,6 +4,11 @@
 
 Last updated 2026-11-27 (council batches 1 to 5 and leftovers).
 
+### PR #74 merged; weekly review tiles (2026-11-27)
+
+- PR #74 merged into main after CI passed (check and edge-core green on 2385c78, once Khaled cleared the GitHub billing lock).
+- Weekly review: the design's tiles (Trades closed, Plan followed n of m, Mean result in R) computed by core `weeklyTiles` from the stored review inputs. The design's Portfolio and SPY week tiles are left out: Marsad stores no daily portfolio values.
+
 ### Event study 90% intervals (2026-11-27, Khaled's go-ahead)
 
 - `event-study-2` (ADR 0044): a 90% percentile-bootstrap interval of the median for each condition and horizon with at least 30 episodes (2,000 resamples, seed 1, replayable). Known-answer test against a numpy reference to 1e-12.

@@ -815,6 +815,32 @@ function WeeklyReview() {
       </h2>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data === null && <p className="text-muted">{x.none}</p>}
+      {q.data?.tiles && (
+        <dl className="grid grid-cols-2 gap-2">
+          {(
+            [
+              [x.tileClosed, String(q.data.tiles.closed), 'text-white'],
+              [x.tileFollowed, x.tileOf(q.data.tiles.followed, q.data.tiles.touched), 'text-white'],
+              [
+                x.tileMeanR,
+                q.data.tiles.meanR === null
+                  ? t.regime.noData
+                  : `${q.data.tiles.meanR >= 0 ? '▲ +' : '▼ −'}${toFixedHalfUp(Math.abs(q.data.tiles.meanR), 2)}R`,
+                q.data.tiles.meanR === null
+                  ? 'text-muted'
+                  : q.data.tiles.meanR >= 0
+                    ? 'text-up'
+                    : 'text-down',
+              ],
+            ] as const
+          ).map(([k, v, tone]) => (
+            <div key={k} className="flex flex-col rounded-[10px] bg-bg p-2.5">
+              <dt className="text-xs text-muted">{k}</dt>
+              <dd className={`text-lg font-bold tabular-nums ${tone}`}>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {q.data?.sections.map((sec) => (
         <div key={sec.heading} className="flex flex-col gap-1.5">
           <h3 className="text-xs font-normal text-muted">{sec.heading}</h3>

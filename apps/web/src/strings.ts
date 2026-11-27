@@ -483,6 +483,10 @@ export const t = {
       title: 'Weekly review',
       none: 'The first weekly review is written on Sunday at 07:10 UTC, after the export.',
       written: (day: string) => `Written ${day} · template`,
+      tileClosed: 'Trades closed',
+      tileFollowed: 'Plan followed',
+      tileOf: (n: number, of: number) => `${n} of ${of}`,
+      tileMeanR: 'Mean result',
     },
     trades: {
       title: 'Trades and adherence',
