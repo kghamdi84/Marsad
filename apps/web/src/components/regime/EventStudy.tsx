@@ -59,7 +59,12 @@ export function EventStudy({ data }: { data: RegimeData }) {
     ]),
   ];
   const [cond, setCond] = useState<string>(picks[0] ?? 'all-days');
-  if (data.stats.length === 0) return null;
+  if (data.stats.length === 0)
+    return (
+      <Card id="study" title={s.title}>
+        <p className="text-sm text-ink3">{s.none}</p>
+      </Card>
+    );
   const at = (c: string, h: number): StoredEventStat | undefined =>
     data.stats.find((x) => x.condition === c && x.horizon === h);
   const any = data.stats[0] as StoredEventStat;

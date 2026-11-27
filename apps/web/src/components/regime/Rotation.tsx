@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { SECTOR_ETFS, sectorRotation, type SectorRotationRow } from '@marsad/core';
+import {
+  SECTOR_ETFS,
+  sectorRotation,
+  type SectorRotation,
+  type SectorRotationRow,
+} from '@marsad/core';
 import { Info } from '../Info';
 import { Card } from '../Card';
 import { arrowPct, toneClass } from './format';
@@ -27,21 +32,27 @@ function Value({ v }: { v: number | null }) {
 }
 
 /**
+ * The rotation from the stored closes, rows best 1-month first (the card and the summary row read the same rows).
+ */
+export function useRotation(data: RegimeData): { rot: SectorRotation; rows: SectorRotationRow[] } {
+  return useMemo(() => {
+    const rot = sectorRotation(
+      SECTOR_ETFS.map((s) => ({ ticker: s.ticker, bars: data.sectorBars[s.ticker] ?? [] })),
+      data.sectorBars['SPY'] ?? [],
+    );
+    const rows = [...rot.rows].sort(
+      (a, b) => (b.m1 ?? -Infinity) - (a.m1 ?? -Infinity) || a.ticker.localeCompare(b.ticker),
+    );
+    return { rot, rows };
+  }, [data.sectorBars]);
+}
+
+/**
  * Sector rotation against SPY (`sector-rotation-1`): each sector fund's relative return over 1 week, 1 month and
  * 3 months from the stored daily closes, best 1-month first. A fund whose newest bar is not SPY's is stale.
  */
 export function Rotation({ data }: { data: RegimeData }) {
-  const rot = useMemo(
-    () =>
-      sectorRotation(
-        SECTOR_ETFS.map((s) => ({ ticker: s.ticker, bars: data.sectorBars[s.ticker] ?? [] })),
-        data.sectorBars['SPY'] ?? [],
-      ),
-    [data.sectorBars],
-  );
-  const rows = [...rot.rows].sort(
-    (a, b) => (b.m1 ?? -Infinity) - (a.m1 ?? -Infinity) || a.ticker.localeCompare(b.ticker),
-  );
+  const { rot, rows } = useRotation(data);
   const note = (x: SectorRotationRow) =>
     x.state === 'stale' && x.asOf ? o.stale(x.asOf) : x.state === 'no-data' ? o.noBars : null;
   return (

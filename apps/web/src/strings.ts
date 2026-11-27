@@ -1761,7 +1761,6 @@ export const t = {
       noHeadlines: 'No headline stored for this topic in the last 40 days.',
       percentileChip: (name: string, pct: string, date: string) =>
         `${name} ${pct} percentile (${date})`,
-      moreMeasures: 'More measures',
       tables: {
         study: 'Every condition and horizon',
         signals: 'The 5 signals in full',
@@ -1769,6 +1768,50 @@ export const t = {
         conditions: 'The 4 conditions in full',
         topics: 'Topic counts in full',
         measures: 'Latest value, 1-month change and 1-year percentile',
+      },
+      // The summary card (squeezed v2 Regime): one row per gauge, each opening its detail below.
+      summary: {
+        rowsLabel: 'Regime at a glance',
+        regime: 'Regime',
+        recession: 'Recession filter',
+        fearGreed: 'Fear and Greed',
+        capitulation: 'Capitulation',
+        sectors: 'Sectors against SPY',
+        geopolitics: 'Geopolitics',
+        signalsOn: (n: number, available: number) =>
+          available === 5
+            ? `${n} of 5 signals on`
+            : `${n} of ${available} available signals on (5 in total)`,
+        closeOf: (day: string) => `close of ${day}`,
+        fgComponents: (n: number) => `${n} of 7 components`,
+        fgNone: 'Not enough components yet',
+        capMet: (n: number) => `${n} of 4 conditions met`,
+        capPlan: 'staged plan running',
+        capNone: 'Not computed yet',
+        sectorSub: (lead: string, lag: string, day: string) =>
+          `${lead} first, ${lag} last · 1 month against SPY · close of ${day}`,
+        sectorNone: 'Data unavailable: fewer than two sector funds have a 1-month return',
+        percentiles: (parts: string) => `${parts} percentile`,
+        pastYear: (dates: string) => `Of the past year · data for ${dates}`,
+        fewDays: (name: string, n: number) => `${name} from ${n} days only`,
+        unavailable: 'Data unavailable',
+      },
+      switch: {
+        riskLabel: 'Risk gauges',
+        risk: {
+          recession: 'Recession',
+          fearGreed: 'Fear and Greed',
+          capitulation: 'Capitulation',
+          breadth: 'Breadth',
+        },
+        contextLabel: 'Context',
+        context: {
+          study: 'What came next',
+          rotation: 'Sectors',
+          geopolitics: 'Geopolitics',
+          quality: 'Quality screen',
+          measures: 'More measures',
+        },
       },
     },
     intro:
@@ -1817,6 +1860,7 @@ export const t = {
       'Source: FRED (S&P 500, VIXCLS, VXVCLS). The S&P 500 on FRED goes back 10 years, so labels start in November 2017.',
     recession: {
       title: 'Recession filter',
+      none: 'Not computed yet. The regime job computes the filter after the FRED job.',
       level: {
         low: 'Low',
         elevated: 'Elevated',
@@ -1875,6 +1919,7 @@ export const t = {
       vix30: 'VIX at or above 30',
       proxy: 'VIX at or above 30, recession filter not high',
       allDays: 'All days (benchmark)',
+      none: 'No event study stored yet. The regime job computes it from the stored labels.',
       depth:
         'With 10 years of S&P 500 data most labels have fewer than 30 independent episodes. A longer price history would need a paid data plan or a proxy index; see ADR 0009.',
     },
@@ -2131,8 +2176,6 @@ export const t = {
                 : 'th';
       return `${n}${suffix}`;
     },
-    context: (gpr: string, epu: string) =>
-      `Context: geopolitical risk (GPR) at the ${gpr} percentile of the past year; policy uncertainty (EPU) at the ${epu}.`,
     volatility: {
       title: 'Volatility and its term structure',
       vix: 'VIX',
