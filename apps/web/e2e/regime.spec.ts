@@ -215,6 +215,18 @@ function topicRows() {
   return rows;
 }
 
+// The sector funds: XLK closes 10% above SPY's newest close and XLE 5% below, so against SPY XLK is +10.0% and
+// XLE -5.0% over 1 week, 1 month and 3 months; XLRE's newest bar is missing (stale); the rest equal SPY (0.0%).
+function sectorBars(ticker: string): { date: string; close: number }[] {
+  const spy = (fgSynthetic.spy as [string, number][])
+    .slice(-260)
+    .map(([date, close]) => ({ date, close }));
+  const last = spy.length - 1;
+  if (ticker === 'XLRE') return spy.slice(0, -1);
+  const k = ticker === 'XLK' ? 1.1 : ticker === 'XLE' ? 0.95 : 1;
+  return spy.map((b, i) => (i === last ? { ...b, close: b.close * k } : b));
+}
+
 async function mock(page: Page) {
   await seedSession(page, 'aal2');
   await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
@@ -225,16 +237,13 @@ async function mock(page: Page) {
   await page.route('**/rest/v1/regime_event_stats**', (r) => json(r, statRows()));
   await page.route('**/rest/v1/breadth_daily**', (r) => json(r, [...breadthRows()].reverse()));
   await page.route('**/rest/v1/news_topic_days**', (r) => json(r, [...topicRows()].reverse()));
-  // GLD, ITA and IYT: the synthetic SPY closes stand in (not market data); the page only needs a series.
-  await page.route('**/rest/v1/daily_bars**', (r) =>
-    json(
-      r,
-      (fgSynthetic.spy as [string, number][])
-        .slice(-260)
-        .map(([date, close]) => ({ date, close }))
-        .reverse(),
-    ),
-  );
+  // Daily closes by ticker: the synthetic SPY closes stand in (not market data). GLD, ITA, IYT and SPY get them as
+  // they are; the sector funds get them with the newest close changed, so the relative returns are known by hand.
+  await page.route('**/rest/v1/daily_bars**', (r) => {
+    const ticker =
+      new URL(r.request().url()).searchParams.get('ticker')?.replace(/^eq\./, '') ?? '';
+    return json(r, [...sectorBars(ticker)].reverse());
+  });
   await page.route('**/rest/v1/fear_greed_daily**', (r) =>
     json(r, [...fearGreedRows()].reverse().slice(0, 30)),
   );
@@ -260,7 +269,7 @@ async function mock(page: Page) {
 
 /** The redesigned cards keep their full tables, rules and sources under "Show details". */
 async function openDetails(page: import('@playwright/test').Page) {
-  await expect(page.getByRole('region', { name: 'Market regime' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Regime label' })).toBeVisible();
   for (const d of await page.getByText('Show details', { exact: true }).all()) await d.click();
 }
 
@@ -273,13 +282,28 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await openDetails(page);
 
   // The label on 2026-11-23: VIX 26.62 at or above VIX3M 25.50, with the S&P 500 below its 50-day average.
-  const label = page.getByRole('region', { name: 'Market regime' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Market regime' })).toBeVisible();
+  const label = page.getByRole('region', { name: 'Regime label' });
   await expect(label.getByText('Stress', { exact: true })).toBeVisible();
   await expect(label.getByText(/VIX is at or above VIX3M \(backwardation\)/)).toBeVisible();
   await expect(label.getByText('As of the close on 2026-11-23. Rules regime-1.')).toBeVisible();
-  await expect(label.getByText('26.62')).toBeVisible();
-  await expect(label.getByText('25.50')).toBeVisible();
-  await openInfo(page.getByRole('region', { name: 'Market regime' }));
+  await expect(label.getByText('regime-1 · close of Mon 23 Nov')).toBeVisible();
+  await expect(label.getByText('Delayed · end of day')).toBeVisible();
+  // Why this label, from the stored regime-1 inputs: the stress check is met (VIX 26.62 at or above VIX3M 25.50
+  // with the S&P under its 50-day), so the bull calm conditions on the 50-day and on VIX are not.
+  const why = (text: string | RegExp) => label.getByRole('listitem').filter({ hasText: text });
+  await expect(label.getByRole('heading', { name: 'Why this label' })).toBeVisible();
+  await expect(
+    label.getByRole('listitem').filter({ hasText: /^(S&P|Within|VIX under|Stress check)/ }),
+  ).toHaveCount(5);
+  await expect(why('VIX under 20 (26.62)')).toContainText(/Not met$/);
+  await expect(why(/^Stress check: .*\(26\.62 against 25\.50\)/)).toContainText(/Met$/);
+  await expect(why(/^Stress check/)).not.toContainText('Not met');
+  await expect(why(/^S&P 500 above its 50-day average \([\d,]+\.\d{2}\)/)).toContainText(
+    /Not met$/,
+  );
+  await expect(why(/^Within 5% of the 252-day high \([−+]?\d+\.\d%\)/)).toBeVisible();
+  await openInfo(page.getByRole('region', { name: 'Regime label' }));
   await expect(label.getByText(/FRED keeps 10 years|goes back 10 years/)).toBeVisible();
 
   // The recession filter on 2026-11-23: elevated, with only the curve triggered.
@@ -301,10 +325,26 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   );
   // The benchmark has 119 one-month windows: shown with its median and middle half.
   await expect(study.getByRole('row', { name: /All days/ })).toContainText('n 119');
+  // The conditions: today's label, VIX 30+, Bear and all sessions; today's is chosen first.
+  await expect(study.getByRole('button', { name: 'Today: Stress' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  for (const name of ['VIX 30+', 'Bear', 'All sessions'])
+    await expect(study.getByRole('button', { name, exact: true })).toBeVisible();
+  // Under 30 cases: insufficient history with the count, shown as a 30-tick bar.
+  await expect(study.getByRole('listitem').filter({ hasText: /^63 sessions/ })).toContainText(
+    'Median n/a · insufficient history (16 of 30) · n = 16',
+  );
   // event-study-2: with 30 or more episodes the bar is the 90% bootstrap interval of the median.
-  await expect(study).toContainText('Median and middle half'); // Stress: too few episodes for an interval
-  await study.getByRole('button', { name: 'All days (benchmark)' }).click();
-  await expect(study).toContainText('Median and 90% interval');
+  await expect(study).toContainText('Median with the middle half'); // Stress: too few episodes
+  await study.getByRole('button', { name: 'All sessions' }).click();
+  await expect(study.getByRole('button', { name: 'All sessions' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(study).toContainText('Median with a 90% bootstrap interval');
+  await expect(study.getByText('n = 119')).toBeVisible();
   await expect(
     study.getByText(/^90% interval [−+-]?\d+\.\d% to [−+-]?\d+\.\d%$/).first(),
   ).toBeVisible();
@@ -350,8 +390,13 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   );
   await expect(unc.getByText(/Caldara and Iacoviello/)).toBeVisible();
   // The composite on 2026-11-23: 41.88 from the independent implementation, so 42, fear, with 5 of 7 components.
-  const fg = page.getByRole('region', { name: 'Fear and Greed composite' });
-  await expect(fg.getByTestId('fear-greed-value')).toHaveText('42, Fear');
+  const fg = page.getByRole('region', { name: 'Fear and Greed' });
+  await expect(fg.getByTestId('fear-greed-value')).toHaveText('42');
+  await expect(fg.getByTestId('fear-greed-label')).toHaveText('Fear');
+  // Put/call has no source: shown as unavailable in its place, with the reason.
+  await expect(fg.getByRole('listitem').filter({ hasText: /^Put\/call/ })).toContainText(
+    'Unavailable',
+  );
   await expect(fg.getByText(/5 of 7 components available/)).toBeVisible();
   await expect(fg.getByText(/As of the close on 2026-11-23\. Rules fear-greed-1\./)).toBeVisible();
   await expect(fg.getByRole('row', { name: /Put\/call ratio/ })).toContainText(
@@ -385,7 +430,43 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   ).toBeVisible();
 
   // The geopolitical panel: topic counts with their baseline, and the reacting assets with source and date.
-  const geo = page.getByRole('region', { name: 'Geopolitical panel' });
+  // The recession filter rows: the value, the state, the rule and the data date of each signal.
+  await expect(rec.getByRole('listitem').filter({ hasText: /^Yield curve/ })).toContainText(
+    /Triggered · triggers below zero now.* · FRED T10Y3M, data for \d{4}-\d{2}-\d{2}/,
+  );
+  // The capitulation watch rows: VIX 26.62 is not at or above 30.
+  await expect(cap.getByText('Off', { exact: true })).toBeVisible();
+  await expect(cap.getByRole('listitem').filter({ hasText: /^VIX at or above 30/ })).toContainText(
+    /26\.62Not met · at or above 30/,
+  );
+  await expect(cap.getByText(/^When all 4 are met/)).toBeVisible();
+
+  // Sector rotation against SPY, from the stored closes (sector-rotation-1), best 1 month first.
+  const rot = page.getByRole('region', { name: 'Sector rotation against SPY' });
+  await expect(rot.getByText('Massive daily bars · close of 23 Nov')).toBeVisible();
+  const rows = rot.getByRole('row');
+  await expect(rows.nth(1)).toHaveText(/^XLK · Technology▲ \+10\.0%▲ \+10\.0%▲ \+10\.0%$/);
+  await expect(rot.getByRole('row', { name: /^XLE/ })).toHaveText(
+    /^XLE · Energy▼ −5\.0%▼ −5\.0%▼ −5\.0%$/,
+  );
+  await expect(rot.getByRole('row', { name: /^XLF/ })).toHaveText(
+    /^XLF · Financials0\.0%0\.0%0\.0%$/,
+  );
+  // XLRE's newest bar is missing: stale, with no values rather than a return over another window.
+  await expect(rot.getByRole('row', { name: /^XLRE/ })).toContainText(
+    'Stale: newest bar 2026-11-20',
+  );
+  await expect(rot.getByRole('row', { name: /^XLRE/ })).toContainText('n/a');
+  await expect(rows).toHaveCount(12);
+
+  const geo = page.getByRole('region', { name: 'Geopolitics' });
+  await expect(geo.getByText(/^Keyword topics \(AI off\) · 7 days to 2026-11-24/)).toBeVisible();
+  await expect(
+    geo.getByText(/^GPR \d+(st|nd|rd|th) percentile \(2026-11-23\) · EPU/),
+  ).toBeVisible();
+  await expect(geo.getByRole('button', { name: /^Tariffs and trade/ })).toContainText(
+    '28 articles4.0×',
+  );
   await expect(
     geo.getByText(
       /7 days to 2026-11-24 \(7 days stored\), against the 4 weeks before \(28 days stored\)/,
@@ -552,7 +633,7 @@ test('regime: the quality screen lists passing companies with its counts and cav
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test('regime: four gauges in a swipe row open their full cards; context is collapsed', async ({
+  test('regime: one column with the label and why first, every card in place', async ({
     page,
   }, info) => {
     test.skip(
@@ -561,23 +642,22 @@ test.describe('on a phone', () => {
     );
     await mock(page);
     await page.goto('/regime');
-    const gauges = page.getByRole('region', { name: 'Gauges' });
-    await expect(gauges.getByRole('button', { name: /^Recession filter/ })).toContainText(
-      'Elevated',
-    );
-    const fgButton = gauges.getByRole('button', { name: /^Fear and Greed composite/ });
-    await expect(fgButton).toContainText('42Fear');
-    await fgButton.click();
-    const sheet = page.getByRole('dialog', { name: 'Fear and Greed composite' });
-    await expect(sheet.getByTestId('fear-greed-value')).toHaveText('42, Fear');
-    await sheet.getByRole('button', { name: 'Close' }).click();
-    await expect(sheet).toBeHidden();
-
-    // The event study stays on the page; the longer context waits behind a tap.
-    await expect(page.getByRole('region', { name: 'What the S&P did next' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeHidden();
-    await page.locator('summary', { hasText: 'Geopolitical panel' }).click();
-    await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeVisible();
+    const label = page.getByRole('region', { name: 'Regime label' });
+    await expect(label.getByText('Stress', { exact: true })).toBeVisible();
+    await expect(label.getByRole('heading', { name: 'Why this label' })).toBeVisible();
+    // One column: the event study starts under the label, and the paired cards stack.
+    const study = page.getByRole('region', { name: 'What the S&P did next' });
+    const rec = page.getByRole('region', { name: 'Recession filter' });
+    const fg = page.getByRole('region', { name: 'Fear and Greed' });
+    const a = await label.boundingBox();
+    const b = await study.boundingBox();
+    const c = await rec.boundingBox();
+    const d = await fg.boundingBox();
+    expect(b && a && b.y >= a.y + a.height).toBe(true);
+    expect(d && c && d.y >= c.y + c.height && Math.abs(d.x - c.x) < 1).toBe(true);
+    await expect(fg.getByTestId('fear-greed-value')).toHaveText('42');
+    await expect(page.getByRole('region', { name: 'Sector rotation against SPY' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Geopolitics' })).toBeVisible();
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,
