@@ -11,6 +11,7 @@ import {
   type OptionPosition,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../ui';
+import { Pill } from '../ui/kit';
 import {
   addOptionPosition,
   closeOptionPosition,
@@ -23,7 +24,7 @@ import { t } from '../../strings';
 
 const x = t.journal.options;
 const usd = (v: number) => `${v < 0 ? '-' : ''}$${toFixedHalfUp(Math.abs(v), 2)}`;
-const selectCls = 'min-h-11 rounded-sm border border-line bg-bg px-2 text-fg';
+const selectCls = 'min-h-11 rounded-lg border border-line-strong bg-canvas px-2 text-ink';
 const usd0 = (v: number) => Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 function PositionCard({
@@ -57,28 +58,23 @@ function PositionCard({
   const gainFlex = v.maxGain ?? v.maxLoss;
   const met = signals.filter((sg) => sg.met);
   return (
-    <li className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface px-4 py-3.5">
-      <div className="flex justify-between gap-2.5">
-        <span className="flex flex-col">
-          <h3 className="font-bold">{p.label}</h3>
-          <span className="text-[0.8125rem] text-muted">{legs}</span>
-        </span>
-        <span className="flex flex-col items-end">
-          <span className="text-xl font-bold tabular-nums">{v.dte}</span>
-          <span className="text-xs text-muted">{x.daysLeft}</span>
-        </span>
+    <li className="flex min-w-0 flex-col gap-2.5 rounded-xl border border-line bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold text-ink">{p.label}</h3>
+        <Pill>{x.dteLabel(v.dte)}</Pill>
       </div>
+      <span className="text-xs text-ink3">{legs}</span>
       <div
         role="img"
         aria-label={x.barAria(
           `$${usd0(v.maxLoss)}`,
           v.maxGain === null ? x.unlimited : `$${usd0(v.maxGain)}`,
         )}
-        className="flex h-8 overflow-hidden rounded-lg text-[0.8125rem] font-semibold whitespace-nowrap"
+        className="flex h-[30px] overflow-hidden rounded-lg text-[13px] font-semibold whitespace-nowrap tabular-nums"
       >
         <span
           aria-hidden="true"
-          className="flex items-center bg-down/22 px-2 text-down"
+          className="flex items-center bg-down-soft px-2.5 text-down"
           style={{ flex: Math.abs(v.maxLoss) }}
         >
           ▼ −${usd0(v.maxLoss)}
@@ -86,27 +82,29 @@ function PositionCard({
         <span aria-hidden="true" className="w-[3px] bg-ink" />
         <span
           aria-hidden="true"
-          className="flex items-center justify-end bg-up/18 px-2 text-up"
+          className="flex items-center justify-end bg-up-soft px-2.5 text-up"
           style={{ flex: Math.abs(gainFlex) }}
         >
           {v.maxGain === null ? x.unlimited : `▲ +$${usd0(v.maxGain)}`}
         </span>
       </div>
-      <span className="text-[0.8125rem]">
+      <span className="text-[13px] text-ink2">
         {x.beExpiry(
           v.breakevens.map((be) => toFixedHalfUp(be, 2)).join(', '),
           dayMonthYear(p.expiry),
         )}
+        {' \u00B7 '}
+        {x.definedRisk}
       </span>
       {met.map((sg) => (
-        <span key={sg.rule} className="text-[0.8125rem] font-semibold text-warn">
+        <span key={sg.rule} className="text-[13px] font-semibold text-warn">
           {sg.text}
         </span>
       ))}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="min-h-11 self-end px-1 text-[0.8125rem] text-muted underline"
+        className="min-h-11 self-end px-1 text-xs text-ink3 underline"
       >
         {x.details}
       </button>
@@ -314,17 +312,17 @@ export function OptionPositions() {
   const q = useQuery({ queryKey: ['option-positions'], queryFn: loadOptionPositions });
   const [adding, setAdding] = useState(false);
   return (
-    <section aria-labelledby="option-positions" className="flex flex-col gap-2.5">
+    <section aria-labelledby="option-positions" className="flex flex-col gap-4">
       <h2 id="option-positions" className="sr-only">
         {x.title}
       </h2>
-      <p className="text-[0.8125rem] text-muted">{x.definedOnly}</p>
+      <p className="text-xs text-ink3">{x.definedOnly}</p>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.positions.length === 0 ? (
-          <p className="text-muted">{x.none}</p>
+          <p className="text-sm text-ink3">{x.none}</p>
         ) : (
-          <ul className="flex flex-col gap-2.5">
+          <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] gap-4">
             {q.data.positions.map((p) => (
               <PositionCard key={p.id} p={p} close={q.data.closes[p.underlying] ?? null} />
             ))}
@@ -335,12 +333,12 @@ export function OptionPositions() {
         aria-expanded={adding}
         aria-controls="option-new"
         onClick={() => setAdding(!adding)}
-        className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-ink"
+        className="min-h-11 self-start rounded-lg border border-line-strong px-4 text-[13px] font-semibold text-ink"
       >
         {x.add}
       </button>
       {adding && (
-        <div id="option-new" className="rounded-2xl border border-line bg-surface p-4">
+        <div id="option-new" className="rounded-xl border border-line bg-surface p-4">
           <NewPosition />
         </div>
       )}

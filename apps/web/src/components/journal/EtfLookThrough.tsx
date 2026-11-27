@@ -1,29 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { etfOverlap, lookThrough, toFixedHalfUp } from '@marsad/core';
 import { ErrorText } from '../ui';
+import { cardClass } from '../Card';
 import { loadEtfHoldings } from '../../lib/etf';
 import type { BarsByTicker, StoredHolding } from '../../lib/journal';
 import { dayMonthYear } from '../../lib/dates';
 import { TickerLink } from '../QuickLook';
+import { CardHead, lineRowClass } from './shared';
 import { t } from '../../strings';
 
 const x = t.journal.etf;
 const pct = (v: number) => `${toFixedHalfUp(v * 100, 1)}%`;
-/** Fund colours after light blue (direct), in the design's order. */
-const VIA_FILL = ['bg-fill', 'bg-muted', 'bg-faint'];
-const box = 'flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4';
 
-/** What you hold directly and through SPY, QQQ and DIA, and how much those funds overlap, as the design draws it. */
-export function EtfLookThrough({
-  holdings,
-  bars,
-}: {
-  holdings: StoredHolding[];
-  bars: BarsByTicker;
-}) {
+/**
+ * What you hold directly and through SPY, QQQ and DIA (SEC N-PORT, formula etf-1). Shared by the look-through card
+ * and the position cards' rules line; undefined while loading.
+ */
+export function useLookThrough(holdings: StoredHolding[], bars: BarsByTicker) {
   const q = useQuery({ queryKey: ['etf-holdings'], queryFn: loadEtfHoldings });
-  if (q.isError) return <ErrorText message={q.error.message} />;
-  if (!q.data) return null;
+  if (!q.data) return { q, data: undefined };
   const { reports, holdings: byEtf } = q.data;
   const weights = new Map<string, Map<string, number>>();
   for (const r of reports) {
@@ -39,10 +34,23 @@ export function EtfLookThrough({
   const portfolio = positions.reduce((a, p) => a + p.value, 0);
   const heldFunds = [...new Set(positions.map((p) => p.ticker).filter((tk) => weights.has(tk)))];
   const rows = lookThrough(positions, weights);
-  const top = Math.max(0, ...rows.map((r) => r.total));
-  const width = (usd: number) => `${top > 0 ? toFixedHalfUp((usd / top) * 100, 2) : 0}%`;
+  return { q, data: { reports, byEtf, portfolio, heldFunds, rows } };
+}
+
+/** The look-through and the overlap of the funds, as the design's "ETF look-through (SEC N-PORT)" card. */
+export function EtfLookThrough({
+  holdings,
+  bars,
+}: {
+  holdings: StoredHolding[];
+  bars: BarsByTicker;
+}) {
+  const { q, data } = useLookThrough(holdings, bars);
+  if (q.isError) return <ErrorText message={q.error.message} />;
+  if (!data) return null;
+  const { reports, byEtf, portfolio, heldFunds, rows } = data;
   const share = (usd: number) => pct(portfolio > 0 ? usd / portfolio : 0);
-  const dateOf = new Map(reports.map((r) => [r.etf, r.reportDate]));
+  const dates = [...new Set(reports.map((r) => r.reportDate))].map(dayMonthYear);
   const pairs = reports.flatMap((a, i) =>
     reports.slice(i + 1).map((b) => ({
       a: a.etf,
@@ -52,114 +60,99 @@ export function EtfLookThrough({
     })),
   );
   return (
-    <section aria-labelledby="etf-look-through" className="flex flex-col gap-3">
-      <h2 id="etf-look-through" className="sr-only">
-        {x.title}
-      </h2>
+    <section aria-labelledby="etf-look-through" className={cardClass}>
+      <CardHead
+        id="etf-look-through"
+        title={x.title}
+        aside={
+          reports.length > 0 && (
+            <span className="text-xs text-ink3">
+              {x.aside(reports.map((r) => r.etf).join(', '), x.join(dates))}
+            </span>
+          )
+        }
+      />
       {reports.length === 0 ? (
-        <p className={`${box} text-muted`}>{x.none}</p>
+        <p className="text-sm text-ink3">{x.none}</p>
       ) : (
         <>
-          <div className={box}>
-            <h3 className="flex flex-col gap-0.5">
-              <span className="font-semibold">{x.ownTitle}</span>
-              {heldFunds.length > 0 && (
-                <span className="text-[0.8125rem] font-normal text-muted">
-                  {x.ownSub(x.join(heldFunds))}
-                </span>
-              )}
-            </h3>
-            {heldFunds.length === 0 ? (
-              <p className="text-[0.8125rem] text-muted">{x.noFunds}</p>
-            ) : rows.length === 0 ? (
-              <p className="text-[0.8125rem] text-muted">{x.noShared(heldFunds.join(', '))}</p>
-            ) : (
-              <>
-                <ul className="flex flex-col">
-                  {rows.map((r) => {
-                    const via = heldFunds.map((f) => ({
-                      etf: f,
-                      usd: r.viaEtfs.find((v) => v.etf === f)?.usd ?? 0,
-                    }));
-                    const parts = [
-                      x.direct(share(r.direct)),
-                      ...via.map((v) => x.via(v.etf, share(v.usd))),
-                    ].join(', ');
-                    return (
-                      <li
-                        key={r.ticker}
-                        aria-label={x.rowAria(r.ticker, share(r.total), parts)}
-                        className="grid min-h-8 grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2.5"
-                      >
-                        <TickerLink ticker={r.ticker} />
-                        <span
-                          aria-hidden="true"
-                          className="flex h-3.5 overflow-hidden rounded-sm bg-faint/10"
-                        >
-                          <span className="bg-up" style={{ width: width(r.direct) }} />
-                          {via.map((v, i) => (
-                            <span
-                              key={v.etf}
-                              className={VIA_FILL[i % VIA_FILL.length]}
-                              style={{ width: width(v.usd) }}
-                            />
-                          ))}
-                        </span>
-                        <span className="text-end font-semibold tabular-nums">
-                          {share(r.total)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-[0.8125rem] text-muted">
-                  {[
-                    x.legendDirect,
-                    ...heldFunds.map((f, i) =>
-                      x.legendVia(x.colours[i % x.colours.length] ?? '', f),
-                    ),
-                  ].join(' · ')}
-                </p>
-              </>
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-[13px] font-semibold text-ink">{x.ownTitle}</h3>
+            {heldFunds.length > 0 && (
+              <span className="text-xs text-ink3">{x.ownSub(x.join(heldFunds))}</span>
             )}
           </div>
-          <div className={`${box} gap-3!`}>
-            <h3 className="font-semibold">{x.overlapTitle}</h3>
-            <ul className="flex flex-col gap-3">
-              {pairs.map((p) => (
-                <li
-                  key={`${p.a}-${p.b}`}
-                  aria-label={x.pairAria(p.a, p.b, pct(p.overlap))}
-                  className="flex flex-col gap-1.5"
-                >
-                  <span className="flex justify-between">
-                    <span className="font-bold">{x.pair(p.a, p.b)}</span>
-                    <span
-                      className={`font-bold tabular-nums ${p.overlap >= 0.5 ? 'text-warn' : 'text-up'}`}
-                    >
-                      {pct(p.overlap)}
+          {heldFunds.length === 0 ? (
+            <p className="text-sm text-ink3">{x.noFunds}</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-ink3">{x.noShared(heldFunds.join(', '))}</p>
+          ) : (
+            <ul className="flex flex-col">
+              {rows.map((r) => {
+                const via = heldFunds.map((f) => ({
+                  etf: f,
+                  usd: r.viaEtfs.find((v) => v.etf === f)?.usd ?? 0,
+                }));
+                const parts = [
+                  x.direct(share(r.direct)),
+                  ...via.map((v) => x.via(v.etf, share(v.usd))),
+                ].join(', ');
+                const note =
+                  r.direct > 0
+                    ? x.note([
+                        x.directCap(share(r.direct)),
+                        ...via.filter((v) => v.usd > 0).map((v) => x.via(v.etf, share(v.usd))),
+                      ])
+                    : x.indirectOnly;
+                return (
+                  <li
+                    key={r.ticker}
+                    aria-label={x.rowAria(r.ticker, share(r.total), parts)}
+                    className={lineRowClass}
+                  >
+                    <span className="text-sm">
+                      <TickerLink ticker={r.ticker} />
                     </span>
+                    <span className="text-end text-sm font-semibold text-ink tabular-nums">
+                      {share(r.total)}
+                    </span>
+                    <span className="col-span-2 text-xs text-ink3">{note}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="flex flex-col gap-0.5 pt-1">
+            <h3 className="text-[13px] font-semibold text-ink">{x.overlapTitle}</h3>
+          </div>
+          <ul className="flex flex-col">
+            {pairs.map((p) => (
+              <li
+                key={`${p.a}-${p.b}`}
+                aria-label={x.pairAria(p.a, p.b, pct(p.overlap))}
+                className={lineRowClass}
+              >
+                <span className="text-sm text-ink2">{x.pair(p.a, p.b)}</span>
+                <span
+                  className={`text-end text-sm font-semibold tabular-nums ${p.overlap >= 0.5 ? 'text-warn' : 'text-ink'}`}
+                >
+                  {pct(p.overlap)}
+                </span>
+                <span className="col-span-2 text-xs text-ink3">{x.nport(x.join(p.dates))}</span>
+              </li>
+            ))}
+            {pairs.length === 0 &&
+              reports.map((r) => (
+                <li key={r.etf} className={`${lineRowClass} text-xs text-ink3`}>
+                  <span className="col-span-2">
+                    {r.etf}: {x.nport(dayMonthYear(r.reportDate))}
                   </span>
-                  <span aria-hidden="true" className="h-2.5 rounded-[5px] bg-faint/16">
-                    <span
-                      className={`block h-full rounded-[5px] ${p.overlap >= 0.5 ? 'bg-warn' : 'bg-up'}`}
-                      style={{ width: pct(Math.min(1, p.overlap)) }}
-                    />
-                  </span>
-                  <span className="text-[0.8125rem] text-muted">{x.nport(x.join(p.dates))}</span>
                 </li>
               ))}
-              {pairs.length === 0 &&
-                reports.map((r) => (
-                  <li key={r.etf} className="text-[0.8125rem] text-muted">
-                    {r.etf}: {x.nport(dayMonthYear(dateOf.get(r.etf) ?? r.reportDate))}
-                  </li>
-                ))}
-            </ul>
-          </div>
+          </ul>
         </>
       )}
-      <p className="text-xs text-muted">{x.footnote}</p>
+      <p className="text-xs text-ink3">{x.footnote}</p>
     </section>
   );
 }
