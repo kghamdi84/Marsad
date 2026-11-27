@@ -60,7 +60,7 @@ test('phone: bottom tab bar, page title and the More sheet', async ({ page }) =>
     await expect(bar.getByRole('link', { name })).toBeVisible();
   await expect(bar.getByRole('link', { name: 'Watch' })).toHaveAttribute('aria-current', 'page');
   // Lab and Status live under More on a phone.
-  await expect(page.getByRole('link', { name: 'Lab' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Lab', exact: true })).toHaveCount(0);
 
   await bar.getByRole('link', { name: 'Regime' }).click();
   await expect(page).toHaveURL(/\/regime$/);

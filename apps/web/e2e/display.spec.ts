@@ -64,3 +64,34 @@ test('settings: the second time zone changes the clock label in the header', asy
     .click();
   await expect(page.getByRole('banner').getByText(/London/)).toBeVisible();
 });
+
+test('every page renders in Daylight and Arabic, right to left, with no accessibility violations', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'marsad.display',
+      JSON.stringify({ theme: 'light', lang: 'ar', zone: 'Asia/Riyadh' }),
+    );
+  });
+  for (const path of [
+    '/',
+    '/study',
+    '/study/NVDA',
+    '/regime',
+    '/alerts',
+    '/journal',
+    '/lab',
+    '/status',
+    '/settings',
+  ]) {
+    await page.goto(path);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    // No page scrolls sideways.
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    ).toBe(true);
+    expect(await axeViolations(page), path).toEqual([]);
+  }
+});
