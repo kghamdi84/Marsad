@@ -37,7 +37,7 @@ interface HolidayRow {
 /** Every row of `public.source_status`, the system alerts, the NYSE calendar and the latest heartbeat run. */
 export async function loadStatus() {
   const c = client();
-  const [sources, holidays, alerts, beat] = await Promise.all([
+  const [sources, holidays, alerts, beat, sched] = await Promise.all([
     c.from('source_status').select('*').order('source'),
     c.from('market_holidays').select('*').eq('exchange', 'NYSE'),
     c.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(20),
@@ -47,11 +47,20 @@ export async function loadStatus() {
       .eq('job', 'health-check')
       .order('started_at', { ascending: false })
       .limit(1),
+    // The Supabase Cron dispatcher's own check (ADR 0008): ok, skipped (no token) or error with GitHub's reply.
+    c
+      .from('job_runs')
+      .select('started_at, status, rows_written, error')
+      .eq('job', 'scheduler')
+      .order('started_at', { ascending: false })
+      .limit(1),
   ]);
   if (sources.error) throw new Error(sources.error.message);
   if (holidays.error) throw new Error(holidays.error.message);
   if (alerts.error) throw new Error(alerts.error.message);
   if (beat.error) throw new Error(beat.error.message);
+  if (sched.error) throw new Error(sched.error.message);
+  const sr = (sched.data as Record<string, unknown>[])[0];
   const rows: UpcomingRow[] = (holidays.data as HolidayRow[]).map((h) => ({
     date: h.date,
     exchange: h.exchange,
@@ -64,6 +73,14 @@ export async function loadStatus() {
     sources: sources.data as SourceRow[],
     alerts: alerts.data as SystemAlertRow[],
     heartbeatAt: (beat.data as { started_at: string }[])[0]?.started_at ?? null,
+    scheduler: sr
+      ? {
+          at: String(sr['started_at']),
+          status: String(sr['status']),
+          started: sr['rows_written'] == null ? null : Number(sr['rows_written']),
+          error: sr['error'] == null ? null : String(sr['error']),
+        }
+      : null,
     calendar: buildCalendar(rows, 'NYSE'),
     checkedAt: new Date().toISOString(),
   };

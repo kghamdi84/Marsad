@@ -119,7 +119,31 @@ function CheckLine({ data }: { data: StatusData }) {
       <span role="status" className={hb.warn ? 'text-warn' : 'text-ink3'}>
         {hb.text}
       </span>
+      <SchedulerLine data={data} />
     </div>
+  );
+}
+
+/**
+ * The Supabase Cron dispatcher (ADR 0008) in one line: whether GitHub accepted the last window's starts, or why not
+ * (no token, GitHub's refusal, no reply). Silence is said too: no check yet means the cron jobs are not running.
+ */
+function SchedulerLine({ data }: { data: StatusData }) {
+  const x = data.scheduler;
+  const sc = s.scheduler;
+  if (!x) return <span className="text-warn">{sc.none}</span>;
+  const age = formatAge(Math.max(0, (Date.parse(data.checkedAt) - Date.parse(x.at)) / 1000));
+  const late = Date.parse(data.checkedAt) - Date.parse(x.at) > 45 * 60_000;
+  const text =
+    x.status === 'ok'
+      ? sc.ok(x.started ?? 0, age)
+      : x.status === 'skipped'
+        ? sc.skipped(age)
+        : sc.error(x.error ?? sc.unknown, age);
+  return (
+    <span className={x.status === 'ok' && !late ? 'text-ink3' : 'text-warn'}>
+      {late ? `${text} ${sc.late}` : text}
+    </span>
   );
 }
 

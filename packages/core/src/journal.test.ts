@@ -106,6 +106,10 @@ describe('adherence with checklist-2 (hand-checked)', () => {
     // Stop placed, sized by the sizer, structural stop.
     expect(p['risk']).toEqual([3, 3]);
   });
+  it('a trade stored without a version (older rows and review inputs) is scored as checklist-1', () => {
+    const old = { ...t(), checklistVersion: undefined } as unknown as JournalTrade;
+    expect(adherence(old)).toMatchObject({ score: 100, applicable: 9 });
+  });
   it('a checklist-1 trade keeps its own items and labels', () => {
     const a = adherence(t({ checklist: { ...all5, cleanSetup: false } }));
     expect(a.broken).toEqual(['The setup is clean: it matches a written rule, not a feeling.']);

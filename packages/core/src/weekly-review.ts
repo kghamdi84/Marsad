@@ -73,6 +73,63 @@ export function weekReturn(
   return { pct: end.close / base.close - 1, from: base.date, to: end.date };
 }
 
+export interface HeldWeek {
+  /** Value change over value at the start, for holdings held the whole week; null when a close is missing. */
+  pct: number | null;
+  /** Holdings held from the start close to the end close. */
+  held: number;
+  /** Holdings bought or sold inside the week: left out, so cash moving in or out never reads as a return. */
+  leftOut: number;
+  /** Tickers without a stored close on the start or end session. */
+  missing: string[];
+}
+
+/**
+ * The portfolio's week for the weekly review (formula held-week-1): holdings held from the session `from` to the
+ * session `to` (the SPY tile's two closes), valued at those closes. A holding opened after `from` or closed on or
+ * before `to` is left out and counted. Any missing close makes the result unavailable, never a partial number.
+ * Bars are split-adjusted, so a split inside the week does not show as a loss. Null without any holding in range.
+ */
+export function heldWeekReturn(
+  holdings: readonly {
+    ticker: string;
+    shares: number;
+    openedOn: string;
+    closedOn: string | null;
+  }[],
+  bars: Readonly<Record<string, readonly { date: string; close: number }[]>>,
+  from: string,
+  to: string,
+): HeldWeek | null {
+  const inRange = holdings.filter(
+    (h) => h.openedOn <= to && (h.closedOn === null || h.closedOn > from),
+  );
+  if (inRange.length === 0) return null;
+  const held = inRange.filter(
+    (h) => h.openedOn <= from && (h.closedOn === null || h.closedOn > to),
+  );
+  const missing: string[] = [];
+  let base = 0;
+  let end = 0;
+  for (const h of held) {
+    const b = bars[h.ticker] ?? [];
+    const c0 = b.find((x) => x.date === from)?.close;
+    const c1 = b.find((x) => x.date === to)?.close;
+    if (c0 === undefined || c1 === undefined) {
+      missing.push(h.ticker);
+      continue;
+    }
+    base += h.shares * c0;
+    end += h.shares * c1;
+  }
+  return {
+    pct: held.length > 0 && missing.length === 0 && base > 0 ? end / base - 1 : null,
+    held: held.length,
+    leftOut: inRange.length - held.length,
+    missing: [...new Set(missing)],
+  };
+}
+
 export function weeklyReview(x: WeeklyInputs): Brief {
   const start = addDays(x.weekEnding, -6);
   const inWeek = (d: string | null) => d !== null && d >= start && d <= x.weekEnding;

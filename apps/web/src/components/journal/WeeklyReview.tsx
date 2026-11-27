@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { toFixedHalfUp, weekReturn } from '@marsad/core';
+import { heldWeekReturn, toFixedHalfUp, weekReturn } from '@marsad/core';
 import { ErrorText } from '../ui';
 import { cardClass } from '../Card';
-import { loadHoldings, loadWeeklyReview } from '../../lib/journal';
+import { loadHoldings, loadHoldingsSpan, loadWeeklyReview } from '../../lib/journal';
 import { dayMonth, weekdayDayMonth } from '../../lib/dates';
 import { StatTile, signedPct1 } from './shared';
 import { t } from '../../strings';
@@ -12,12 +12,38 @@ const x = t.journal.review;
 /**
  * The newest stored weekly review (template text, AI off) with the design's four tiles. Trades closed, plan followed
  * and the mean result come from the stored inputs; SPY's week is close to close from the stored bars; the
- * portfolio's week needs daily portfolio values, which are not stored, so it says so.
+ * portfolio's week (held-week-1) values the holdings held over the same two closes, leaving out buys and sales
+ * inside the week, and says so when a close is missing.
  */
 export function WeeklyReview() {
   const q = useQuery({ queryKey: ['weekly-review'], queryFn: loadWeeklyReview });
   const h = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const spy = q.data && h.data ? weekReturn(h.data.bars['SPY'] ?? [], q.data.forDate) : null;
+  const span = useQuery({
+    queryKey: ['holdings-span', spy?.from, spy?.to],
+    queryFn: () => loadHoldingsSpan(spy?.from ?? '', spy?.to ?? ''),
+    enabled: spy !== null,
+  });
+  const held =
+    spy && span.data ? heldWeekReturn(span.data.holdings, span.data.bars, spy.from, spy.to) : null;
+  const portfolioTile: [string, string, string, string] =
+    held && held.pct !== null
+      ? [
+          x.tilePortfolio,
+          `${held.pct >= 0 ? '▲ ' : '▼ '}${signedPct1(held.pct)}`,
+          x.portfolioNote(held.held, held.leftOut),
+          held.pct >= 0 ? 'text-up' : 'text-down',
+        ]
+      : [
+          x.tilePortfolio,
+          x.portfolioNa,
+          held === null
+            ? spy
+              ? x.portfolioNone
+              : x.spyNaNote
+            : x.portfolioMissing(held.missing.join(', ')),
+          'text-ink3',
+        ];
   const tiles = q.data?.tiles;
   const meanR = tiles?.meanR ?? null;
   // Lines are numbered across the sections, 01 onwards.
@@ -40,7 +66,7 @@ export function WeeklyReview() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] gap-2.5">
           {(
             [
-              [x.tilePortfolio, x.portfolioNa, x.portfolioNote, 'text-ink3'],
+              portfolioTile,
               spy
                 ? [
                     x.tileSpy,

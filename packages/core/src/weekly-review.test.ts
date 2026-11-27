@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JournalTrade } from './journal.js';
-import { weekReturn, weeklyReview, weeklyTiles } from './weekly-review.js';
+import { heldWeekReturn, weekReturn, weeklyReview, weeklyTiles } from './weekly-review.js';
 
 const all5 = {
   cleanSetup: true,
@@ -137,5 +137,66 @@ describe('weekReturn', () => {
     expect(weekReturn(bars.slice(0, 2), '2026-11-29')).toBeNull();
     expect(weekReturn(bars.slice(2), '2026-11-29')).toBeNull();
     expect(weekReturn([], '2026-11-29')).toBeNull();
+  });
+});
+
+describe('heldWeekReturn (held-week-1, hand-checked)', () => {
+  const bars = {
+    NVDA: [
+      { date: '2026-11-20', close: 100 },
+      { date: '2026-11-27', close: 110 },
+    ],
+    AAPL: [
+      { date: '2026-11-20', close: 200 },
+      { date: '2026-11-27', close: 190 },
+    ],
+    TSLA: [{ date: '2026-11-27', close: 400 }],
+  };
+  const h = (ticker: string, shares: number, openedOn: string, closedOn: string | null = null) => ({
+    ticker,
+    shares,
+    openedOn,
+    closedOn,
+  });
+  it('values the holdings held all week at both closes', () => {
+    // 10 NVDA 1,000 to 1,100 and 5 AAPL 1,000 to 950: 2,000 to 2,050 is +2.5%.
+    const r = heldWeekReturn(
+      [h('NVDA', 10, '2026-01-02'), h('AAPL', 5, '2026-03-01')],
+      bars,
+      '2026-11-20',
+      '2026-11-27',
+    );
+    expect(r?.pct).toBeCloseTo(0.025, 12);
+    expect(r).toMatchObject({ held: 2, leftOut: 0, missing: [] });
+  });
+  it('leaves out a holding bought or sold inside the week and counts it', () => {
+    const r = heldWeekReturn(
+      [
+        h('NVDA', 10, '2026-01-02'),
+        h('AAPL', 5, '2026-11-24'),
+        h('TSLA', 1, '2026-01-02', '2026-11-25'),
+      ],
+      bars,
+      '2026-11-20',
+      '2026-11-27',
+    );
+    // Only NVDA: 1,000 to 1,100 is +10%.
+    expect(r?.pct).toBeCloseTo(0.1, 12);
+    expect(r).toMatchObject({ held: 1, leftOut: 2 });
+  });
+  it('a missing close makes the week unavailable, never a partial number', () => {
+    const r = heldWeekReturn(
+      [h('NVDA', 10, '2026-01-02'), h('TSLA', 2, '2026-01-02')],
+      bars,
+      '2026-11-20',
+      '2026-11-27',
+    );
+    expect(r).toMatchObject({ pct: null, held: 2, missing: ['TSLA'] });
+  });
+  it('null without a holding in the week; a holding closed before the week is ignored', () => {
+    expect(heldWeekReturn([], bars, '2026-11-20', '2026-11-27')).toBeNull();
+    expect(
+      heldWeekReturn([h('NVDA', 1, '2026-01-02', '2026-11-10')], bars, '2026-11-20', '2026-11-27'),
+    ).toBeNull();
   });
 });

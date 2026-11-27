@@ -112,6 +112,47 @@ for (const [name, minutesAgo, expected] of [
   });
 }
 
+test('the status page says in words whether Supabase Cron is starting the jobs (ADR 0008)', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  let sched: unknown[] = [];
+  const empty = (r: { fulfill: (o: object) => Promise<void> }) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  await page.route('**/rest/v1/source_status**', empty);
+  await page.route('**/rest/v1/market_holidays**', empty);
+  await page.route('**/rest/v1/system_alerts**', empty);
+  await page.route('**/rest/v1/job_runs**', (r) =>
+    r.request().url().includes('job=eq.scheduler')
+      ? r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sched) })
+      : empty(r),
+  );
+  await page.goto('/status');
+  await expect(page.getByText(/Scheduler: no check recorded/)).toBeVisible();
+
+  const at = new Date(Date.now() - 5 * 60_000).toISOString();
+  sched = [
+    {
+      started_at: at,
+      status: 'error',
+      rows_written: 0,
+      error: 'halts.yml: HTTP 403 {"message":"Resource not accessible by personal access token"}',
+    },
+  ];
+  await page.reload();
+  await expect(
+    page.getByText(/Scheduler error, checked 5m \d+s ago: halts\.yml: HTTP 403/),
+  ).toBeVisible();
+
+  sched = [{ started_at: at, status: 'skipped', rows_written: 0, error: 'x' }];
+  await page.reload();
+  await expect(page.getByText(/not in Supabase Vault as github_actions_token/)).toBeVisible();
+
+  sched = [{ started_at: at, status: 'ok', rows_written: 6, error: null }];
+  await page.reload();
+  await expect(page.getByText(/GitHub accepted 6 job starts in the last window/)).toBeVisible();
+});
+
 test('the status page shows alert latency by kind and lets the owner save a weekly export', async ({
   page,
 }) => {

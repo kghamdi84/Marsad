@@ -122,9 +122,11 @@ export type ChecklistKey = (typeof CHECKLIST)[number]['key'] | (typeof CHECKLIST
 
 /** The items of one checklist version, in order. */
 export function checklistItems(
-  version: ChecklistVersion,
+  version: ChecklistVersion | undefined,
 ): readonly { key: ChecklistKey; label: string }[] {
-  return version === 'checklist-1' ? CHECKLIST : CHECKLIST_V2;
+  // Anything but an explicit checklist-2 is checklist-1: rows and stored review inputs from before the version
+  // existed carry no version and answered checklist-1.
+  return version === 'checklist-2' ? CHECKLIST_V2 : CHECKLIST;
 }
 
 /** Every item of the version must be ticked before the ticket can be copied. */
