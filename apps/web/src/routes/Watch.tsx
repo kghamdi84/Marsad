@@ -29,6 +29,7 @@ import {
 import { dayMonth, weekdayDayMonth } from '../lib/dates';
 import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus, type QuoteView } from '../lib/quotes';
+import { TickerLink } from '../components/QuickLook';
 import { t } from '../strings';
 
 const c = t.calendar;
@@ -642,7 +643,9 @@ function MoverRows({ xs, max }: { xs: MoverList; max: number }) {
       <tbody>
         {xs.map((x) => (
           <tr key={x.ticker}>
-            <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">{x.ticker}</td>
+            <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">
+              <TickerLink ticker={x.ticker} />
+            </td>
             <td className="py-1.5 align-middle">
               <span aria-hidden="true" className="block h-2.5 rounded-sm bg-faint/15">
                 <span
@@ -726,7 +729,9 @@ function GapRows({ rows }: { rows: GapRow[] }) {
           const bg = x.gap > 0 ? 'bg-up' : 'bg-down';
           return (
             <tr key={x.tk}>
-              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">{x.tk}</td>
+              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">
+                <TickerLink ticker={x.tk} />
+              </td>
               <td className="py-1.5 align-middle">
                 <span aria-hidden="true" className="relative block h-2.5 rounded-sm bg-faint/15">
                   <span
@@ -855,9 +860,7 @@ function NewsCard({ data }: { data: WatchData }) {
                   </span>
                   {cl.opinionOnly && <span className="text-warn">{t.study.news.opinion}</span>}
                   {first.tickers.slice(0, 4).map((tk) => (
-                    <span key={tk} className="rounded bg-raised px-1.5 py-px font-semibold text-fg">
-                      {tk}
-                    </span>
+                    <TickerLink key={tk} ticker={tk} className="text-xs" />
                   ))}
                   <span>
                     {first.publisher} · {etDate(when)} {dualClock(when, DEFAULT_LOCAL_ZONE).label}
@@ -899,6 +902,8 @@ interface AgendaItem {
   extra: string | null;
   tag: string;
   dot: string;
+  /** The ticker of an earnings item, shown as a link. */
+  ticker?: string;
   strong: boolean;
   late: boolean;
   countdown: string | null;
@@ -941,6 +946,7 @@ function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
       date: e.date,
       order: 24 * 60,
       name: u.earningsName(e.ticker),
+      ticker: e.ticker,
       time: e.overdue ? c.overdue : u.earningsWhen(dayMonth(e.from), dayMonth(e.to)),
       extra: c.basis[e.basis] ?? e.basis,
       tag: u.tagWatchlist,
@@ -972,7 +978,15 @@ function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
                 >
                   <span aria-hidden="true" className={`size-2.5 flex-none rounded-full ${i.dot}`} />
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className={i.strong ? 'font-bold text-white' : 'text-fg'}>{i.name}</span>
+                    <span className={i.strong ? 'font-bold text-white' : 'text-fg'}>
+                      {i.ticker ? (
+                        <>
+                          <TickerLink ticker={i.ticker} /> {u.earningsWord}
+                        </>
+                      ) : (
+                        i.name
+                      )}
+                    </span>
                     <span className={`text-[13px] ${i.late ? 'text-down' : 'text-muted'}`}>
                       {i.time}
                       {i.countdown && <> · {i.countdown}</>}

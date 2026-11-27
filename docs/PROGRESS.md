@@ -2,7 +2,15 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-26 (phone design match against the Claude Design handoff).
+Last updated 2026-11-27 (council batches 1 and 5).
+
+### Council batches 1 and 5: tap any ticker, refresh rules (2026-11-27)
+
+- Ticker link and quick look (`apps/web/src/components/QuickLook.tsx`): a ticker in Watch movers, gaps, news and Agenda earnings, the alert card, Journal holdings and trades, and ETF look-through opens a quick look. It is a sheet on a phone and a side panel from 760 px, so the list stays visible; Escape or the close button shuts it. It shows the last close with its day change and freshness, the Tauric price if chosen (never "Live"), a three-month chart with the 50- and 200-day lines, trend, RSI 14, the 52-week range, distance from the high, volume against 20 days, dollar volume, the estimated days to earnings, why it is here (your holding with stop, targets and thesis, or the latest alert), the two newest filings, and "Open full study".
+- Saved watchlist tickers now get daily bars from the nightly job (valid symbols, at most 40 a night; workflow timeout 30 minutes).
+- Refresh rules (ADR 0042): queries stay fresh 30 minutes instead of 10 seconds; quotes poll once a minute only in the regular session. Pull to refresh still reloads everything.
+- Checks: Prettier, tsc, ESLint, 1,050 unit tests, Playwright 173 passed and 11 skipped (new `quick-look.spec.ts`).
+- Left for later: the nightly per-ticker summary table (one read for Watch and the quick look), "Size a trade" and "Add to watchlist" in the quick look (need watchlist editing, batch 3), ATR %, stretch and relative strength (batch 3), headlines in the quick look (filings only for now), and ticker links in Lab, insiders and the alert list rows (the whole row is already a button).
 
 ### Phone design match against the Claude Design handoff (2026-11-26)
 

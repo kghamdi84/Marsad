@@ -4,6 +4,7 @@ import { ErrorText } from '../ui';
 import { loadEtfHoldings } from '../../lib/etf';
 import type { BarsByTicker, StoredHolding } from '../../lib/journal';
 import { dayMonthYear } from '../../lib/dates';
+import { TickerLink } from '../QuickLook';
 import { t } from '../../strings';
 
 const x = t.journal.etf;
@@ -90,7 +91,7 @@ export function EtfLookThrough({
                         aria-label={x.rowAria(r.ticker, share(r.total), parts)}
                         className="grid min-h-8 grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2.5"
                       >
-                        <span className="font-bold">{r.ticker}</span>
+                        <TickerLink ticker={r.ticker} />
                         <span
                           aria-hidden="true"
                           className="flex h-3.5 overflow-hidden rounded-sm bg-faint/10"

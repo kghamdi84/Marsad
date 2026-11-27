@@ -25,6 +25,7 @@ import {
   type Verdict,
 } from '../lib/alerts';
 import { dayMonth, weekdayDayMonth } from '../lib/dates';
+import { TickerLink } from '../components/QuickLook';
 import { t } from '../strings';
 
 const a = t.alerts;
@@ -293,7 +294,7 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
             >
               {a.priority[row.priority] ?? row.priority}
             </span>
-            {row.ticker && <span className="text-base font-bold text-white">{row.ticker}</span>}
+            {row.ticker && <TickerLink ticker={row.ticker} className="text-base" />}
             <span className="ms-auto rounded bg-bg px-2 py-0.5 font-semibold text-up">
               {a.decision[row.decision] ?? row.decision}
             </span>

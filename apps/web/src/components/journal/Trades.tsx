@@ -20,6 +20,7 @@ import { Button, ErrorText, Field } from '../ui';
 import { num, td, th, thNum, panelTitle } from '../study/Panel';
 import { addScreenshot, addTrade, closeTrade, loadTrades, screenshotUrl } from '../../lib/journal';
 import { cardClass } from '../Card';
+import { TickerLink } from '../QuickLook';
 import { t } from '../../strings';
 
 const x = t.journal.trades;
@@ -70,7 +71,8 @@ function TradeCard({ tr }: { tr: JournalTrade }) {
   return (
     <li className="flex flex-col gap-2 rounded-sm border border-line p-3 text-sm">
       <h3 className="font-semibold">
-        {tr.ticker} {tr.side === 'short' ? `(${x.short})` : ''} {tr.setup && `· ${tr.setup}`}
+        <TickerLink ticker={tr.ticker} /> {tr.side === 'short' ? `(${x.short})` : ''}{' '}
+        {tr.setup && `· ${tr.setup}`}
       </h3>
       <p>{x.entered(tr.entryDate, money(tr.entryPrice), tr.shares)}</p>
       {tr.exitDate !== null && tr.exitPrice !== null ? (

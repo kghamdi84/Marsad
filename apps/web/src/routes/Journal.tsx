@@ -42,6 +42,7 @@ import {
 import { SkeletonCards, Tabs, cardClass, useRemembered, useWide } from '../components/Card';
 import { Sheet } from '../components/Sheet';
 import { dayMonth } from '../lib/dates';
+import { TickerLink } from '../components/QuickLook';
 import { t } from '../strings';
 
 const j = t.journal;
@@ -406,7 +407,7 @@ function HoldingCard({ h, all }: { h: StoredHolding; all: BarsByTicker }) {
     >
       <div className="flex items-start justify-between gap-2.5">
         <span className="flex flex-col gap-0.5">
-          <span className="text-[1.1875rem] font-bold text-white">{h.ticker}</span>
+          <TickerLink ticker={h.ticker} className="self-start text-[1.1875rem]" />
           <span className="text-[0.8125rem] text-muted tabular-nums">
             {ui.sharesCost(h.shares, money(h.costBasis))}
           </span>
