@@ -1,5 +1,8 @@
 import {
   CORE_ETFS,
+  breadthReading,
+  type BreadthDay,
+  type TopicDay,
   STARTING_TICKERS,
   type DailyBar,
   type EarningsEstimate,
@@ -9,6 +12,7 @@ import {
   type Obs,
 } from '@marsad/core';
 import { supabase } from './supabase';
+import type { FilingRow } from './study';
 
 function client() {
   if (!supabase) throw new Error('not configured');
@@ -270,4 +274,141 @@ export async function loadBriefs(): Promise<StoredBrief[]> {
     delivery: (b['delivery'] ?? {}) as Record<string, string>,
     createdAt: String(b['created_at']),
   }));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Marsad v2: the morning decision cockpit and the company names, filings and topic norms behind the news ranking.
+
+export interface CockpitData {
+  /** The newest regime days, oldest first (enough for the current run in most markets). */
+  regime: { date: string; label: string; ruleVersion: string; vix: number | null }[];
+  /** The newest breadth day: percent of the universe above its 50-day average. */
+  breadth: { date: string; pctAbove50: number | null } | null;
+  /** Stored topic days for the topic norm (`topics-1`), oldest first. */
+  topics: TopicDay[];
+  /** NYSE early closes and closures from today on. */
+  holidays: { date: string; name: string; status: string; closeAt: string | null }[];
+}
+
+/** Rows the regime run can span; a longer run is shown as "at least" this many sessions. */
+export const REGIME_DAYS = 260;
+
+/** The cockpit's market inputs. Every read goes through row-level security. */
+export async function loadCockpit(today: string): Promise<CockpitData> {
+  const [regR, brR, topR, holR] = await Promise.all([
+    client()
+      .from('regime_daily')
+      .select('date, label, rule_version, inputs')
+      .order('date', { ascending: false })
+      .limit(REGIME_DAYS),
+    client().from('breadth_daily').select('*').order('date', { ascending: false }).limit(1),
+    client().from('news_topic_days').select('*').order('date', { ascending: false }).limit(40),
+    client()
+      .from('market_holidays')
+      .select('date, name, status, close_at')
+      .eq('exchange', 'NYSE')
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(5),
+  ]);
+  if (regR.error) throw new Error(`regime_daily: ${regR.error.message}`);
+  if (brR.error) throw new Error(`breadth_daily: ${brR.error.message}`);
+  if (topR.error) throw new Error(`news_topic_days: ${topR.error.message}`);
+  if (holR.error) throw new Error(`market_holidays: ${holR.error.message}`);
+  const b = (brR.data ?? [])[0] as Record<string, unknown> | undefined;
+  return {
+    regime: ((regR.data ?? []) as Record<string, unknown>[])
+      .map((r) => {
+        const inputs = (r['inputs'] ?? {}) as { vix?: number | null };
+        return {
+          date: String(r['date']),
+          label: String(r['label']),
+          ruleVersion: String(r['rule_version']),
+          vix: typeof inputs.vix === 'number' ? inputs.vix : null,
+        };
+      })
+      .reverse(),
+    breadth: b
+      ? {
+          date: String(b['date']),
+          pctAbove50: breadthReading(b as unknown as BreadthDay).pctAbove50,
+        }
+      : null,
+    topics: ((topR.data ?? []) as Record<string, unknown>[])
+      .map((r) => ({
+        date: String(r['date']),
+        version: String(r['version']),
+        total: num(r['total']),
+        counts: r['counts'] as TopicDay['counts'],
+        samples: r['samples'] as TopicDay['samples'],
+      }))
+      .reverse(),
+    holidays: ((holR.data ?? []) as Record<string, unknown>[]).map((h) => ({
+      date: String(h['date']),
+      name: String(h['name']),
+      status: String(h['status']),
+      closeAt: h['close_at'] ? String(h['close_at']) : null,
+    })),
+  };
+}
+
+export interface StoredFiling extends FilingRow {
+  cik: string;
+  /** Tickers the issuer trades under, from the watchlist and holdings. */
+  tickers: string[];
+}
+
+export interface CompanyData {
+  /** Company name by ticker (from `instruments`); missing when not stored. */
+  names: Record<string, string>;
+  /** 8-K, 10-Q and 10-K filings of these companies over the last 10 days, newest first. */
+  filings: StoredFiling[];
+}
+
+/** Forms shown as news: current reports and periodic reports, with their amendments. */
+export const NEWS_FORMS = ['8-K', '8-K/A', '10-Q', '10-Q/A', '10-K', '10-K/A'] as const;
+
+/** Company names and recent filings for the watchlist and holdings. Filings are owner-only (RLS). */
+export async function loadCompanies(
+  tickers: readonly string[],
+  since: string,
+): Promise<CompanyData> {
+  if (tickers.length === 0) return { names: {}, filings: [] };
+  const inst = await client()
+    .from('instruments')
+    .select('ticker, cik, name')
+    .in('ticker', [...tickers])
+    .limit(tickers.length * 2);
+  if (inst.error) throw new Error(`instruments: ${inst.error.message}`);
+  const names: Record<string, string> = {};
+  const byCik: Record<string, string[]> = {};
+  for (const r of (inst.data ?? []) as Record<string, unknown>[]) {
+    const tk = String(r['ticker']);
+    if (r['name']) names[tk] = String(r['name']);
+    if (r['cik']) (byCik[String(r['cik'])] ??= []).push(tk);
+  }
+  const ciks = Object.keys(byCik);
+  if (ciks.length === 0) return { names, filings: [] };
+  const f = await client()
+    .from('filings')
+    .select('accession, cik, form, filing_date, accepted_at, primary_document, items')
+    .in('cik', ciks)
+    .in('form', [...NEWS_FORMS])
+    .gte('filing_date', since)
+    .order('filing_date', { ascending: false })
+    .limit(60);
+  if (f.error) throw new Error(`filings: ${f.error.message}`);
+  return {
+    names,
+    filings: ((f.data ?? []) as Record<string, unknown>[]).map((r) => ({
+      accession: String(r['accession']),
+      cik: String(r['cik']),
+      form: String(r['form']),
+      filingDate: String(r['filing_date']),
+      acceptedAt: r['accepted_at'] ? String(r['accepted_at']) : null,
+      primaryDocument: r['primary_document'] ? String(r['primary_document']) : null,
+      items: Array.isArray(r['items']) ? (r['items'] as string[]) : [],
+      tickers: byCik[String(r['cik'])] ?? [],
+    })),
+  };
 }
