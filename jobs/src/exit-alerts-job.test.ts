@@ -53,6 +53,30 @@ describe('runExitAlertsJob', () => {
     expect(rows[0]?.reasons).toContain('quiet hours: to the digest');
   });
 
+  it('uses the quiet hours and push cap saved in Settings (alert_preferences) instead of the defaults', async () => {
+    const stored = async (prefs: {
+      quietStart: string;
+      quietEnd: string;
+      dailyPushCap: number;
+    }) => {
+      const { store, log } = fakeStore({
+        ...seed,
+        alertPreferences: prefs,
+        holdings: [holding(1, 'RKLB', 22)],
+        bars: { RKLB: [bar('2026-11-23', 22.4), bar('2026-11-24', 21.8)] },
+      });
+      await runExitAlertsJob({ store, now: () => NOW });
+      return log.storedAlerts[0]?.[0];
+    };
+    // The same run that is held by the default 23:00 to 07:00 is pushed when quiet hours are 12:00 to 13:00.
+    const outside = await stored({ quietStart: '12:00', quietEnd: '13:00', dailyPushCap: 8 });
+    expect(outside?.reasons).not.toContain('quiet hours: to the digest');
+    // With a saved window that covers the run, it is held again.
+    const inside = await stored({ quietStart: '00:00', quietEnd: '23:59', dailyPushCap: 8 });
+    expect(inside?.decision).toBe('digest');
+    expect(inside?.reasons).toContain('quiet hours: to the digest');
+  });
+
   it('an event stored by an earlier run is not stored again', async () => {
     const { store, log } = fakeStore({
       ...seed,

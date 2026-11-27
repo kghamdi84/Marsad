@@ -55,3 +55,45 @@ export async function savePreferences(p: Preferences): Promise<void> {
   );
   if (r.error) throw new Error(`user_settings: ${r.error.message}`);
 }
+
+export interface AlertPreferences {
+  /** Local "HH:MM" in the alert time zone (Asia/Riyadh); the window may cross midnight. */
+  quietStart: string;
+  quietEnd: string;
+  dailyPushCap: number;
+  /** False while nothing is saved and the pipeline uses its defaults. */
+  saved: boolean;
+}
+
+/** The pipeline defaults (core DEFAULT_ALERT_SETTINGS): 23:00 to 07:00 Riyadh and 8 pushes a day. */
+export const ALERT_DEFAULTS = { quietStart: '23:00', quietEnd: '07:00', dailyPushCap: 8 } as const;
+
+/** Quiet hours and the daily push cap (alert_preferences, owner only); the defaults when none are saved. */
+export async function loadAlertPreferences(): Promise<AlertPreferences> {
+  const r = await client()
+    .from('alert_preferences')
+    .select('quiet_start, quiet_end, daily_push_cap')
+    .maybeSingle();
+  if (r.error) throw new Error(`alert_preferences: ${r.error.message}`);
+  const x = (r.data ?? null) as Record<string, unknown> | null;
+  if (!x) return { ...ALERT_DEFAULTS, saved: false };
+  return {
+    quietStart: String(x['quiet_start']),
+    quietEnd: String(x['quiet_end']),
+    dailyPushCap: Number(x['daily_push_cap']),
+    saved: true,
+  };
+}
+
+export async function saveAlertPreferences(p: Omit<AlertPreferences, 'saved'>): Promise<void> {
+  const r = await client().from('alert_preferences').upsert(
+    {
+      quiet_start: p.quietStart,
+      quiet_end: p.quietEnd,
+      daily_push_cap: p.dailyPushCap,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'owner_id' },
+  );
+  if (r.error) throw new Error(`alert_preferences: ${r.error.message}`);
+}

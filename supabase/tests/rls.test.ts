@@ -652,6 +652,24 @@ describe('system tables', () => {
     );
   });
 
+  it('alert preferences: only the app owner writes quiet hours and the push cap, with valid values', async () => {
+    const ins = (start = '22:00', cap = 5) =>
+      `insert into public.alert_preferences (quiet_start, quiet_end, daily_push_cap) values ('${start}', '06:30', ${cap})`;
+    await as(owner2, async (tx) => {
+      await tx.query(ins());
+      expect(await count(tx, 'public.alert_preferences')).toBe(1);
+    });
+    // A member (signed in, not the app owner) cannot write one, so the jobs read at most one row.
+    await expect(as(other2, (tx) => tx.query(ins()))).rejects.toThrow(/row-level security/);
+    await as(other2, async (tx) => expect(await count(tx, 'public.alert_preferences')).toBe(0));
+    await expect(as(owner2, (tx) => tx.query(ins('25:00')))).rejects.toThrow(/check constraint/);
+    await expect(as(owner2, (tx) => tx.query(ins('22:00', 0)))).rejects.toThrow(/check constraint/);
+    await expect(as(owner1, (tx) => tx.query(ins()))).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.alert_preferences'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it('push subscriptions belong to the app owner and only point at known push services', async () => {
     const key = 'B'.padEnd(87, 'A');
     const ins = (endpoint: string, p256dh = key) =>

@@ -68,7 +68,7 @@ test('quick look: a ticker opens a side panel with its facts, why it is here and
   // Every price keeps its freshness word next to it (council batch 2): these synthetic bars end in July.
   await expect(panel.getByText(/^(End of day|Stale) · \d{2} [A-Z][a-z]{2}$/)).toBeVisible();
   await expect(panel).toContainText('Volume vs 20-day');
-  await expect(panel).toContainText('1.0x');
+  await expect(panel).toContainText('1.0\u00D7');
   await expect(panel).toContainText('No estimate stored');
   await expect(panel).toContainText('You hold 100 shares; stop 22.00, targets 27.00.');
   await expect(panel.getByRole('link', { name: 'Open full study' })).toHaveAttribute(

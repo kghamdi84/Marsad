@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHECKLIST,
+  CHECKLIST_V2,
   checklistComplete,
   exitSignals,
   parseHoldingsCsv,
@@ -85,11 +86,19 @@ describe('Sahm ticket', () => {
 });
 
 describe('checklist', () => {
-  it('needs every item ticked', () => {
+  it('needs every item ticked (checklist-1)', () => {
     const all = Object.fromEntries(CHECKLIST.map((c) => [c.key, true]));
-    expect(checklistComplete(all)).toBe(true);
-    expect(checklistComplete({ ...all, bearCaseRead: false })).toBe(false);
-    expect(checklistComplete({})).toBe(false);
+    expect(checklistComplete(all, 'checklist-1')).toBe(true);
+    expect(checklistComplete({ ...all, bearCaseRead: false }, 'checklist-1')).toBe(false);
+    expect(checklistComplete({}, 'checklist-1')).toBe(false);
+  });
+  it('checklist-2 is the default; checklist-1 ticks do not complete it', () => {
+    const v1 = Object.fromEntries(CHECKLIST.map((c) => [c.key, true]));
+    const v2 = Object.fromEntries(CHECKLIST_V2.map((c) => [c.key, true]));
+    expect(checklistComplete(v2)).toBe(true);
+    expect(checklistComplete(v1)).toBe(false);
+    expect(checklistComplete(v1, 'checklist-1')).toBe(true);
+    expect(checklistComplete({ ...v2, manualInSahm: false })).toBe(false);
   });
 });
 

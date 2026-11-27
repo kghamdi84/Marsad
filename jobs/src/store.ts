@@ -150,6 +150,12 @@ export interface Store {
   /** Dedupe keys and times of alerts created on or after `since`, and how many were pushed. */
   getRecentAlerts(since: string): Promise<{ key: string; at: string; decision: string }[]>;
   insertAlerts(rows: readonly StoredAlert[]): Promise<number>;
+  /** The owner's quiet hours and daily push cap (alert_preferences), or null when none are saved. */
+  getAlertPreferences(): Promise<{
+    quietStart: string;
+    quietEnd: string;
+    dailyPushCap: number;
+  } | null>;
   /** Full stored daily bars of one ticker, oldest first. */
   getDailyBars(ticker: string): Promise<DailyBar[]>;
   /** When the newest stored bar of a ticker was fetched, or null without bars. */
@@ -1546,6 +1552,21 @@ export function supabaseStore(url: string, secretKey: string): Store {
       const { data, error } = await db.from('watchlist_items').select('ticker').limit(1000);
       if (error) throw new Error(`watchlist_items read failed: ${error.message}`);
       return [...new Set((data ?? []).map((r) => String(r.ticker)))];
+    },
+    async getAlertPreferences() {
+      const { data, error } = await db
+        .from('alert_preferences')
+        .select('quiet_start, quiet_end, daily_push_cap')
+        .limit(2);
+      if (error) throw new Error(`alert_preferences read failed: ${error.message}`);
+      // Only the app owner can write a row (RLS), so more than one means something is wrong: use the defaults.
+      if (!data || data.length !== 1) return null;
+      const r = data[0] as Record<string, unknown>;
+      return {
+        quietStart: String(r['quiet_start']),
+        quietEnd: String(r['quiet_end']),
+        dailyPushCap: Number(r['daily_push_cap']),
+      };
     },
     async getRecentAlerts(since) {
       const { data, error } = await db

@@ -351,7 +351,7 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await expect(quarters.getByRole('row', { name: /^2026-01-25/ })).toContainText('$68.13B');
   // Trailing four quarters, and price to earnings: last close $300.00 over trailing EPS of $7.91.
   await expect(panel.getByText('$302.97B').first()).toBeVisible();
-  await expect(panel.getByText('37.9x')).toBeVisible();
+  await expect(panel.getByText('37.9\u00D7')).toBeVisible();
   await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
   await expect(panel.getByText('$320.27B')).toBeVisible();
   // Council batch 4: free cash flow needs capital spending, which this recorded file only has up to 2020, so it is

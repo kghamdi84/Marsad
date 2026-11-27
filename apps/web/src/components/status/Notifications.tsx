@@ -15,6 +15,11 @@ import {
   type PushState,
 } from '../../lib/push';
 import { cardClass } from '../Card';
+import {
+  loadAlertPreferences,
+  saveAlertPreferences,
+  type AlertPreferences,
+} from '../../lib/settings';
 import { t } from '../../strings';
 
 const x = t.status.push;
@@ -277,8 +282,8 @@ function Row({
 }
 
 /**
- * The Notifications card (Marsad v2 Settings): web push devices with their state, quiet hours and the daily cap
- * (not built yet, said so), and the email digest schedule. Removing a device happens here.
+ * The Notifications card (Marsad v2 Settings): web push devices with their state, quiet hours and the daily push
+ * cap (saved in alert_preferences and used by the alert pipeline), and the email digest schedule.
  */
 export function NotificationsCard() {
   const q = useQuery({ queryKey: ['push'], queryFn: loadPushState });
@@ -297,11 +302,122 @@ export function NotificationsCard() {
           note={devices.length ? devices.map(deviceLine).join(' \u00B7 ') : n.noDevices}
         />
         {q.data && <Devices state={q.data} />}
-        <Row k={n.quietHours} v={n.notYet} tone="text-ink3" note={n.quietNote} />
-        <Row k={n.dailyCap} v={n.notYet} tone="text-ink3" note={n.dailyCapNote} />
+        <QuietAndCap />
         <Row k={n.digest} v={n.digestValue} note={n.digestNote} />
       </div>
     </section>
+  );
+}
+
+const HHMM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+
+/**
+ * Quiet hours and the daily push cap. The alert pipeline holds non-critical alerts to the digest inside the
+ * window and past the cap; critical alerts are pushed anyway. Times are in Riyadh, the pipeline's zone.
+ */
+function QuietAndCap() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['alert-preferences'], queryFn: loadAlertPreferences });
+  if (q.isError) return <ErrorText message={q.error.message} />;
+  if (!q.data) return <Row k={n.quietHours} v={t.loading} />;
+  return (
+    <QuietForm
+      initial={q.data}
+      saved={q.data.saved}
+      onSaved={() => void qc.invalidateQueries({ queryKey: ['alert-preferences'] })}
+    />
+  );
+}
+
+function QuietForm({
+  initial,
+  saved,
+  onSaved,
+}: {
+  /** The values when the card first loaded; the form keeps its own state after that. */
+  initial: AlertPreferences;
+  saved: boolean;
+  onSaved: () => void;
+}) {
+  const [start, setStart] = useState(initial.quietStart);
+  const [end, setEnd] = useState(initial.quietEnd);
+  const [cap, setCap] = useState(String(initial.dailyPushCap));
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: saveAlertPreferences,
+    onSuccess: () => {
+      setMsg(n.prefsSaved);
+      onSaved();
+    },
+  });
+  const capN = Number(cap);
+  const ok =
+    HHMM.test(start) && HHMM.test(end) && Number.isInteger(capN) && capN >= 1 && capN <= 50;
+  const field = 'min-h-11 rounded-lg border border-line-strong bg-elev px-3 text-sm text-ink';
+  return (
+    <form
+      aria-label={n.prefsForm}
+      noValidate
+      className="flex flex-col gap-2 border-t border-line py-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setMsg(null);
+        if (!ok) {
+          setMsg(n.prefsInvalid);
+          return;
+        }
+        save.mutate({ quietStart: start, quietEnd: end, dailyPushCap: capN });
+      }}
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-sm text-ink2">
+          {n.quietFrom}
+          <input
+            type="time"
+            required
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            className={field}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-ink2">
+          {n.quietTo}
+          <input
+            type="time"
+            required
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            className={field}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-ink2">
+          {n.dailyCap}
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={50}
+            step={1}
+            required
+            value={cap}
+            onChange={(e) => setCap(e.target.value)}
+            className={`${field} w-24`}
+          />
+        </label>
+        <Button type="submit" disabled={save.isPending}>
+          {n.prefsSave}
+        </Button>
+      </div>
+      <p className="text-xs text-ink3">
+        {saved ? n.prefsNote : `${n.prefsDefaults} ${n.prefsNote}`}
+      </p>
+      {save.isError && <ErrorText message={save.error.message} />}
+      {msg && (
+        <p role="status" className="text-sm text-ink2">
+          {msg}
+        </p>
+      )}
+    </form>
   );
 }
 

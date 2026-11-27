@@ -99,7 +99,7 @@ export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar
               <div>
                 <dt className="text-muted">{f.pe}</dt>
                 <dd className="text-lg font-medium">
-                  {pe === null ? f.peNone : `${pe.toFixed(1)}x`}
+                  {pe === null ? f.peNone : `${pe.toFixed(1)}\u00D7`}
                 </dd>
                 {pe !== null && price && (
                   <dd className="text-xs text-muted">

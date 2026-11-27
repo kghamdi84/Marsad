@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  CHECKLIST,
+  CHECKLIST_V2,
   checklistComplete,
   positionSize,
   rewardRisk,
@@ -139,7 +139,7 @@ export function Sizer() {
       <div className="flex min-w-0 flex-col gap-2.5">
         <h3 className="text-base font-semibold text-ink">{s.checklistTitle}</h3>
         <div role="group" aria-label={s.checksLabel} className="flex flex-col gap-2.5">
-          {CHECKLIST.map((c) => {
+          {CHECKLIST_V2.map((c) => {
             const on = ticked[c.key] === true;
             const [label, sub] = s.checks[c.key] ?? [c.label, ''];
             return (

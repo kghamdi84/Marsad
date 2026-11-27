@@ -135,8 +135,40 @@ test('the device list says which devices work, which fail and which the push ser
   await expect(
     section.getByText(/iPad active \u00B7 iPhone failing \(500: server error\)/),
   ).toBeVisible();
-  // Quiet hours and a daily cap are not built yet, and the card says so.
-  await expect(section.getByText('Not available yet')).toHaveCount(2);
+  // Quiet hours and the daily push cap: the pipeline defaults until saved, then the saved values.
+  const prefsSent: unknown[] = [];
+  await page.route('**/rest/v1/alert_preferences**', (r) => {
+    if (r.request().method() === 'POST') {
+      prefsSent.push(r.request().postDataJSON());
+      return r.fulfill({ status: 201, contentType: 'application/json', body: '[]' });
+    }
+    // After a save the row comes back as saved.
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(prefsSent.slice(-1)),
+    });
+  });
+  const prefs = section.getByRole('form', { name: 'Quiet hours and daily push cap' });
+  await expect(
+    prefs.getByText(/Using the defaults: 23:00 to 07:00 and 8 pushes a day/),
+  ).toBeVisible();
+  await expect(prefs.getByLabel('Quiet from (Riyadh)')).toHaveValue('23:00');
+  await expect(prefs.getByLabel('Daily push cap')).toHaveValue('8');
+  await prefs.getByLabel('Quiet from (Riyadh)').fill('22:30');
+  await prefs.getByLabel('Daily push cap').fill('5');
+  await prefs.getByRole('button', { name: 'Save' }).click();
+  await expect
+    .poll(() => prefsSent.at(-1))
+    .toMatchObject({ quiet_start: '22:30', quiet_end: '07:00', daily_push_cap: 5 });
+  await expect(prefs.getByRole('status')).toHaveText('Saved. The next alert run uses these.');
+  await expect(prefs.getByLabel('Daily push cap')).toHaveValue('5');
+  await expect(prefs.getByText(/Using the defaults/)).toHaveCount(0);
+  // A cap outside 1 to 50 is refused before anything is sent.
+  await prefs.getByLabel('Daily push cap').fill('0');
+  await prefs.getByRole('button', { name: 'Save' }).click();
+  await expect(prefs.getByRole('status')).toHaveText('Use times as HH:MM and a cap from 1 to 50.');
+  expect(prefsSent).toHaveLength(1);
 
   // Replacing keys asks first and says what it costs.
   await setup.getByRole('button', { name: 'Replace keys' }).click();
