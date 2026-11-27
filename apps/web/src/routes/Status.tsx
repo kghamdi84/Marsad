@@ -19,7 +19,7 @@ import {
   type SystemAlertRow,
 } from '../lib/status';
 import { useDisplay } from '../lib/display';
-import { Card, ScrollX } from '../components/Card';
+import { Card, ScrollX, Segmented, useRemembered } from '../components/Card';
 import { Num, PageTitle, Pill, type Tone } from '../components/ui/kit';
 import { zoneName } from '../components/Clock';
 import { t } from '../strings';
@@ -90,48 +90,23 @@ function sourceViews(data: StatusData) {
   });
 }
 
-/** "N of M sources healthy" (healthy: live, or quiet by design); stale or unavailable sources turn it yellow. */
-function HealthyPill({ data }: { data: StatusData }) {
-  const views = sourceViews(data).filter((x) => x.view !== null);
-  if (views.length === 0) return null;
-  const healthy = views.filter((x) => x.fresh === 'live' || x.fresh === 'delayed').length;
-  return (
-    <Pill tone={healthy === views.length ? 'up' : 'warn'} className="px-3! py-1! font-semibold">
-      {s.hero.title(healthy, views.length)}
-    </Pill>
-  );
-}
+const needsLook = (f: Fresh) => f === 'stale' || f === 'unavailable';
 
-/** When the page checked, which sources are stale and whether the heartbeat that watches them is running. */
-function CheckLine({ data }: { data: StatusData }) {
-  const { zone } = useDisplay();
-  const hb = heartbeatText(data.heartbeatAt, data.checkedAt);
-  const checked = new Date(data.checkedAt);
-  const stale = sourceViews(data).filter((x) => x.fresh === 'stale');
-  return (
-    <div className="flex flex-col gap-0.5 text-[13px]">
-      <span className="text-ink3">
-        <Num>{v.checked(hm(checked, 'America/New_York'), hm(checked, zone), zoneName(zone))}</Num>
-      </span>
-      {stale.length > 0 && (
-        <span className="text-warn">{s.hero.stale(stale.map((x) => x.row.display_name))}</span>
-      )}
-      <span role="status" className={hb.warn ? 'text-warn' : 'text-ink3'}>
-        {hb.text}
-      </span>
-      <SchedulerLine data={data} />
-    </div>
-  );
+/** The state note under a source: why it is not live (the policy's label), then the adapter's own note. */
+function sourceNote({ row, view, fresh }: ReturnType<typeof sourceViews>[number]): string {
+  return [fresh === 'live' ? null : view ? view.label : row.state.toUpperCase(), row.note]
+    .filter(Boolean)
+    .join('. ');
 }
 
 /**
  * The Supabase Cron dispatcher (ADR 0008) in one line: whether GitHub accepted the last window's starts, or why not
  * (no token, GitHub's refusal, no reply). Silence is said too: no check yet means the cron jobs are not running.
  */
-function SchedulerLine({ data }: { data: StatusData }) {
+function schedulerText(data: StatusData): { text: string; warn: boolean } {
   const x = data.scheduler;
   const sc = s.scheduler;
-  if (!x) return <span className="text-warn">{sc.none}</span>;
+  if (!x) return { text: sc.none, warn: true };
   const age = formatAge(Math.max(0, (Date.parse(data.checkedAt) - Date.parse(x.at)) / 1000));
   const late = Date.parse(data.checkedAt) - Date.parse(x.at) > 45 * 60_000;
   const text =
@@ -140,57 +115,211 @@ function SchedulerLine({ data }: { data: StatusData }) {
       : x.status === 'skipped'
         ? sc.skipped(age)
         : sc.error(x.error ?? sc.unknown, age);
+  return { text: late ? `${text} ${sc.late}` : text, warn: x.status !== 'ok' || late };
+}
+
+/** Plan costs and AI spend against the saved caps; shared by the summary row and the costs card. */
+function useCosts() {
+  const q = useQuery({ queryKey: ['costs'], queryFn: loadCosts });
+  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  const now = new Date();
+  const caps =
+    prefs.data?.ai.dailyUsd != null && prefs.data.ai.monthlyUsd != null
+      ? { dailyUsd: prefs.data.ai.dailyUsd, monthlyUsd: prefs.data.ai.monthlyUsd }
+      : null;
+  return {
+    q,
+    ai: q.data ? aiSpend(q.data.usage, now, caps) : null,
+    gh: q.data ? actionsMinutes(q.data.runs, now) : null,
+    total: PLAN_COSTS.reduce((n, c) => n + c.usdPerMonth, 0),
+  };
+}
+
+const money = (n: number) => toFixedHalfUp(n, 2);
+
+/** One summary row (the squeezed Watch pattern): the label on the start side, the answer and its context after. */
+function SumRow({ k, onGo, children }: { k: string; onGo: () => void; children: ReactNode }) {
   return (
-    <span className={x.status === 'ok' && !late ? 'text-ink3' : 'text-warn'}>
-      {late ? `${text} ${sc.late}` : text}
-    </span>
+    <button
+      type="button"
+      onClick={onGo}
+      className="grid min-h-11 min-w-0 grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-3 rounded-lg px-2 py-2 text-start text-ink hover:bg-elev"
+    >
+      <span className="pt-0.5 text-xs text-ink3">{k}</span>
+      <span className="flex min-w-0 flex-col items-start gap-0.5 text-[13px]">{children}</span>
+    </button>
   );
 }
 
-function Sources({ data }: { data: StatusData }) {
-  const d = s.design;
+/**
+ * What matters now, in five rows: how many sources are healthy and which need a look by name, the heartbeat that
+ * watches them, the scheduler that starts the jobs, this month's cost and the latest system alert. Each row
+ * scrolls to its detail (switching the area below when it lives there).
+ */
+function Summary({ data, go }: { data: StatusData; go: (target: 'sources' | DetailKey) => void }) {
+  const { zone } = useDisplay();
+  const x = s.squeeze;
+  const views = sourceViews(data);
+  const judged = views.filter((y) => y.view !== null);
+  const healthy = judged.filter((y) => !needsLook(y.fresh)).length;
+  const look = views.filter((y) => needsLook(y.fresh));
+  const hb = heartbeatText(data.heartbeatAt, data.checkedAt);
+  const sched = schedulerText(data);
+  const { q, ai, total } = useCosts();
+  const checked = new Date(data.checkedAt);
+  const latest = data.alerts[0];
   return (
-    <section aria-labelledby="src-h" className="flex flex-col gap-2">
-      <h2 id="src-h" className="sr-only">
-        {v.sourcesHeading}
-      </h2>
-      <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,250px),1fr))] gap-3">
-        {sourceViews(data).map(({ row, view, fresh }) => {
-          const note = [
-            fresh === 'live' ? null : view ? view.label : row.state.toUpperCase(),
-            row.note,
-          ]
-            .filter(Boolean)
-            .join('. ');
-          return (
-            <li
-              key={row.source}
-              className={`flex min-w-0 flex-col gap-2 rounded-xl border bg-surface p-3.5 ${FRESH[fresh].border}`}
-            >
-              <span className="flex items-start justify-between gap-2">
-                <span className="text-sm font-semibold text-ink">{row.display_name}</span>
-                <Pill tone={FRESH[fresh].tone} className="font-semibold">
-                  {d.fresh[fresh]}
-                </Pill>
-              </span>
-              <span className="flex items-start justify-between gap-2 text-xs text-ink2">
-                <span>
-                  <span className="sr-only">{d.last} </span>
-                  {v.tierWhen(row.plan_tier, etWhen(row.last_message_at))}
+    <Card
+      id="status-now"
+      title={x.title}
+      subtitle={
+        <Num>{v.checked(hm(checked, 'America/New_York'), hm(checked, zone), zoneName(zone))}</Num>
+      }
+    >
+      <div className="-mx-2 grid grid-cols-1 gap-x-6 tablet:grid-cols-2">
+        <SumRow k={x.sources} onGo={() => go('sources')}>
+          {judged.length > 0 && (
+            <Pill tone={healthy === judged.length ? 'up' : 'warn'} className="font-semibold">
+              {s.hero.title(healthy, judged.length)}
+            </Pill>
+          )}
+          <span className={look.length ? 'text-warn' : 'text-ink3'}>
+            {look.length
+              ? x.needLook(
+                  look.map((y) => x.lookPart(y.row.display_name, x.lookState[y.fresh] ?? y.fresh)),
+                )
+              : x.allLooked}
+          </span>
+        </SumRow>
+        <SumRow k={x.heartbeat} onGo={() => go('jobs')}>
+          <span className={hb.warn ? 'text-warn' : 'text-ink2'}>{hb.text}</span>
+        </SumRow>
+        <SumRow k={x.scheduler} onGo={() => go('jobs')}>
+          <span className={sched.warn ? 'text-warn' : 'text-ink2'}>{sched.text}</span>
+        </SumRow>
+        <SumRow k={x.month} onGo={() => go('costs')}>
+          <span className={ai && !ai.budget ? 'text-warn' : 'text-ink2'}>
+            {ai
+              ? x.monthValue(money(total), ai.budget ? x.aiSoFar(money(ai.monthUsd)) : x.aiOff)
+              : q.isError
+                ? v.unavailable
+                : t.loading}
+          </span>
+        </SumRow>
+        <SumRow k={x.alerts} onGo={() => go('alerts')}>
+          <span className="text-ink2">
+            {latest ? (
+              <Num>
+                {x.alertsLatest(
+                  data.alerts.length,
+                  s.eventsDesign[latest.event] ?? latest.event,
+                  dual(latest.created_at, zone),
+                )}
+              </Num>
+            ) : (
+              x.alertsNone
+            )}
+          </span>
+        </SumRow>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Every source: the ones that need a look (stale or unavailable) as full cards with their note, then each healthy
+ * source as one short row whose tier, latency, both clocks and note are one tap away.
+ */
+function Sources({ data }: { data: StatusData }) {
+  const { zone } = useDisplay();
+  const d = s.design;
+  const x = s.squeeze;
+  const views = sourceViews(data);
+  const look = views.filter((y) => needsLook(y.fresh));
+  const ok = views.filter((y) => !needsLook(y.fresh));
+  const latency = (ms: number | null) => (ms === null ? v.latencyNone : v.latencyMs(thousands(ms)));
+  return (
+    <Card
+      id="src-h"
+      title={v.sourcesHeading}
+      subtitle={look.length ? x.sourcesLook(look.length, views.length) : x.sourcesOk(views.length)}
+    >
+      {look.length > 0 && (
+        <ul
+          aria-label={x.lookList}
+          className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,250px),1fr))] gap-3"
+        >
+          {look.map((y) => {
+            const { row, fresh } = y;
+            const note = sourceNote(y);
+            return (
+              <li
+                key={row.source}
+                className={`flex min-w-0 flex-col gap-2 rounded-xl border bg-surface p-3.5 ${FRESH[fresh].border}`}
+              >
+                <span className="flex items-start justify-between gap-2">
+                  <span className="text-sm font-semibold text-ink">{row.display_name}</span>
+                  <Pill tone={FRESH[fresh].tone} className="font-semibold">
+                    {d.fresh[fresh]}
+                  </Pill>
                 </span>
-                <span className="flex-none tabular-nums">
-                  <span className="sr-only">{d.latency} </span>
-                  {row.last_latency_ms === null
-                    ? v.latencyNone
-                    : v.latencyMs(thousands(row.last_latency_ms))}
+                <span className="flex items-start justify-between gap-2 text-xs text-ink2">
+                  <span>
+                    <span className="sr-only">{d.last} </span>
+                    {v.tierWhen(row.plan_tier, etWhen(row.last_message_at))}
+                  </span>
+                  <span className="flex-none tabular-nums">
+                    <span className="sr-only">{d.latency} </span>
+                    {latency(row.last_latency_ms)}
+                  </span>
                 </span>
-              </span>
-              {note && <span className={`text-xs ${FRESH[fresh].note}`}>{note}</span>}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+                {note && <span className={`text-xs ${FRESH[fresh].note}`}>{note}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {ok.length > 0 && (
+        <ul aria-label={x.okList} className="-mx-2 grid grid-cols-1 gap-x-6 tablet:grid-cols-2">
+          {ok.map((y) => {
+            const { row, fresh } = y;
+            const note = sourceNote(y);
+            return (
+              <li key={row.source} className="min-w-0 border-b border-line">
+                <details className="group">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1.5 select-none hover:bg-elev [&::-webkit-details-marker]:hidden">
+                    <span
+                      aria-hidden="true"
+                      className="flex-none text-[10px] text-ink3 group-open:rotate-90"
+                    >
+                      {'▸'}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                      {row.display_name}
+                    </span>
+                    <span className="flex-none text-xs text-ink3 tabular-nums">
+                      <span className="sr-only">{d.last} </span>
+                      {etWhen(row.last_message_at)}
+                    </span>
+                    <Pill tone={FRESH[fresh].tone} className="flex-none font-semibold">
+                      {d.fresh[fresh]}
+                    </Pill>
+                  </summary>
+                  <div className="flex flex-col gap-1 px-2 pb-2.5 ps-7 text-xs text-ink2">
+                    <span>{x.tier(row.plan_tier)}</span>
+                    <span>
+                      <Num>{x.last(dual(row.last_message_at, zone))}</Num>
+                    </span>
+                    <span className="tabular-nums">{x.latency(latency(row.last_latency_ms))}</span>
+                    {note && <span className="text-ink3">{note}</span>}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }
 
@@ -330,17 +459,7 @@ function CostRow({
 }
 
 function Costs() {
-  const q = useQuery({ queryKey: ['costs'], queryFn: loadCosts });
-  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
-  const now = new Date();
-  const caps =
-    prefs.data?.ai.dailyUsd != null && prefs.data.ai.monthlyUsd != null
-      ? { dailyUsd: prefs.data.ai.dailyUsd, monthlyUsd: prefs.data.ai.monthlyUsd }
-      : null;
-  const ai = q.data ? aiSpend(q.data.usage, now, caps) : null;
-  const gh = q.data ? actionsMinutes(q.data.runs, now) : null;
-  const money = (n: number) => toFixedHalfUp(n, 2);
-  const total = PLAN_COSTS.reduce((n, c) => n + c.usdPerMonth, 0);
+  const { q, ai, gh, total } = useCosts();
   return (
     <Card
       id="h-cost"
@@ -506,29 +625,58 @@ function Latency() {
   );
 }
 
+const DETAIL_TABS = ['jobs', 'costs', 'alerts', 'latency'] as const;
+type DetailKey = (typeof DETAIL_TABS)[number];
+
+/**
+ * Status (Marsad v2, squeezed): a summary card first (healthy sources and the ones that need a look, heartbeat,
+ * scheduler, this month's cost, the latest system alert), then every source (healthy ones as one short row each),
+ * then one switchable area for job runs, costs and caps, system alerts and alert latency. Nothing is dropped:
+ * every view is one tap away and the choice is remembered on this device.
+ */
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: loadStatus, refetchInterval: 30_000 });
-  const pair = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-5';
+  const [tab, setTab] = useRemembered('marsad.status.detail', DETAIL_TABS, 'jobs');
+  const x = s.squeeze;
+  const go = (target: 'sources' | DetailKey) => {
+    if (target !== 'sources') setTab(target);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(target === 'sources' ? 'status-sources' : 'status-details')
+        ?.scrollIntoView({
+          block: 'start',
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
+        }),
+    );
+  };
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <PageTitle page="status" {...(q.data ? { aside: <HealthyPill data={q.data} /> } : {})} />
-        {q.data ? (
-          <CheckLine data={q.data} />
-        ) : (
-          <p role="status" className={`text-sm ${q.isError ? 'text-crit' : 'text-ink3'}`}>
-            {q.isError ? s.dbError(q.error.message) : t.loading}
-          </p>
-        )}
-      </div>
-      {q.data && <Sources data={q.data} />}
-      <div className={pair}>
-        <JobStrips />
-        <Costs />
-      </div>
-      <div className={pair}>
-        <SystemAlerts data={q.data} />
-        <Latency />
+      <PageTitle page="status" />
+      {q.data ? (
+        <>
+          <Summary data={q.data} go={go} />
+          <div id="status-sources" className="scroll-mt-4">
+            <Sources data={q.data} />
+          </div>
+        </>
+      ) : (
+        <p role="status" className={`text-sm ${q.isError ? 'text-crit' : 'text-ink3'}`}>
+          {q.isError ? s.dbError(q.error.message) : t.loading}
+        </p>
+      )}
+      <div id="status-details" className="flex scroll-mt-4 flex-col gap-2.5">
+        <Segmented
+          label={x.detailLabel}
+          options={DETAIL_TABS.map((key) => ({ key, label: x.detail[key] ?? key }))}
+          value={tab}
+          onChange={setTab}
+        />
+        {tab === 'jobs' && <JobStrips />}
+        {tab === 'costs' && <Costs />}
+        {tab === 'alerts' && <SystemAlerts data={q.data} />}
+        {tab === 'latency' && <Latency />}
       </div>
     </div>
   );

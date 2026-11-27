@@ -4,12 +4,33 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Regime squeezed (2026-11-27, Khaled: squeeze Regime too)
+
+- One summary card first: six one-line rows (the label and its run, the recession filter with n of 5 signals on, Fear and Greed, the capitulation watch with n of 4 conditions, the leading and lagging sector against SPY over 1 month, GPR and EPU percentiles). Each row opens its detail and moves focus there. The past-year ribbon sits under the rows; "Why this label" with the day's reason sits beside them.
+- The ten detail cards now live in two switchable areas. Risk gauges: recession filter, Fear and Greed, capitulation watch (with its plan, exits and bear case), breadth. Context: what the S&P did next, sector rotation, geopolitics, the quality screen, more measures. The choice is remembered on the device.
+- Nothing is dropped: every number, rule, source line, data date and "About this data" stays one tap away. The summary rows use the same stored rows and core functions as the cards; a missing input reads "Data unavailable", and a percentile from under a year of data says how many days it rests on.
+
+### Status and Settings squeezed (2026-11-27)
+
+- Status opens with a Now card: sources healthy and the ones that need a look by name, the heartbeat, the scheduler, this month's cost, the latest system alert. Each row scrolls to its detail.
+- Healthy sources are one short row each (tier, latency, both clocks and note one tap away); stale or unavailable sources keep their full card and note.
+- Jobs, costs, system alerts and alert latency share one switchable area, remembered on the device.
+- Settings has four sections under one switch: display and security, notifications (with push setup), Shariah and AI caps, quote source and exports. Sections are only hidden, so an unsaved edit survives a switch; every form saves the same columns as before.
+- Lab and Alerts unchanged: no boxes there duplicate each other.
+
 ### Watch squeezed (2026-11-27, Khaled: merge, squeeze and summarize)
 
 - The four cockpit tiles are now four one-line rows in one Today card: regime, movers, today, exit rules. The full pre-market brief folds behind "Read the full brief".
 - News and the calendar share one card with a switch. So do sectors, movers and gaps, which also replaces the phone-only movers card.
 - The chosen view is remembered on the device. Nothing is dropped; every view is one tap away.
 - Not done: an AI-written summary. `groundedGenerate`, with its number checks and template fallback, is already in core, but it needs the Anthropic key and the AI caps (paid), which are not set.
+
+### Study squeezed, with a company brief (2026-11-27)
+
+- New card under the company header: the company brief (core `companyBrief`, formula `company-brief-1`, no AI). It covers what the company does (the first sentence of the stored 10-K business section, as filed), market value, 1M, 3M and 1Y returns beside SPY and the sector fund, revenue, margin, free cash flow, dilution and the strength rank. It also has rule-based strengths and risks, each line with its rule, threshold and date ("Code-based checks, not advice"), stored news sentiment counts (no percentage below 30 stories), insider net buying over 90 days and the short interest trend. A context block gives the regime, the sector fund against SPY and recession signals, says Marsad does not forecast, and links to Regime. The last block covers the newest 8-K, 10-Q or 10-K, the 10-Q risk factor flag, next earnings (estimated), next ex-dividend and halts or alerts in 30 days. Missing inputs say Not available.
+- Layout is now header, brief, chart, then one tab area. News and Filings are tabs; the snapshot tiles sit at the top of Financials. Each brief block opens its tab in one tap.
+- The sector fund is the one set on the watchlist or a holding. Marsad stores no SIC code, so with none set the brief says so and does not guess.
+- The brief now reads the 10-K business section and the newest 10-Q's risk factor flag on page load, so two lazy-load tests changed. The risk-factor texts are still read only when opened.
 
 ### Weekly Portfolio tile and scheduler line (2026-11-27)
 

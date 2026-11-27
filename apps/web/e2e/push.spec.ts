@@ -53,6 +53,10 @@ test('creating keys saves only the public key; the private key never leaves the 
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
     .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Notifications' })
+    .click();
   const section = page.getByRole('region', { name: 'Push setup' });
   await expect(section.getByText('No keys yet.')).toBeVisible();
   await expect(section.getByText('Create the keys first.')).toBeVisible();
@@ -119,6 +123,10 @@ test('the device list says which devices work, which fail and which the push ser
   await page
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
+    .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Notifications' })
     .click();
   const section = page.getByRole('region', { name: 'Notifications' });
   const setup = page.getByRole('region', { name: 'Push setup' });
@@ -189,6 +197,10 @@ test('a refused permission prompt explains where to allow notifications', async 
   await page
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
+    .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Notifications' })
     .click();
   const section = page.getByRole('region', { name: 'Push setup' });
   await section.getByRole('button', { name: 'Turn on for this device' }).click();

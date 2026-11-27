@@ -1,6 +1,7 @@
 import {
   buildCalendar,
   lastCompletedTradingDay,
+  toFixedHalfUp,
   type DailyBar,
   type FilingEvent,
   type SplitEvent,
@@ -117,8 +118,21 @@ export function filingEvents(
   }));
 }
 
+/** Dollars in the units a person reads: $7.23T, $304.2B, $812.4M, $5,000.00 (minus sign for negatives). */
+export function formatUsd(v: number): string {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '−' : '';
+  if (abs >= 1e12) return `${sign}$${toFixedHalfUp(abs / 1e12, 2)}T`;
+  if (abs >= 1e9) return `${sign}$${toFixedHalfUp(abs / 1e9, 1)}B`;
+  if (abs >= 1e6) return `${sign}$${toFixedHalfUp(abs / 1e6, 1)}M`;
+  return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /** The SEC page of a filing document. The CIK in the path has no leading zeros. */
-export function secUrl(cik: string, f: FilingRow): string | null {
+export function secUrl(
+  cik: string,
+  f: Pick<FilingRow, 'accession' | 'primaryDocument'>,
+): string | null {
   if (!f.primaryDocument) return null;
   return `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${f.accession.replace(/-/g, '')}/${f.primaryDocument}`;
 }

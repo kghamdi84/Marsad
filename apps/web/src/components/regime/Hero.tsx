@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { REGIME_THRESHOLDS, currentRun, seriesSnapshot, type RegimeInputs } from '@marsad/core';
+import { REGIME_THRESHOLDS, currentRun, type RegimeInputs } from '@marsad/core';
 import { Info } from '../Info';
 import { Pill, type Tone } from '../ui/kit';
 import { CheckRow } from './CheckRow';
+import { SummaryRows } from './Summary';
+import { WHY_ID, type Target } from './areas';
 import { LABEL_COLOR, LABEL_ORDER, fixed, pct } from './format';
-import { dayMonth, dayMonthYear, monthYear, weekdayDayMonth } from '../../lib/dates';
+import { monthYear, weekdayDayMonth } from '../../lib/dates';
 import type { RegimeData } from '../../lib/regime';
 import { t } from '../../strings';
 
@@ -87,20 +89,11 @@ function pillOf(x: Why): { text: string; tone: Tone } {
   return { text: w.met, tone: x.stress ? 'warn' : 'up' };
 }
 
-/** GPR and EPU as one context line under the label (their 1-year percentiles). */
-function ContextLine({ data }: { data: RegimeData }) {
-  const gpr = seriesSnapshot(data.gpr);
-  const epu = seriesSnapshot(data.series['USEPUINDXD'] ?? []);
-  if (!gpr || !epu) return null;
-  return (
-    <p className="text-xs text-ink3">
-      {r.context(r.ordinal(Math.round(gpr.percentile)), r.ordinal(Math.round(epu.percentile)))}
-    </p>
-  );
-}
-
-/** The label, how long it has run, the past-year ribbon and "Why this label". */
-export function Hero({ data }: { data: RegimeData }) {
+/**
+ * The summary card (squeezed v2 Regime): the rule chips and six summary rows, each opening its detail, with the
+ * past-year ribbon under them; "Why this label" with the day's reason beside them (under them on a phone).
+ */
+export function Hero({ data, go }: { data: RegimeData; go: (to: Target) => void }) {
   const last = data.days.at(-1);
   const run = currentRun(data.days);
   const counts = useMemo(() => {
@@ -125,38 +118,25 @@ export function Hero({ data }: { data: RegimeData }) {
   const summary = LABEL_ORDER.filter((k) => counts[k])
     .map((k) => `${name(k)} ${counts[k]}`)
     .join(', ');
-  const since =
-    run.since.slice(0, 4) === last.date.slice(0, 4) ? dayMonth(run.since) : dayMonthYear(run.since);
   return (
     <section
       aria-labelledby="regime-label"
       className="grid gap-5 rounded-xl border border-line bg-surface p-[18px]"
-      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' }}
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}
     >
       <h2 id="regime-label" className="sr-only">
         {r.labelTitle}
       </h2>
-      <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Pill className="px-2.5 py-1">
             {u.heroChip(last.ruleVersion, weekdayDayMonth(last.date))}
           </Pill>
           <Pill className="px-2.5 py-1">{u.delayedEod}</Pill>
         </div>
-        <p className="flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="size-3.5 flex-none rounded"
-            style={{ background: LABEL_COLOR[last.label] }}
-          />
-          <span className="text-[34px] leading-tight font-semibold text-ink">
-            {name(last.label)}
-          </span>
-        </p>
-        <p className="text-sm text-ink2">{u.running(run.sessions, since)}</p>
-        <p className="text-sm text-ink2">{r.reasons[last.reason] ?? last.reason}</p>
         <p className="sr-only">{r.asOf(last.date, last.ruleVersion)}</p>
-        <div className="mt-1 flex flex-col gap-1">
+        <SummaryRows data={data} go={go} />
+        <div className="flex flex-col gap-1">
           <div
             role="img"
             aria-label={u.ribbonAria(summary)}
@@ -188,23 +168,27 @@ export function Hero({ data }: { data: RegimeData }) {
             </li>
           ))}
         </ul>
-        <ContextLine data={data} />
-        <Info>
-          <p>{r.inputsSource}</p>
-          <p>{w.rule}</p>
-        </Info>
       </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div
+        id={WHY_ID}
+        tabIndex={-1}
+        className="flex min-w-0 scroll-mt-20 flex-col gap-1.5 focus:outline-none focus-visible:outline focus-visible:outline-focus"
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink">{w.title}</h3>
           <span className="text-xs text-ink3">{w.spClose(fixed(last.inputs.sp500))}</span>
         </div>
+        <p className="text-sm text-ink2">{r.reasons[last.reason] ?? last.reason}</p>
         <ul className="flex flex-col gap-1.5">
           {whyRows(last.inputs).map((x) => {
             const p = pillOf(x);
             return <CheckRow key={x.key} text={x.text} pill={p.text} tone={p.tone} />;
           })}
         </ul>
+        <Info>
+          <p>{r.inputsSource}</p>
+          <p>{w.rule}</p>
+        </Info>
       </div>
     </section>
   );

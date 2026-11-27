@@ -77,6 +77,15 @@ async function mock(page: Page, lastBar: string, withFilings = true) {
     'short_interest',
     'short_volume',
     'dividends',
+    // The company brief's own inputs (company-brief-1).
+    'annual_sections',
+    'quarterly_sections',
+    'regime_daily',
+    'watchlist_items',
+    'holdings',
+    'strength_rank_daily',
+    'halts',
+    'alerts',
   ])
     await page.route(`**/rest/v1/${table}**`, (r) => json(r, []));
 }
@@ -107,7 +116,8 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     .first();
   await expect(canvas).toBeVisible();
   expect((await canvas.boundingBox())?.width).toBeGreaterThan(300);
-  // Pointing at the chart shows the day and close under the crosshair.
+  // Pointing at the chart shows the day and close under the crosshair (the brief sits above it, so scroll first).
+  await canvas.scrollIntoViewIfNeeded();
   const box = await canvas.boundingBox();
   if (box) await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4);
   await expect(page.getByTestId('chart-readout')).toHaveText(
@@ -137,22 +147,66 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     page.getByText('2026-11-23: 8-K: Executive or director change (High)'),
   ).toBeVisible();
 
-  // Snapshot: no XBRL facts stored here, so the figures say not reported rather than guess.
+  // The company brief (company-brief-1), under the header and above the chart: computed by code from stored data.
+  const brief = page.getByRole('region', { name: 'Company brief' });
+  await expect(brief.getByText('Code-based checks, not advice')).toBeVisible();
+  // Returns from the closes (they rise 0.5 a session to 300.00): 21 sessions 300 / 289.5, 63 sessions 300 / 268.5,
+  // 252 sessions 300 / 174. The stubbed SPY bars are the same rows, so SPY shows the same returns.
+  const nvdaRow = brief.getByRole('row', { name: /^NVDA/ });
+  await expect(nvdaRow).toContainText('▲ +3.6%');
+  await expect(nvdaRow).toContainText('▲ +11.7%');
+  await expect(nvdaRow).toContainText('▲ +72.4%');
+  await expect(brief.getByRole('row', { name: /^SPY/ })).toContainText('▲ +72.4%');
+  // The 200-day average of the last 200 closes: 300 - 0.5 x 99.5 = 250.25.
+  await expect(
+    brief.getByText('Above its 200-day average: close $300.00 against $250.25 on 24 Nov 2026.'),
+  ).toBeVisible();
+  // Missing inputs say so, never a guess: no facts, no news, no regime, no sector fund set.
+  await expect(brief.getByText('Not available').first()).toBeVisible();
+  await expect(brief.getByText('No stories stored in 30 days.')).toBeVisible();
+  await expect(brief.getByText('Not available: no regime has been computed yet.')).toBeVisible();
+  await expect(brief.getByText(/Sector fund: none set/).first()).toBeVisible();
+  // The newest 8-K in plain words, with its date and link; Marsad does not forecast.
+  await expect(
+    brief.getByText(
+      'Executive or director change; Attached documents and exhibits (8-K, filed 23 Nov 2026)',
+    ),
+  ).toBeVisible();
+  await expect(brief.getByText('High materiality')).toBeVisible();
+  await expect(brief.getByRole('link', { name: 'Filing on SEC' })).toHaveAttribute(
+    'href',
+    'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm',
+  );
+  await expect(brief.getByText(/Marsad does not forecast/)).toBeVisible();
+  await expect(
+    brief.getByText(/Formula company-brief-1 \(reusing snapshot-1, investor-1/),
+  ).toBeVisible();
+
+  // Snapshot (squeezed into the Financials tab): no XBRL facts stored here, so the figures say not reported.
+  await openSection(page, 'Financials');
   const snapshot = page.getByRole('region', { name: 'Snapshot' });
   await expect(snapshot.getByText('Market value', { exact: true })).toBeVisible();
   await expect(snapshot.getByText('Not reported').first()).toBeVisible();
-  // News and filings sit side by side as their own cards.
+  // News and filings are tabs of the one company area (squeezed); each is one tap away.
+  await page.getByRole('tab', { name: 'News', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Latest company news' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Filings and announcements' })).toBeVisible();
 
   // Anything the free plan cannot give says so, and says what it would take (Overview, open first).
+  await openSection(page, 'Overview and thesis');
   await expect(page.getByText('Requires a higher Massive plan.').first()).toBeVisible();
   await expect(
     page.getByText('Earnings against estimates, surprise and implied move'),
   ).toBeVisible();
 
-  // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag (v2: the
-  // Filings and announcements card, on the page).
+  // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag (the Filings tab,
+  // which the brief's link opens).
+  await brief.getByRole('button', { name: 'Open Filings' }).click();
+  await expect(page.getByRole('tab', { name: 'Filings', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await expect(page.getByText('Item 5.02: Executive or director change')).toBeVisible();
   await expect(page.getByText('Item 9.01: Attached documents and exhibits')).toBeVisible();
   await expect(page.getByText('High', { exact: true }).first()).toBeVisible();
@@ -191,6 +245,7 @@ test('a ticker with no stored bars says so instead of showing an empty chart', a
   await page.goto('/study/RKLB');
   await expect(page.getByText(/No daily bars stored for this ticker yet/)).toBeVisible();
   await expect(page.getByText(/No company record yet/)).toBeVisible();
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   await expect(page.getByText('No filings stored for this company.')).toBeVisible();
 });
 
