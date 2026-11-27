@@ -22,12 +22,15 @@ import { useDisplay } from '../../lib/display';
 import { dayMonth } from '../../lib/dates';
 import { secUrl } from '../../lib/study';
 import type { StoredFiling, WatchData } from '../../lib/watch';
+import { isNew, type LiveNews } from '../../lib/liveNews';
 import { Aside, v, w } from './shared';
 
 const n = v.news;
 
 interface Ranked {
   id: string;
+  /** Article ids or the filing accession behind the row, to mark rows that arrived while the page was open. */
+  sourceIds: string[];
   at: string;
   /** False for a filing without an acceptance time: only its date is known. */
   timed: boolean;
@@ -69,6 +72,7 @@ export function rankNews(
     return [
       {
         id: cl.id,
+        sourceIds: cl.articles.map((a) => a.id),
         at: cl.earliest,
         timed: true,
         title: first.title,
@@ -92,6 +96,7 @@ export function rankNews(
     const title = n.filingTitle(f.tickers[0] ?? f.cik, f.form, f.items.join(', '), plain ?? '');
     return {
       id: f.accession,
+      sourceIds: [f.accession],
       at: f.acceptedAt ?? `${f.filingDate}T00:00:00Z`,
       timed: f.acceptedAt !== null,
       title,
@@ -183,10 +188,17 @@ function ImpactPill({ r }: { r: Ranked }) {
   );
 }
 
-function Row({ r }: { r: Ranked }) {
+function Row({ r, fresh }: { r: Ranked; fresh: boolean }) {
   return (
     <li className="flex flex-col gap-1 border-t border-line py-2.5">
-      <Title r={r} className="text-sm leading-snug text-ink" />
+      <div className="flex items-start justify-between gap-2">
+        <Title r={r} className="text-sm leading-snug text-ink" />
+        {fresh && (
+          <Pill tone="up" className="flex-none font-semibold">
+            {n.newTag}
+          </Pill>
+        )}
+      </div>
       <Meta r={r}>
         <ImpactPill r={r} />
       </Meta>
@@ -201,6 +213,7 @@ export function NewsCard({
   holdings,
   topics,
   readAt,
+  live,
 }: {
   data: WatchData;
   filings: readonly StoredFiling[];
@@ -208,6 +221,8 @@ export function NewsCard({
   topics: readonly TopicDay[];
   /** When the page read the rows. */
   readAt: number;
+  /** The realtime state (migration 20270101000000); new rows refetch the queries above. */
+  live: LiveNews;
 }) {
   const ranked = useMemo(
     () => rankNews(data, filings, holdings, topics),
@@ -219,7 +234,16 @@ export function NewsCard({
     <Card
       id="watch-news-h"
       title={w.news.title}
-      aside={<Aside>{n.asOf(dualClock(new Date(readAt)).et)}</Aside>}
+      aside={
+        <span role="status" className="flex items-center gap-1.5">
+          {live.live && <span aria-hidden="true" className="size-2 rounded-full bg-up" />}
+          <Aside>
+            {live.live
+              ? n.live(dualClock(new Date(readAt)).et)
+              : n.asOf(dualClock(new Date(readAt)).et)}
+          </Aside>
+        </span>
+      }
     >
       {!hl ? (
         <p className="text-sm text-ink3">{w.news.none}</p>
@@ -230,6 +254,11 @@ export function NewsCard({
               <Pill tone="warn" className="font-semibold">
                 {n.highlight}
               </Pill>
+              {isNew(hl.sourceIds, live) && (
+                <Pill tone="up" className="font-semibold">
+                  {n.newTag}
+                </Pill>
+              )}
               <ImpactPill r={hl} />
             </Meta>
             <Title r={hl} className="text-lg leading-snug font-medium text-ink" />
@@ -237,7 +266,7 @@ export function NewsCard({
           </article>
           <ul className="-mb-2.5 flex flex-col">
             {rest.slice(0, 4).map((r) => (
-              <Row key={r.id} r={r} />
+              <Row key={r.id} r={r} fresh={isNew(r.sourceIds, live)} />
             ))}
           </ul>
           {more.length > 0 && (
@@ -247,7 +276,7 @@ export function NewsCard({
               </summary>
               <ul className="flex flex-col px-3">
                 {more.map((r) => (
-                  <Row key={r.id} r={r} />
+                  <Row key={r.id} r={r} fresh={isNew(r.sourceIds, live)} />
                 ))}
               </ul>
             </details>
