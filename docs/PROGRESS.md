@@ -11,6 +11,13 @@ Last updated 2026-11-27 (Marsad v2 redesign).
 - The chosen view is remembered on the device. Nothing is dropped; every view is one tap away.
 - Not done: an AI-written summary. `groundedGenerate`, with its number checks and template fallback, is already in core, but it needs the Anthropic key and the AI caps (paid), which are not set.
 
+### Study squeezed, with a company brief (2026-11-27)
+
+- New card under the company header: the company brief (core `companyBrief`, formula `company-brief-1`, no AI). It covers what the company does (the first sentence of the stored 10-K business section, as filed), market value, 1M, 3M and 1Y returns beside SPY and the sector fund, revenue, margin, free cash flow, dilution and the strength rank. It also has rule-based strengths and risks, each line with its rule, threshold and date ("Code-based checks, not advice"), stored news sentiment counts (no percentage below 30 stories), insider net buying over 90 days and the short interest trend. A context block gives the regime, the sector fund against SPY and recession signals, says Marsad does not forecast, and links to Regime. The last block covers the newest 8-K, 10-Q or 10-K, the 10-Q risk factor flag, next earnings (estimated), next ex-dividend and halts or alerts in 30 days. Missing inputs say Not available.
+- Layout is now header, brief, chart, then one tab area. News and Filings are tabs; the snapshot tiles sit at the top of Financials. Each brief block opens its tab in one tap.
+- The sector fund is the one set on the watchlist or a holding. Marsad stores no SIC code, so with none set the brief says so and does not guess.
+- The brief now reads the 10-K business section and the newest 10-Q's risk factor flag on page load, so two lazy-load tests changed. The risk-factor texts are still read only when opened.
+
 ### Weekly Portfolio tile and scheduler line (2026-11-27)
 
 - **Weekly review Portfolio tile (`held-week-1`).** It covers holdings held over the whole week, valued at the same two closes as the SPY tile. Holdings bought or sold inside the week are left out and counted, so cash moving in or out never reads as a return. A missing close makes the tile read "Data unavailable".

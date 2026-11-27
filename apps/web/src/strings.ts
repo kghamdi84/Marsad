@@ -1497,6 +1497,207 @@ export const t = {
         `Ex-dividend ${ex}: ${amount}${pay ? `, paid ${pay}` : ''}`,
       upcoming: 'upcoming',
     },
+    /** The company brief (company-brief-1): a summary computed by code from stored data, no AI. */
+    brief: {
+      title: 'Company brief',
+      aside: 'By code from stored data, not advice',
+      na: 'Not available',
+      loading: 'Loading',
+      failed: (names: string) =>
+        `Could not load ${names}, so the lines that need it say Not available.`,
+      inputs: {
+        facts: 'SEC facts',
+        business: 'the 10-K business section',
+        short: 'short interest',
+        news: 'news sentiment',
+        regime: 'the regime',
+        sector: 'the sector fund',
+        spy: 'SPY bars',
+        strength: 'the strength rank',
+        risk: 'the 10-Q risk factor flag',
+        reports: 'the latest filings',
+        insiders: 'insider filings',
+        events: 'halts and alerts',
+        dividends: 'dividends',
+        earnings: 'results filings',
+      } as Record<string, string>,
+      open: (where: string) => `Open ${where}`,
+      regimePage: 'Open the Regime page',
+      sections: {
+        company: 'Company',
+        performance: 'Performance',
+        checks: 'Strengths and risks',
+        sentiment: 'Sentiment',
+        context: 'Context (not a forecast)',
+        next: "Latest filing and what's next",
+      },
+      whatItDoes: 'What it does',
+      whatSource: (filed: string, period: string) =>
+        `First sentence of the 10-K business section, as filed ${filed} (year ended ${period}).`,
+      noBusiness: 'Not available: no 10-K business section is stored.',
+      marketValue: 'Market value',
+      mvLine: (shares: string, close: string, closeDate: string, sharesDate: string) =>
+        `${shares} shares × ${close} (close of ${closeDate}, shares at ${sharesDate})`,
+      returns: 'Price return',
+      returnsCaption: (to: string) => `Price return to the close of ${to}, by session count`,
+      colTicker: 'Ticker',
+      periods: { m1: '1M', m3: '3M', y1: '1Y' } as Record<string, string>,
+      noSector: 'Sector fund: none set (set one on the watchlist)',
+      sectorSource: (src: string) =>
+        src === 'holding' ? 'set on the holding' : 'set on the watchlist',
+      revenue: 'Revenue, 4 quarters',
+      revenueLine: (v: string, yoy: string | null, end: string) =>
+        `${v} to ${end}${yoy === null ? ' (no year-earlier figure)' : `, ${yoy} on a year earlier`}`,
+      netMargin: 'Net margin',
+      netMarginLine: (v: string, end: string) => `${v} over 4 quarters to ${end}`,
+      fcf: 'Free cash flow',
+      fcfLine: (v: string, filed: string) => `${v} over 4 quarters (filed ${filed})`,
+      dilution: 'Dilution',
+      dilutionLine: (v: string, end: string) =>
+        `Diluted shares ${v} on a year earlier (quarter to ${end})`,
+      strength: 'Strength rank',
+      strengthLine: (p: string, rank: number, members: number, date: string) =>
+        `${p} percentile, ${rank} of ${members} universe stocks by 3-month return (${date})`,
+      checksLabel: 'Code-based checks, not advice',
+      strengths: (n: number) => `Strengths (${n})`,
+      risks: (n: number) => `Risks (${n})`,
+      noChecks: 'No rule fired with the data stored.',
+      checks: {
+        'revenue-growth': (v: string, th: string, d: string) =>
+          `Revenue up ${v} on a year earlier (4 quarters to ${d}). Rule: up ${th} or more.`,
+        'revenue-decline': (v: string, _th: string, d: string) =>
+          `Revenue down ${v} on a year earlier (4 quarters to ${d}). Rule: any fall.`,
+        'net-margin': (v: string, th: string, d: string) =>
+          `Net margin ${v} over 4 quarters to ${d}. Rule: ${th} or more.`,
+        'net-loss': (v: string, _th: string, d: string) =>
+          `Net loss: margin ${v} over 4 quarters to ${d}. Rule: below 0%.`,
+        'net-cash': (v: string, _th: string, d: string) =>
+          `Net cash ${v} at ${d}: cash and short-term investments above long-term debt.`,
+        'net-debt': (v: string, _th: string, d: string) =>
+          `Net debt ${v} at ${d}: long-term debt above cash and short-term investments.`,
+        'fcf-positive': (v: string, _th: string, d: string) =>
+          `Free cash flow ${v} over 4 quarters (filed ${d}). Rule: above zero.`,
+        'fcf-negative': (v: string, _th: string, d: string) =>
+          `Free cash flow ${v} over 4 quarters (filed ${d}): more cash out than in. Rule: below zero.`,
+        'shares-shrinking': (v: string, th: string, d: string) =>
+          `Diluted shares down ${v} on a year earlier (quarter to ${d}). Rule: down ${th} or more.`,
+        dilution: (v: string, th: string, d: string) =>
+          `Diluted shares up ${v} on a year earlier (quarter to ${d}): dilution. Rule: up ${th} or more.`,
+        'above-200': (v: string, _th: string, d: string, x: string) =>
+          `Above its 200-day average: close ${v} against ${x} on ${d}.`,
+        'below-200': (v: string, _th: string, d: string, x: string) =>
+          `Below its 200-day average: close ${v} against ${x} on ${d}.`,
+        'beats-spy': (v: string, th: string, d: string) =>
+          `Ahead of SPY by ${v} over 63 sessions to ${d}. Rule: ${th} or more ahead.`,
+        'lags-spy': (v: string, th: string, d: string) =>
+          `Behind SPY by ${v} over 63 sessions to ${d}. Rule: ${th} or more behind.`,
+        'strength-top': (v: string, th: string, d: string, x: string) =>
+          `Strength rank ${v} percentile of ${x} universe stocks (${d}). Rule: ${th} or higher.`,
+        'strength-bottom': (v: string, th: string, d: string, x: string) =>
+          `Strength rank ${v} percentile of ${x} universe stocks (${d}). Rule: ${th} or lower.`,
+        'far-from-high': (v: string, th: string, d: string) =>
+          `${v} below its 52-week closing high (${d}). Rule: ${th} or more below.`,
+        'short-interest': (v: string, th: string, d: string) =>
+          `Short interest ${v} of shares outstanding (settled ${d}). Rule: ${th} or more.`,
+        'insider-buying': (v: string, _th: string, d: string, x: string) =>
+          `Insiders bought ${v} in the open market in 90 days to ${d} (${x}).`,
+        'insider-selling': (v: string, _th: string, d: string, x: string) =>
+          `Insiders sold ${v} in 90 days to ${d} (${x}), none bought.`,
+        'earnings-soon': (v: string, th: string, d: string) =>
+          `Earnings in ${v} (estimated ${d}): event risk. Rule: ${th} or fewer.`,
+        'recent-halt': (v: string, _th: string, d: string) =>
+          `Trading halted ${v} in 30 days, the latest on ${d}.`,
+      } as Record<string, (v: string, th: string, d: string, x: string) => string>,
+      trades: (n: number) => (n === 1 ? '1 trade' : `${n} trades`),
+      sales: (n: number) => (n === 1 ? '1 sale' : `${n} sales`),
+      days: (n: number) => (n === 1 ? '1 day' : `${n} days`),
+      times: (n: number) => (n === 1 ? 'once' : `${n} times`),
+      news: 'News, 30 days',
+      newsCounts: (pos: number, neu: number, neg: number, n: number) =>
+        `${pos} positive · ${neu} neutral · ${neg} negative, of ${n} stored ${n === 1 ? 'story' : 'stories'}`,
+      newsPct: (pos: string, neu: string, neg: string) =>
+        `${pos} positive, ${neu} neutral, ${neg} negative of the labelled stories.`,
+      newsFew: (n: number) => `${n} labelled: too few for a percentage (needs 30).`,
+      newsNotStored: (n: number) =>
+        `${n} stored ${n === 1 ? 'story' : 'stories'}; no sentiment labels are stored for them.`,
+      newsNone: 'No stories stored in 30 days.',
+      newsCapped: 'The read stopped at 500 stories, so older ones in the window are not counted.',
+      newsNote:
+        "Labels are the news vendor's (Massive) model, an opinion, not Marsad's. Each story counts once.",
+      insiders: 'Insiders, 90 days',
+      insidersLine: (net: string, buys: number, buyUsd: string, sells: number, sellUsd: string) =>
+        `Net ${net}: ${buys} open-market ${buys === 1 ? 'buy' : 'buys'} ${buyUsd}, ${sells} ${sells === 1 ? 'sale' : 'sales'} ${sellUsd}`,
+      insidersNone: 'No open-market buys or sales filed.',
+      unpriced: (n: number) => `${n} without a reported value, not in the totals.`,
+      shortLabel: 'Short interest',
+      shortPct: (pct: string) => `${pct} of shares outstanding`,
+      shortTrend: (change: string, prior: string) => `${change} since ${prior}`,
+      shortDate: (date: string) => `settled ${date}`,
+      daysToCover: (d: string) => `${d} days to cover`,
+      sectorFund: 'Sector fund',
+      sectorTo: (date: string, source: string) => `(to ${date}, ${source})`,
+      materialityOf: (m: string) => `${m} materiality`,
+      item: (n: string) => `Item ${n}`,
+      thresholds: (
+        growth: number,
+        margin: number,
+        dilution: number,
+        short: number,
+        rs: number,
+        top: number,
+        bottom: number,
+        fromHigh: number,
+        earnings: number,
+      ) =>
+        `Thresholds: revenue growth ${growth}%, net margin ${margin}%, dilution ${dilution}%, short interest ${short}% of shares outstanding, ${rs}% against SPY, strength percentile ${top} and ${bottom}, ${fromHigh}% below the 52-week high, earnings within ${earnings} days.`,
+      regime: 'Market regime',
+      regimeLine: (label: string, date: string, version: string) =>
+        `${label} (close of ${date}, rules ${version})`,
+      regimeLabels: {
+        stress: 'Stress',
+        bear: 'Bear',
+        recovery: 'Recovery',
+        'bull-calm': 'Bull calm',
+        'bull-correction': 'Bull correction',
+        'insufficient-data': 'Insufficient data',
+      } as Record<string, string>,
+      noRegime: 'Not available: no regime has been computed yet.',
+      sectorVsSpy: (etf: string) => `${etf} against SPY`,
+      sectorRs: (m1: string, m3: string, date: string) =>
+        `${m1} over 1 month, ${m3} over 3 months (to ${date})`,
+      recession: 'Recession signals',
+      recessionLine: (on: number, of: number, level: string, date: string) =>
+        `${on} of ${of} on, level ${level} (${date})`,
+      noForecast:
+        'Plain statements of current conditions with their dates. Marsad does not forecast or predict prices.',
+      latest: 'Newest report',
+      latestLine: (what: string, form: string, date: string) => `${what} (${form}, filed ${date})`,
+      onSec: 'Filing on SEC',
+      noReport: 'Not available: no 8-K, 10-Q or 10-K is stored.',
+      riskFactors: 'Risk factors',
+      riskChanged: (date: string) =>
+        `The newest 10-Q (filed ${date}) lists risk factors added or changed since the annual report.`,
+      riskSame: (date: string) =>
+        `The newest 10-Q (filed ${date}) says there were no material changes.`,
+      riskNone: 'Not available: no 10-Q risk factor section is stored.',
+      nextEarnings: 'Next earnings',
+      earningsLine: (date: string, days: string) =>
+        `~ ${date}, estimated from past results 8-Ks (${days})`,
+      earningsAgo: (days: string) => `${days} ago`,
+      earningsAway: (days: string) => `in ${days}`,
+      exDividend: 'Next ex-dividend',
+      exDividendLine: (date: string, amount: string) => `${date}, ${amount} a share`,
+      noExDividend: 'None upcoming in the stored dividends.',
+      events: 'Halts and alerts, 30 days',
+      eventsLine: (halts: number, alerts: number) =>
+        `${halts === 1 ? '1 trading halt' : `${halts} trading halts`}, ${alerts === 1 ? '1 Marsad alert' : `${alerts} Marsad alerts`}`,
+      newestHalt: (date: string, reason: string) => `Newest halt ${date}: ${reason}`,
+      newestAlert: (date: string, headline: string) => `Newest alert ${date}: ${headline}`,
+      provenance: (asOf: string, close: string, version: string, parts: string) =>
+        `Formula ${version} (reusing ${parts}). SEC XBRL facts as filed by ${asOf}; prices are Massive end-of-day closes to ${close}.`,
+      method:
+        'Every line is computed by code from data Marsad stores; no AI writes any of it. Returns compare closes 21, 63 and 252 sessions apart, with SPY and the sector fund over the same two dates. A check fires only when its input is stored and its rule is met; the rule and threshold are stated on each line. Market value uses the shares on the newest 10-K or 10-Q cover page; short interest is shown against those shares, since float is not stored.',
+    },
 
     markersNote:
       'Markers show 8-Ks of high or medium materiality (E for results under Item 2.02, F for the others), splits, ex-dividend dates, trading halts, Marsad alerts and insider open-market purchases. A filing accepted after the 4:00 pm ET close sits on the next trading day. Other Form 4s stay in the filings list.',
@@ -1589,6 +1790,8 @@ export const t = {
       sections: 'Company sections',
       sectionNames: {
         overview: 'Overview and thesis',
+        news: 'News',
+        filings: 'Filings',
         financials: 'Financials',
         earnings: 'Earnings',
         holders: 'Holders and insiders',

@@ -70,4 +70,5 @@ export * from './nport.js';
 export * from './trader.js';
 export * from './investor.js';
 export * from './strength.js';
+export * from './company-brief.js';
 export * from './options-analytics.js';
