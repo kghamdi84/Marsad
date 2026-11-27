@@ -2223,6 +2223,40 @@ export const t = {
       unavailable: 'Data unavailable',
       latencyTitle: 'Alert latency, last 30 days',
     },
+    /** Squeezed Status: the summary card, the compact sources list and the switch over jobs, costs, alerts, latency. */
+    squeeze: {
+      title: 'Now',
+      sources: 'Sources',
+      needLook: (parts: string[]) => `Needs a look: ${parts.join(', ')}`,
+      lookPart: (name: string, state: string) => `${name} ${state}`,
+      lookState: { stale: 'stale', unavailable: 'unavailable' } as Record<string, string>,
+      allLooked: 'Nothing needs a look.',
+      heartbeat: 'Health check',
+      scheduler: 'Job starts',
+      month: 'This month',
+      monthValue: (plans: string, ai: string) => `Plans $${plans} a month · AI ${ai}`,
+      aiSoFar: (usd: string) => `$${usd} so far`,
+      aiOff: 'off (no caps set)',
+      alerts: 'System alerts',
+      alertsNone: 'None recorded',
+      alertsLatest: (n: number, event: string, when: string) =>
+        `${n} recent · latest ${event.toLowerCase()} ${when}`,
+      sourcesOk: (n: number) => `All ${n} healthy. Tap a source for its tier, latency and note.`,
+      sourcesLook: (bad: number, n: number) =>
+        `${bad} of ${n} need${bad === 1 ? 's' : ''} a look. Tap a healthy source for its tier, latency and note.`,
+      lookList: 'Sources that need a look',
+      okList: 'Healthy sources',
+      tier: (tier: string) => `Plan tier: ${tier}`,
+      last: (when: string) => `Last message: ${when}`,
+      latency: (ms: string) => `Latency: ${ms}`,
+      detailLabel: 'Status details',
+      detail: {
+        jobs: 'Jobs',
+        costs: 'Costs',
+        alerts: 'System alerts',
+        latency: 'Latency',
+      } as Record<string, string>,
+    },
     eventsDesign: { stale: 'Stale', recovered: 'Recovered', mismatch: 'Mismatch' } as Record<
       string,
       string
@@ -2416,6 +2450,13 @@ export const t = {
     numberFormat: 'Number format',
     numberFormatValue: 'Tabular, signed, with arrows',
     displayNote: 'Display choices are kept on this device only.',
+    sectionsLabel: 'Settings sections',
+    sections: {
+      display: 'Display and security',
+      notifications: 'Notifications',
+      prefs: 'Shariah and AI caps',
+      data: 'Quote source and exports',
+    } as Record<string, string>,
     notifications: {
       title: 'Notifications',
       webPush: 'Web push',

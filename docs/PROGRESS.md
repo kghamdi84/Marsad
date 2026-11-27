@@ -4,6 +4,14 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Status and Settings squeezed (2026-11-27)
+
+- Status opens with a Now card: sources healthy and the ones that need a look by name, the heartbeat, the scheduler, this month's cost, the latest system alert. Each row scrolls to its detail.
+- Healthy sources are one short row each (tier, latency, both clocks and note one tap away); stale or unavailable sources keep their full card and note.
+- Jobs, costs, system alerts and alert latency share one switchable area, remembered on the device.
+- Settings has four sections under one switch: display and security, notifications (with push setup), Shariah and AI caps, quote source and exports. Sections are only hidden, so an unsaved edit survives a switch; every form saves the same columns as before.
+- Lab and Alerts unchanged: no boxes there duplicate each other.
+
 ### Watch squeezed (2026-11-27, Khaled: merge, squeeze and summarize)
 
 - The four cockpit tiles are now four one-line rows in one Today card: regime, movers, today, exit rules. The full pre-market brief folds behind "Read the full brief".
