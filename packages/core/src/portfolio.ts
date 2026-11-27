@@ -60,6 +60,15 @@ export function rewardRisk(entry: number, stop: number, targets: readonly number
   return targets.map((t) => (r > 0 ? (t - entry) / r : NaN));
 }
 
+/**
+ * How far a price sits from a stop, as a fraction of the stop: price / stop - 1. Negative means the price is under
+ * the stop (a long position's stop has been crossed). Null when either level is not a positive number.
+ */
+export function gapToStop(price: number, stop: number): number | null {
+  if (!(price > 0) || !(stop > 0) || !Number.isFinite(price) || !Number.isFinite(stop)) return null;
+  return price / stop - 1;
+}
+
 export interface TicketInput {
   side: 'BUY' | 'SELL';
   shares: number;

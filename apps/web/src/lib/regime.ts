@@ -1,5 +1,7 @@
+import { SECTOR_ETFS, SECTOR_ROTATION_WINDOWS } from '@marsad/core';
 import type {
   BreadthDay,
+  CloseBar,
   CapitulationState,
   ComponentReading,
   Condition,
@@ -97,6 +99,8 @@ export interface RegimeData {
   topics: TopicDay[];
   /** The trailing year of closes for each panel ticker, oldest first. */
   bars: Record<string, Obs[]>;
+  /** The last 70 closes of SPY and each sector fund (sector rotation), oldest first. */
+  sectorBars: Record<string, CloseBar[]>;
 }
 
 /** FRED series shown in the panels. */
@@ -116,6 +120,12 @@ export const PANEL_SERIES = [
 /** Daily bars shown beside the topic counts (ADR 0012). */
 export const PANEL_BARS = ['GLD', 'ITA', 'IYT'] as const;
 
+/** SPY and the Select Sector SPDRs, for the sector rotation table (stored by the bars job). */
+export const ROTATION_TICKERS = ['SPY', ...SECTOR_ETFS.map((s) => s.ticker)] as const;
+
+/** Enough closes for the longest rotation window (63 sessions) plus a few missing days. */
+const ROTATION_LIMIT = SECTOR_ROTATION_WINDOWS.m3 + 7;
+
 const n = (v: unknown): number => Number(v);
 
 async function recentBars(ticker: string): Promise<Obs[]> {
@@ -129,6 +139,19 @@ async function recentBars(ticker: string): Promise<Obs[]> {
     `daily_bars ${ticker}`,
   ) as Record<string, unknown>[];
   return rows.map((r) => ({ date: String(r['date']), value: n(r['close']) })).reverse();
+}
+
+async function rotationBars(ticker: string): Promise<CloseBar[]> {
+  const rows = check(
+    await client()
+      .from('daily_bars')
+      .select('date, close')
+      .eq('ticker', ticker)
+      .order('date', { ascending: false })
+      .limit(ROTATION_LIMIT),
+    `daily_bars ${ticker}`,
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({ date: String(r['date']), close: n(r['close']) })).reverse();
 }
 
 async function recent(seriesId: string): Promise<Obs[]> {
@@ -282,10 +305,15 @@ export async function loadRegime(): Promise<RegimeData> {
         dataTo: String(r['data_to']),
       }))
     : [];
-  const [topicsR, ...barLists] = await Promise.all([
-    client().from('news_topic_days').select('*').order('date', { ascending: false }).limit(40),
-    ...PANEL_BARS.map((t) => recentBars(t)),
+  const [[topicsR, ...barLists], rotationLists] = await Promise.all([
+    Promise.all([
+      client().from('news_topic_days').select('*').order('date', { ascending: false }).limit(40),
+      ...PANEL_BARS.map((t) => recentBars(t)),
+    ]),
+    Promise.all(ROTATION_TICKERS.map((t) => rotationBars(t))),
   ]);
+  const sectorBars: Record<string, CloseBar[]> = {};
+  ROTATION_TICKERS.forEach((t, i) => (sectorBars[t] = rotationLists[i] ?? []));
   const topics: TopicDay[] = (
     check(topicsR as never, 'news_topic_days') as Record<string, unknown>[]
   )
@@ -299,5 +327,5 @@ export async function loadRegime(): Promise<RegimeData> {
     .reverse();
   const bars: Record<string, Obs[]> = {};
   PANEL_BARS.forEach((t, i) => (bars[t] = (barLists[i] as Obs[] | undefined) ?? []));
-  return { days, breadth, stats, series, gpr, fearGreed, capitulation, topics, bars };
+  return { days, breadth, stats, series, gpr, fearGreed, capitulation, topics, bars, sectorBars };
 }

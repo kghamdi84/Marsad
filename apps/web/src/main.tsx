@@ -10,6 +10,7 @@ import { Panel } from './components/ui';
 import { router } from './router';
 import { t } from './strings';
 import { EOD_STALE_MS } from './lib/refresh';
+import { DisplayProvider, applyStoredDisplay } from './lib/display';
 
 const queryClient = new QueryClient({
   // End-of-day data stays fresh for 30 minutes (ADR 0042); quotes set their own market-hours poll.
@@ -42,10 +43,15 @@ function App() {
   }
 }
 
+// Theme and direction before the first paint, so nothing flashes in the wrong colours.
+applyStoredDisplay();
+
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('Missing #root element');
 createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <DisplayProvider>
+      <App />
+    </DisplayProvider>
   </StrictMode>,
 );

@@ -3,8 +3,12 @@ import { formatFactValue, type Metric } from '@marsad/core';
 import { cardClass } from '../Card';
 import { t } from '../../strings';
 
-/** The title style every Study panel shares. */
-export const panelTitle = 'text-[17px] font-semibold text-white';
+/** The title style every Study panel inside the company details card shares (v2: 14 px, 600). */
+export const panelTitle = 'text-sm font-semibold text-ink';
+
+/** A panel inside the company details card: the v2 inner tile (elevated, 10 px radius, 16 px padding). */
+export const tileClass =
+  'flex min-w-0 flex-col gap-3 rounded-[10px] border border-line bg-elev p-4';
 
 /** A pulsing placeholder while a panel loads; the text says Loading for screen readers. */
 export function LoadingBar() {
@@ -13,11 +17,11 @@ export function LoadingBar() {
       <span className="sr-only">{t.loading}</span>
       <span
         aria-hidden="true"
-        className="h-4 w-2/5 animate-pulse rounded-md bg-muted/15 motion-reduce:animate-none"
+        className="h-4 w-2/5 animate-pulse rounded-md bg-sub motion-reduce:animate-none"
       />
       <span
         aria-hidden="true"
-        className="h-16 animate-pulse rounded-lg bg-muted/10 motion-reduce:animate-none"
+        className="h-16 animate-pulse rounded-lg bg-sub motion-reduce:animate-none"
       />
     </div>
   );
@@ -34,21 +38,29 @@ export function PanelShell({
   id,
   title,
   state,
+  aside,
+  card = false,
   children,
 }: {
   id: string;
   title: string;
   state: { isPending: boolean; isError: boolean; error: Error | null };
+  aside?: ReactNode;
+  /** A page-level card (v2 surface, 16 px title) rather than a tile inside the company details card. */
+  card?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className={`${cardClass} gap-3!`}>
-      <h2 id={id} className={panelTitle}>
-        {title}
-      </h2>
+    <section aria-labelledby={id} className={card ? cardClass : tileClass}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={id} className={card ? 'text-base font-semibold text-ink' : panelTitle}>
+          {title}
+        </h2>
+        {aside}
+      </div>
       {state.isPending && <LoadingBar />}
       {state.isError && (
-        <p role="alert" className="text-down">
+        <p role="alert" className="text-crit">
           {t.study.panelError(title, state.error?.message ?? '')}
         </p>
       )}

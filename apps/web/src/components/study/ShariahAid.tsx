@@ -5,10 +5,12 @@ import { shariahAsOf } from '../../lib/shariah';
 import { loadFacts } from '../../lib/studyPanels';
 import { t } from '../../strings';
 import { PanelShell } from './Panel';
+import { BarRow, Num, Pill } from '../ui/kit';
 
 /** The Shariah screening aid on its own tab: each ratio against its limit, with every caveat. Off until switched on in Status. */
 export function ShariahAid({ cik, bars }: { cik: string; bars: readonly DailyBar[] }) {
   const x = t.study.shariah;
+  const ui = t.study.ui;
   const q = useQuery({ queryKey: ['facts', cik], queryFn: () => loadFacts(cik) });
   const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
   const sh = prefs.data?.shariah;
@@ -16,39 +18,54 @@ export function ShariahAid({ cik, bars }: { cik: string; bars: readonly DailyBar
   return (
     <PanelShell id="shariah" title={x.title} state={q}>
       {!sh?.enabled ? (
-        <p className="text-sm text-muted">{x.off}</p>
+        <p className="text-sm text-ink3">{x.off}</p>
       ) : !screen ? (
-        <p className="text-sm text-muted">{x.noBalance}</p>
+        <p className="text-sm text-ink3">{x.noBalance}</p>
       ) : (
         <div className="flex flex-col gap-3 text-sm">
-          <p className="text-muted">{x.basis(screen.basis)}</p>
-          {screen.ratios.map((r) => {
-            const frac = r.value === null ? 0 : Math.min(1, r.value / r.max);
-            return (
-              <div key={r.name} className="flex flex-col gap-1">
-                <p>
-                  {x.ratio(
-                    r.name,
-                    r.value === null ? x.unknown : `${toFixedHalfUp(r.value * 100, 1)}%`,
-                    `${toFixedHalfUp(r.max * 100, 1)}%`,
-                    r.pass === null ? x.unknown : r.pass ? x.pass : x.fail,
-                  )}
-                </p>
-                <div aria-hidden="true" className="relative h-2 rounded-full bg-faint/20">
-                  <span
-                    className={`absolute inset-y-0 start-0 rounded-full ${r.pass === false ? 'bg-down' : 'bg-up'}`}
-                    style={{ width: `${toFixedHalfUp(frac * 100, 1)}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-          <p className="font-medium">{x.verdict[screen.verdict]}</p>
-          <ul className="list-disc ps-5 text-xs text-muted">
-            {screen.caveats.map((c) => (
-              <li key={c}>{c}</li>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Pill
+              tone={
+                screen.verdict === 'passes-ratios'
+                  ? 'up'
+                  : screen.verdict === 'fails-ratios'
+                    ? 'down'
+                    : 'neutral'
+              }
+              className="font-semibold"
+            >
+              {x.verdict[screen.verdict]}
+            </Pill>
+            <span className="text-xs text-ink3">{x.basis(screen.basis)}</span>
+          </div>
+          <div className="flex flex-col gap-4">
+            {screen.ratios.map((r) => (
+              <BarRow
+                key={r.name}
+                label={ui.shariahRatioName[r.name] ?? r.name}
+                value={
+                  <Num>{r.value === null ? x.unknown : `${toFixedHalfUp(r.value * 100, 1)}%`}</Num>
+                }
+                width={r.value === null ? 0 : r.value * 100}
+                limit={r.max * 100}
+                barClass={r.pass === false ? 'bg-down' : 'bg-up'}
+                note={x.ratio(
+                  r.name,
+                  r.value === null ? x.unknown : `${toFixedHalfUp(r.value * 100, 1)}%`,
+                  `${toFixedHalfUp(r.max * 100, 1)}%`,
+                  r.pass === null ? x.unknown : r.pass ? x.pass : x.fail,
+                )}
+              />
             ))}
-          </ul>
+          </div>
+          <p className="text-xs text-ink3">{ui.shariahLimitTick}</p>
+          <div className="rounded-[10px] bg-warn-soft p-3.5 text-[13px] leading-relaxed text-ink">
+            <ul className="list-disc ps-5">
+              {screen.caveats.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </PanelShell>

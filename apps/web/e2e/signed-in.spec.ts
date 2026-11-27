@@ -62,7 +62,10 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   );
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto('/status');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('sources healthy');
+  await expect(page.getByRole('heading', { level: 1, name: 'Status' })).toBeVisible();
+  // A source that never reported is not healthy: the pill counts it out.
+  await expect(page.getByText('0 of 1 sources healthy')).toBeVisible();
+  await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
   await expect(page.getByText('FRED (St. Louis Fed)').first()).toBeVisible();
   // An alert shows its event in words, what happened and which rules it paused.
   await expect(page.getByText('Stale', { exact: true }).last()).toBeVisible();
@@ -146,7 +149,10 @@ test('the status page shows alert latency by kind and lets the owner save a week
   await expect(row).toContainText('5');
   await expect(row).toContainText('3s');
   await expect(row).toContainText('8s');
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: '2026-11-29: trades.json' }).click();
   expect((await download).suggestedFilename()).toBe('marsad-2026-11-29-trades.json');
@@ -170,8 +176,11 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
   });
   await page.goto('/status');
   // Setup forms sit under Settings (council batch 2).
-  await page.getByRole('tab', { name: 'Settings' }).click();
-  const form = page.getByRole('form', { name: 'Preferences' });
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
+  const form = page.getByRole('form', { name: 'Shariah screening aid' });
   const toggle = form.getByRole('switch', { name: 'Shariah screening aid' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await toggle.click();
@@ -225,10 +234,11 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   await page.goto('/status');
   await expect(page.getByRole('listitem').filter({ hasText: 'Supabase' })).toContainText('$0.00');
   await expect(
-    page.getByText('AI is off: set daily and monthly caps in Preferences to turn it on'),
+    page.getByText('AI is off: set daily and monthly caps in Settings to turn it on'),
   ).toBeVisible();
   // 90 s rounds up to 2 minutes, 2 s to 1: at least 3 minutes over 2 runs.
-  await expect(page.getByText('about 3 minutes \u00B7 2 runs this month')).toBeVisible();
+  await expect(page.getByText('About 3 minutes', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^2 runs this month/)).toBeVisible();
 
   caps = [{ ai_daily_cap_usd: 100, ai_monthly_cap_usd: 5, shariah_screen: false }];
   await page.reload();
@@ -238,9 +248,12 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   // The monthly bar shows the same 90% against its 80% warning tick.
   await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
   await expect(page.getByText('90% of the cap')).toBeVisible();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   // A settings row without stored limits falls back to the defaults, never "NaN".
-  const prefs = page.getByRole('form', { name: 'Preferences' });
+  const prefs = page.getByRole('form', { name: 'Shariah screening aid' });
   await expect(prefs.getByLabel('Debt limit (%)')).toHaveValue('33');
   await expect(prefs.getByLabel('Cash and interest-bearing limit (%)')).toHaveValue('33');
 });
@@ -307,7 +320,10 @@ test('status: the quote source is one choice of two, Massive by default, saved a
   });
   await page.goto('/status');
   // Setup forms sit under Settings (council batch 2).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   const card = page.getByRole('region', { name: 'Quote source' });
   const massive = card.getByRole('radio', { name: /Massive \(default\)/ });
   const tauric = card.getByRole('radio', { name: /Tauric/ });

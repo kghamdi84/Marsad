@@ -2,7 +2,29 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (council batches 1 to 5 and leftovers).
+Last updated 2026-11-27 (Marsad v2 redesign).
+
+### Marsad v2 redesign (2026-11-27, PR #76)
+
+- Built from the Claude Design handoff "Marsad v2" (Khaled: "full implement").
+- **Foundation (ADR 0045).** Navy and Daylight themes as CSS variables. Arabic and right-to-left for navigation, page titles and notices; numbers keep their order. A second time zone. Display choices are kept on the device. v2 header with all eight pages, plus the session and clock chip and the footer notice. Shared v2 components live in `components/ui/kit.tsx`.
+- **New route `/settings`.** Display, Notifications, Shariah aid, AI caps, Security, quote source and exports. The forms moved here from Status.
+- **Pages rebuilt to the v2 layout.** Watch (cockpit, 9-item strip, watchlist, news, calendar, sectors), Study, Regime ("Why this label", event study, rotation), Alerts (list and detail split), Journal (KPI tiles, five sections), Lab (stage counts, list and detail), Status (sources grid, job strips, costs).
+- **New core functions, each with known-answer tests.**
+  - Watch news ranking: `impact-1`.
+  - Regime sector rotation against SPY: `sector-rotation-1`.
+  - Study snapshot: `snapshot-1`.
+  - Lab rule text: `rule-text-1`.
+  - Alerts gap to stop: `gapToStop`.
+  - Journal review-week SPY return: `weekReturn`.
+- **Shown as unavailable rather than invented.**
+  - Realtime news and the "New" tag: needs `news_articles` and `filings` in the realtime publication, a migration.
+  - "Price move since" in the impact score: Marsad stores end-of-day prices only.
+  - Put/call: needs an options data plan.
+  - Quiet hours and the daily push cap: need a column and a job change.
+  - Holding horizon (Long term or Swing): not stored.
+  - The weekly Portfolio tile: needs stored daily portfolio values.
+- **Checks.** Prettier, tsc and ESLint are clean. Unit tests: 1,108 passed. Playwright: 186 passed, 11 skipped, plus a test that loads every page in Daylight and Arabic with no sideways scroll and passes the axe scan.
 
 ### PR #74 merged; weekly review tiles (2026-11-27)
 

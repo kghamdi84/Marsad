@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { Info } from '../components/Info';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Ban, ChevronDown, Clock, Lock } from 'lucide-react';
-import { Tabs, cardClass } from '../components/Card';
-import { LEFT_OUT, PLAYBOOKS, toFixedHalfUp, type Playbook } from '@marsad/core';
+import { LEFT_OUT, PLAYBOOKS, ruleLines, toFixedHalfUp, type Playbook } from '@marsad/core';
+import { Info } from '../components/Info';
+import { Card, Tile, cardClass, useWide } from '../components/Card';
+import { Num, PageTitle } from '../components/ui/kit';
 import { loadLab, type LabRule, type LabRun } from '../lib/lab';
 import { t } from '../strings';
 
 const l = t.lab;
-const pct = (v: number) => `${v > 0 ? '+' : ''}${toFixedHalfUp(v * 100, 2)}%`;
+const v = t.lab.v2;
+const pct = (x: number) => `${x > 0 ? '+' : ''}${toFixedHalfUp(x * 100, 2)}%`;
 
 type EquityPoints = NonNullable<NonNullable<LabRun['report']['outOfSample']>['equity']>;
 
@@ -24,13 +25,13 @@ function EquityChart({ points }: { points: EquityPoints }) {
   const W = 320;
   const H = 96;
   const x = (i: number) => (i / (points.length - 1)) * W;
-  const y = (v: number) => H - ((v - lo) / span) * H;
+  const y = (e: number) => H - ((e - lo) / span) * H;
   const path = points.map((p, i) => `${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ');
-  const fmt = (v: number) => toFixedHalfUp(v, 2);
+  const fmt = (e: number) => toFixedHalfUp(e, 2);
   const low = Math.min(...values);
   return (
-    <figure className="flex flex-col gap-1">
-      <figcaption className="text-xs font-semibold text-fg">{l.equityTitle}</figcaption>
+    <figure className="flex flex-col gap-1 rounded-[10px] border border-line bg-elev p-3.5">
+      <figcaption className="text-sm font-semibold text-ink">{l.equityTitle}</figcaption>
       <svg
         role="img"
         aria-label={l.equityAria(points.length, first.date, last.date, fmt(last.equity), fmt(low))}
@@ -43,9 +44,10 @@ function EquityChart({ points }: { points: EquityPoints }) {
           x2={W}
           y1={y(1)}
           y2={y(1)}
-          className="stroke-faint"
+          className="stroke-ink3"
           strokeDasharray="3 3"
           strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
         />
         <polyline
           points={path}
@@ -55,29 +57,119 @@ function EquityChart({ points }: { points: EquityPoints }) {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      <p className="text-xs text-muted" aria-hidden="true">
-        {first.date} to {last.date} {'\u00B7'} {l.equitySummary(fmt(last.equity), fmt(low))}
+      <p className="text-xs text-ink3" aria-hidden="true">
+        <Num>
+          {first.date} to {last.date}
+        </Num>{' '}
+        {'·'} {l.equitySummary(fmt(last.equity), fmt(low))}
       </p>
       <Info>{l.equityNote}</Info>
     </figure>
   );
 }
 
-function RunSummary({ run }: { run: LabRun }) {
-  const o = run.report.outOfSample;
-  const c = run.params.costs;
+type Stage = 'notTestable' | 'notRun' | 'draft' | 'backtested' | 'shadow' | 'live' | 'demoted';
+const STAGES: Stage[] = [
+  'notTestable',
+  'notRun',
+  'draft',
+  'backtested',
+  'shadow',
+  'live',
+  'demoted',
+];
+/** Stage pills: the words carry the stage; the tint only repeats it. */
+const PILL: Record<Stage, string> = {
+  notTestable: 'bg-sub text-ink3',
+  notRun: 'bg-sub text-ink2',
+  draft: 'bg-warn-soft text-warn',
+  backtested: 'bg-up-soft text-up',
+  shadow: 'bg-up-soft text-up',
+  live: 'bg-accent text-accent-ink',
+  demoted: 'bg-down-soft text-down',
+};
+
+function stageOf(p: Playbook, rule?: LabRule): Stage {
+  if (p.notTestableBecause) return 'notTestable';
+  const s = rule?.status;
+  return s === 'draft' || s === 'backtested' || s === 'shadow' || s === 'live' || s === 'demoted'
+    ? s
+    : 'notRun';
+}
+
+function StagePill({ stage }: { stage: Stage }) {
   return (
-    <div className="flex flex-col gap-1 text-sm">
-      <p>
-        {l.lastRun(
-          run.createdAt.slice(0, 16).replace('T', ' ') + ' UTC',
-          (run.params.tickers ?? []).join(', '),
-        )}
-      </p>
+    <span
+      className={`inline-flex flex-none items-center rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${PILL[stage]}`}
+    >
+      {l.stage[stage]}
+    </span>
+  );
+}
+
+const day = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getUTCDate()} ${l.ui.months[d.getUTCMonth()] ?? ''} ${d.getUTCFullYear()}`;
+};
+const num2 = (n: number) => String(n).padStart(2, '0');
+const horizonOf = (p: Playbook) => l.horizon[p.horizon] ?? p.horizon;
+const ratingOf = (p: Playbook) => l.rating[p.rating] ?? p.rating;
+
+/** The gate as the main visual: out-of-sample trades against the 30 needed, one tick each. */
+function Gate({ run }: { run: LabRun }) {
+  const o = run.report.outOfSample;
+  if (!o) return null;
+  const n = o.stats.n;
+  const insufficient = !o.stats.sufficient;
+  const head = insufficient
+    ? l.ui.insufficientHistory
+    : run.report.gate
+      ? run.report.gate.ok
+        ? v.gatePassed
+        : v.gateNotPassed
+      : v.oosTrades;
+  return (
+    <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-elev p-3.5">
+      <span className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-ink">{head}</span>
+        <span className="text-lg font-semibold text-ink tabular-nums">
+          {n < 30 ? v.ofThirty(n) : n}{' '}
+          <span className="text-xs font-normal text-ink3">
+            {n < 30 ? v.outOfSample : v.outOfSampleMet}
+          </span>
+        </span>
+      </span>
+      <span aria-hidden="true" className="flex gap-0.5">
+        {Array.from({ length: 30 }, (_, i) => (
+          <span key={i} className={`h-3.5 flex-1 rounded-[2px] ${i < n ? 'bg-up' : 'bg-sub'}`} />
+        ))}
+      </span>
+      <span className="text-xs text-ink3">
+        {l.ui.lastRunDate(day(run.createdAt), run.report.trades ?? 0, n)}.{' '}
+        {o.equity ? '' : v.noCurve}
+      </span>
+      {insufficient && <p className="sr-only">{l.insufficient(n)}</p>}
+    </div>
+  );
+}
+
+/** Interval, win rate, drawdown and benchmark: only from 30 out-of-sample trades up (no percentage below). */
+function RunStats({ run }: { run: LabRun }) {
+  const o = run.report.outOfSample;
+  return (
+    <div className="flex flex-col gap-1 text-sm text-ink2">
+      {run.params.tickers && run.params.tickers.length > 0 && (
+        <p>
+          {l.lastRun(
+            run.createdAt.slice(0, 16).replace('T', ' ') + ' UTC',
+            run.params.tickers.join(', '),
+          )}
+        </p>
+      )}
       {o && <p>{l.trades(run.report.trades ?? 0, o.stats.n)}</p>}
-      {o && o.stats.sufficient && o.expectancy.value !== null && o.expectancy.ci90 ? (
+      {o && o.stats.sufficient && o.expectancy.value !== null && o.expectancy.ci90 && (
         <>
-          <p>
+          <p className="font-semibold text-ink">
             {l.expectancy(
               pct(o.expectancy.value),
               pct(o.expectancy.ci90.low),
@@ -91,319 +183,239 @@ function RunSummary({ run }: { run: LabRun }) {
             <p>{l.drawdown(pct(o.stats.maxDrawdown), pct(o.monteCarlo.worst5))}</p>
           )}
         </>
-      ) : (
-        o && <p className="text-muted">{l.insufficient(o.stats.n)}</p>
       )}
       {o?.benchmark && <p>{l.benchmark(o.benchmark.ticker, pct(o.benchmark.ret))}</p>}
-      {o?.equity && <EquityChart points={o.equity} />}
       {run.report.gate && <p>{l.gate(run.report.gate.reason)}</p>}
-      {c && (
-        <p className="text-xs text-muted">{l.costs(c.commissionBps, c.slippageBps, c.fxBps)}</p>
-      )}
     </div>
   );
 }
 
-const EVIDENCE: Record<string, number> = {
-  weak: 1,
-  'weak-to-moderate': 2,
-  moderate: 3,
-  strong: 4,
-};
-
-type Stage = 'notTestable' | 'notRun' | 'draft' | 'backtested' | 'shadow' | 'live' | 'demoted';
-const STAGES: Stage[] = [
-  'notTestable',
-  'notRun',
-  'draft',
-  'backtested',
-  'shadow',
-  'live',
-  'demoted',
-];
-const BADGE: Record<Stage, string> = {
-  notTestable: 'bg-muted/15 text-muted',
-  notRun: 'bg-muted/15 text-fg',
-  draft: 'bg-muted/20 text-white',
-  backtested: 'bg-up/15 text-up',
-  shadow: 'bg-warn/15 text-warn',
-  live: 'bg-ink text-white',
-  demoted: 'bg-down/15 text-down',
-};
-const COUNT_TONE: Record<Stage, string> = {
-  notTestable: 'text-muted',
-  notRun: 'text-fg',
-  draft: 'text-white',
-  backtested: 'text-up',
-  shadow: 'text-warn',
-  live: 'text-up',
-  demoted: 'text-down',
-};
-
-/** The design's stepper: the lifecycle stages, in order. */
-const LIFECYCLE: Stage[] = ['draft', 'backtested', 'shadow', 'live', 'demoted'];
-
-function stageOf(p: Playbook, rule?: LabRule): Stage {
-  if (p.notTestableBecause) return 'notTestable';
-  const s = rule?.status;
-  return s === 'draft' || s === 'backtested' || s === 'shadow' || s === 'live' || s === 'demoted'
-    ? s
-    : 'notRun';
+/** Costs, walk-forward, holdout and trials, each from the stored run; "Not recorded" when the row lacks it. */
+function Facts({ run }: { run?: LabRun }) {
+  if (!run) return <Tile label={l.ui.trialsCounted} value="0" note={v.noRunTrials} />;
+  const c = run.params.costs;
+  const f = run.params.folds;
+  const h = run.params.holdoutFraction;
+  return (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] gap-2.5">
+      {c ? (
+        <Tile
+          label={l.ui.costsPerSide}
+          value={v.costsValue(c.commissionBps + c.slippageBps + c.fxBps)}
+          note={v.costsSub(c.commissionBps, c.slippageBps, c.fxBps)}
+        />
+      ) : (
+        <Tile label={l.ui.costsPerSide} value={v.notRecorded} note={v.notRecordedSub} />
+      )}
+      <Tile
+        label={v.walkForward}
+        value={typeof f === 'number' ? v.walkValue(f) : v.notRecorded}
+        note={typeof f === 'number' ? v.walkSub : v.notRecordedSub}
+      />
+      <Tile
+        label={v.holdout}
+        value={typeof h === 'number' ? v.holdoutValue(toFixedHalfUp(h * 100, 0)) : v.notRecorded}
+        note={typeof h === 'number' ? v.holdoutSub : v.notRecordedSub}
+      />
+      <Tile
+        label={l.ui.trialsCounted}
+        value={run.trials === null ? v.notRecorded : String(run.trials)}
+        {...(run.trials === null ? { note: v.notRecordedSub } : {})}
+      />
+    </div>
+  );
 }
 
-const day = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getUTCDate()} ${l.ui.months[d.getUTCMonth()] ?? ''} ${d.getUTCFullYear()}`;
-};
-
-function PlaybookCard({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabRun }) {
-  const [open, setOpen] = useState(false);
-  const level = EVIDENCE[p.rating] ?? 0;
+function Detail({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabRun }) {
   const o = run?.report.outOfSample;
-  const c = run?.params.costs;
-  const insufficient = !!run && !!o && !o.stats.sufficient;
-  const oos = o?.stats.n ?? 0;
-  const bodyId = `lab-more-${p.number}`;
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-[18px]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <span className="text-sm font-bold text-faint">{String(p.number).padStart(2, '0')}</span>
-          <h2 className="text-base leading-[1.3] font-semibold text-white">{p.title}</h2>
-        </div>
-        <span
-          className={`flex-none rounded-full px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap ${BADGE[stage]}`}
-        >
-          {l.stage[stage]}
+    <section aria-labelledby="lab-detail-h" className="flex min-w-0 flex-col gap-3.5">
+      <div className="flex flex-col gap-1.5">
+        <span className="flex flex-wrap items-center gap-2 text-xs text-ink3">
+          {v.detailMeta(num2(p.number), horizonOf(p), ratingOf(p))}
+          <StagePill stage={stage} />
         </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-3.5">
-        <span className="flex flex-col gap-1">
-          <span className="text-[11px] text-muted">
-            {l.ui.evidenceDot(l.rating[p.rating] ?? p.rating)}
-          </span>
-          <span aria-hidden="true" className="flex gap-[3px]">
-            {[1, 2, 3, 4].map((i) => (
-              <span
-                key={i}
-                className={`h-1.5 w-[22px] rounded-[3px] ${i <= level ? 'bg-up' : 'bg-faint/25'}`}
-              />
-            ))}
-          </span>
-        </span>
-        <span className="rounded-md bg-raised px-2 py-[3px] text-xs">
-          {l.horizon[p.horizon] ?? p.horizon}
-        </span>
-      </div>
-      <p className="sr-only">
-        {l.meta(
-          p.number,
-          l.rating[p.rating] ?? p.rating,
-          l.horizon[p.horizon] ?? p.horizon,
-          l.stage[stage] ?? stage,
-        )}
-      </p>
-      <p className="hidden text-sm leading-[1.45] text-pretty text-fg tablet:block">{p.summary}</p>
-      {run && o ? (
-        <div className="flex flex-col gap-1.5 rounded-[10px] bg-bg p-3">
-          {insufficient ? (
-            <>
-              <div className="flex justify-between gap-2 text-[13px]">
-                <span className="font-semibold">{l.ui.insufficientHistory}</span>
-                <span>{l.ui.oosOf30(oos)}</span>
-              </div>
-              <div aria-hidden="true" className="flex gap-0.5">
-                {Array.from({ length: 30 }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`h-3.5 flex-1 rounded-[2px] ${i < oos ? 'bg-up' : 'bg-faint/20'}`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-muted">
-                {l.ui.lastRunDate(day(run.createdAt), run.report.trades ?? 0, oos)}
-              </span>
-              <p className="sr-only">{l.insufficient(oos)}</p>
-            </>
-          ) : (
-            <RunSummary run={run} />
-          )}
-        </div>
-      ) : stage === 'notRun' ? (
-        <p className="flex items-center gap-2.5 rounded-[10px] bg-bg p-3 text-[13px] text-fg">
-          <Clock aria-hidden="true" size={16} className="flex-none" />
-          {l.ui.queued}
+        <h2 id="lab-detail-h" className="text-xl leading-[1.3] font-semibold text-ink">
+          {p.title}
+        </h2>
+        <p className="text-sm leading-[1.55] text-ink2">{p.summary}</p>
+        <p className="sr-only">
+          {l.meta(p.number, ratingOf(p), horizonOf(p), l.stage[stage] ?? '')}
         </p>
-      ) : null}
-      {p.notTestableBecause && (
-        <p className="flex gap-2.5 rounded-[10px] border border-dashed border-muted/40 p-3 text-[13px] leading-[1.4] text-fg">
-          <Lock aria-hidden="true" size={16} className="mt-0.5 flex-none" />
-          <span>{p.notTestableBecause}</span>
+      </div>
+      {run && <Gate run={run} />}
+      {run && <RunStats run={run} />}
+      {o?.equity && <EquityChart points={o.equity} />}
+      {p.notTestableBecause ? (
+        <p className="rounded-[10px] border border-dashed border-line-strong p-3.5 text-sm leading-normal text-ink2">
+          {l.notTestable(p.notTestableBecause)}
         </p>
+      ) : (
+        !run && (
+          <p className="rounded-[10px] border border-dashed border-line-strong p-3.5 text-sm leading-normal text-ink2">
+            {l.ui.queued}
+          </p>
+        )
       )}
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={bodyId}
-        onClick={() => setOpen((v) => !v)}
-        className="flex min-h-11 items-center gap-1.5 self-start text-sm text-up"
-      >
-        {open ? l.ui.hideDetails : l.ui.showDetails}
-        <ChevronDown aria-hidden="true" size={14} className={open ? 'rotate-180' : ''} />
-      </button>
-      {open && (
-        <div id={bodyId} className="flex flex-col gap-2.5 border-t border-line pt-2.5 text-[13px]">
-          <p className="text-sm leading-[1.45] text-fg tablet:hidden">{p.summary}</p>
-          {run && (
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                ...(c
-                  ? [[l.ui.costsPerSide, l.ui.costsValue(c.commissionBps, c.slippageBps, c.fxBps)]]
-                  : []),
-                [l.ui.trialsCounted, '1'],
-              ].map(([k, v]) => (
-                <div key={k} className="flex flex-col gap-0.5 rounded-lg bg-bg px-2.5 py-2">
-                  <span className="text-[11px] text-muted">{k}</span>
-                  <span className="text-[13px] font-semibold">{v}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {p.rule && (
-            <code className="rounded-lg bg-bg px-3 py-2.5 font-mono text-xs whitespace-pre-wrap text-fg">
+      {p.rule && (
+        <>
+          <code className="rounded-lg border border-line bg-canvas p-3 font-mono text-xs leading-normal whitespace-pre-wrap text-ink2">
+            {[
+              ...ruleLines(p.rule),
+              ...(p.testOn.length ? [`test on: ${p.testOn.join(', ')}`] : []),
+            ].join('\n')}
+          </code>
+          <details className="group rounded-lg border border-line">
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 text-[13px] text-ink3 select-none">
+              {v.ruleJson}
+            </summary>
+            <code className="block border-t border-line p-3 font-mono text-xs whitespace-pre-wrap text-ink2">
               {JSON.stringify(p.rule, null, 2)}
             </code>
-          )}
-          <span className="text-xs text-muted">{l.sources}</span>
-          {p.sources.map((src) => (
-            <span key={src} className="text-xs leading-[1.4]">
-              {src}
-            </span>
-          ))}
-          {p.testOn.length > 0 && (
-            <span className="text-xs text-muted">{l.ui.testedOn(p.testOn.join(', '))}</span>
-          )}
-        </div>
+          </details>
+        </>
       )}
-    </li>
+      {!p.notTestableBecause && <Facts {...(run ? { run } : {})} />}
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-ink3">{l.sources}</span>
+        <ul className="flex flex-col">
+          {p.sources.map((src) => (
+            <li key={src} className="border-t border-line py-1.5 text-[13px] text-ink2">
+              {src}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
 export function Lab() {
   const q = useQuery({ queryKey: ['lab'], queryFn: loadLab });
+  const wide = useWide();
   const [filter, setFilter] = useState<Stage | null>(null);
-  const [kind, setKind] = useState<'all' | 'testable' | 'notTestable'>('all');
+  const [picked, setPicked] = useState<string>(PLAYBOOKS[0]?.id ?? '');
+  const detailRef = useRef<HTMLDivElement>(null);
   const ruleOf = (id: string) => q.data?.rules.find((r) => r.id === id);
   const runOf = (id: string) => q.data?.runs.find((r) => r.ruleId === id);
   const stages = PLAYBOOKS.map((p) => stageOf(p, ruleOf(p.id)));
   const counts = Object.fromEntries(
     STAGES.map((k) => [k, stages.filter((x) => x === k).length]),
   ) as Record<Stage, number>;
+  const shown = PLAYBOOKS.map((p, i) => ({ p, stage: stages[i] as Stage })).filter(
+    (x) => !filter || x.stage === filter,
+  );
+  const sel = PLAYBOOKS.findIndex((p) => p.id === picked);
+  const selP = PLAYBOOKS[sel] ?? PLAYBOOKS[0];
+  const selRun = selP ? runOf(selP.id) : undefined;
+  const pick = (id: string) => {
+    setPicked(id);
+    // One column on a phone: bring the detail into view under the list.
+    if (!wide)
+      requestAnimationFrame(() =>
+        detailRef.current?.scrollIntoView({
+          block: 'start',
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
+        }),
+      );
+  };
   return (
-    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        {/* On a phone the top bar shows the page title, and the design has no intro line. */}
-        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{l.title}</h1>
-        <p className="hidden text-[13px] text-muted tablet:block">{l.intro(PLAYBOOKS.length)}</p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageTitle page="lab" />
       {q.isError && (
-        <p role="alert" className="text-down">
+        <p role="alert" className="text-crit">
           {q.error.message}
         </p>
       )}
-      <section
-        aria-label={l.ui.lifecycle}
-        className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface px-3 py-3.5 tablet:hidden"
-      >
-        <ol className="flex items-start">
-          {LIFECYCLE.map((k, i) => (
-            <li key={k} className="relative flex min-w-0 flex-1 flex-col items-center gap-1">
-              {i < LIFECYCLE.length - 1 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute start-1/2 top-[15px] h-0.5 w-full bg-muted/30"
-                />
-              )}
-              <span
-                className={`relative grid size-8 place-items-center rounded-full border-2 text-sm font-bold ${
-                  counts[k] ? 'border-up bg-ink text-white' : 'border-muted/40 bg-bg text-muted'
-                }`}
-              >
-                {counts[k]}
-              </span>
-              <span className="max-w-full truncate text-center text-xs text-fg">{l.stage[k]}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="text-[13px] leading-snug text-muted">
-          {l.ui.outside(counts.notTestable, counts.notRun)}
-        </p>
-      </section>
-      <div className="tablet:hidden">
-        <Tabs
-          pill
-          label={l.ui.filterLabel}
-          idPrefix="lab-kind"
-          options={[
-            { key: 'all' as const, label: l.ui.filterAll(PLAYBOOKS.length) },
-            {
-              key: 'testable' as const,
-              label: l.ui.filterTestable(PLAYBOOKS.length - counts.notTestable),
-            },
-            { key: 'notTestable' as const, label: l.ui.filterNot(counts.notTestable) },
-          ]}
-          value={kind}
-          onChange={setKind}
-        >
-          {null}
-        </Tabs>
-      </div>
-      <section aria-label={l.ui.lifecycle} className={`${cardClass} hidden gap-3! tablet:flex`}>
-        <div className="flex items-stretch gap-1.5 overflow-x-auto">
+      <section aria-label={v.counts} className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,110px),1fr))] gap-2">
           {STAGES.map((k) => (
             <button
               key={k}
               type="button"
               aria-pressed={filter === k}
               onClick={() => setFilter((f) => (f === k ? null : k))}
-              className={`flex min-h-16 flex-[1_0_92px] flex-col items-start gap-0.5 rounded-[10px] border-2 px-2.5 py-2 text-start text-white ${
-                filter === k ? 'border-up bg-raised' : 'border-transparent bg-bg'
+              className={`flex min-h-11 flex-col items-center gap-0.5 rounded-xl border bg-surface p-3 text-center ${
+                filter === k ? 'border-ink3 bg-elev' : 'border-line'
               }`}
             >
-              <span className={`text-[22px] font-bold ${COUNT_TONE[k]}`}>{counts[k]}</span>
-              <span className="text-xs whitespace-nowrap text-fg">{l.stage[k]}</span>
+              <span className="text-xs text-ink3">{v.count[k]}</span>
+              <span
+                className={`text-xl font-semibold tabular-nums ${counts[k] ? 'text-ink' : 'text-ink3'}`}
+              >
+                {counts[k]}
+              </span>
             </button>
           ))}
         </div>
-        <Info>{l.ui.gateNote}</Info>
+        <div className="flex flex-wrap items-center justify-between gap-x-3">
+          <p role="status" className="text-xs text-ink3">
+            {filter ? v.showingStage(l.stage[filter] ?? filter) : v.showingAll}
+          </p>
+          <Info>{l.ui.gateNote}</Info>
+        </div>
       </section>
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] items-start gap-3">
-        {PLAYBOOKS.map((p, i) => {
-          if (filter && stages[i] !== filter) return null;
-          if (kind === 'testable' && stages[i] === 'notTestable') return null;
-          if (kind === 'notTestable' && stages[i] !== 'notTestable') return null;
-          const run = runOf(p.id);
-          return (
-            <PlaybookCard key={p.id} p={p} stage={stages[i] as Stage} {...(run ? { run } : {})} />
-          );
-        })}
-      </ul>
-      <section aria-labelledby="left-out" className={`${cardClass} p-5!`}>
-        <h2 id="left-out" className="text-[17px] font-semibold text-white">
-          {l.leftOut}
-        </h2>
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-2.5">
+      <section
+        aria-labelledby="lab-list-h"
+        className={`${cardClass} grid! gap-5! p-[18px]! ${wide ? 'grid-cols-[minmax(0,4fr)_minmax(0,7fr)]' : 'grid-cols-1'}`}
+      >
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <h2 id="lab-list-h" className="pb-1 text-base font-semibold text-ink">
+            {v.listTitle(PLAYBOOKS.length)}
+          </h2>
+          {shown.length === 0 && <p className="text-sm text-ink3">{v.noneAtStage}</p>}
+          <ul aria-labelledby="lab-list-h" className="flex flex-col gap-1.5">
+            {shown.map(({ p, stage }) => {
+              const on = selP?.id === p.id;
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => pick(p.id)}
+                    className={`flex min-h-[52px] w-full flex-col gap-1 rounded-[10px] border px-3 py-2.5 text-start text-ink ${
+                      on ? 'border-ink3 bg-elev' : 'border-line hover:bg-elev'
+                    }`}
+                  >
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-xs font-semibold text-ink3 tabular-nums">
+                        {num2(p.number)}
+                      </span>
+                      <span className="text-[13px] leading-[1.35] font-semibold">{p.title}</span>
+                    </span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <StagePill stage={stage} />
+                      <span className="text-xs text-ink3">
+                        {v.listMeta(horizonOf(p), ratingOf(p))}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div ref={detailRef} className="min-w-0 scroll-mt-4">
+          {selP && (
+            <Detail p={selP} stage={stages[sel] ?? 'notRun'} {...(selRun ? { run: selRun } : {})} />
+          )}
+        </div>
+      </section>
+      <Card id="left-out" title={l.leftOut}>
+        <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-2.5">
           {LEFT_OUT.map((x) => (
-            <li key={x.title} className="flex gap-2.5 rounded-[10px] bg-bg p-3">
-              <Ban aria-hidden="true" size={18} className="mt-px flex-none text-down" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold">{x.title}</span>
-                <span className="text-[13px] text-muted">{x.why}</span>
-              </span>
+            <li
+              key={x.title}
+              className="flex flex-col gap-0.5 rounded-[10px] border border-line bg-elev p-3"
+            >
+              <span className="text-[13px] font-semibold text-ink">{x.title}</span>
+              <span className="text-xs text-ink3">{x.why}</span>
             </li>
           ))}
         </ul>
-      </section>
+      </Card>
     </div>
   );
 }

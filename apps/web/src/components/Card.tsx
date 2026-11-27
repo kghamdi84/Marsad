@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../strings';
 
-/** Cards: 16 px padding and radius on phones, 20 px padding and 12 px radius from 760 px (design handoff). */
+/** v2 cards: 12 px radius, 16 by 18 px padding, 12 px gap, one line border, no shadow. */
 export const cardClass =
-  'flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 tablet:rounded-xl tablet:p-5';
+  'flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-surface px-[18px] py-4';
 
 /** A titled page card (the redesign's surface panel). The title labels the region for assistive technology. */
 export function Card({
@@ -25,7 +25,7 @@ export function Card({
     <section aria-labelledby={id} className={`${cardClass} ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 id={id} className="text-[17px] font-semibold text-white">
+          <h2 id={id} className="text-base font-semibold text-ink">
             {title}
           </h2>
           {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
@@ -51,10 +51,10 @@ export function Details({ children }: { children: ReactNode }) {
 
 export function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-lg bg-bg/45 px-3 py-2.5">
-      <span className="text-xs text-muted">{label}</span>
-      <span className="text-[22px] font-bold text-white">{value}</span>
-      {note && <span className="text-[11px] text-muted">{note}</span>}
+    <div className="flex min-w-0 flex-col gap-1 rounded-[10px] border border-line bg-elev p-3">
+      <span className="text-xs text-ink3">{label}</span>
+      <span className="text-lg font-semibold text-ink tabular-nums">{value}</span>
+      {note && <span className="text-xs text-ink3">{note}</span>}
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function Segmented<K extends string>({
     <div
       role="group"
       aria-label={label}
-      className={`${stretch ? 'grid auto-cols-fr grid-flow-col' : 'flex'} rounded-[10px] bg-bg p-[3px]`}
+      className={`${stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex flex-wrap'} gap-0.5 rounded-[10px] border border-line bg-elev p-[3px]`}
     >
       {options.map((o) => (
         <button
@@ -86,8 +86,8 @@ export function Segmented<K extends string>({
           type="button"
           aria-pressed={o.key === value}
           onClick={() => onChange(o.key)}
-          className={`min-h-11 min-w-12 rounded-lg px-2.5 text-sm font-semibold ${
-            o.key === value ? 'bg-raised text-white' : 'text-muted hover:text-fg'
+          className={`min-h-10 min-w-10 rounded-[7px] px-3 text-[13px] font-semibold whitespace-nowrap pointer-coarse:min-h-11 ${
+            o.key === value ? 'bg-accent text-accent-ink' : 'text-ink3 hover:text-ink'
           }`}
         >
           {o.label}
@@ -252,7 +252,7 @@ export function Tabs<K extends string>({
         className={
           pill
             ? 'flex overflow-x-auto rounded-xl bg-surface p-[3px] [scrollbar-width:none]'
-            : '-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 tablet:mx-0 tablet:px-0'
+            : 'flex flex-wrap gap-1.5 border-b border-line pb-3'
         }
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') move(1);
@@ -272,12 +272,10 @@ export function Tabs<K extends string>({
             className={
               pill
                 ? `min-h-11 flex-[1_0_auto] rounded-[9px] px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap ${
-                    o.key === value ? 'bg-raised text-white' : 'text-muted'
+                    o.key === value ? 'bg-accent text-accent-ink' : 'text-ink3'
                   }`
-                : `min-h-11 flex-none border-b-2 px-3 text-sm whitespace-nowrap ${
-                    o.key === value
-                      ? 'border-up font-semibold text-white'
-                      : 'border-transparent text-muted hover:text-fg'
+                : `min-h-10 flex-none rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap pointer-coarse:min-h-11 ${
+                    o.key === value ? 'bg-accent text-accent-ink' : 'text-ink3 hover:text-ink'
                   }`
             }
           >

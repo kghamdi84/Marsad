@@ -77,12 +77,53 @@ export const t = {
     journal: 'Journal',
     status: 'Status',
     lab: 'Lab',
+    settings: 'Settings',
     signOut: 'Sign out',
     primary: 'Main sections',
   },
+  /** Page titles and subtitles (Marsad v2); translated in `ar` below. */
+  pages: {
+    watch: {
+      title: 'Watch',
+      subtitle:
+        'Morning brief, watchlist with company names, latest news, calendar and sectors. Prices are end of day.',
+    },
+    study: {
+      title: 'Study',
+      subtitle:
+        'Search a company: chart, snapshot, news, filings, financials, holders and the thesis.',
+    },
+    regime: {
+      title: 'Market regime',
+      subtitle:
+        'The regime label and why, what the S&P did next, the recession filter, Fear and Greed, capitulation watch and sector rotation.',
+    },
+    alerts: {
+      title: 'Alerts',
+      subtitle:
+        'Every alert carries its trigger, plan, risk history, checklist, bear case and sources. No buy or sell advice.',
+    },
+    journal: {
+      title: 'Journal',
+      subtitle:
+        'Positions by horizon, the position sizer and the manual Sahm ticket, options, exposure and trades.',
+    },
+    lab: {
+      title: 'Lab',
+      subtitle: 'Eleven playbooks. Each earns live status only through out-of-sample tests.',
+    },
+    status: { title: 'Status', subtitle: 'Every row of source_status, job runs and costs.' },
+    settings: {
+      title: 'Settings',
+      subtitle: 'Language, theme, notifications, Shariah limits, AI caps and security.',
+    },
+  },
+  footer:
+    'Alert-only observatory. Never places orders and never gives personal buy or sell recommendations.',
   clock: { et: 'ET', local: 'local' },
   shell: {
     logoArabic: '\u0645\u0631\u0635\u062F',
+    logoArabicFull: 'مرصد السوق',
     more: 'More',
     close: 'Close',
     market: {
@@ -100,6 +141,7 @@ export const t = {
     unchecked: (n: number) => `${n} unchecked`,
     noSources: 'No source status yet',
     healthUnknown: 'Health unavailable',
+    chipExtra: (health: string) => `. ${health}. Show times and source health`,
     chipAria: (market: string, health: string) =>
       `${market}. ${health}. Show times and source health`,
     marketTitle: 'Market and data',
@@ -164,7 +206,8 @@ export const t = {
       source: 'Source: Massive daily bars, split-adjusted. Click a ticker to study it.',
     },
     sectors: {
-      title: 'Sector heatmap',
+      title: 'US sectors',
+      aside: (n: number, day: string) => `${n} SPDR ETFs \u00B7 close of ${day}`,
       none: 'No sector data yet. It comes from the breadth job (after its first full run).',
       asOf: (date: string) => `Day change of the Select Sector SPDRs on ${date}.`,
       source: 'Source: Massive grouped daily (end of day), splits applied by Marsad.',
@@ -196,8 +239,119 @@ export const t = {
             : `Email failed: ${state.replace(/^failed: /, '')}.`,
     },
     news: {
-      title: 'Watchlist news',
+      title: 'Latest news',
       none: 'No news stored for the watchlist yet.',
+    },
+    v2: {
+      noData: 'No data stored',
+      sourceChip: (day: string) => `Massive \u00B7 end of day \u00B7 close of ${day}`,
+      cockpit: {
+        title: 'Morning decision cockpit',
+        regime: 'Regime',
+        movers: 'Last session movers',
+        today: 'Today',
+        exits: 'Exit rules',
+        notYet: 'Not available yet',
+        regimeNone: 'The regime job has not stored a day yet.',
+        labels: {
+          stress: 'Stress',
+          bear: 'Bear',
+          recovery: 'Recovery',
+          'bull-calm': 'Bull calm',
+          'bull-correction': 'Bull correction',
+          'insufficient-data': 'Insufficient data',
+        } as Record<string, string>,
+        run: (n: number, atLeast: boolean, version: string, day: string) =>
+          `${atLeast ? 'At least ' : ''}${n} session${n === 1 ? '' : 's'} \u00B7 ${version} \u00B7 ${day}`,
+        vix: (v: string) => `VIX ${v}`,
+        vixNone: 'VIX not stored',
+        breadth: (p: string) => `breadth ${p}% above 50-day`,
+        breadthNone: 'breadth not stored',
+        moversNone: 'No watchlist bars stored yet.',
+        closeOf: (day: string) => `Close of ${day}`,
+        closed: (name: string) => `Market closed: ${name}`,
+        earlyClose: (et: string) => `Early close ${et} ET`,
+        event: (name: string, et: string) => `${name} ${et} ET`,
+        local: (time: string, city: string) => `${time} ${city}`,
+        moreToday: (n: number) => `${n} more today`,
+        noEvents: 'No scheduled releases today',
+        calendarNone: 'Calendar not stored yet',
+        filings: (n: number, first: string) =>
+          n === 0
+            ? 'No Tier 1 filing since the last close'
+            : `${n} Tier 1 filing${n === 1 ? '' : 's'}: ${first}`,
+        filingsUnavailable: 'Filings unavailable',
+        exitsNone: 'No holdings recorded',
+        exitsNoneSub: 'Add holdings in the Journal to check their exit rules.',
+        allInside: 'Every holding inside its plan',
+        checked: (n: number, day: string) =>
+          `${n} holding${n === 1 ? '' : 's'} checked at the close of ${day}`,
+        others: (n: number) =>
+          n === 0
+            ? 'No other holding flagged'
+            : `${n} other holding${n === 1 ? '' : 's'} inside plan`,
+        signal: {
+          stop: (tk: string) => `${tk} closed under its stop`,
+          'trend-break': (tk: string, period: string) => `${tk} under its ${period}-day average`,
+          'time-stop': (tk: string) => `${tk} reached its time stop`,
+          target: (tk: string) => `${tk} reached a target`,
+        },
+        holdingsUnavailable: 'Holdings unavailable',
+        briefLine: (kind: string, et: string, local: string, city: string, state: string) =>
+          `${kind} \u00B7 ${et} ET \u00B7 ${local} ${city} \u00B7 ${state}`,
+        noBrief: 'No brief yet',
+      },
+      list: {
+        hint: 'Tap a row to open Study \u00B7 volume against the 20-day average \u00B7 earnings dates are estimated',
+        colCompany: 'Company',
+        colRange: '52-week position',
+        colVolume: 'Volume',
+        held: 'Held',
+        showTrader: 'Show trader columns',
+        hideTrader: 'Hide trader columns',
+        position: (p: string) => `${p}%`,
+        open: (tk: string) => `Open ${tk} in Study`,
+      },
+      news: {
+        asOf: (et: string) => `Read ${et} ET \u00B7 refreshes when the page loads`,
+        highlight: 'Highlight of the day',
+        impact: { high: 'High impact', medium: 'Medium', low: 'Low' } as Record<string, string>,
+        secEdgar: 'SEC EDGAR',
+        tier: (n: number) => `Tier ${n}`,
+        opinion: 'Opinion',
+        loading: 'Loading',
+        filingTitle: (tk: string, form: string, items: string, plain: string) =>
+          `${tk} files ${form}${items ? `, item ${items}` : ''}${plain ? `: ${plain}` : ''}`,
+        why: {
+          held: (tks: string) => `Touches your holdings: ${tks}.`,
+          watched: (tks: string) => `Names watchlist tickers: ${tks}.`,
+          topic: (topic: string, ratio: string) =>
+            `${topic} headlines are running at ${ratio}x the weekly norm.`,
+          filing: (plain: string) => `SEC filing: ${plain}.`,
+          tier: (tier: number) => `Tier ${tier} source.`,
+          score: (score: number, version: string) => `Impact score ${score} (${version}).`,
+        },
+        topics: {
+          conflict: 'Conflict',
+          sanctions: 'Sanctions and export control',
+          tariffs: 'Tariff and trade',
+          elections: 'Election',
+          centralBanks: 'Central bank',
+          energy: 'Energy',
+        } as Record<string, string>,
+        more: (n: number) => `${n} more stor${n === 1 ? 'y' : 'ies'}`,
+        about:
+          'Ranked by impact (impact-1): source tier, the filing item, whether it names your holdings or watchlist, and how busy its topic is against the 4-week norm. The price move since the story is left out: it needs prices after the story, and Marsad stores end-of-day bars. Not realtime: the list is read when the page loads. Filings: SEC EDGAR 8-K, 10-Q and 10-K of the watchlist and holdings, last 10 days.',
+      },
+      calendar: {
+        title: 'Economic and earnings calendar',
+        zones: (city: string) => `ET \u00B7 ${city}`,
+        pill: { high: 'HIGH', medium: 'MED', low: 'LOW', earn: 'EARN' } as Record<string, string>,
+        source: (src: string) => `Source: ${src}`,
+        earnSource: 'SEC 8-K dates',
+        legend:
+          'HIGH, MED and LOW: expected market impact of the release \u00B7 EARN: watchlist earnings, estimated from past filing dates',
+      },
     },
     ui: {
       lastSession: (date: string) => `Last completed session ${date}`,
@@ -263,17 +417,17 @@ export const t = {
       kpis: 'Portfolio at a glance',
       value: 'Portfolio value',
       gain: 'Open gain',
-      gainSub: (pct: string) => `${pct} on cost`,
+      gainSub: (pct: string, cost: string) => `${pct} on cost ${cost}`,
       beta: 'Beta to SPY',
       attention: 'Needs attention',
-      attentionSub: 'exit hit or no exit rules',
-      /** Design: "6 positions · 25 Nov" on phones, "6 positions · 25 Nov close" on wider screens. */
-      valueSub: (n: number, date: string, wide: boolean) =>
-        `${n} position${n === 1 ? '' : 's'} \u00B7 ${date}${wide ? ' close' : ''}`,
+      /** Design: "6 positions · close of 25 Nov". */
+      valueSub: (n: number, date: string) =>
+        `${n} position${n === 1 ? '' : 's'}${date ? ` \u00B7 close of ${date}` : ''}`,
       betaSub: (diffPct: number) =>
         diffPct === 0
           ? 'Same as the market'
           : `${Math.abs(diffPct)}% ${diffPct > 0 ? 'more' : 'less'} than the market`,
+      betaNone: 'No priced holdings',
       attentionKinds: {
         stop: 'stop',
         target: 'target',
@@ -282,16 +436,20 @@ export const t = {
         rules: 'no exit rules',
       } as Record<string, string>,
       noneAttention: 'Nothing needs a look',
-      sharesCost: (n: number, cost: string) => `${n} shares \u00B7 cost ${cost}`,
+      sharesCost: (n: number, cost: string) => `${n} shares at ${cost}`,
+      /** Design: "▲ +$3,744 (+20.6%) · now 182.40". */
+      pnlLine: (gain: string, pct: string, now: string) => `${gain} (${pct}) \u00B7 now ${now}`,
+      noPrice: 'No stored close yet: result unavailable',
       gainAria: (tk: string, v: string) => `${tk} open gain ${v}`,
-      thesisButton: (state: string) => `Thesis ${state}`,
       thesisAria: (state: string) => `Thesis ${state}, tap to change`,
-      timeStopTile: (v: string) => `Time stop \u00B7 ${v}`,
-      timeStopOf: (held: number, max: number) => `${held} of ${max}`,
-      notSet: 'Not set',
-      trendAbove: (label: string) => `Above ${label}`,
-      trendUnder: (label: string) => `Closed under ${label}`,
       dayLine: (period: number, ema: boolean) => `${period}-day${ema ? ' EMA' : ''}`,
+      trendIntact: (line: string, lvl: string) => `${line} ${lvl} intact`,
+      trendBroken: (line: string, lvl: string) => `Trend break: closed under the ${line} ${lvl}`,
+      trendShort: (line: string) => `${line}: not enough history`,
+      trendNone: 'trend break none',
+      timeStopLine: (held: number, max: number) => `time stop ${held} of ${max} sessions`,
+      timeStopNone: 'time stop none',
+      lookAdds: (pct: string, funds: string) => `ETF look-through adds ${pct} via ${funds}`,
       stopHit: 'Stop hit',
       targetHit: 'Target hit',
       edit: 'Edit holding',
@@ -300,28 +458,21 @@ export const t = {
       emptyTitle: 'No positions yet',
       emptyText: 'Import a Sahm statement or size a new trade.',
       emptyTrade: 'Size a new trade',
-      moreLabel: 'More sections',
       unpriced: (n: number) => `${n} without a stored price, left out`,
       tabsLabel: 'Journal sections',
       tabs: {
         positions: 'Positions',
-        trade: 'New trade',
+        sizer: 'Sizer and Sahm ticket',
         options: 'Options',
-        exposure: 'Exposure',
-        trades: 'Trades',
-        review: 'Weekly review',
-        look: 'ETF look-through',
-        more: 'More',
+        exposure: 'Exposure and look-through',
+        trades: 'Trades and review',
       } as Record<string, string>,
       barAria: (stop: string, now: string, targets: string) =>
         `Stop ${stop}, now ${now}, targets ${targets}.`,
       barStop: 'Stop',
       barNow: 'Now',
-      trendBreakLabel: 'Trend break',
       barTarget: 'Target',
       thesisPill: (state: string) => `Thesis: ${state}`,
-      thesisHint: 'Tap to change: intact, weakening, broken.',
-      timeStop: (held: number, max: number) => `Time stop: ${held} of ${max} sessions`,
       csvFile: 'Or choose a CSV file',
       csvDrop: 'You can also drop a CSV file on the box.',
       preview: 'Preview',
@@ -331,18 +482,19 @@ export const t = {
     },
     sizer: {
       title: 'Pre-trade checklist and position sizer',
-      prices: 'Prices',
-      size: 'Size',
-      checklistTitle: 'Checklist',
-      checkCount: (n: number) => `${n} of 5`,
+      sizerTitle: 'Position sizer',
+      checklistTitle: 'Checklist and Sahm ticket',
+      checksLabel: 'Pre-trade checklist',
       fAccount: 'Account ($)',
-      fRisk: 'Risk (%)',
-      fEntry: 'Entry',
+      fRisk: 'Risk per trade (%)',
+      fEntry: 'Limit entry',
       fTargets: 'Targets',
       rShares: 'Shares',
-      rRisk: 'Risk',
+      rRisk: 'Dollar risk',
       rPosition: 'Position',
-      rOfAccount: 'Of account',
+      rOfAccount: (pct: string) => `${pct} of account`,
+      rRR: 'Reward to risk',
+      rrNone: 'Add a target',
       na: 'n/a',
       rrChip: (target: string, r: string) => `${target} = ${r}R`,
       checks: {
@@ -360,17 +512,20 @@ export const t = {
       capped: 'Capped at 25% of the account, not by the risk.',
       copy: 'Copy Sahm order ticket',
       copied: 'Copied. Paste it into Sahm and check it there before you send it.',
+      manual:
+        'Marsad never places orders. You enter this ticket by hand in Sahm and check it there.',
     },
     options: {
       title: 'Options positions',
       definedOnly: 'Defined-risk only. Live marks need an options plan.',
-      daysLeft: 'days left',
+      dteLabel: (n: number) => `${n} day${n === 1 ? '' : 's'} to expiry`,
       legLine: (parts: string, contracts: string) => `${parts} · ${contracts}`,
       nContracts: (n: number) => `${n} contract${n === 1 ? '' : 's'}`,
       legShort: (long: boolean, strike: string, type: string, first: boolean) =>
         `${long ? (first ? 'Long' : 'long') : first ? 'Short' : 'short'} ${strike} ${type === 'call' ? 'C' : 'P'}`,
       barAria: (loss: string, gain: string) => `Maximum loss ${loss}, maximum gain ${gain}`,
       beExpiry: (be: string, expiry: string) => `Breakeven ${be} · expires ${expiry}`,
+      definedRisk: 'defined risk only',
       details: 'Details',
       detailsTitle: (label: string) => `${label}: details`,
       intro:
@@ -443,19 +598,22 @@ export const t = {
       >,
     },
     exposure: {
-      title: 'Exposure, beta and stress',
+      title: 'Exposure',
       none: 'No open holdings to measure.',
-      betaTitle: 'Beta to SPY',
-      betaLine: 'White line: 1.0, the market',
+      betaAside: (b: string) => `Beta to SPY ${b}`,
       betaAssumed: (list: string) => `Beta counted as 1 (too little history): ${list}.`,
       sectorsTitle: 'Sectors',
       corrTitle: 'Highly correlated pairs',
       corrPair: (a: string, b: string) => `${a} and ${b}`,
       corrNone: 'No pair at 0.8 or more.',
       scenariosTitle: 'Stress scenarios',
+      ofPortfolio: (pct: string) => `${pct} of portfolio`,
+      unavailable: 'Data unavailable',
+      vixNone: 'No stored VIX history long enough to measure any holding',
+      asOf: (date: string, version: string) => `Closes of ${date}, formula ${version}`,
     },
     etf: {
-      title: 'ETF look-through and overlap',
+      title: 'ETF look-through (SEC N-PORT)',
       intro:
         'Holdings of SPY, QQQ and DIA from their newest public SEC Form N-PORT reports. Look-through shows how many dollars of each stock you hold directly also sit inside the funds you hold.',
       none: 'No ETF holdings stored yet. The weekly SEC job loads them on Sunday.',
@@ -468,6 +626,10 @@ export const t = {
       colours: ['dark blue', 'grey', 'light grey'],
       rowAria: (ticker: string, total: string, parts: string) => `${ticker} ${total}: ${parts}`,
       direct: (v: string) => `direct ${v}`,
+      note: (parts: string[]) => parts.join(' \u00B7 '),
+      directCap: (v: string) => `Direct ${v}`,
+      indirectOnly: 'Indirect only',
+      aside: (funds: string, dates: string) => `${funds} \u00B7 ${dates}`,
       via: (etf: string, v: string) => `via ${etf} ${v}`,
       overlapTitle: 'Overlap between funds',
       pair: (a: string, b: string) => `${a} and ${b}`,
@@ -487,6 +649,13 @@ export const t = {
       tileFollowed: 'Plan followed',
       tileOf: (n: number, of: number) => `${n} of ${of}`,
       tileMeanR: 'Mean result',
+      tilePortfolio: 'Portfolio',
+      portfolioNa: 'Not available yet',
+      portfolioNote: 'Needs daily portfolio values',
+      tileSpy: 'SPY',
+      spyNote: (from: string, to: string) => `Close ${from} to ${to}`,
+      spyNa: 'Data unavailable',
+      spyNaNote: 'No stored SPY closes for the week',
     },
     trades: {
       title: 'Trades and adherence',
@@ -544,6 +713,7 @@ export const t = {
       brokePlan: 'Broke plan',
       ringTitle: 'Adherence score',
       ringAria: (n: number) => `Adherence ${n} of 100`,
+      adherencePill: (n: number) => `Adherence ${n}`,
       followedOf: (n: number, of: number) => `${n} of ${of} trades followed the plan`,
       setupNote: (win: string, r: string, n: number) => `${win} wins · ${r} mean · ${n} closed`,
       cardTitle: (ticker: string) => `${ticker} trade`,
@@ -570,7 +740,56 @@ export const t = {
     showSuppressed: 'Show suppressed signals too',
     tabs: { sent: 'Sent', held: 'Held back', all: 'All' } as Record<string, string>,
     tabsLabel: 'Which alerts',
-    priority: { critical: 'Critical', high: 'High', normal: 'Normal' } as Record<string, string>,
+    priority: {
+      critical: 'Critical',
+      high: 'High',
+      normal: 'Normal',
+      digest: 'Digest',
+    } as Record<string, string>,
+    kinds: {
+      setup: 'Setup',
+      opportunity: 'Opportunity',
+      options: 'Options',
+      catalyst: 'Catalyst scenario',
+      regime: 'Regime change',
+      exit: 'Exit rule',
+      rotation: 'Rotation',
+      halt: 'Trading halt',
+      system: 'System',
+    } as Record<string, string>,
+    listLabel: 'Alerts in this list',
+    detail: {
+      gatesLabel: 'Decision path',
+      triggerLabel: 'Trigger',
+      tiles: {
+        signal: 'Signal price',
+        signalSub: 'when the signal fired',
+        now: 'Price at alert',
+        nowSub: 'when the alert was written',
+        stop: 'Stop',
+        stopSub: 'from the plan',
+        gap: 'Gap to stop',
+        gapSub: 'price against stop',
+      },
+      planTitle: 'Plan levels (you place orders by hand in Sahm)',
+      entry: (s: string) => `Entry: ${s}`,
+      invalidation: (s: string) => `Invalidation: ${s}`,
+      riskTitle: 'Risk by horizon (this rule\u2019s history, 90% Wilson interval)',
+      allHorizons: 'All horizons',
+      notThisKind: 'Does not apply to this kind',
+      checklistTitle: '5-item checklist',
+      notAnswered: (label: string) => `${label}: n/a`,
+      bear: 'Bear case',
+      sources: 'Sources and freshness',
+      channels: {
+        push: 'Web push',
+        telegram: 'Telegram',
+        email: 'Email',
+        digest: 'Digest',
+      } as Record<string, string>,
+      channel: (name: string, status: string) => `${name}: ${status}`,
+      channelsLabel: 'Delivery channels',
+    },
     choose: 'Choose an alert to see its full card.',
     noneHere: 'Nothing in this list.',
     openLab: 'Open the Lab',
@@ -580,8 +799,9 @@ export const t = {
         `Stop ${stop}, signal ${entry}, now ${now}, targets ${targets}.`,
       stop: 'Stop',
       now: 'Now',
+      signal: 'Signal',
       target: 'Target',
-      rr: (r: string) => `${r}R`,
+      rr: (i: number, r: string) => `T${i} ${r}R`,
       rrTitle: 'Reward to risk per target, from the signal price',
       horizons: { scalp: 'Scalp', swing: 'Swing', long: 'Long term' } as Record<string, string>,
       lossRate: (pct: string, n: number) => `${pct}% loss rate, n = ${n}`,
@@ -607,9 +827,10 @@ export const t = {
       shadow: 'Shadow',
       suppress: 'Suppressed',
     } as Record<string, string>,
-    tabCount: (label: string, n: number) => `${label} ${n}`,
+    tabCount: (label: string, n: number) => `${label} (${n})`,
+    whenList: (day: string, et: string) => `${day} ${et} ET`,
     when: (day: string, et: string, local: string, city: string) =>
-      `${day} · ${et} ET · ${local} ${city}`,
+      `${day} ${et} ET · ${local} ${city}`,
     decision: {
       push: 'Pushed',
       digest: 'Held for the digest',
@@ -620,8 +841,11 @@ export const t = {
     latency: (seconds: string) => `End-to-end latency ${seconds} s.`,
     delivery: (push: string) => `Delivery: ${push}.`,
     feedback: 'Feedback',
-    feedbackPrompt: 'Was this alert useful?',
-    verdicts: { useful: 'Useful', noise: 'Noise', acted: 'Acted on' } as Record<string, string>,
+    feedbackPrompt: 'Was it useful?',
+    verdicts: { useful: 'Useful', noise: 'Noise', acted: 'I acted on it' } as Record<
+      string,
+      string
+    >,
     saved: 'Saved.',
     at: (when: string) => `Created ${when}.`,
     scenarios: {
@@ -661,6 +885,9 @@ export const t = {
       planLine: (entry: string, guard: string, inv: string) =>
         `Plan: ${entry} No entry beyond a ${guard} move. Invalidation: ${inv}`,
       expiresLine: (d: string, active: boolean) => `${active ? 'Active' : 'Paused'}, expires ${d}.`,
+      expiredLine: (d: string) => `Expired ${d}; no longer checked.`,
+      state: { active: 'Active', paused: 'Paused', expired: 'Expired' } as Record<string, string>,
+      closeForm: 'Close the form',
       pause: 'Pause',
       resume: 'Resume',
     },
@@ -670,6 +897,8 @@ export const t = {
       colAlert: 'Alert',
       sessions: (n: string) => (n === '1' ? '1 session' : `${n} sessions`),
       pendingCell: 'Pending',
+      unavailableCell: 'Unavailable',
+      alertLabel: (name: string, day: string) => `${name} · ${day}`,
       strip: (scored: number) =>
         `Last ${scored} alert${scored === 1 ? '' : 's'} with a result after 1 session, oldest first`,
       stripAria: (wins: number, losses: number, pending: number) =>
@@ -694,7 +923,7 @@ export const t = {
       colLevels: 'Stop or target first',
       insufficient: 'insufficient history',
       /** No percentage from fewer than 30 cases (integrity rule 10): the row shows this instead. */
-      sub: 'In each alert’s direction, against SPY, before costs',
+      sub: 'In the direction each alert pointed, against SPY, before costs',
       hitRatesAt: 'Hit rates appear at 30 scored alerts',
       ruleLabel: (rule: string, shadow: boolean) => `${rule} (${shadow ? 'shadow' : 'live'})`,
       insufficientRow: (n: number) => `Insufficient history (${n} of 30)`,
@@ -793,6 +1022,46 @@ export const t = {
     costs: (c: number, s: number, f: number) =>
       `Costs per side: commission ${c}, slippage ${s}, currency ${f} basis points.`,
     leftOut: 'Not recommended',
+    /** Marsad v2 Lab: counts, the list and detail split, the gate and the fact tiles. */
+    v2: {
+      counts: 'Playbooks by stage',
+      count: {
+        notTestable: 'Not testable',
+        notRun: 'Not run',
+        draft: 'Draft',
+        backtested: 'Backtested',
+        shadow: 'Shadow',
+        live: 'Live',
+        demoted: 'Demoted',
+      } as Record<string, string>,
+      showingAll: 'Showing every playbook. Tap a count to show one stage.',
+      showingStage: (stage: string) => `Showing ${stage.toLowerCase()} only.`,
+      listTitle: (n: number) => `${n} playbooks`,
+      listMeta: (horizon: string, evidence: string) =>
+        `${horizon} · evidence ${evidence.toLowerCase()}`,
+      detailMeta: (n: string, horizon: string, evidence: string) =>
+        `Playbook ${n} · ${horizon} · evidence ${evidence.toLowerCase()}`,
+      noneAtStage: 'No playbook is at this stage.',
+      gatePassed: 'Gate passed',
+      gateNotPassed: 'Gate not passed',
+      oosTrades: 'Out-of-sample trades',
+      ofThirty: (n: number) => `${n} of 30`,
+      outOfSample: 'out of sample',
+      outOfSampleMet: 'out of sample, 30 needed',
+      noCurve: 'Equity curve appears when the backtest report has one.',
+      ruleJson: 'Rule as stored (JSON, version kept with a content hash)',
+      costsValue: (bps: number) => `${bps} bps`,
+      costsSub: (c: number, s: number, f: number) => `${c} fee, ${s} slippage, ${f} FX`,
+      walkForward: 'Walk-forward',
+      walkValue: (folds: number) => `${folds} folds`,
+      walkSub: 'train, then test, rolling',
+      holdout: 'Holdout',
+      holdoutValue: (pct: string) => `Last ${pct}%`,
+      holdoutSub: 'of the dates, untouched',
+      notRecorded: 'Not recorded',
+      notRecordedSub: 'not in this stored run',
+      noRunTrials: 'no run stored yet',
+    },
   },
   calendar: {
     title: 'Economic calendar',
@@ -899,9 +1168,8 @@ export const t = {
     title: 'Study',
     intro: 'Pick a company to study. Prices are end-of-day, never a live quote.',
     etfs: 'Benchmark ETFs',
-    openLabel: 'Open any ticker',
-    search: 'Search or open a ticker',
-    noMatch: (q: string) => `No company in this list matches "${q}". Choose Open to look it up.`,
+    openLabel: 'Search a ticker or company',
+    search: 'Ticker or company name',
     earningsAround: (date: string) => `Earnings around ${date} (estimated)`,
     stocks: 'Starting stocks',
     open: 'Open',
@@ -1191,7 +1459,10 @@ export const t = {
       lag: 'Short interest settles on the 15th and the last business day, and is published about a week later.',
     },
     news: {
-      title: 'News',
+      title: 'Latest company news',
+      newest: (when: string) => `Newest ${when}`,
+      showMore: (n: number) => `Show ${n} more`,
+      showFewer: 'Show the newest 4',
       note: 'Grouped so one story from several outlets counts once, shown at its earliest time. Source tier and opinion are labelled. Free-plan news comes from three publishers only.',
       none: 'No news stored for this ticker.',
       outlets: (n: number) => (n === 1 ? '1 outlet' : `${n} outlets`),
@@ -1211,10 +1482,66 @@ export const t = {
     },
 
     markersNote:
-      'Markers show 8-Ks of high or medium materiality, splits and ex-dividend dates. A filing accepted after the 4:00 pm ET close sits on the next trading day. Form 4s stay in the filings list.',
+      'Markers show 8-Ks of high or medium materiality (E for results under Item 2.02, F for the others), splits, ex-dividend dates, trading halts, Marsad alerts and insider open-market purchases. A filing accepted after the 4:00 pm ET close sits on the next trading day. Other Form 4s stay in the filings list.',
     noMarkers: 'No high or medium materiality 8-Ks or splits in this period.',
     summary: 'Summary',
     ui: {
+      searchLabel: 'Search ticker or company',
+      searchNone: (q: string) => `No company matches "${q}".`,
+      searchMatches: 'Matching companies',
+      searching: 'Searching',
+      headerMeta: (date: string) => `Massive daily bars \u00B7 close of ${date}`,
+      shariahPill: {
+        'passes-ratios': 'Shariah ratios within limits',
+        'fails-ratios': 'Shariah: a ratio over its limit',
+        unknown: 'Shariah ratios not checked',
+        off: 'Shariah aid off',
+      } as Record<string, string>,
+      rsiChip: (v: string | null) => (v === null ? 'RSI 14: not enough history' : `RSI 14: ${v}`),
+      markerPrompt:
+        'Tap a marker on the chart, or choose one from the list below, to see its detail here.',
+      nextSession: (pct: string) => `${pct} next session`,
+      largeMove: 'over 25%, check the news before trusting it',
+      legend: (range: string, lo: string, hi: string) =>
+        `E results 8-K \u00B7 F other 8-K \u00B7 D dividend \u00B7 S split \u00B7 H halt \u00B7 A Marsad alert \u00B7 B insider buy \u00B7 ${range} ${lo} to ${hi}`,
+      markersAll: (n: number) => `All chart markers (${n})`,
+      trendLine: (trend: string, s50: string, s200: string) =>
+        `Trend: ${trend} \u00B7 SMA 50 ${s50} \u00B7 SMA 200 ${s200}`,
+      snapshot: {
+        title: 'Snapshot',
+        marketValue: 'Market value',
+        mvSub: (shares: string, close: string) => `${shares} shares \u00D7 ${close}`,
+        revenue: 'Revenue, last 4 quarters',
+        revenueYoY: (pct: string) => `${pct} on a year earlier`,
+        revenueTo: (end: string) => `Four quarters to ${end}`,
+        netMargin: 'Net margin',
+        netMarginSub: 'Last 4 quarters',
+        nextEarnings: 'Next earnings',
+        nextSub: 'Estimated from 8-K dates',
+        shortInterest: 'Short interest',
+        notReported: 'Not reported',
+        noFiler: 'No SEC filer record',
+        provenance: (asOf: string, close: string, version: string) =>
+          `Source: SEC XBRL company facts as filed by ${asOf}; market value uses the close of ${close}. Formula ${version}.`,
+      },
+      filingsCard: {
+        title: 'Filings and announcements',
+        source: 'SEC EDGAR',
+        showAll: (n: number) => `Show all ${n} filings`,
+        showFewer: 'Show the newest 6',
+      },
+      details: 'Company details',
+      riskToggle: 'Risk factor comparison',
+      riskModes: { yoy: 'Year on year (10-K)', qoq: 'Quarter on quarter (10-Q)' } as Record<
+        string,
+        string
+      >,
+      nextResults: 'Next results (estimated)',
+      nextResultsSub: 'Estimated from past results 8-K dates (Item 2.02), within this window:',
+      impliedMissing:
+        'Implied move and IV rank need options data, which the current Massive plan does not include.',
+      shariahRatioName: { debt: 'Debt ratio', cash: 'Cash ratio' } as Record<string, string>,
+      shariahLimitTick: 'The tick on each bar marks the limit set in Settings.',
       endOfDay: 'End of day',
       staleBadge: 'Stale',
       latestNotCovered: (tk: string) => `Tauric does not cover ${tk}`,
@@ -1244,17 +1571,17 @@ export const t = {
       ranges: { '3m': '3M', '6m': '6M', '1y': '1Y' } as Record<string, string>,
       sections: 'Company sections',
       sectionNames: {
-        overview: 'Overview',
+        overview: 'Overview and thesis',
         financials: 'Financials',
         earnings: 'Earnings',
         holders: 'Holders and insiders',
-        short: 'Short data',
-        risk: 'Risk factors',
-        news: 'News',
-        dividends: 'Dividends',
+        risk: 'Risk factor diff',
         shariah: 'Shariah aid',
+        short: 'Short data',
+        dividends: 'Dividends',
       } as Record<string, string>,
       markerLetters: {
+        results: 'E',
         'high-8k': 'F',
         'medium-8k': 'F',
         split: 'S',
@@ -1263,8 +1590,6 @@ export const t = {
         halt: 'H',
         alert: 'A',
       } as Record<string, string>,
-      markerLegend:
-        'F: 8-K filing \u00B7 S: split \u00B7 D: ex-dividend \u00B7 B: insider purchase \u00B7 H: trading halt \u00B7 A: Marsad alert',
     },
     lastClose: 'Last close',
     change: 'Change',
@@ -1295,7 +1620,7 @@ export const t = {
     missing: 'Not available on the free plan',
     shariah: {
       title: 'Shariah screening aid',
-      off: 'The Shariah screening aid is off. Turn it on in Status, under Preferences.',
+      off: 'The Shariah screening aid is off. Turn it on in Settings, under Preferences.',
       noBalance: 'No balance sheet is stored for this company, so the ratios cannot be computed.',
       basis: (b: string) =>
         b === 'assets'
@@ -1357,80 +1682,88 @@ export const t = {
   regime: {
     title: 'Regime',
     ui: {
-      endOfDay: 'End of day',
-      sessions: (n: number) => `Last ${n} sessions`,
       running: (n: number, date: string) =>
         `Running ${n} session${n === 1 ? '' : 's'}, since ${date}`,
       ribbonAria: (summary: string) => `Regime by session over the past year: ${summary}.`,
-      levelScale: ['Low: none', 'Elevated: 1 or 2', 'High: Sahm rule or 3+'],
-      levelAria: (level: string) => `Level scale: low, elevated, high. Current level ${level}.`,
-      tickNote: 'The white tick marks where each signal triggers.',
-      metCount: (n: number) => `${n} of 4 met`,
-      gaugeAria: (v: number) => `Composite ${v} of 100`,
+      ribbonPast: (n: number) => `Last ${n} sessions`,
+      ribbonNow: 'Now',
+      heroChip: (rules: string, day: string) => `${rules} · close of ${day}`,
+      delayedEod: 'Delayed · end of day',
+      why: {
+        title: 'Why this label',
+        spClose: (v: string) => `S&P 500 close ${v}`,
+        above50: (v: string) => `S&P 500 above its 50-day average (${v})`,
+        above200: (v: string) => `S&P 500 above its 200-day average (${v})`,
+        nearHigh: (limit: string, v: string) => `Within ${limit} of the 252-day high (${v})`,
+        vixCalm: (limit: string, v: string) => `VIX under ${limit} (${v})`,
+        stress: (limit: string, vix: string, vix3m: string) =>
+          `Stress check: VIX at or above ${limit}, or VIX at or above VIX 3-month (${vix} against ${vix3m}) with the S&P under its 50-day`,
+        met: 'Met',
+        notMet: 'Not met',
+        noData: 'No data',
+        rule: 'Bull calm needs all four conditions. The label is the first rule that holds, in this order: stress, bear (the S&P 500 under a falling 200-day average), recovery, bull calm, bull correction. There is no numeric score.',
+      },
       today: (label: string) => `Today: ${label}`,
-      scaleNote:
-        'Bar: the middle half of outcomes (25th to 75th percentile). White line: the median.',
-      scaleNote90:
-        'Bar: the 90% interval of the median, from 2,000 bootstrap resamples of the episodes (seeded, so a rerun gives the same interval). White line: the median.',
-      unavailable: 'Unavailable',
-      insufficientShort: (n: number) => `Insufficient history: ${n} of 30`,
+      condVix30: 'VIX 30+',
+      condAll: 'All sessions',
+      studySub: (since: string) =>
+        `Median with the middle half (no bootstrap interval stored) · FRED SP500 since ${since} · under 30 cases shows insufficient history`,
+      studySub90: (since: string) =>
+        `Median with a 90% bootstrap interval · FRED SP500 since ${since} · under 30 cases shows insufficient history`,
+      horizonSessions: (h: number) => `${h} sessions`,
+      median: 'Median',
       notEnough: 'n/a',
-      needs30: 'needs 30',
-      horizonShort: (h: number) =>
-        h === 21 ? '1 month' : h === 63 ? '3 months' : h === 126 ? '6 months' : `${h} sessions`,
-      horizonSub: (h: number, n: number) => `${h} sessions · n = ${n}`,
-      articles: 'articles',
+      nEquals: (n: number) => `n = ${n}`,
+      middleHalf: (lo: string, hi: string) => `middle half ${lo} to ${hi}`,
+      interval90: (lo: string, hi: string) => `90% interval ${lo} to ${hi}`,
+      insufficientOf: (n: number) => `insufficient history (${n} of 30)`,
+      scaleNote: (m: number) =>
+        `Bar: the middle half of outcomes (25th to 75th percentile). Tick: the median. The scale runs from minus ${m} to plus ${m} percent, with zero in the middle.`,
+      scaleNote90: (m: number) =>
+        `Bar: the 90% interval of the median, from 2,000 bootstrap resamples of the episodes (seeded, so a rerun gives the same interval). Tick: the median. The scale runs from minus ${m} to plus ${m} percent, with zero in the middle.`,
+      ofAvailable: (triggered: number, available: number) => `${triggered} of ${available}`,
+      triggers: (rule: string) => `triggers ${rule}`,
+      fred: (source: string) => `FRED ${source}`,
+      fredData: (source: string, date: string) => `FRED ${source}, data for ${date}`,
+      unavailable: 'Unavailable',
+      metCount: (n: number) => `${n} of 4 met`,
+      capNames: (key: string, vix: number, pct: number, composite: number) =>
+        ({
+          vix: `VIX at or above ${vix}`,
+          breadth: `${pct}% or less of the universe above its 50-day`,
+          composite: `Fear and Greed at or below ${composite}`,
+          recession: 'Recession filter not High',
+        })[key] ?? key,
+      capFoot:
+        'When all 4 are met, a staged plan for index ETFs appears in thirds with exit conditions and a bear case.',
+      keywordTopics: 'Keyword topics (AI off)',
+      articlesN: (n: number) => `${n.toLocaleString('en-US')} articles`,
+      ratioX: (v: string) => `${v}×`,
       topicHeadlines: (name: string, n: number) =>
         `${name}: newest ${n} headline${n === 1 ? '' : 's'}`,
       noHeadlines: 'No headline stored for this topic in the last 40 days.',
       percentileChip: (name: string, pct: string, date: string) =>
-        `${name} ${pct} percentile, ${date}`,
+        `${name} ${pct} percentile (${date})`,
       moreMeasures: 'More measures',
-      gauges: 'Gauges',
-      details: 'Details',
-      moreContext: 'More context',
-      heroMeta: (rules: string, day: string) => `${rules} · ${day}`,
-      delayedEod: 'Delayed · end of day',
-      runningTile: 'Running',
-      sessShort: (n: number) => `${n} sess.`,
-      fromHighTile: 'From high',
-      ribbonPast: 'Last 252 sessions',
-      ribbonNow: 'Now',
-      studyTitle: 'What the S&P did next',
-      studySub: (since: string) => `Median and middle half · since ${since}`,
-      horizonSessions: (h: number) => `${h} sessions`,
-      nEquals: (n: number) => `n = ${n}`,
-      middleHalf: (lo: string, hi: string) => `Middle half ${lo} to ${hi}`,
-      studySub90: (since: string) => `Median and 90% interval · since ${since}`,
-      interval90: (lo: string, hi: string) => `90% interval ${lo} to ${hi}`,
-      insufficientOf: (n: number) => `Insufficient history (${n} of 30)`,
-      accQuality: 'Runs when capitulation is on',
-      accActive: 'Active',
-      accInactive: 'Inactive',
-      accGeo: 'Keyword tags · last 7 days vs 4 weeks before',
-      accVol: 'VIX against VIX 3-month',
-      accUnc: 'Geopolitical risk and policy uncertainty, 1-year percentile',
-      accCredit: 'Spreads and slopes, 1-year percentile',
-      accPct: (name: string, ord: string) => `${name} ${ord}`,
-      gprShort: 'GPR',
-      hyShort: 'High yield',
-      above50Sub: 'above 50-day',
-      above200: (pct: string) => `${pct} above 200-day`,
-      members: (n: number) => `${n.toLocaleString('en-US')} members`,
-      signalsOf: (a: number, n: number) => `${a} of ${n} signals available`,
-      triggeredN: (n: number) => `${n} triggered`,
-      swipeHint: 'Swipe for more',
+      tables: {
+        study: 'Every condition and horizon',
+        signals: 'The 5 signals in full',
+        components: 'The 7 components in full',
+        conditions: 'The 4 conditions in full',
+        topics: 'Topic counts in full',
+        measures: 'Latest value, 1-month change and 1-year percentile',
+      },
     },
     intro:
       'What kind of market this is, from documented rules (ADR 0009), computed at the end of each day from stored data. It describes the market; it does not forecast it.',
     none: 'No regime has been computed yet. The regime job runs after the FRED job.',
-    labelTitle: 'Market regime',
+    labelTitle: 'Regime label',
     labels: {
       stress: 'Stress',
       bear: 'Bear',
       recovery: 'Recovery',
-      'bull-calm': 'Bull, calm',
-      'bull-correction': 'Bull, correction',
+      'bull-calm': 'Bull calm',
+      'bull-correction': 'Bull correction',
       'insufficient-data': 'Insufficient data',
     } as Record<string, string>,
     reasons: {
@@ -1550,6 +1883,9 @@ export const t = {
       zweigRule:
         'Fires when the 10-day average advancing share rises from below 0.40 to above 0.615 within 10 sessions.',
       monthAgo: (pct: string) => `a month ago ${pct}`,
+      tickNote: 'The tick marks the reading a month ago.',
+      highsLowsOutOf: (n: number) =>
+        `52-week highs and lows: out of ${n.toLocaleString('en-US')} with enough history`,
       warmup:
         'The free plan gives 2 years of history, so the 200-day and 52-week measures need most of the first year to warm up; the counts show how many members they rest on.',
       source: (versions: string) =>
@@ -1558,7 +1894,7 @@ export const t = {
         `${n} member${n === 1 ? '' : 's'} left out today: a one-day move over 50% with no split.`,
     },
     fearGreed: {
-      title: 'Fear and Greed composite',
+      title: 'Fear and Greed',
       intro:
         'Marsad\u2019s own reading, after CNN\u2019s published method: seven components, each scored 0 to 100 by where today\u2019s value sits among its last 504 sessions (2 years), then averaged. High is greed, low is fear.',
       none: 'No day has enough components yet (4 of 7 are needed). It fills in after the breadth backfill and two years of SPY and IEF bars.',
@@ -1596,6 +1932,17 @@ export const t = {
         'short-history': 'Not counted: fewer than 252 sessions of history.',
       } as Record<string, string>,
       windowNote: (n: number) => `percentile over ${n} sessions`,
+      short: {
+        momentum: 'Momentum',
+        strength: 'Strength',
+        breadth: 'Breadth',
+        putCall: 'Put/call',
+        junk: 'Junk bonds',
+        volatility: 'Volatility',
+        safeHaven: 'Safe haven',
+      } as Record<string, string>,
+      ofMembers: (v: string) => `${v} of members`,
+      points: (v: string) => `${v} points`,
       method:
         'A component counts only with a value for that day; nothing is carried forward. Prices are price returns. Stock price strength needs a 52-week measure plus a year of its own history, so it joins about two years after breadth starts (around December 2026).',
     },
@@ -1691,8 +2038,37 @@ export const t = {
       rules: (vix: number, pct: number, members: number, composite: number) =>
         `Rules: VIX at or above ${vix}; at most ${pct}% of the universe above its 50-day average (with at least ${members} members that have 50 sessions); composite at or below ${composite}; recession filter not high. ADR 0011.`,
     },
+    rotation: {
+      title: 'Sector rotation against SPY',
+      source: (date: string) => `Massive daily bars · close of ${date}`,
+      sourceNone: 'Massive daily bars',
+      caption: (date: string) =>
+        `Return of each sector fund relative to SPY to the close of ${date}, best 1 month first`,
+      colSector: 'Sector',
+      w1: '1 week',
+      m1: '1 month',
+      m3: '3 months',
+      na: 'n/a',
+      stale: (date: string) => `Stale: newest bar ${date}`,
+      noBars: 'No bars stored',
+      none: 'Not available yet: no SPY bars are stored. The bars job stores SPY and the 11 sector funds every night.',
+      names: {
+        XLK: 'Technology',
+        XLC: 'Communication',
+        XLY: 'Discretionary',
+        XLF: 'Financials',
+        XLI: 'Industrials',
+        XLV: 'Health care',
+        XLB: 'Materials',
+        XLP: 'Staples',
+        XLRE: 'Real estate',
+        XLU: 'Utilities',
+        XLE: 'Energy',
+      } as Record<string, string>,
+      info: 'Relative return against SPY over 5, 21 and 63 sessions: (1 + fund return) divided by (1 + SPY return), minus 1, over the same sessions. From Massive end-of-day closes of the Select Sector SPDR funds (split-adjusted by the vendor). A fund whose newest close is older than SPY\u2019s shows no values. Sorted by 1 month. Rules sector-rotation-1.',
+    },
     geopolitics: {
-      title: 'Geopolitical panel',
+      title: 'Geopolitics',
       intro:
         'How often market news mentions each topic, beside the assets that usually react. Counted by documented keyword rules (ADR 0012), not by a model.',
       none: 'No topic counts yet. The topics job runs daily at 01:20 UTC and fills 35 days on its first run.',
@@ -1798,7 +2174,7 @@ export const t = {
       aiSpend: 'AI spend',
       aiSpendValue: (today: string, month: string, calls: number) =>
         `today $${today} \u00B7 month $${month} \u00B7 ${calls} calls`,
-      aiOffWarn: 'AI is off: set daily and monthly caps in Preferences to turn it on',
+      aiOffWarn: 'AI is off: set daily and monthly caps in Settings to turn it on',
       actions: 'GitHub Actions',
       actionsValue: (minutes: number, runs: number) =>
         `about ${new Intl.NumberFormat('en-US').format(minutes)} minutes \u00B7 ${new Intl.NumberFormat('en-US').format(runs)} runs this month`,
@@ -1810,6 +2186,25 @@ export const t = {
       off: 'Off',
       aiOffNote: 'AI stays off while either cap is blank.',
       aiOnNote: 'AI is on within these caps.',
+    },
+    /** Marsad v2 Status: the healthy pill, the source cards, the job strips and costs and caps. */
+    v2: {
+      checked: (et: string, local: string, zone: string) => `Checked ${et} ET · ${local} ${zone}`,
+      sourcesHeading: 'Data sources',
+      tierWhen: (tier: string, when: string) => `${tier} · ${when}`,
+      latencyMs: (ms: string) => `${ms} ms`,
+      latencyNone: 'none',
+      jobsLegend: 'blue OK · grey skipped · red error · yellow running',
+      costsTitle: 'Costs and caps',
+      planValue: (plan: string, usd: string) => `${plan} · $${usd}`,
+      aiOff: 'Off',
+      aiMonth: (usd: string) => `$${usd} this month`,
+      actionsValue: (minutes: number) =>
+        `About ${new Intl.NumberFormat('en-US').format(minutes)} minutes`,
+      actionsNote: (runs: number) =>
+        `${new Intl.NumberFormat('en-US').format(runs)} runs this month, estimated from the job log (setup time is not logged)`,
+      unavailable: 'Data unavailable',
+      latencyTitle: 'Alert latency, last 30 days',
     },
     eventsDesign: { stale: 'Stale', recovered: 'Recovered', mismatch: 'Mismatch' } as Record<
       string,
@@ -1981,5 +2376,147 @@ export const t = {
     dbOk: (at: string) => `Database reachable, checked ${at}`,
     dbError: (msg: string) => `Database unreachable: ${msg}`,
   },
+  settings: {
+    display: 'Display',
+    language: 'Language',
+    english: 'English',
+    arabic: 'العربية',
+    theme: 'Theme',
+    navy: 'Navy dark',
+    daylight: 'Daylight',
+    zone: 'Second time zone',
+    zoneNote: 'Times show in ET first, then this zone.',
+    numberFormat: 'Number format',
+    numberFormatValue: 'Tabular, signed, with arrows',
+    displayNote: 'Display choices are kept on this device only.',
+    notifications: {
+      title: 'Notifications',
+      webPush: 'Web push',
+      devices: (n: number) => (n === 0 ? 'No devices' : `${n} device${n === 1 ? '' : 's'}`),
+      noDevices: 'Turn on a device under Push setup.',
+      active: (name: string) => `${name} active`,
+      failing: (name: string, error: string) => `${name} failing (${error})`,
+      stopped: (name: string) => `${name} stopped by the push service`,
+      quietHours: 'Quiet hours',
+      dailyCap: 'Daily cap',
+      notYet: 'Not available yet',
+      quietNote:
+        'Not built yet: alerts are pushed as soon as they are written, and a late one says how late it is.',
+      dailyCapNote:
+        'Not built yet: no daily push limit. Digest-priority alerts are never pushed; they wait for the email digest.',
+      digest: 'Email digest',
+      digestValue: 'Pre-market and close',
+      digestNote: 'Sent with the pre-market brief and the close recap.',
+      setup: 'Push setup',
+    },
+    shariah: {
+      title: 'Shariah screening aid',
+      on: 'On',
+      off: 'Off',
+      basis: 'Basis',
+      debt: 'Debt limit',
+      cash: 'Cash and interest-bearing limit',
+      note: "An aid from filed numbers, not a ruling. Check the broker's classification too. Shown on Study while on.",
+    },
+    ai: {
+      title: 'AI caps',
+      daily: 'Daily cap',
+      monthly: 'Monthly cap',
+      spend: 'Spend this month',
+      blank: 'Blank',
+      save: 'Save AI caps',
+      saved: 'AI caps saved.',
+      note: 'Leave either cap blank to keep AI off. Topics and briefs use keyword rules and templates meanwhile. Warning at 80%, templates at the cap.',
+    },
+    security: 'Security',
+    securityRows: [
+      {
+        k: 'Sign-in',
+        v: 'Email and password',
+        note: 'A one-time code by email is the fallback.',
+        warn: false,
+      },
+      {
+        k: 'Two-factor (TOTP)',
+        v: 'Relaxed while testing',
+        note: 'ADR 0039: password sessions are allowed for now; the authenticator step returns before the platform is final.',
+        warn: true,
+      },
+      {
+        k: 'Sign-ups',
+        v: 'Members only',
+        note: 'New accounts read shared data only (ADR 0040).',
+        warn: false,
+      },
+      {
+        k: 'Brokerage write access',
+        v: 'None',
+        note: 'Marsad never reads or places orders. You place every order by hand in Sahm.',
+        warn: false,
+      },
+    ],
+  },
   errors: { generic: 'Something went wrong.' },
 } as const;
+
+type Texts<T> = { [K in keyof T]: T[K] extends string ? string : Texts<T[K]> };
+
+/**
+ * Arabic (Marsad v2): navigation, page titles and subtitles and the notices. Everything else stays in English
+ * for now; numbers, tickers, dates and times keep their left-to-right order inside Arabic text.
+ */
+export const ar: {
+  nav: Texts<typeof t.nav>;
+  pages: Texts<typeof t.pages>;
+  footer: string;
+} = {
+  nav: {
+    watch: 'المراقبة',
+    study: 'الدراسة',
+    regime: 'النظام السوقي',
+    alerts: 'التنبيهات',
+    journal: 'السجل',
+    lab: 'المختبر',
+    status: 'الحالة',
+    settings: 'الإعدادات',
+    signOut: 'تسجيل الخروج',
+    primary: 'الأقسام الرئيسية',
+  },
+  pages: {
+    watch: {
+      title: 'المراقبة',
+      subtitle:
+        'ملخص الصباح وقائمة المراقبة وآخر الأخبار والتقويم والقطاعات. الأسعار بنهاية اليوم.',
+    },
+    study: {
+      title: 'الدراسة',
+      subtitle:
+        'ابحث عن شركة: الرسم البياني والملخص والأخبار والإفصاحات والقوائم المالية والملاك والأطروحة.',
+    },
+    regime: {
+      title: 'النظام السوقي',
+      subtitle:
+        'تسمية السوق وسببها، ودراسة الأحداث، وفلتر الركود، والخوف والطمع، ومراقبة الاستسلام.',
+    },
+    alerts: {
+      title: 'التنبيهات',
+      subtitle: 'كل تنبيه مع المحفز والخطة وسجل المخاطر وقائمة التحقق وحالة الهبوط والمصادر.',
+    },
+    journal: {
+      title: 'السجل',
+      subtitle: 'المراكز وحاسبة الحجم وتذكرة سهم اليدوية والخيارات والتعرض.',
+    },
+    lab: {
+      title: 'المختبر',
+      subtitle: 'إحدى عشرة استراتيجية لا تصبح حية إلا بعد اختبار خارج العينة.',
+    },
+    status: { title: 'الحالة', subtitle: 'حالة مصادر البيانات والمهام والتكاليف.' },
+    settings: {
+      title: 'الإعدادات',
+      subtitle: 'اللغة والمظهر والتنبيهات والحدود الشرعية وحدود الذكاء الاصطناعي والأمان.',
+    },
+  },
+  footer: 'مرصد للتنبيهات فقط. لا ينفذ أوامر ولا يقدم توصيات شراء أو بيع شخصية.',
+};
+
+export type PageKey = keyof typeof t.pages;

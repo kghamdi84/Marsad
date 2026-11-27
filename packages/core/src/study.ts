@@ -141,6 +141,8 @@ export interface ChartMarker {
   /** Short text for the chart and for the list beneath it. */
   label: string;
   materiality: Materiality | null;
+  /** Set only on an 8-K that carries Item 2.02 (results of operations), shown as E rather than F. */
+  results?: true;
 }
 
 export interface FilingEvent {
@@ -252,6 +254,7 @@ export function buildEventMarkers(
       kind: d.materiality === 'high' ? 'high-8k' : 'medium-8k',
       label: `8-K: ${top.join('; ')}`,
       materiality: d.materiality,
+      ...(f.items.includes('2.02') ? { results: true as const } : {}),
     });
   }
   for (const s of splits) {

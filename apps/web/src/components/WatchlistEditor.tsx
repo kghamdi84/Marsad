@@ -47,7 +47,7 @@ export function WatchlistEditor({
     apply(next);
   };
   const iconBtn =
-    'grid size-11 flex-none place-items-center rounded-full text-white disabled:opacity-30';
+    'grid size-11 flex-none place-items-center rounded-full text-ink disabled:opacity-30';
   return (
     <section aria-label={x.editTitle} className="flex flex-col gap-3">
       <form onSubmit={add} className="flex items-end gap-2">
@@ -62,7 +62,10 @@ export function WatchlistEditor({
             className="min-h-11 rounded-xl border border-line bg-bg px-3 text-base text-fg uppercase"
           />
         </label>
-        <button type="submit" className="min-h-11 rounded-xl bg-white px-4 font-bold text-raised">
+        <button
+          type="submit"
+          className="min-h-11 rounded-xl bg-accent px-4 font-bold text-accent-ink"
+        >
           {x.add}
         </button>
       </form>
@@ -70,7 +73,7 @@ export function WatchlistEditor({
       <ol className="flex flex-col">
         {list.map((tk, i) => (
           <li key={tk} className="flex items-center gap-1 border-t border-line-soft py-1">
-            <span className="flex-1 font-bold text-white">{tk}</span>
+            <span className="flex-1 font-bold text-ink">{tk}</span>
             <select
               aria-label={x.sectorFor(tk)}
               defaultValue={sectorOf[tk] ?? ''}
@@ -122,7 +125,7 @@ export function WatchlistEditor({
       <button
         type="button"
         onClick={onDone}
-        className="min-h-11 self-start rounded-xl border border-muted/35 px-4 text-white"
+        className="min-h-11 self-start rounded-xl border border-muted/35 px-4 text-ink"
       >
         {x.done}
       </button>

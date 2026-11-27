@@ -3,9 +3,8 @@ import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorText } from '../ui';
 import { loadBusinessSection } from '../../lib/studyPanels';
-import { cardClass } from '../Card';
 import { t } from '../../strings';
-import { panelTitle } from './Panel';
+import { panelTitle, tileClass } from './Panel';
 
 const b = t.study.business;
 
@@ -45,7 +44,7 @@ function Text({ cik }: { cik: string }) {
 export function Business({ cik }: { cik: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section aria-labelledby="business" className={`${cardClass} gap-3!`}>
+    <section aria-labelledby="business" className={tileClass}>
       <h2 id="business" className={panelTitle}>
         {b.title}
       </h2>

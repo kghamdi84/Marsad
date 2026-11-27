@@ -9,40 +9,108 @@
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 
+/*
+ * Marsad v2 tokens (Claude Design handoff "Marsad v2", 2026-11-27): two themes set by data-theme on <html>.
+ * Navy dark is the default; Daylight values were chosen to pass WCAG AA. Utilities read the variables below, so
+ * every class (bg-surface, text-ink3, bg-up-soft) follows the theme.
+ */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --c-canvas: #00123f;
+  --c-surface: #001a57;
+  --c-elev: #002475;
+  --c-sub: rgba(138, 153, 178, 0.2);
+  --c-line: rgba(138, 153, 178, 0.22);
+  --c-line-strong: rgba(183, 193, 210, 0.45);
+  --c-ink: #ffffff;
+  --c-ink2: #e8ecf3;
+  --c-ink3: #b7c1d2;
+  --c-accent: #ffffff;
+  --c-accent-ink: #002475;
+  --c-up: #7fa8ff;
+  --c-up-soft: rgba(127, 168, 255, 0.16);
+  --c-down: #ff9f5a;
+  --c-down-soft: rgba(255, 159, 90, 0.16);
+  --c-warn: #f5d06f;
+  --c-warn-soft: rgba(245, 208, 111, 0.16);
+  --c-crit: #ff6b70;
+  --c-crit-soft: rgba(255, 107, 112, 0.18);
+  --c-link: #7fa8ff;
+  --c-ema: #c9a8ff;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --c-canvas: #fafbfd;
+  --c-surface: #ffffff;
+  --c-elev: #f3f5f9;
+  --c-sub: #e8ecf3;
+  --c-line: #e1e6ee;
+  --c-line-strong: #b7c1d2;
+  --c-ink: #001a57;
+  --c-ink2: #24304d;
+  --c-ink3: #4f5d7a;
+  --c-accent: #002475;
+  --c-accent-ink: #ffffff;
+  --c-up: #0033a0;
+  --c-up-soft: rgba(0, 51, 160, 0.08);
+  --c-down: #a84a06;
+  --c-down-soft: rgba(168, 74, 6, 0.09);
+  --c-warn: #7a5600;
+  --c-warn-soft: rgba(122, 86, 0, 0.1);
+  --c-crit: #b3121a;
+  --c-crit-soft: rgba(179, 18, 26, 0.08);
+  --c-link: #0033a0;
+  --c-ema: #6b3fb8;
+}
+
 @theme {
   --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-  /* 760 px: the phone shell below, the top bar with every tab at and above (Claude Design handoff). */
+  /* 760 px: phone shell below (bottom tabs), the top navigation at and above. */
   --breakpoint-tablet: 47.5rem;
-  /* 1280 px: the compact or the full top-bar cluster (Claude Design handoff). */
+  /* 1280 px: the content maximum width. */
   --breakpoint-wide: 80rem;
-  /* Marsad navy palette (Claude Design, 2026-11-26). */
-  --color-bg: #00123f;
-  --color-surface: #001a57;
-  --color-raised: #002475;
-  --color-line: rgba(138, 153, 178, 0.22);
-  --color-line-soft: rgba(138, 153, 178, 0.14);
-  --color-fg: #e8ecf3;
-  --color-muted: #b7c1d2;
-  --color-faint: #8a99b2;
-  /* Color-blind-safe defaults: blue for up, orange for down. Never the only signal. */
-  --color-up: #7fa8ff;
-  --color-down: #ff9f5a;
-  --color-warn: #f5d06f;
-  --color-alarm: #ff6b70;
-  --color-focus: #7fa8ff;
-  /* Filled toggles, checked boxes, earnings markers. */
-  --color-ink: #0033a0;
-  /* Critical priority badge, Stress, high-impact events: fill only, never text. */
-  --color-crit: #ed1c24;
-  /* EMA 20 line only. */
-  --color-ema: #c9a8ff;
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-elev: var(--c-elev);
+  --color-sub: var(--c-sub);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-ink: var(--c-ink);
+  --color-ink2: var(--c-ink2);
+  --color-ink3: var(--c-ink3);
+  --color-accent: var(--c-accent);
+  --color-accent-ink: var(--c-accent-ink);
+  /* Blue for up, orange for down; always with a sign and an arrow, never colour alone. */
+  --color-up: var(--c-up);
+  --color-up-soft: var(--c-up-soft);
+  --color-down: var(--c-down);
+  --color-down-soft: var(--c-down-soft);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-crit: var(--c-crit);
+  --color-crit-soft: var(--c-crit-soft);
+  --color-link: var(--c-link);
+  --color-ema: var(--c-ema);
+  /* Names used before v2, kept as aliases of the v2 tokens. */
+  --color-bg: var(--c-canvas);
+  --color-raised: var(--c-elev);
+  --color-fg: var(--c-ink2);
+  --color-muted: var(--c-ink3);
+  --color-faint: var(--c-ink3);
+  --color-line-soft: var(--c-line);
+  --color-alarm: var(--c-crit);
+  --color-focus: var(--c-up);
+  /* A fixed filled blue (checked boxes, earnings markers) with white text in both themes. */
+  --color-fill: #0033a0;
 }
 
 html {
-  color-scheme: dark;
-  background: var(--color-bg);
-  color: var(--color-fg);
+  background: var(--color-canvas);
+  color: var(--color-ink2);
   font-family: var(--font-sans);
   -webkit-text-size-adjust: 100%;
 }
@@ -50,7 +118,7 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--color-bg);
+  background: var(--color-canvas);
 }
 
 /* Tabular figures everywhere so number columns align. */
@@ -71,4 +139,19 @@ body {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+@layer base {
+  a {
+    color: var(--color-link);
+  }
+}
+
+/* Right to left: numbers, tickers, dates and times keep their own order inside Arabic text. */
+[dir='rtl'] :where(span, h1, h2, h3, p, code, label, button, td, th) {
+  unicode-bidi: plaintext;
+}
+
+[lang='ar'] body {
+  font-family: var(--font-arabic);
 }

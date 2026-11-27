@@ -13,6 +13,9 @@ export const ROTATION_VERSION = 'rotation-1';
 /** Sessions in 3, 6 and 12 months. */
 export const RS_PERIODS = { m3: 63, m6: 126, m12: 252 } as const;
 
+/** Only the date and close of a daily bar (what a relative return needs). */
+export type CloseBar = Pick<DailyBar, 'date' | 'close'>;
+
 export type ThesisStatus = 'intact' | 'weakening' | 'broken';
 
 export interface RsSet {
@@ -26,15 +29,15 @@ export interface RsSet {
  * Positive means the stock beat the benchmark. Null with too little common history.
  */
 export function relativeStrength(
-  stock: readonly DailyBar[],
-  bench: readonly DailyBar[],
+  stock: readonly CloseBar[],
+  bench: readonly CloseBar[],
   period: number,
 ): number | null {
   const b = new Map(bench.map((x) => [x.date, x.close]));
   const common = stock.filter((x) => b.has(x.date));
   if (common.length <= period) return null;
-  const end = common[common.length - 1] as DailyBar;
-  const start = common[common.length - 1 - period] as DailyBar;
+  const end = common[common.length - 1] as CloseBar;
+  const start = common[common.length - 1 - period] as CloseBar;
   const rs = end.close / start.close;
   const rb = (b.get(end.date) as number) / (b.get(start.date) as number);
   return rs / rb - 1;

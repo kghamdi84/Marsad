@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useDisplay } from '../lib/display';
 import {
   CandlestickSeries,
   ColorType,
@@ -10,27 +11,9 @@ import {
   type SeriesMarker,
   type Time,
 } from 'lightweight-charts';
-import {
-  ema,
-  rsi,
-  sma,
-  toFixedHalfUp,
-  type ChartMarker,
-  type DailyBar,
-  type MarkerKind,
-} from '@marsad/core';
+import { ema, rsi, sma, toFixedHalfUp, type ChartMarker, type DailyBar } from '@marsad/core';
 import { t } from '../strings';
-
-/** The short text drawn on the chart for each marker kind; the full label is in the list beneath it. */
-const MARKER_TEXT: Record<MarkerKind, string> = {
-  'high-8k': '8-K',
-  'medium-8k': '8-K',
-  split: 'Split',
-  dividend: 'Div',
-  'insider-buy': 'Buy',
-  halt: 'Halt',
-  alert: 'Alert',
-};
+import { markerLetter } from './study/markers';
 
 export interface ChartToggles {
   sma50: boolean;
@@ -64,6 +47,7 @@ export default function PriceChart({
   toggles,
   height = 420,
   visibleSessions,
+  onPick,
 }: {
   bars: readonly DailyBar[];
   markers: readonly ChartMarker[];
@@ -71,19 +55,29 @@ export default function PriceChart({
   height?: number;
   /** Show only the newest sessions (the rest stay loaded, so long averages are drawn from full history). */
   visibleSessions?: number;
+  /** Called with a bar date when a click or tap lands on a session that carries a marker. */
+  onPick?: (date: string) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLDivElement>(null);
+  // Kept in a ref so a new callback does not redraw the chart.
+  const pick = useRef(onPick);
+  useEffect(() => {
+    pick.current = onPick;
+  }, [onPick]);
 
+  const { theme } = useDisplay();
   useEffect(() => {
     const el = host.current;
     if (!el || bars.length === 0) return;
     const up = token('--color-up', '#5aa9ff');
     const down = token('--color-down', '#ff9f43');
-    const text = token('--color-muted', '#a3b0bd');
+    const text = token('--color-ink3', '#b7c1d2');
     const grid = token('--color-line', '#263241');
     const warn = token('--color-warn', '#ffd166');
-    const fg = token('--color-fg', '#e6edf3');
+    const fg = token('--color-ink2', '#e8ecf3');
+    const crit = token('--color-crit', '#ff6b70');
+    const emaColor = token('--color-ema', '#c9a8ff');
 
     const chart = createChart(el, {
       autoSize: true,
@@ -139,7 +133,7 @@ export default function PriceChart({
     if (toggles.sma50)
       chart
         .addSeries(LineSeries, {
-          color: fg,
+          color: text,
           lineWidth: 1,
           title: 'SMA 50',
           lastValueVisible: false,
@@ -157,7 +151,7 @@ export default function PriceChart({
     if (toggles.ema20)
       chart
         .addSeries(LineSeries, {
-          color: up,
+          color: emaColor,
           lineWidth: 1,
           lineStyle: 2,
           title: 'EMA 20',
@@ -178,25 +172,27 @@ export default function PriceChart({
         time: m.date as Time,
         // Dividends and insider buys sit below the bar so they never hide an 8-K, split, halt or alert above it.
         position: m.kind === 'dividend' || m.kind === 'insider-buy' ? 'belowBar' : 'aboveBar',
-        shape:
-          m.kind === 'split' || m.kind === 'halt'
-            ? 'square'
-            : m.kind === 'high-8k'
-              ? 'arrowDown'
-              : m.kind === 'insider-buy'
-                ? 'arrowUp'
-                : 'circle',
-        color:
-          m.kind === 'high-8k' || m.kind === 'halt'
-            ? warn
-            : m.kind === 'medium-8k' || m.kind === 'alert'
-              ? fg
-              : m.kind === 'dividend'
-                ? text
-                : up,
-        text: MARKER_TEXT[m.kind],
+        shape: m.kind === 'split' || m.kind === 'halt' ? 'square' : 'circle',
+        // As in the design: results in the warn colour, Marsad alerts in the up colour, halts critical, the rest muted.
+        color: m.results
+          ? warn
+          : m.kind === 'alert'
+            ? up
+            : m.kind === 'halt'
+              ? crit
+              : m.kind === 'high-8k'
+                ? warn
+                : text,
+        text: markerLetter(m),
       }));
     createSeriesMarkers(candles, placed);
+
+    // A click or tap on a session with a marker picks it; the detail shows under the chart.
+    const markedDates = new Set(placed.map((p) => p.time as string));
+    chart.subscribeClick((param) => {
+      const day = typeof param.time === 'string' ? param.time : null;
+      if (day && markedDates.has(day)) pick.current?.(day);
+    });
 
     // The day and close under the crosshair (pointer or touch and hold); hidden when the crosshair leaves.
     const byDate = new Map(bars.map((b) => [b.date, b.close]));
@@ -226,7 +222,8 @@ export default function PriceChart({
         to: bars.length - 0.5,
       });
     return () => chart.remove();
-  }, [bars, markers, toggles, height, visibleSessions]);
+    // The theme is a dependency: the colours are read from the theme tokens when the chart is drawn.
+  }, [bars, markers, toggles, height, visibleSessions, theme]);
 
   return (
     <div className="relative">
@@ -236,7 +233,7 @@ export default function PriceChart({
         hidden
         aria-hidden="true"
         data-testid="chart-readout"
-        className="pointer-events-none absolute start-2 top-2 z-10 rounded-md bg-raised px-2 py-1 text-xs font-semibold text-white tabular-nums shadow"
+        className="pointer-events-none absolute start-2 top-2 z-10 rounded-md bg-raised px-2 py-1 text-xs font-semibold text-ink tabular-nums shadow"
       />
     </div>
   );

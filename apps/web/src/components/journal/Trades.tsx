@@ -19,6 +19,9 @@ import {
   type JournalTrade,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../ui';
+import { Pill } from '../ui/kit';
+import { cardClass } from '../Card';
+import { CardHead } from './shared';
 import { addScreenshot, addTrade, closeTrade, loadTrades, screenshotUrl } from '../../lib/journal';
 import { Sheet } from '../Sheet';
 import { TickerLink } from '../QuickLook';
@@ -356,21 +359,21 @@ function TradeRow({ tr, onOpen }: { tr: JournalTrade; onOpen: () => void }) {
   const end = tr.exitDate ?? etDate(new Date());
   const held = daysBetween(tr.entryDate, end);
   return (
-    <li className="border-b border-line-soft last:border-b-0">
+    <li className="border-t border-line">
       <button
         type="button"
         aria-haspopup="dialog"
         onClick={onOpen}
         className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 gap-y-0.5 py-2.5 text-start"
       >
-        <span className="font-bold text-white">
+        <span className="text-sm font-semibold text-ink">
           {tr.ticker}{' '}
-          <span className="text-[13px] font-normal text-muted">
+          <span className="text-xs font-normal text-ink3">
             {dayMonth(tr.exitDate ?? tr.entryDate)}
           </span>
         </span>
         <span
-          className={`text-end font-bold tabular-nums ${r === null ? 'text-muted' : r >= 0 ? 'text-up' : 'text-down'}`}
+          className={`text-end text-sm font-semibold tabular-nums ${r === null ? 'text-ink3' : r >= 0 ? 'text-up' : 'text-down'}`}
         >
           {tr.exitDate === null
             ? x.openShort
@@ -378,11 +381,9 @@ function TradeRow({ tr, onOpen }: { tr: JournalTrade; onOpen: () => void }) {
               ? '–'
               : `${r >= 0 ? '▲ +' : '▼ −'}${toFixedHalfUp(Math.abs(r), 1)}R`}
         </span>
-        <span className="text-[13px] text-muted">
-          {x.rowSub(tr.setup.trim() || x.noSetup, held)}
-        </span>
+        <span className="text-xs text-ink3">{x.rowSub(tr.setup.trim() || x.noSetup, held)}</span>
         <span
-          className={`justify-self-end rounded-sm px-1.5 py-px text-xs ${ok ? 'bg-up/14 text-up' : 'bg-down/16 text-down'}`}
+          className={`justify-self-end rounded-full px-2 py-px text-xs font-medium ${ok ? 'bg-up-soft text-up' : 'bg-down-soft text-down'}`}
         >
           {ok ? x.followedPlan : x.brokePlan}
         </span>
@@ -404,68 +405,35 @@ export function Trades() {
   const followed = scores.filter((sc) => sc >= FOLLOWED_AT).length;
   const opened = trades.find((tr) => tr.id === openId);
   return (
-    <section aria-labelledby="trades" className="flex flex-col gap-2.5">
-      <h2 id="trades" className="sr-only">
-        {x.title}
-      </h2>
+    <section aria-labelledby="trades" className={cardClass}>
+      <CardHead
+        id="trades"
+        title={x.title}
+        aside={mean !== null && <Pill tone="up">{x.adherencePill(Math.round(mean))}</Pill>}
+      />
+      {mean !== null && (
+        <p className="text-xs text-ink3">{x.followedOf(followed, trades.length)}</p>
+      )}
       <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data && (
         <>
           {trades.length === 0 ? (
-            <p className="text-muted">{x.none}</p>
+            <p className="text-sm text-ink3">{x.none}</p>
           ) : (
             <>
-              {mean !== null && (
-                <div className="flex items-center gap-3.5 rounded-2xl border border-line bg-surface p-4">
-                  <svg
-                    viewBox="0 0 36 36"
-                    role="img"
-                    aria-label={x.ringAria(Math.round(mean))}
-                    className="size-[72px] flex-none -rotate-90"
-                  >
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.9"
-                      fill="none"
-                      stroke="rgba(138,153,178,0.18)"
-                      strokeWidth="3.5"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.9"
-                      fill="none"
-                      stroke="var(--color-up)"
-                      strokeWidth="3.5"
-                      strokeDasharray={`${Math.round(mean)} 100`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="flex flex-col">
-                    <span className="text-[13px] text-muted">{x.ringTitle}</span>
-                    <span className="text-[1.75rem] font-bold tabular-nums">
-                      {Math.round(mean)}
-                    </span>
-                    <span className="text-[13px] text-fg">
-                      {x.followedOf(followed, trades.length)}
-                    </span>
-                  </span>
-                </div>
-              )}
-              <ul className="rounded-2xl border border-line bg-surface px-4 py-1">
+              <ul className="flex flex-col">
                 {trades.map((tr) => (
                   <TradeRow key={tr.id} tr={tr} onOpen={() => setOpenId(tr.id)} />
                 ))}
               </ul>
-              <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
-                <h3 className="font-semibold">{x.statsTitle}</h3>
+              <div className="flex flex-col gap-2 border-t border-line pt-2.5">
+                <h3 className="text-[13px] font-semibold text-ink">{x.statsTitle}</h3>
                 <ul className="flex flex-col gap-2">
                   {stats.map((st) => (
-                    <li key={st.setup} className="flex justify-between gap-2.5">
-                      <span>{st.setup}</span>
-                      <span className="text-[13px] whitespace-nowrap text-muted tabular-nums">
+                    <li key={st.setup} className="flex justify-between gap-2.5 text-sm">
+                      <span className="text-ink2">{st.setup}</span>
+                      <span className="text-xs whitespace-nowrap text-ink3 tabular-nums">
                         {/* No percentage from fewer than 30 cases (integrity rule 10). */}
                         {st.insufficient || st.winRate === null
                           ? x.insufficientWin(st.closed)
@@ -479,7 +447,7 @@ export function Trades() {
                   ))}
                 </ul>
                 {vs && (
-                  <p className="text-[13px] text-muted">
+                  <p className="text-xs text-ink3">
                     {vs.insufficient
                       ? x.vsInsufficient
                       : x.vs(vs.high.n, r2(vs.high.meanR), vs.low.n, r2(vs.low.meanR))}
@@ -493,12 +461,12 @@ export function Trades() {
             aria-expanded={adding}
             aria-controls="trade-new"
             onClick={() => setAdding(!adding)}
-            className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-white"
+            className="min-h-11 self-start rounded-lg border border-line-strong px-4 text-[13px] font-semibold text-ink"
           >
             {x.add}
           </button>
           {adding && (
-            <div id="trade-new" className="rounded-2xl border border-line bg-surface p-4">
+            <div id="trade-new" className="rounded-[10px] border border-line bg-elev p-4">
               <NewTrade alerts={q.data.alerts} />
             </div>
           )}

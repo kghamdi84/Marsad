@@ -325,6 +325,18 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await setup(page);
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto('/study/NVDA');
+  // Snapshot (v2), checked by hand from the recorded facts filed by 2026-11-24. Revenue over the four quarters to
+  // 2026-07-26: 57.006 + 68.127 (derived: 215.938 - 147.811) + 81.615 + 96.221 = 302.969 billion. Net income over
+  // the same quarters: 31.910 + 42.960 (120.067 - 77.107) + 58.321 + 59.688 = 192.879 billion, 63.66% of revenue.
+  // Market value: the 300.00 close x 24.1 billion shares (cover page filed 2026-08-26) = 7.23 trillion. The four
+  // quarters a year earlier are not all in the facts, so there is no change on a year earlier, only the period.
+  const snapshot = page.getByRole('region', { name: 'Snapshot' });
+  await expect(snapshot).toContainText('$7.23T');
+  await expect(snapshot).toContainText('24.10B shares × 300.00');
+  await expect(snapshot).toContainText('$303.0B');
+  await expect(snapshot).toContainText('Four quarters to 2026-07-26');
+  await expect(snapshot).toContainText('63.7%');
+  await expect(snapshot).not.toContainText('on a year earlier');
   await openSection(page, 'Financials');
   const panel = page.getByRole('region', { name: 'Financials, as filed' });
   await expect(panel.getByText('Latest filing used: 2026-08-26')).toBeVisible();
@@ -431,8 +443,26 @@ test('earnings: each release matched to its quarter, the move in the session tha
   await expect(panel.getByText(/too few reports to say how often/)).toBeVisible();
   await expect(panel.getByText(/requires a higher Massive plan \(Benzinga data\)/)).toBeVisible();
   // Both releases also mark the chart, on the session that reacted (the 17th and 19th were after the close).
+  await page.locator('summary', { hasText: 'All chart markers' }).click();
   await expect(page.getByText('2026-11-18: 8-K: Earnings results released (High)')).toBeVisible();
   await expect(page.getByText('2026-08-20: 8-K: Earnings results released (High)')).toBeVisible();
+  // v2: results 8-Ks are E markers, and the detail line carries the same next-session move as the table.
+  await page
+    .getByRole('button', { name: '2026-08-20: 8-K: Earnings results released (High)' })
+    .click();
+  await expect(
+    page.getByText(
+      'E · 20 Aug 2026 · 8-K: Earnings results released (High) · ▼ −9.8% next session',
+    ),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: '2026-11-18: 8-K: Earnings results released (High)' })
+    .click();
+  await expect(
+    page.getByText(
+      'E · 18 Nov 2026 · 8-K: Earnings results released (High) · ▲ +0.2% next session',
+    ),
+  ).toBeVisible();
   if (process.env.SHOT_DIR)
     await panel.screenshot({ path: `${process.env.SHOT_DIR}/earnings.png` });
 });
@@ -542,7 +572,9 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
     return json(r, rows);
   });
   await page.goto('/study/NVDA');
-  await openSection(page, 'Risk factors');
+  await openSection(page, 'Risk factor diff');
+  // Year on year shows first; quarter on quarter is the other half of the toggle (v2).
+  await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
   const panel = page.getByRole('region', { name: 'Risk factors, quarter over quarter (10-Q)' });
   expect(asked).toBe(0);
   await panel.getByText('Show the quarterly updates').click();
@@ -600,7 +632,7 @@ test('risk factors: nothing is fetched until opened, then two real 10-Ks are com
     return json(r, sectionRows());
   });
   await page.goto('/study/NVDA');
-  await openSection(page, 'Risk factors');
+  await openSection(page, 'Risk factor diff');
   const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
   await openInfo(page.getByRole('region', { name: 'Risk factors, year over year (10-K)' }));
   await expect(panel.getByText(/by computer rules and not by a model/)).toBeVisible();
@@ -657,7 +689,7 @@ test('risk factors: says why there is nothing to compare', async ({ page }) => {
     await page.unroute('**/rest/v1/annual_sections**');
     await page.route('**/rest/v1/annual_sections**', (r) => json(r, rows));
     await page.goto('/study/NVDA');
-    await openSection(page, 'Risk factors');
+    await openSection(page, 'Risk factor diff');
     const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
     await panel.getByText('Show the comparison').click();
     await expect(panel.getByText(expected)).toBeVisible();
@@ -777,11 +809,14 @@ test('news: tiers and opinion labelled, one story once, links open the publisher
 }) => {
   await setup(page);
   await page.goto('/study/NVDA');
-  await openSection(page, 'News');
-  const panel = page.getByRole('region', { name: 'News' });
+  // v2: the news is its own card on the page, beside the filings, not a section tab.
+  const panel = page.getByRole('region', { name: 'Latest company news' });
   // Reporting shows first; opinion and tier 3 or 4 sit behind a toggle (council batch 2).
   await expect(panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' })).toHaveCount(0);
   await panel.getByRole('button', { name: /^Show opinion and tier 3 or 4/ }).click();
+  // The newest four show first; the rest are one tap away.
+  const more = panel.getByRole('button', { name: /^Show \d+ more$/ });
+  if ((await more.count()) > 0) await more.click();
   const first = panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' });
   await expect(first).toHaveAttribute('target', '_blank');
   await expect(first).toHaveAttribute('rel', /noopener/);
@@ -891,6 +926,8 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
   await page.goto('/study/NVDA');
   await openSection(page, 'Shariah aid');
   await expect(page.getByText('The Shariah screening aid is off.')).toBeVisible();
+  // The header says the aid is off rather than showing no status.
+  await expect(page.getByText('Shariah aid off')).toBeVisible();
 
   settings = {
     shariah_screen: true,
@@ -908,6 +945,8 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
   await expect(aid).toContainText('Passes the financial ratios.');
   await expect(aid).toContainText('Sahm’s own Shariah label takes precedence.');
   await expect(aid).toContainText('Business activity is not screened');
+  // The header carries the same verdict (v2), as a screening aid.
+  await expect(page.locator('header').getByText('Shariah ratios within limits')).toBeVisible();
 
   // The Study list shows the same verdict as a chip, from the same helper.
   await page.route('**/rest/v1/daily_bars**', (r) =>
@@ -935,7 +974,13 @@ test('chart markers: a halt on its session and an after-close alert on the next 
     json(r, [{ created_at: '2026-11-18T22:40:00+00:00', headline: 'NVDA test alert' }]),
   );
   await page.goto('/study/NVDA');
+  await page.locator('summary', { hasText: 'All chart markers' }).click();
   // 19:32 UTC is 14:32 ET, during the session; 22:40 UTC is 17:40 ET, after the close.
   await expect(page.getByText('2026-11-17: Halt: T1 (News pending)')).toBeVisible();
   await expect(page.getByText('2026-11-19: Alert: NVDA test alert')).toBeVisible();
+  // Choosing a marker puts its detail line under the chart, with its letter (v2: H halt, A Marsad alert).
+  await page.getByRole('button', { name: '2026-11-17: Halt: T1 (News pending)' }).click();
+  await expect(page.getByText('H · 17 Nov 2026 · Halt: T1 (News pending)')).toBeVisible();
+  await page.getByRole('button', { name: '2026-11-19: Alert: NVDA test alert' }).click();
+  await expect(page.getByText('A · 19 Nov 2026 · Alert: NVDA test alert')).toBeVisible();
 });
