@@ -177,8 +177,8 @@ function Returns({
   );
 }
 
-/** A check in words: its rule, threshold and value with its date. */
-function checkText(c: BriefCheck): string {
+/** A check in words: its rule, threshold and value with its date. The quick look lists the same lines. */
+export function checkText(c: BriefCheck): string {
   const d = dayMonthYear(c.date);
   const th = c.threshold === null ? '' : pct(c.threshold, 0);
   const f = b.checks[c.id];

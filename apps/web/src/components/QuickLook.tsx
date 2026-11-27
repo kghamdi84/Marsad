@@ -8,11 +8,12 @@ import { useWide } from './Card';
 import { loadStudy } from '../lib/study';
 import { loadHoldings } from '../lib/journal';
 import { loadAlerts } from '../lib/alerts';
-import { loadCalendar, loadStrength } from '../lib/watch';
 import { loadWatchlist, saveWatchlist, withTicker } from '../lib/watchlist';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { useQuotePoll } from '../lib/refresh';
 import { dayMonth } from '../lib/dates';
+import { useQuickBrief } from './quicklook/useQuickBrief';
+import { BriefSection, PerformanceSection, PositionSection } from './quicklook/Sections';
 import { t } from '../strings';
 
 const x = t.quickLook;
@@ -111,17 +112,16 @@ function Fact({ k, v, tone = 'text-ink' }: { k: string; v: string; tone?: string
   );
 }
 
-/** What the quick look shows for one ticker, each fact with its freshness in words; anything not stored says so. */
+/**
+ * What the quick look shows for one ticker, each fact with its freshness in words; anything not stored says so.
+ * The header (close, change, freshness) needs only the ticker's own bars; the position, performance and brief
+ * sections load when the quick look opens and each shows its own Loading or Not available line.
+ */
 function QuickLookBody({ ticker }: { ticker: string }) {
   const study = useQuery({ queryKey: ['study', ticker], queryFn: () => loadStudy(ticker) });
   const holdings = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const alerts = useQuery({ queryKey: ['alerts', true], queryFn: () => loadAlerts(true) });
-  const calendar = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
-  const spy = useQuery({ queryKey: ['study', 'SPY'], queryFn: () => loadStudy('SPY') });
-  const strength = useQuery({
-    queryKey: ['strength', ticker],
-    queryFn: () => loadStrength([ticker]),
-  });
+  const extra = useQuickBrief(ticker, study.data);
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['watchlist'], queryFn: loadWatchlist });
   const add = useMutation({
@@ -146,17 +146,10 @@ function QuickLookBody({ ticker }: { ticker: string }) {
   const stale = !!s && !!d.lastCompletedDay && s.asOf < d.lastCompletedDay;
   const holding = holdings.data?.holdings.find((h) => h.ticker === ticker);
   const alert = alerts.data?.find((a) => a.ticker === ticker);
-  const est = calendar.data?.earnings?.estimates.find((e) => e.ticker === ticker);
   const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
-  const daysTo = est
-    ? Math.round(
-        (Date.parse(est.date) - Date.parse(new Date().toISOString().slice(0, 10))) / 86_400_000,
-      )
-    : null;
-  const fromHigh = s && s.high52w > 0 ? s.lastClose / s.high52w - 1 : null;
   const filings = d.filings.slice(0, 2);
-  const m = traderMetrics(d.bars, spy.data?.bars ?? []);
+  const m = traderMetrics(d.bars, extra.spyBars ?? []);
   const onList = list.data?.tickers.includes(ticker) ?? false;
   const tr = t.trader;
   const signed1 = (v: number) =>
@@ -194,27 +187,56 @@ function QuickLookBody({ ticker }: { ticker: string }) {
           )}
           <MiniChart closes={d.bars.map((b) => b.close)} />
           <p className="text-xs text-muted">{x.chartKey}</p>
+        </>
+      )}
+      {holdings.data && (
+        <PositionSection
+          ticker={ticker}
+          holdings={holdings.data.holdings}
+          bars={holdings.data.bars}
+        />
+      )}
+      {s && extra.brief && (
+        <PerformanceSection
+          ticker={ticker}
+          brief={extra.brief}
+          summary={s}
+          trader={m}
+          q={extra.q}
+        />
+      )}
+      {extra.brief && <BriefSection brief={extra.brief} cik={extra.cik} q={extra.q} />}
+      {(holding || alert) && (
+        <section
+          aria-label={x.whyTitle}
+          className="flex flex-col gap-1 rounded-[10px] border border-line p-3 text-sm"
+        >
+          <h3 className="text-xs text-muted">{x.whyTitle}</h3>
+          {holding && (
+            <p>
+              {x.holding(
+                holding.shares,
+                holding.stop === null ? x.none : money(holding.stop),
+                holding.targets.length ? holding.targets.map(money).join(', ') : x.none,
+              )}
+            </p>
+          )}
+          {alert && (
+            <p>
+              {x.alert(
+                dayMonth(alert.createdAt.slice(0, 10)),
+                alert.card[0]?.lines[0] ?? alert.kind,
+              )}
+            </p>
+          )}
+        </section>
+      )}
+      {s && last && (
+        <section aria-label={x.traderTitle} className="flex flex-col gap-1.5">
+          <h3 className="text-xs text-muted">{x.traderTitle}</h3>
           <dl className="grid grid-cols-2 gap-1.5">
             <Fact k={x.trend} v={t.study.trendLabels[s.trend] ?? s.trend} />
             <Fact k={x.rsi} v={s.rsi14 === null ? t.regime.noData : toFixedHalfUp(s.rsi14, 1)} />
-            <Fact
-              k={x.range(s.rangeSessions)}
-              v={x.rangeValue(money(s.low52w), money(s.high52w))}
-            />
-            <Fact
-              k={x.fromHigh}
-              v={fromHigh === null ? t.regime.noData : signed(fromHigh, 1)}
-              tone={fromHigh !== null && fromHigh < 0 ? 'text-down' : 'text-ink'}
-            />
-            <Fact
-              k={x.volume}
-              v={s.rvol20 === null ? t.regime.noData : x.times(toFixedHalfUp(s.rvol20, 1))}
-            />
-            <Fact k={x.dollarVolume} v={compact(last.close * last.volume)} />
-            <Fact
-              k={tr.atrPct}
-              v={m?.atrPct == null ? t.regime.noData : `${toFixedHalfUp(m.atrPct * 100, 1)}%`}
-            />
             <Fact
               k={tr.stretch50}
               v={m?.stretch50 == null ? t.regime.noData : tr.atrs(signed1(m.stretch50))}
@@ -228,50 +250,8 @@ function QuickLookBody({ ticker }: { ticker: string }) {
               v={m?.rsSpy == null ? t.regime.noData : signed(m.rsSpy, 1)}
               tone={m?.rsSpy == null ? 'text-ink' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
             />
-            <Fact
-              k={tr.rankFact}
-              v={(() => {
-                const r = strength.data?.[ticker];
-                return r
-                  ? `${tr.rankValue(Math.round(r.percentile))} · ${tr.rankSub(r.rank, r.members, dayMonth(r.date))}`
-                  : tr.notRanked;
-              })()}
-            />
-            <Fact
-              k={x.earnings}
-              v={est ? (est.overdue ? x.overdue : x.inDays(daysTo ?? 0)) : x.noEstimate}
-            />
+            <Fact k={x.dollarVolume} v={compact(last.close * last.volume)} />
           </dl>
-        </>
-      )}
-      {(holding || alert) && (
-        <section
-          aria-label={x.whyTitle}
-          className="flex flex-col gap-1 rounded-[10px] border border-line p-3 text-sm"
-        >
-          <h3 className="text-xs text-muted">{x.whyTitle}</h3>
-          {holding && (
-            <p>
-              {x.holding(
-                holding.shares,
-                holding.stop === null ? x.none : money(holding.stop),
-                holding.targets.length ? holding.targets.map(money).join(', ') : x.none,
-              )}{' '}
-              <span className="text-muted">
-                {x.thesis(
-                  t.journal.holdings.thesisStatus[holding.thesisStatus] ?? holding.thesisStatus,
-                )}
-              </span>
-            </p>
-          )}
-          {alert && (
-            <p>
-              {x.alert(
-                dayMonth(alert.createdAt.slice(0, 10)),
-                alert.card[0]?.lines[0] ?? alert.kind,
-              )}
-            </p>
-          )}
         </section>
       )}
       {filings.length > 0 && (
