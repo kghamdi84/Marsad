@@ -4,6 +4,13 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Watch squeezed (2026-11-27, Khaled: merge, squeeze and summarize)
+
+- The four cockpit tiles are now four one-line rows in one Today card: regime, movers, today, exit rules. The full pre-market brief folds behind "Read the full brief".
+- News and the calendar share one card with a switch. So do sectors, movers and gaps, which also replaces the phone-only movers card.
+- The chosen view is remembered on the device. Nothing is dropped; every view is one tap away.
+- Not done: an AI-written summary. `groundedGenerate`, with its number checks and template fallback, is already in core, but it needs the Anthropic key and the AI caps (paid), which are not set.
+
 ### Weekly Portfolio tile and scheduler line (2026-11-27)
 
 - **Weekly review Portfolio tile (`held-week-1`).** It covers holdings held over the whole week, valued at the same two closes as the SPY tile. Holdings bought or sold inside the week are left out and counted, so cash moving in or out never reads as a return. A missing close makes the tile read "Data unavailable".

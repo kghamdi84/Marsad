@@ -55,19 +55,27 @@ function Tile({
   sub2?: ReactNode;
   sub2Class?: string;
 }) {
+  // One compact row per topic (squeezed v2 Watch): the label, then the answer and its context on one line.
   const body = (
     <>
-      <span className="text-xs text-ink3">{label}</span>
-      <span className={`text-[17px] leading-snug font-semibold ${valueClass}`}>{value}</span>
-      {sub && <span className="text-xs text-ink2">{sub}</span>}
-      {sub2 && <span className={`text-xs ${sub2Class}`}>{sub2}</span>}
+      <span className="pt-0.5 text-xs text-ink3">{label}</span>
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className={`text-[15px] leading-snug font-semibold ${valueClass}`}>{value}</span>
+        {(sub || sub2) && (
+          <span className="text-xs text-ink3">
+            {sub && <span className="text-ink2">{sub}</span>}
+            {sub && sub2 && ' \u00B7 '}
+            {sub2 && <span className={sub2Class}>{sub2}</span>}
+          </span>
+        )}
+      </span>
     </>
   );
   const cls =
-    'flex min-h-11 min-w-0 flex-col gap-1 rounded-[10px] border border-line bg-elev p-3.5 text-start text-ink';
+    'grid min-h-11 min-w-0 grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-3 rounded-lg px-2 py-2 text-start text-ink';
   if (!to) return <div className={cls}>{body}</div>;
   return (
-    <Link to={to} {...(params ? { params } : {})} className={`${cls} hover:border-line-strong`}>
+    <Link to={to} {...(params ? { params } : {})} className={`${cls} hover:bg-elev`}>
       {body}
     </Link>
   );
@@ -422,7 +430,7 @@ export function Cockpit({
         </h2>
         <BriefLine briefs={briefs.data} />
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,210px),1fr))] gap-3">
+      <div className="-mx-2 grid grid-cols-1 gap-x-6 tablet:grid-cols-2">
         <RegimeTile q={cockpit} />
         <MoversTile data={watch} />
         <TodayTile
@@ -434,7 +442,16 @@ export function Cockpit({
         />
         <ExitsTile q={holdings} />
       </div>
-      {briefs.data && <Brief briefs={briefs.data} />}
+      {briefs.data && (
+        <details className="group rounded-lg border border-line">
+          <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium text-link select-none">
+            {k.fullBrief}
+          </summary>
+          <div className="border-t border-line p-3">
+            <Brief briefs={briefs.data} />
+          </div>
+        </details>
+      )}
       {briefs.error && (
         <p role="alert" className="text-sm text-down">
           {briefs.error.message}
