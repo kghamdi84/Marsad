@@ -27,6 +27,7 @@ import {
   type WatchData,
 } from '../lib/watch';
 import { dayMonth, weekdayDayMonth } from '../lib/dates';
+import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus, type QuoteView } from '../lib/quotes';
 import { t } from '../strings';
 
@@ -444,10 +445,13 @@ function WatchlistCard({ data }: { data: WatchData }) {
   const [period, setPeriod] = useRemembered<Period>('marsad.watch.period', PERIODS, '1d');
   const [sorted, setSorted] = useState(false);
   const [openTk, setOpenTk] = useState<string | null>(null);
+  const quotePoll = useQuotePoll();
   const qv = useQuery({
     queryKey: ['quote-view'],
     queryFn: loadQuoteView,
-    refetchInterval: 60_000,
+    // Quotes move only in the session; the rest of the page is end of day (ADR 0042).
+    staleTime: 0,
+    refetchInterval: quotePoll,
   });
   const now = useNow();
   const tauric = qv.data?.source === 'tauric';

@@ -9,9 +9,11 @@ import { Mfa } from './auth/Mfa';
 import { Panel } from './components/ui';
 import { router } from './router';
 import { t } from './strings';
+import { EOD_STALE_MS } from './lib/refresh';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 10_000 } },
+  // End-of-day data stays fresh for 30 minutes (ADR 0042); quotes set their own market-hours poll.
+  defaultOptions: { queries: { retry: 1, staleTime: EOD_STALE_MS } },
 });
 
 function App() {

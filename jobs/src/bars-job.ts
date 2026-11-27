@@ -26,6 +26,23 @@ const WINDOW_DAYS = 730;
 
 const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
 
+/** At most this many saved-watchlist tickers a night: about 12 seconds each at the free plan's 5 calls a minute. */
+export const MAX_WATCHLIST_EXTRAS = 40;
+
+/**
+ * Saved-watchlist tickers to add to the nightly run: valid symbols only, in a stable order, capped so a long
+ * watchlist cannot make the run outlast its workflow timeout. The starting list is already fetched separately.
+ */
+export function watchlistExtras(saved: readonly string[]): string[] {
+  const valid = saved
+    .map((t) => t.trim().toUpperCase())
+    .filter(
+      (t) =>
+        /^[A-Z][A-Z0-9.]{0,9}$/.test(t) && !(STARTING_TICKERS as readonly string[]).includes(t),
+    );
+  return [...new Set(valid)].sort().slice(0, MAX_WATCHLIST_EXTRAS);
+}
+
 /**
  * Stores the daily bars of every tracked ticker, sector ETF and open holding for the whole two-year window, split-adjusted by the vendor
  * as of this run. Re-fetching the window each time keeps the stored history on one scale after a split.
@@ -37,13 +54,15 @@ export async function runBarsJob(deps: BarsJobDeps): Promise<JobRunRecord> {
   const run = await runJob(
     'massive-bars',
     async () => {
-      // The tracked list, the sector ETFs (sector betas, shocks and rotation) and every open holding (exit rules).
+      // The tracked list, the sector ETFs (sector betas, shocks and rotation), every open holding (exit rules)
+      // and the tickers on saved watchlists (council batch 1), so a ticker someone adds gets prices the next night.
       const tickers = deps.tickers ?? [
         ...new Set([
           ...STARTING_TICKERS,
           ...BAR_ONLY_TICKERS,
           ...SECTOR_ETFS.map((s) => s.ticker),
           ...(await store.getOpenHoldings()).map((h) => h.ticker),
+          ...watchlistExtras(await store.getWatchlistTickers()),
         ]),
       ];
       const started = now().getTime();

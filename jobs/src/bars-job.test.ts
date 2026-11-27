@@ -10,7 +10,7 @@ import {
   type MassiveConfig,
   type UpcomingRow,
 } from '@marsad/core';
-import { runBarsJob } from './bars-job.js';
+import { MAX_WATCHLIST_EXTRAS, runBarsJob, watchlistExtras } from './bars-job.js';
 import { fakeStore } from './fake-store.js';
 
 const AFTER_CLOSE = new Date('2026-11-24T22:30:00Z'); // Tuesday 17:30 ET
@@ -120,5 +120,32 @@ describe('runBarsJob on the real SPY bars recorded 2026-11-24', () => {
       tickers: ['SPY'],
     });
     expect(run.error).toContain('SPY: no bars returned');
+  });
+});
+
+describe('saved watchlist tickers in the nightly bars run', () => {
+  it('adds them once, valid symbols only, sorted and capped', () => {
+    expect(watchlistExtras([' pltr', 'NVDA', 'PLTR', 'BRK.B', 'bad ticker!', '', 'AMD'])).toEqual([
+      'AMD',
+      'BRK.B',
+      'PLTR',
+    ]);
+    const many = Array.from({ length: 60 }, (_, i) => `T${String(i).padStart(2, '0')}`);
+    expect(watchlistExtras(many)).toHaveLength(MAX_WATCHLIST_EXTRAS);
+  });
+
+  it('fetches a ticker that is only on a saved watchlist', async () => {
+    const asked: string[] = [];
+    const { store } = fakeStore({ ...seed, watchlist: ['PLTR'] });
+    await runBarsJob({
+      http: http(AFTER_CLOSE, (url) => {
+        asked.push(url);
+        return real();
+      }),
+      cfg: cfgAt(AFTER_CLOSE),
+      store,
+      now: () => AFTER_CLOSE,
+    });
+    expect(asked.some((u) => u.includes('/ticker/PLTR/'))).toBe(true);
   });
 });

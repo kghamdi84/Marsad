@@ -19,6 +19,7 @@ import {
   type Materiality,
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
+import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { Dividends } from '../components/study/Dividends';
 import { Earnings } from '../components/study/Earnings';
@@ -67,10 +68,13 @@ const ui = t.study.ui;
 function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSummary | null }) {
   const stale = !!s && !!data.lastCompletedDay && s.asOf < data.lastCompletedDay;
   // The viewer's quote source (ADR 0041): with Tauric, its latest price sits under the Massive close.
+  const quotePoll = useQuotePoll();
   const qv = useQuery({
     queryKey: ['quote-view'],
     queryFn: loadQuoteView,
-    refetchInterval: 60_000,
+    // Quotes move only in the session; the rest of the page is end of day (ADR 0042).
+    staleTime: 0,
+    refetchInterval: quotePoll,
   });
   const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
