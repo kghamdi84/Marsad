@@ -9,6 +9,13 @@ Last updated 2026-11-27 (Marsad v2 redesign).
 - One summary card first: six one-line rows (the label and its run, the recession filter with n of 5 signals on, Fear and Greed, the capitulation watch with n of 4 conditions, the leading and lagging sector against SPY over 1 month, GPR and EPU percentiles). Each row opens its detail and moves focus there. The past-year ribbon sits under the rows; "Why this label" with the day's reason sits beside them.
 - The ten detail cards now live in two switchable areas. Risk gauges: recession filter, Fear and Greed, capitulation watch (with its plan, exits and bear case), breadth. Context: what the S&P did next, sector rotation, geopolitics, the quality screen, more measures. The choice is remembered on the device.
 - Nothing is dropped: every number, rule, source line, data date and "About this data" stays one tap away. The summary rows use the same stored rows and core functions as the cards; a missing input reads "Data unavailable", and a percentile from under a year of data says how many days it rests on.
+### Status and Settings squeezed (2026-11-27)
+
+- Status opens with a Now card: sources healthy and the ones that need a look by name, the heartbeat, the scheduler, this month's cost, the latest system alert. Each row scrolls to its detail.
+- Healthy sources are one short row each (tier, latency, both clocks and note one tap away); stale or unavailable sources keep their full card and note.
+- Jobs, costs, system alerts and alert latency share one switchable area, remembered on the device.
+- Settings has four sections under one switch: display and security, notifications (with push setup), Shariah and AI caps, quote source and exports. Sections are only hidden, so an unsaved edit survives a switch; every form saves the same columns as before.
+- Lab and Alerts unchanged: no boxes there duplicate each other.
 
 ### Watch squeezed (2026-11-27, Khaled: merge, squeeze and summarize)
 

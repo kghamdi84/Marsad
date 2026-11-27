@@ -67,7 +67,11 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await expect(page.getByText('0 of 1 sources healthy')).toBeVisible();
   await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
   await expect(page.getByText('FRED (St. Louis Fed)').first()).toBeVisible();
-  // An alert shows its event in words, what happened and which rules it paused.
+  // An alert shows its event in words, what happened and which rules it paused (behind the switch).
+  await page
+    .getByRole('group', { name: 'Status details' })
+    .getByRole('button', { name: 'System alerts' })
+    .click();
   await expect(page.getByText('Stale', { exact: true }).last()).toBeVisible();
   await expect(page.getByText(/Nasdaq trade halts stale, silent for 40 min/)).toBeVisible();
   await expect(page.getByText('Paused: group:halts')).toBeVisible();
@@ -75,6 +79,10 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await expect(page.getByText('Heartbeat has not run yet')).toBeVisible();
   // A source that has never reported says so in words, not by an empty cell.
   await expect(page.getByText(/No data received yet/).first()).toBeVisible();
+  // The summary names the source that needs a look and the latest system alert.
+  const now = page.getByRole('region', { name: 'Now', exact: true });
+  await expect(now).toContainText('Needs a look: FRED (St. Louis Fed) unavailable');
+  await expect(now).toContainText(/2 recent \u00B7 latest stale 24 Nov 15:46 ET/);
   await expect(page.getByRole('navigation', { name: 'Main sections' })).toBeVisible();
   await expect(page.getByText(/ET/).first()).toBeVisible();
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/status.png` });
@@ -82,6 +90,106 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await page.getByRole('link', { name: 'Regime' }).click();
   await expect(page.getByRole('heading', { name: 'Regime' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Regime' })).toHaveAttribute('aria-current', 'page');
+});
+
+test('status: a summary first; healthy sources are one short row, stale ones show their note in full', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  // Wednesday 25 Nov 2026, 11:00 ET: the regular session.
+  await page.clock.setFixedTime(new Date('2026-11-25T16:00:00Z'));
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  // The loaded NYSE calendar runs past today, so the session (and each source's limit) can be judged.
+  await page.route('**/rest/v1/market_holidays**', (r) =>
+    r.fulfill(
+      json([
+        {
+          date: '2026-12-25',
+          exchange: 'NYSE',
+          name: 'Christmas Day',
+          status: 'closed',
+          open_at: null,
+          close_at: null,
+        },
+      ]),
+    ),
+  );
+  await page.route('**/rest/v1/source_status**', (r) =>
+    r.fulfill(
+      json([
+        {
+          source: 'nasdaq_halts',
+          display_name: 'Nasdaq trade halts',
+          // 5 minutes ago: live (limit 30 minutes).
+          last_message_at: '2026-11-25T15:55:00Z',
+          last_latency_ms: 1400,
+          plan_tier: 'public',
+          state: 'ok',
+          note: 'RSS every 5 minutes',
+        },
+        {
+          source: 'sec_edgar',
+          display_name: 'SEC EDGAR',
+          // 3 hours ago: stale in the regular session (limit 2 hours).
+          last_message_at: '2026-11-25T13:00:00Z',
+          last_latency_ms: 300,
+          plan_tier: 'public',
+          state: 'ok',
+          note: 'Atom feed every 30 minutes',
+        },
+      ]),
+    ),
+  );
+  await page.goto('/status');
+  const now = page.getByRole('region', { name: 'Now', exact: true });
+  await expect(now).toContainText('1 of 2 sources healthy');
+  await expect(now).toContainText('Needs a look: SEC EDGAR stale');
+  const look = page.getByRole('list', { name: 'Sources that need a look' });
+  await expect(look).toContainText('SEC EDGAR');
+  await expect(look.getByText('Stale', { exact: true })).toBeVisible();
+  await expect(look).toContainText('Atom feed every 30 minutes');
+  // The healthy source is one row; its tier, latency, both clocks and note are one tap away.
+  const ok = page.getByRole('list', { name: 'Healthy sources' });
+  await expect(ok.getByText('Live', { exact: true })).toBeVisible();
+  await expect(ok.getByText('Latency: 1,400 ms')).toBeHidden();
+  await ok.getByText('Nasdaq trade halts').click();
+  await expect(ok.getByText('Latency: 1,400 ms')).toBeVisible();
+  await expect(ok.getByText('Plan tier: public')).toBeVisible();
+  await expect(ok.getByText('Last message: 25 Nov 10:55 ET · 18:55 Riyadh')).toBeVisible();
+  await expect(ok.getByText('RSS every 5 minutes')).toBeVisible();
+  // A summary row opens its detail in the switchable area, and the choice is remembered.
+  const details = page.getByRole('group', { name: 'Status details' });
+  await expect(details.getByRole('button', { name: 'Jobs' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await now.getByRole('button', { name: /^This month/ }).click();
+  await expect(details.getByRole('button', { name: 'Costs' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('region', { name: 'Costs and caps' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Job runs, last 24 hours' })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Costs and caps' })).toBeVisible();
+  if (process.env.SHOT_DIR) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/status-dark.png`, fullPage: true });
+    await page.evaluate(() =>
+      localStorage.setItem(
+        'marsad.display',
+        JSON.stringify({ theme: 'light', lang: 'en', zone: 'Asia/Riyadh' }),
+      ),
+    );
+    await page.reload();
+    await expect(page.getByRole('region', { name: 'Costs and caps' })).toBeVisible();
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/status-light.png`, fullPage: true });
+  }
 });
 
 // The heartbeat line on the status page: ran recently, ran late, or never ran.
@@ -108,6 +216,13 @@ for (const [name, minutesAgo, expected] of [
     );
     await page.goto('/status');
     await expect(page.getByText(expected)).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Now', exact: true })).toContainText(
+      'None recorded',
+    );
+    await page
+      .getByRole('group', { name: 'Status details' })
+      .getByRole('button', { name: 'System alerts' })
+      .click();
     await expect(page.getByText('No system alerts yet')).toBeVisible();
   });
 }
@@ -186,6 +301,10 @@ test('the status page shows alert latency by kind and lets the owner save a week
     r.fulfill({ status: 200, contentType: 'application/json', body: '[{"id":1}]' }),
   );
   await page.goto('/status');
+  await page
+    .getByRole('group', { name: 'Status details' })
+    .getByRole('button', { name: 'Latency' })
+    .click();
   const row = page.getByRole('row', { name: /^halt/ });
   await expect(row).toContainText('5');
   await expect(row).toContainText('3s');
@@ -193,6 +312,10 @@ test('the status page shows alert latency by kind and lets the owner save a week
   await page
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
+    .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Quote source and exports' })
     .click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: '2026-11-29: trades.json' }).click();
@@ -221,12 +344,27 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
     .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Shariah and AI caps' })
+    .click();
   const form = page.getByRole('form', { name: 'Shariah screening aid' });
   const toggle = form.getByRole('switch', { name: 'Shariah screening aid' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await toggle.click();
   await form.getByRole('radio', { name: 'Total assets' }).click();
   await form.getByLabel('Debt limit (%)').fill('30');
+  // Sections are only hidden, so an unsaved edit survives a switch.
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Display and security' })
+    .click();
+  await expect(form).toBeHidden();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Shariah and AI caps' })
+    .click();
+  await expect(form.getByLabel('Debt limit (%)')).toHaveValue('30');
   await form.getByRole('button', { name: 'Save preferences' }).click();
   await expect
     .poll(() => saved)
@@ -273,6 +411,12 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
     ),
   );
   await page.goto('/status');
+  const now = page.getByRole('region', { name: 'Now', exact: true });
+  await expect(now).toContainText('Plans $0.00 a month \u00B7 AI off (no caps set)');
+  await page
+    .getByRole('group', { name: 'Status details' })
+    .getByRole('button', { name: 'Costs' })
+    .click();
   await expect(page.getByRole('listitem').filter({ hasText: 'Supabase' })).toContainText('$0.00');
   await expect(
     page.getByText('AI is off: set daily and monthly caps in Settings to turn it on'),
@@ -283,6 +427,8 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
 
   caps = [{ ai_daily_cap_usd: 100, ai_monthly_cap_usd: 5, shariah_screen: false }];
   await page.reload();
+  // The switch is remembered: Costs again after the reload.
+  await expect(now).toContainText('AI $4.50 so far');
   // USD 4.50 of a USD 5 monthly cap is 90%: a warning.
   await expect(page.getByText(/month \$4\.50 \u00B7 2 calls/)).toBeVisible();
   await expect(page.getByText('AI spend at 90% of a cap (daily')).toBeVisible();
@@ -292,6 +438,10 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   await page
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
+    .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Shariah and AI caps' })
     .click();
   // A settings row without stored limits falls back to the defaults, never "NaN".
   const prefs = page.getByRole('form', { name: 'Shariah screening aid' });
@@ -365,6 +515,10 @@ test('status: the quote source is one choice of two, Massive by default, saved a
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
     .click();
+  await page
+    .getByRole('group', { name: 'Settings sections' })
+    .getByRole('button', { name: 'Quote source and exports' })
+    .click();
   const card = page.getByRole('region', { name: 'Quote source' });
   const massive = card.getByRole('radio', { name: /Massive \(default\)/ });
   const tauric = card.getByRole('radio', { name: /Tauric/ });
@@ -374,4 +528,26 @@ test('status: the quote source is one choice of two, Massive by default, saved a
   await tauric.check();
   await expect.poll(() => saved).toEqual({ quote_source: 'tauric' });
   await expect(card.getByRole('status')).toHaveText('Quote source set to Tauric.');
+  if (process.env.SHOT_DIR) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    for (const [name, theme, key] of [
+      ['settings-dark', 'dark', 'Display and security'],
+      ['settings-light', 'light', 'Notifications'],
+    ] as const) {
+      await page.evaluate(
+        (th) =>
+          localStorage.setItem(
+            'marsad.display',
+            JSON.stringify({ theme: th, lang: 'en', zone: 'Asia/Riyadh' }),
+          ),
+        theme,
+      );
+      await page.reload();
+      await page
+        .getByRole('group', { name: 'Settings sections' })
+        .getByRole('button', { name: key })
+        .click();
+      await page.screenshot({ path: `${process.env.SHOT_DIR}/${name}.png`, fullPage: true });
+    }
+  }
 });
