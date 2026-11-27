@@ -864,14 +864,26 @@ function StudyCard({ data }: { data: RegimeData }) {
     q1: number;
     q3: number;
   } => !!x && x.sufficient && x.median !== null && x.q1 !== null && x.q3 !== null;
+  // event-study-2 stores a 90% bootstrap interval of the median; older rows fall back to the middle half.
+  const band = (x: StoredEventStat & { q1: number; q3: number }) =>
+    x.ciLow !== null && x.ciHigh !== null
+      ? { lo: x.ciLow, hi: x.ciHigh, ci: true }
+      : { lo: x.q1, hi: x.q3, ci: false };
+  const hasCi = rows.some(({ x }) => ok(x) && x.ciLow !== null);
   const span = Math.max(
     0.05,
-    ...rows.flatMap(({ x }) => (ok(x) ? [Math.abs(x.q1), Math.abs(x.q3), Math.abs(x.median)] : [])),
+    ...rows.flatMap(({ x }) =>
+      ok(x) ? [Math.abs(band(x).lo), Math.abs(band(x).hi), Math.abs(x.median)] : [],
+    ),
   );
   const M = Math.ceil(span * 20) / 20;
   const pos = (v: number) => width((v + M) / (2 * M));
   return (
-    <Card id="study" title={s.title} subtitle={u.studySub(monthYear(any.dataFrom))}>
+    <Card
+      id="study"
+      title={s.title}
+      subtitle={(hasCi ? u.studySub90 : u.studySub)(monthYear(any.dataFrom))}
+    >
       <div
         role="group"
         aria-label={s.colCondition}
@@ -913,14 +925,21 @@ function StudyCard({ data }: { data: RegimeData }) {
                   <span className="absolute inset-y-0 start-1/2 w-px bg-muted/60" />
                   <span
                     className="absolute top-[5px] h-3 rounded bg-up/35"
-                    style={{ insetInlineStart: pos(x.q1), width: width((x.q3 - x.q1) / (2 * M)) }}
+                    style={{
+                      insetInlineStart: pos(band(x).lo),
+                      width: width((band(x).hi - band(x).lo) / (2 * M)),
+                    }}
                   />
                   <span
                     className="absolute top-px h-5 w-1 -ms-0.5 rounded-sm bg-white"
                     style={{ insetInlineStart: pos(x.median) }}
                   />
                 </div>
-                <span className="text-[13px] text-muted">{u.middleHalf(pct(x.q1), pct(x.q3))}</span>
+                <span className="text-[13px] text-muted">
+                  {band(x).ci
+                    ? u.interval90(pct(band(x).lo), pct(band(x).hi))
+                    : u.middleHalf(pct(x.q1), pct(x.q3))}
+                </span>
               </>
             ) : (
               <div className="flex flex-col gap-1.5 rounded-[10px] border border-dashed border-muted/40 px-3 py-2.5">
@@ -942,7 +961,7 @@ function StudyCard({ data }: { data: RegimeData }) {
       </ul>
       <Info>
         <p>{s.note(any.dataFrom, any.dataTo)}</p>
-        <p>{u.scaleNote}</p>
+        <p>{hasCi ? u.scaleNote90 : u.scaleNote}</p>
       </Info>
       <Details>
         <div className="overflow-x-auto">

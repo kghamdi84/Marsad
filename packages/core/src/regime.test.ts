@@ -9,6 +9,7 @@ import vixFixture from '../../../fixtures/fred/fredgraph-VIXCLS.json';
 import vix3mFixture from '../../../fixtures/fred/fredgraph-VXVCLS.json';
 import {
   EVENT_STUDY_VERSION,
+  medianInterval,
   MIN_EPISODES,
   REGIME_RULE_VERSION,
   baselineStudy,
@@ -412,5 +413,27 @@ describe('panel helpers', () => {
     expect(currentRun(days)).toEqual({ label: 'stress', since: 'd2', sessions: 3 });
     expect(currentRun(days.slice(0, 1))).toEqual({ label: 'bull-calm', since: 'd1', sessions: 1 });
     expect(currentRun([])).toBeNull();
+  });
+});
+
+describe('event-study-2: the 90% bootstrap interval of the median', () => {
+  // Reference: a Python port of mulberry32 (seed 1), 2,000 resamples, numpy 2.5.5 quantile(method='linear'),
+  // computed 2026-11-27. Forty returns between -5.0% and +5.0%; median -0.15%.
+  const values = Array.from({ length: 40 }, (_, i) => (((i * 37) % 101) - 50) / 1000);
+
+  it('matches the reference interval', () => {
+    const ci = medianInterval(values);
+    expect(ci?.low).toBeCloseTo(-0.0135, 12);
+    expect(ci?.high).toBeCloseTo(0.0115, 12);
+  });
+
+  it('is the same on every run (seeded) and holds the median', () => {
+    expect(medianInterval(values)).toEqual(medianInterval(values));
+    const ci = medianInterval(values);
+    expect((ci?.low ?? 1) <= -0.0015 && -0.0015 <= (ci?.high ?? -1)).toBe(true);
+  });
+
+  it('gives nothing below 30 episodes', () => {
+    expect(medianInterval(values.slice(0, 29))).toBeNull();
   });
 });

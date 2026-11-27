@@ -101,6 +101,8 @@ function statRows() {
         median: s.median,
         q1: s.q1,
         q3: s.q3,
+        ci_low: s.ciLow,
+        ci_high: s.ciHigh,
         episodes,
         data_from: spx[0]?.date,
         data_to: spx.at(-1)?.date,
@@ -299,6 +301,13 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   );
   // The benchmark has 119 one-month windows: shown with its median and middle half.
   await expect(study.getByRole('row', { name: /All days/ })).toContainText('n 119');
+  // event-study-2: with 30 or more episodes the bar is the 90% bootstrap interval of the median.
+  await expect(study).toContainText('Median and middle half'); // Stress: too few episodes for an interval
+  await study.getByRole('button', { name: 'All days (benchmark)' }).click();
+  await expect(study).toContainText('Median and 90% interval');
+  await expect(
+    study.getByText(/^90% interval [−+-]?\d+\.\d% to [−+-]?\d+\.\d%$/).first(),
+  ).toBeVisible();
   // Method and source text sits behind "About this data" (council batch 2).
   await openInfo(page);
   await expect(study.getByText(/Data 2016-11-25 to 2026-11-23/)).toBeVisible();

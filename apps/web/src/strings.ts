@@ -1366,6 +1366,8 @@ export const t = {
       today: (label: string) => `Today: ${label}`,
       scaleNote:
         'Bar: the middle half of outcomes (25th to 75th percentile). White line: the median.',
+      scaleNote90:
+        'Bar: the 90% interval of the median, from 2,000 bootstrap resamples of the episodes (seeded, so a rerun gives the same interval). White line: the median.',
       unavailable: 'Unavailable',
       insufficientShort: (n: number) => `Insufficient history: ${n} of 30`,
       notEnough: 'n/a',
@@ -1395,6 +1397,8 @@ export const t = {
       horizonSessions: (h: number) => `${h} sessions`,
       nEquals: (n: number) => `n = ${n}`,
       middleHalf: (lo: string, hi: string) => `Middle half ${lo} to ${hi}`,
+      studySub90: (since: string) => `Median and 90% interval · since ${since}`,
+      interval90: (lo: string, hi: string) => `90% interval ${lo} to ${hi}`,
       insufficientOf: (n: number) => `Insufficient history (${n} of 30)`,
       accQuality: 'Runs when capitulation is on',
       accActive: 'Active',

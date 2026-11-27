@@ -43,6 +43,9 @@ export interface StoredEventStat {
   median: number | null;
   q1: number | null;
   q3: number | null;
+  /** 90% bootstrap interval of the median (event-study-2); null for older rows and below 30 episodes. */
+  ciLow: number | null;
+  ciHigh: number | null;
   episodes: number;
   dataFrom: string;
   dataTo: string;
@@ -272,6 +275,8 @@ export async function loadRegime(): Promise<RegimeData> {
         median: r['median'] === null ? null : n(r['median']),
         q1: r['q1'] === null ? null : n(r['q1']),
         q3: r['q3'] === null ? null : n(r['q3']),
+        ciLow: r['ci_low'] == null ? null : n(r['ci_low']),
+        ciHigh: r['ci_high'] == null ? null : n(r['ci_high']),
         episodes: Array.isArray(r['episodes']) ? r['episodes'].length : 0,
         dataFrom: String(r['data_from']),
         dataTo: String(r['data_to']),

@@ -63,6 +63,8 @@ function statRows(
     q3: s.q3,
     min: s.min,
     max: s.max,
+    ciLow: s.ciLow,
+    ciHigh: s.ciHigh,
     episodes,
     dataFrom: from,
     dataTo: to,

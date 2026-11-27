@@ -303,6 +303,9 @@ export interface EventStatRow {
   q3: number | null;
   min: number | null;
   max: number | null;
+  /** 90% bootstrap interval of the median (event-study-2). */
+  ciLow: number | null;
+  ciHigh: number | null;
   episodes: string[];
   dataFrom: string;
   dataTo: string;
@@ -1674,6 +1677,8 @@ export function supabaseStore(url: string, secretKey: string): Store {
         q3: r.q3,
         min: r.min,
         max: r.max,
+        ci_low: r.ciLow,
+        ci_high: r.ciHigh,
         episodes: r.episodes,
         data_from: r.dataFrom,
         data_to: r.dataTo,

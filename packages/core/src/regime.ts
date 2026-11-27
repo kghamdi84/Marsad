@@ -4,10 +4,12 @@
  * any label can be recomputed from what is stored. Every value is used only from the day it was published.
  */
 import { sma } from './indicators.js';
+import { bootstrap } from './stats.js';
 
 export const REGIME_RULE_VERSION = 'regime-1';
 export const RECESSION_RULE_VERSION = 'recession-1';
-export const EVENT_STUDY_VERSION = 'event-study-1';
+/** event-study-2 adds a 90% bootstrap interval of the median (2,000 seeded resamples) to event-study-1. */
+export const EVENT_STUDY_VERSION = 'event-study-2';
 
 /** One observation of a series. Dates are ISO (YYYY-MM-DD); series are kept in ascending date order. */
 export interface Obs {
@@ -375,6 +377,30 @@ export interface ForwardStats {
   q3: number | null;
   min: number | null;
   max: number | null;
+  /**
+   * 90% percentile-bootstrap interval of the median: 2,000 resamples with replacement, seed 1, so a rerun gives the
+   * same interval. Null below 30 episodes, like the other figures.
+   */
+  ciLow: number | null;
+  ciHigh: number | null;
+}
+
+/** Resamples for the median interval; fixed with the seed so stored figures replay exactly. */
+export const EVENT_STUDY_RESAMPLES = 2000;
+const medianOf = (xs: readonly number[]) =>
+  quantile(
+    [...xs].sort((a, b) => a - b),
+    0.5,
+  );
+
+/** The 90% bootstrap interval of the median of `returns`; null below 30 values (integrity rule 10). */
+export function medianInterval(returns: readonly number[]): { low: number; high: number } | null {
+  if (returns.length < MIN_EPISODES) return null;
+  return bootstrap(returns, medianOf, {
+    resamples: EVENT_STUDY_RESAMPLES,
+    seed: 1,
+    confidence: 0.9,
+  });
 }
 
 function stats(horizon: number, returns: number[]): ForwardStats {
@@ -390,11 +416,16 @@ function stats(horizon: number, returns: number[]): ForwardStats {
       q3: null,
       min: null,
       max: null,
+      ciLow: null,
+      ciHigh: null,
     };
+  const ci = medianInterval(returns);
   return {
     horizon,
     n,
     sufficient: n >= MIN_EPISODES,
+    ciLow: ci?.low ?? null,
+    ciHigh: ci?.high ?? null,
     median: quantile(s, 0.5),
     q1: quantile(s, 0.25),
     q3: quantile(s, 0.75),
