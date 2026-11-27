@@ -482,6 +482,7 @@ export const t = {
     review: {
       title: 'Weekly review',
       none: 'The first weekly review is written on Sunday at 07:10 UTC, after the export.',
+      written: (day: string) => `Written ${day} · template`,
     },
     trades: {
       title: 'Trades and adherence',
@@ -532,6 +533,16 @@ export const t = {
       colAdherence: 'Mean adherence',
       insufficient: 'insufficient history',
       insufficientWin: (n: number) => `Insufficient history (${n} of 30)`,
+      openShort: 'Open',
+      noSetup: 'No setup',
+      rowSub: (setup: string, days: number) => `${setup} · ${days} day${days === 1 ? '' : 's'}`,
+      followedPlan: 'Followed plan',
+      brokePlan: 'Broke plan',
+      ringTitle: 'Adherence score',
+      ringAria: (n: number) => `Adherence ${n} of 100`,
+      followedOf: (n: number, of: number) => `${n} of ${of} trades followed the plan`,
+      setupNote: (win: string, r: string, n: number) => `${win} wins · ${r} mean · ${n} closed`,
+      cardTitle: (ticker: string) => `${ticker} trade`,
       vs: (hiN: number, hiR: string, loN: number, loR: string) =>
         `Adherence 80 or more: mean ${hiR} over ${hiN} trades; below 80: mean ${loR} over ${loN} trades.`,
       vsInsufficient:

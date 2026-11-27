@@ -40,9 +40,9 @@ import {
   type BarsByTicker,
   type StoredHolding,
 } from '../lib/journal';
-import { SkeletonCards, Tabs, cardClass, useRemembered, useWide } from '../components/Card';
+import { SkeletonCards, Tabs, useRemembered, useWide } from '../components/Card';
 import { Sheet } from '../components/Sheet';
-import { dayMonth } from '../lib/dates';
+import { dayMonth, weekdayDayMonth } from '../lib/dates';
 import { TickerLink } from '../components/QuickLook';
 import { t } from '../strings';
 
@@ -799,21 +799,36 @@ function LookThrough() {
 function WeeklyReview() {
   const q = useQuery({ queryKey: ['weekly-review'], queryFn: loadWeeklyReview });
   const x = j.review;
+  let n = 0;
   return (
-    <section aria-labelledby="weekly-review" className={`${cardClass} gap-3!`}>
-      <h2 id="weekly-review" className={panelTitle}>
-        {q.data ? q.data.title : x.title}
+    <section
+      aria-labelledby="weekly-review"
+      className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4"
+    >
+      <h2 id="weekly-review" className="flex flex-col gap-0.5">
+        <span className="font-semibold text-white">{q.data ? q.data.title : x.title}</span>
+        {q.data && (
+          <span className="text-[13px] font-normal text-muted">
+            {x.written(weekdayDayMonth(q.data.forDate))}
+          </span>
+        )}
       </h2>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data === null && <p className="text-muted">{x.none}</p>}
-      {q.data?.sections.map((s) => (
-        <div key={s.heading}>
-          <h3 className="text-sm font-medium text-muted">{s.heading}</h3>
-          {s.lines.map((l) => (
-            <p key={l} className="text-sm">
-              {l}
-            </p>
-          ))}
+      {q.data?.sections.map((sec) => (
+        <div key={sec.heading} className="flex flex-col gap-1.5">
+          <h3 className="text-xs font-normal text-muted">{sec.heading}</h3>
+          {sec.lines.map((l) => {
+            n += 1;
+            return (
+              <p key={l} className="flex gap-2.5 text-sm leading-[1.45]">
+                <span aria-hidden="true" className="font-bold text-muted">
+                  {String(n).padStart(2, '0')}
+                </span>
+                {l}
+              </p>
+            );
+          })}
         </div>
       ))}
     </section>

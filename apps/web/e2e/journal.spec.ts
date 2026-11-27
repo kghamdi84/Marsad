@@ -337,22 +337,32 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
   await openTab(page, 'Trades');
   const section = page.getByRole('region', { name: 'Trades and adherence' });
   // RKLB: (28 - 24) / (24 - 22) = 2R, USD 400; 10 items, noEmotion not honored: 9 of 10 = 90.
-  const rklb = section.getByRole('listitem').filter({ hasText: 'RKLB' });
+  // The design's rows: result in R and whether the plan was followed (80 or more); a tap opens the full card.
+  const rklbRow = section.getByRole('button', { name: /^RKLB/ });
+  await expect(rklbRow).toContainText('▲ +2.0R');
+  await expect(rklbRow).toContainText('Followed plan');
+  await expect(section.getByRole('img', { name: 'Adherence 45 of 100' })).toBeVisible(); // (90 + 0) / 2
+  await expect(section).toContainText('1 of 2 trades followed the plan');
+  await rklbRow.click();
+  const rklb = page.getByRole('dialog', { name: 'RKLB trade' });
   await expect(rklb).toContainText('Result ▲ +2.00R, USD ▲ +400.00.');
   await expect(rklb).toContainText('Adherence 90 (9 of 10 items).');
   await expect(rklb).toContainText('No chasing, no revenge trade, no moving the stop away.');
   await expect(rklb.getByRole('img', { name: 'Screenshot 1 of the RKLB trade' })).toBeVisible();
+  await page.keyboard.press('Escape');
   // SOFI is open, unnamed, nothing ticked: 0 of 9.
-  const sofi = section.getByRole('listitem').filter({ hasText: 'SOFI' });
-  await expect(sofi).toContainText('Adherence 0 (0 of 9 items).');
-  await expect(section.getByRole('row', { name: /^All trades/ })).toContainText('1 (1)');
+  const sofiRow = section.getByRole('button', { name: /^SOFI/ });
+  await expect(sofiRow).toContainText('Open');
+  await expect(sofiRow).toContainText('Broke plan');
   // One closed trade: no win rate, which would be a percentage from fewer than 30 cases.
-  await expect(section.getByRole('row', { name: /^All trades/ })).toContainText(
-    'Insufficient history (1 of 30)',
-  );
-  await expect(section.getByRole('row', { name: /^All trades/ })).not.toContainText('%');
+  const all = section.getByRole('listitem').filter({ hasText: 'All trades' });
+  await expect(all).toContainText('Insufficient history (1 of 30)');
+  await expect(all).not.toContainText('%');
   await expect(section).toContainText('Each group needs 30 closed trades');
 
+  await sofiRow.click();
+  const sofi = page.getByRole('dialog', { name: 'SOFI trade' });
+  await expect(sofi).toContainText('Adherence 0 (0 of 9 items).');
   await sofi.getByLabel('Add a screenshot (PNG, JPEG or WebP, up to 5 MB)').setInputFiles({
     name: 'chart.png',
     mimeType: 'image/png',
@@ -372,6 +382,8 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
     .poll(() => writes.filter((w) => w.method === 'PATCH').at(-1)?.body)
     .toMatchObject({ exit_price: 19.5, followed: { exitedPerPlan: true } });
 
+  await page.keyboard.press('Escape');
+  await section.getByRole('button', { name: 'Log a trade' }).click();
   const form = page.getByRole('form', { name: 'Log a trade' });
   await form.getByLabel('Ticker').fill('nvda');
   await form.getByLabel('Entry price').fill('180');
