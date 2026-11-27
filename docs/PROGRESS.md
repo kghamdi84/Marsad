@@ -2,7 +2,16 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (council batches 1, 2 and 5).
+Last updated 2026-11-27 (council batches 1, 2, 3 and 5).
+
+### Council batch 3: trader toolkit (2026-11-27)
+
+- Core `trader.ts` (formula `trader-1`, hand-checked tests): ATR 14 as % of the close, stretch from the 20- and 50-day averages in ATRs, 63-session relative strength against SPY (and a sector fund when given), distance from the 252-session closing high, calendar days to a date.
+- Watch: a remembered "Trader columns" toggle (off by default, so the table matches the design) adds ATR %, stretch (50-day), strength against SPY, distance from the high and days to estimated earnings.
+- Watchlist editing: "Edit list" adds, removes and reorders tickers; each change saves at once through row-level security. The first edit saves the tickers already shown, so nothing is dropped. At most 40 tickers; a new ticker gets prices after the next nightly bars run.
+- Quick look: ATR %, stretch (20- and 50-day), strength against SPY, and "Add to watchlist" (or "On your watchlist"). Phone watchlist rows open the quick look from their expanded panel.
+- Checks: Prettier, tsc, ESLint, 1,058 unit tests, Playwright 177 passed and 11 skipped (new `trader.spec.ts`).
+- Not yet: strength against the sector fund on Watch (needs each ticker's sector), and a rank in the 1,000-stock universe.
 
 ### Council batch 2: say less, show more (2026-11-27)
 

@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
-import { sma, summarizeBars, toFixedHalfUp } from '@marsad/core';
+import { sma, summarizeBars, toFixedHalfUp, traderMetrics } from '@marsad/core';
 import { Sheet } from './Sheet';
 import { useWide } from './Card';
 import { loadStudy } from '../lib/study';
 import { loadHoldings } from '../lib/journal';
 import { loadAlerts } from '../lib/alerts';
 import { loadCalendar } from '../lib/watch';
+import { loadWatchlist, saveWatchlist, withTicker } from '../lib/watchlist';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { useQuotePoll } from '../lib/refresh';
 import { dayMonth } from '../lib/dates';
@@ -116,6 +117,16 @@ function QuickLookBody({ ticker }: { ticker: string }) {
   const holdings = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const alerts = useQuery({ queryKey: ['alerts', true], queryFn: () => loadAlerts(true) });
   const calendar = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
+  const spy = useQuery({ queryKey: ['study', 'SPY'], queryFn: () => loadStudy('SPY') });
+  const qc = useQueryClient();
+  const list = useQuery({ queryKey: ['watchlist'], queryFn: loadWatchlist });
+  const add = useMutation({
+    mutationFn: (tickers: string[]) => saveWatchlist(tickers),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['watchlist'] });
+      void qc.invalidateQueries({ queryKey: ['watch'] });
+    },
+  });
   const quotePoll = useQuotePoll();
   const qv = useQuery({
     queryKey: ['quote-view'],
@@ -141,6 +152,11 @@ function QuickLookBody({ ticker }: { ticker: string }) {
     : null;
   const fromHigh = s && s.high52w > 0 ? s.lastClose / s.high52w - 1 : null;
   const filings = d.filings.slice(0, 2);
+  const m = traderMetrics(d.bars, spy.data?.bars ?? []);
+  const onList = list.data?.tickers.includes(ticker) ?? false;
+  const tr = t.trader;
+  const signed1 = (v: number) =>
+    `${v > 0 ? '+' : v < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(v), 1)}`;
   return (
     <div className="flex flex-col gap-3">
       {d.company?.name && <p className="-mt-2 text-sm text-muted">{d.company.name}</p>}
@@ -191,6 +207,23 @@ function QuickLookBody({ ticker }: { ticker: string }) {
               v={s.rvol20 === null ? t.regime.noData : x.times(toFixedHalfUp(s.rvol20, 1))}
             />
             <Fact k={x.dollarVolume} v={compact(last.close * last.volume)} />
+            <Fact
+              k={tr.atrPct}
+              v={m?.atrPct == null ? t.regime.noData : `${toFixedHalfUp(m.atrPct * 100, 1)}%`}
+            />
+            <Fact
+              k={tr.stretch50}
+              v={m?.stretch50 == null ? t.regime.noData : tr.atrs(signed1(m.stretch50))}
+            />
+            <Fact
+              k={tr.stretch20}
+              v={m?.stretch20 == null ? t.regime.noData : tr.atrs(signed1(m.stretch20))}
+            />
+            <Fact
+              k={tr.rsSpy}
+              v={m?.rsSpy == null ? t.regime.noData : signed(m.rsSpy, 1)}
+              tone={m?.rsSpy == null ? 'text-white' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
+            />
             <Fact
               k={x.earnings}
               v={est ? (est.overdue ? x.overdue : x.inDays(daysTo ?? 0)) : x.noEstimate}
@@ -247,6 +280,23 @@ function QuickLookBody({ ticker }: { ticker: string }) {
           </ul>
         </section>
       )}
+      {list.data &&
+        (onList ? (
+          <p className="text-sm text-muted">{t.watchlist.onList}</p>
+        ) : (
+          <button
+            type="button"
+            disabled={add.isPending}
+            onClick={() => {
+              const next = withTicker(list.data.tickers, ticker);
+              if (next) add.mutate(next);
+            }}
+            className="min-h-12 rounded-[14px] border border-muted/40 font-semibold text-white"
+          >
+            {t.watchlist.addTo}
+          </button>
+        ))}
+      {add.isError && <p className="text-sm text-down">{add.error.message}</p>}
       <Link
         to="/study/$ticker"
         params={{ ticker }}

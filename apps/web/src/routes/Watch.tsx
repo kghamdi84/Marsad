@@ -10,7 +10,9 @@ import {
   dualClock,
   etDate,
   etWallToUtc,
+  daysBetween,
   tickerSummary,
+  traderMetrics,
   toFixedHalfUp,
   type EconEvent,
   type TickerSummary,
@@ -29,8 +31,9 @@ import {
 } from '../lib/watch';
 import { dayMonth, weekdayDayMonth } from '../lib/dates';
 import { useQuotePoll } from '../lib/refresh';
+import { WatchlistEditor } from '../components/WatchlistEditor';
 import { loadQuoteView, quoteStatus, type QuoteView } from '../lib/quotes';
-import { TickerLink } from '../components/QuickLook';
+import { TickerLink, useQuickLook } from '../components/QuickLook';
 import { t } from '../strings';
 
 const c = t.calendar;
@@ -77,6 +80,9 @@ function Change({
   );
 }
 
+const tr = t.trader;
+const pct1 = (v: number) => `${toFixedHalfUp(v * 100, 1)}%`;
+const signed1 = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(v), 1)}`;
 const fmtPct = (v: number, d = 1) => `${v > 0 ? '+' : ''}${toFixedHalfUp(v * 100, d)}%`;
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -358,6 +364,7 @@ function PhoneRow({
   open: boolean;
   onToggle: () => void;
 }) {
+  const quickLook = useQuickLook();
   const line = bars.slice(-30).map((b) => b.close);
   const first = line[0];
   const last = line.at(-1);
@@ -429,6 +436,14 @@ function PhoneRow({
           ) : (
             <p className="text-sm text-muted">{t.regime.noData}</p>
           )}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => quickLook(tk)}
+            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-white"
+          >
+            {t.quickLook.button(tk)}
+          </button>
           <Link
             to="/study/$ticker"
             params={{ ticker: tk }}
@@ -447,6 +462,9 @@ function WatchlistCard({ data }: { data: WatchData }) {
   const [period, setPeriod] = useRemembered<Period>('marsad.watch.period', PERIODS, '1d');
   const [sorted, setSorted] = useState(false);
   const [openTk, setOpenTk] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [trader, setTrader] = useRemembered('marsad.watch.trader', ['off', 'on'] as const, 'off');
+  const cal = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
   const quotePoll = useQuotePoll();
   const qv = useQuery({
     queryKey: ['quote-view'],
@@ -458,11 +476,18 @@ function WatchlistCard({ data }: { data: WatchData }) {
   const now = useNow();
   const tauric = qv.data?.source === 'tauric';
   const latestOf = useLatest(qv.data, now);
-  const rows = data.tickers.map((tk) => ({
-    tk,
-    bars: data.bars[tk] ?? [],
-    s: tickerSummary(data.bars[tk] ?? []),
-  }));
+  const spyBars = data.bars['SPY'] ?? [];
+  const today = etDate(now);
+  const rows = data.tickers.map((tk) => {
+    const est = cal.data?.earnings?.estimates.find((e) => e.ticker === tk);
+    return {
+      tk,
+      bars: data.bars[tk] ?? [],
+      s: tickerSummary(data.bars[tk] ?? []),
+      m: traderMetrics(data.bars[tk] ?? [], spyBars),
+      days: est ? daysBetween(today, est.date) : null,
+    };
+  });
   const newest = rows.reduce((d, r) => (r.s && r.s.date > d ? r.s.date : d), '');
   if (sorted)
     rows.sort(
@@ -481,6 +506,16 @@ function WatchlistCard({ data }: { data: WatchData }) {
             value={period}
             onChange={setPeriod}
           />
+          <button
+            type="button"
+            aria-pressed={trader === 'on'}
+            onClick={() => setTrader(trader === 'on' ? 'off' : 'on')}
+            className={`min-h-11 rounded-[10px] border border-muted/35 px-3 text-sm text-white ${
+              trader === 'on' ? 'bg-raised' : ''
+            }`}
+          >
+            {tr.toggle}
+          </button>
           <button
             type="button"
             aria-pressed={sorted}
@@ -519,10 +554,19 @@ function WatchlistCard({ data }: { data: WatchData }) {
               <th className={thNum}>{u.colChange(u.periodLong[period] ?? period)}</th>
               <th className={`${th} hidden lg:table-cell`}>{u.colRange}</th>
               <th className={thNum}>{u.colVolume}</th>
+              {trader === 'on' && (
+                <>
+                  <th className={thNum}>{tr.atrPct}</th>
+                  <th className={thNum}>{tr.stretch50}</th>
+                  <th className={thNum}>{tr.rsSpy}</th>
+                  <th className={thNum}>{tr.fromHigh}</th>
+                  <th className={thNum}>{tr.earnings}</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ tk, bars, s }) => {
+            {rows.map(({ tk, bars, s, m, days }) => {
               const line = bars.slice(-30).map((b) => b.close);
               const first = line[0];
               const last = line.at(-1);
@@ -577,12 +621,40 @@ function WatchlistCard({ data }: { data: WatchData }) {
                       {t.regime.noData}
                     </td>
                   )}
+                  {trader === 'on' && (
+                    <>
+                      <td className={`${cell} ${num}`}>
+                        {m?.atrPct == null ? '–' : pct1(m.atrPct)}
+                      </td>
+                      <td className={`${cell} ${num}`}>
+                        {m?.stretch50 == null ? '–' : tr.atrs(signed1(m.stretch50))}
+                      </td>
+                      <td className={`${cell} ${num}`}>
+                        {m?.rsSpy == null ? '–' : <Change v={m.rsSpy} />}
+                      </td>
+                      <td className={`${cell} ${num}`}>
+                        {m?.fromHigh == null ? '–' : <Change v={m.fromHigh} />}
+                      </td>
+                      <td className={`${cell} ${num}`}>{days === null ? '–' : tr.inDays(days)}</td>
+                    </>
+                  )}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+      {editing ? (
+        <WatchlistEditor tickers={data.tickers} onDone={() => setEditing(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="min-h-11 self-start rounded-xl border border-muted/35 px-4 text-sm text-white"
+        >
+          {t.watchlist.edit}
+        </button>
+      )}
       <p className="text-xs text-muted">{newest ? u.footer(newest) : l.source}</p>
       {tauric && <p className="text-xs text-muted">{u.latestFooter}</p>}
     </Card>

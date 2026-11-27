@@ -63,3 +63,4 @@ export * from './quality.js';
 export * from './tenq.js';
 export * from './holders.js';
 export * from './nport.js';
+export * from './trader.js';
