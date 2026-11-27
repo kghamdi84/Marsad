@@ -1,14 +1,23 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, X } from 'lucide-react';
-import { MAX_WATCHLIST, moved, saveWatchlist, withTicker } from '../lib/watchlist';
+import { SECTOR_ETFS } from '@marsad/core';
+import { MAX_WATCHLIST, moved, saveWatchlist, setSector, withTicker } from '../lib/watchlist';
 import { ErrorText } from './ui';
 import { t } from '../strings';
 
 const x = t.watchlist;
 
 /** Add, remove and reorder the watchlist (council batch 3). Each change saves at once. */
-export function WatchlistEditor({ tickers, onDone }: { tickers: string[]; onDone: () => void }) {
+export function WatchlistEditor({
+  tickers,
+  sectorOf = {},
+  onDone,
+}: {
+  tickers: string[];
+  sectorOf?: Record<string, string | null>;
+  onDone: () => void;
+}) {
   const qc = useQueryClient();
   const [list, setList] = useState(tickers);
   const [input, setInput] = useState('');
@@ -19,6 +28,10 @@ export function WatchlistEditor({ tickers, onDone }: { tickers: string[]; onDone
       void qc.invalidateQueries({ queryKey: ['watch'] });
       void qc.invalidateQueries({ queryKey: ['watchlist'] });
     },
+  });
+  const sector = useMutation({
+    mutationFn: ({ tk, etf }: { tk: string; etf: string | null }) => setSector(tk, etf),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['watch'] }),
   });
   const apply = (next: string[]) => {
     setList(next);
@@ -58,6 +71,19 @@ export function WatchlistEditor({ tickers, onDone }: { tickers: string[]; onDone
         {list.map((tk, i) => (
           <li key={tk} className="flex items-center gap-1 border-t border-line-soft py-1">
             <span className="flex-1 font-bold text-white">{tk}</span>
+            <select
+              aria-label={x.sectorFor(tk)}
+              defaultValue={sectorOf[tk] ?? ''}
+              onChange={(e) => sector.mutate({ tk, etf: e.target.value || null })}
+              className="min-h-11 max-w-28 rounded-lg border border-line bg-bg px-1.5 text-sm text-fg"
+            >
+              <option value="">{x.noSector}</option>
+              {SECTOR_ETFS.map((s2) => (
+                <option key={s2.ticker} value={s2.ticker}>
+                  {s2.ticker}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               aria-label={x.up(tk)}
@@ -92,6 +118,7 @@ export function WatchlistEditor({ tickers, onDone }: { tickers: string[]; onDone
         {save.isPending ? x.saving : save.isSuccess ? x.saved : ''}
       </p>
       {save.isError && <ErrorText message={save.error.message} />}
+      {sector.isError && <ErrorText message={sector.error.message} />}
       <button
         type="button"
         onClick={onDone}

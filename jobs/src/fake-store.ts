@@ -33,6 +33,7 @@ import type {
   Split,
   SystemAlert,
   UpcomingRow,
+  StrengthRank,
 } from '@marsad/core';
 import { decodeList, decodeSnapshot, encodeList, encodeSnapshot } from './snapshot-codec.js';
 import type {
@@ -77,6 +78,7 @@ export interface FakeLog {
   topicDays: TopicDay[][];
   econCalendars: { from: string; to: string; events: EconEvent[] }[];
   movers: MarketMovers[][];
+  strength: { date: string; rows: StrengthRank[] }[];
   briefs: { brief: Brief; inputs: unknown; delivery: Record<string, string> }[];
   ruleVersions: { id: string; version: number; hash: string; doc: RuleDoc }[];
   ruleEvents: { id: string; version: number; from: RuleStatus; to: RuleStatus; reason: string }[];
@@ -191,6 +193,7 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     topicDays: [],
     econCalendars: [],
     movers: [],
+    strength: [],
     briefs: [],
     ruleVersions: [],
     ruleEvents: [],
@@ -265,6 +268,10 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
     saveBrief: (brief, inputs, delivery) => {
       log.briefs.push({ brief, inputs, delivery });
       return Promise.resolve();
+    },
+    upsertStrengthRanks: (date, rows) => {
+      log.strength.push({ date, rows: [...rows] });
+      return Promise.resolve(rows.length);
     },
     upsertMovers: (rows) => {
       log.movers.push([...rows]);

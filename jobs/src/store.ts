@@ -7,7 +7,13 @@ import {
   encodeSnapshot,
   MIN_SNAPSHOT_DOLLAR_VOLUME,
 } from './snapshot-codec.js';
-import { PERSONAL_EXPORT_TABLES, SHARED_EXPORT_TABLES, etDate } from '@marsad/core';
+import {
+  PERSONAL_EXPORT_TABLES,
+  SHARED_EXPORT_TABLES,
+  etDate,
+  STRENGTH_VERSION,
+  type StrengthRank,
+} from '@marsad/core';
 import type {
   CatalystEvent,
   CatalystScenario,
@@ -135,6 +141,8 @@ export interface Store {
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
   upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  /** The universe strength ranks of one session (strength-1). */
+  upsertStrengthRanks(date: string, rows: readonly StrengthRank[]): Promise<number>;
   /** Halts whose halt time is on or after `since`. */
   getRecentHalts(since: string): Promise<HaltRow[]>;
   /** Tickers on any saved watchlist. */
@@ -1574,6 +1582,26 @@ export function supabaseStore(url: string, secretKey: string): Store {
       }));
       const { error } = await db.from('alerts').insert(out);
       if (error) throw new Error(`alerts insert failed: ${error.message}`);
+      return out.length;
+    },
+    async upsertStrengthRanks(date, rows) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        version: STRENGTH_VERSION,
+        date,
+        ticker: r.ticker,
+        return_63: r.return63,
+        rank: r.rank,
+        members: r.members,
+        percentile: r.percentile,
+        computed_at: new Date().toISOString(),
+      }));
+      for (let i = 0; i < out.length; i += 500) {
+        const { error } = await db
+          .from('strength_rank_daily')
+          .upsert(out.slice(i, i + 500), { onConflict: 'version,date,ticker' });
+        if (error) throw new Error(`strength_rank_daily upsert failed: ${error.message}`);
+      }
       return out.length;
     },
     async upsertMovers(rows) {

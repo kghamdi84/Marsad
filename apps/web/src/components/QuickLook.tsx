@@ -8,7 +8,7 @@ import { useWide } from './Card';
 import { loadStudy } from '../lib/study';
 import { loadHoldings } from '../lib/journal';
 import { loadAlerts } from '../lib/alerts';
-import { loadCalendar } from '../lib/watch';
+import { loadCalendar, loadStrength } from '../lib/watch';
 import { loadWatchlist, saveWatchlist, withTicker } from '../lib/watchlist';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { useQuotePoll } from '../lib/refresh';
@@ -118,6 +118,10 @@ function QuickLookBody({ ticker }: { ticker: string }) {
   const alerts = useQuery({ queryKey: ['alerts', true], queryFn: () => loadAlerts(true) });
   const calendar = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
   const spy = useQuery({ queryKey: ['study', 'SPY'], queryFn: () => loadStudy('SPY') });
+  const strength = useQuery({
+    queryKey: ['strength', ticker],
+    queryFn: () => loadStrength([ticker]),
+  });
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['watchlist'], queryFn: loadWatchlist });
   const add = useMutation({
@@ -223,6 +227,15 @@ function QuickLookBody({ ticker }: { ticker: string }) {
               k={tr.rsSpy}
               v={m?.rsSpy == null ? t.regime.noData : signed(m.rsSpy, 1)}
               tone={m?.rsSpy == null ? 'text-white' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
+            />
+            <Fact
+              k={tr.rankFact}
+              v={(() => {
+                const r = strength.data?.[ticker];
+                return r
+                  ? `${tr.rankValue(Math.round(r.percentile))} · ${tr.rankSub(r.rank, r.members, dayMonth(r.date))}`
+                  : tr.notRanked;
+              })()}
             />
             <Fact
               k={x.earnings}

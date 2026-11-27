@@ -484,7 +484,13 @@ function WatchlistCard({ data }: { data: WatchData }) {
       tk,
       bars: data.bars[tk] ?? [],
       s: tickerSummary(data.bars[tk] ?? []),
-      m: traderMetrics(data.bars[tk] ?? [], spyBars),
+      m: traderMetrics(
+        data.bars[tk] ?? [],
+        spyBars,
+        data.sectorOf[tk] ? (data.bars[data.sectorOf[tk] ?? ''] ?? null) : null,
+      ),
+      sector: data.sectorOf[tk] ?? null,
+      rank: data.strength[tk] ?? null,
       days: est ? daysBetween(today, est.date) : null,
     };
   });
@@ -559,6 +565,8 @@ function WatchlistCard({ data }: { data: WatchData }) {
                   <th className={thNum}>{tr.atrPct}</th>
                   <th className={thNum}>{tr.stretch50}</th>
                   <th className={thNum}>{tr.rsSpy}</th>
+                  <th className={thNum}>{tr.rsSector}</th>
+                  <th className={thNum}>{tr.rank}</th>
                   <th className={thNum}>{tr.fromHigh}</th>
                   <th className={thNum}>{tr.earnings}</th>
                 </>
@@ -566,7 +574,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ tk, bars, s, m, days }) => {
+            {rows.map(({ tk, bars, s, m, days, sector, rank }) => {
               const line = bars.slice(-30).map((b) => b.close);
               const first = line[0];
               const last = line.at(-1);
@@ -633,6 +641,23 @@ function WatchlistCard({ data }: { data: WatchData }) {
                         {m?.rsSpy == null ? '–' : <Change v={m.rsSpy} />}
                       </td>
                       <td className={`${cell} ${num}`}>
+                        {m?.rsSector == null ? (
+                          <span className="text-muted">{sector ? '–' : tr.noSector}</span>
+                        ) : (
+                          <>
+                            <Change v={m.rsSector} />
+                            <span className="block text-[11px] text-muted">{sector}</span>
+                          </>
+                        )}
+                      </td>
+                      <td className={`${cell} ${num}`}>
+                        {rank ? (
+                          tr.rankValue(Math.round(rank.percentile))
+                        ) : (
+                          <span className="text-muted">{tr.notRanked}</span>
+                        )}
+                      </td>
+                      <td className={`${cell} ${num}`}>
                         {m?.fromHigh == null ? '–' : <Change v={m.fromHigh} />}
                       </td>
                       <td className={`${cell} ${num}`}>{days === null ? '–' : tr.inDays(days)}</td>
@@ -645,7 +670,11 @@ function WatchlistCard({ data }: { data: WatchData }) {
         </table>
       </div>
       {editing ? (
-        <WatchlistEditor tickers={data.tickers} onDone={() => setEditing(false)} />
+        <WatchlistEditor
+          tickers={data.tickers}
+          sectorOf={data.sectorOf}
+          onDone={() => setEditing(false)}
+        />
       ) : (
         <button
           type="button"

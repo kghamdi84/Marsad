@@ -2,7 +2,16 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (council batches 1 to 5).
+Last updated 2026-11-27 (council batches 1 to 5 and leftovers).
+
+### Council leftovers (2026-11-27)
+
+- Lab on phones matches the design: lifecycle stepper with a "not in the lifecycle yet" line, All / Testable / Not testable tabs, and the playbook summary in its details.
+- Journal Trades and Weekly review match the design: adherence ring (mean score; "followed the plan" is 80 or more, the line the result comparison uses), compact rows with Followed plan or Broke plan, By setup notes, the full trade card in a sheet, the log form behind a button; the weekly review gets its header and numbered notes. The design's four weekly tiles need structured data the review job does not store yet.
+- Universe strength rank (ADR 0043, formula `strength-1`): the breadth job ranks the newest universe by 63-session return into `strength_rank_daily` (additive migration `20261230000000_strength_rank.sql`, RLS tested). Watch's trader columns and the quick look show "Beats n%".
+- Sector strength: "Edit list" lets each ticker take a sector fund (`watchlist_items.sector_etf`); Watch then shows strength against it.
+- Checks: Prettier, tsc, ESLint, 1,069 unit tests, Playwright 177 passed and 11 skipped.
+- Still not built: the one-read nightly summary for the whole Watch page (Watch still reads each ticker's bars for sparklines and ranges). The event study's 90% bootstrap intervals wait for Khaled's go-ahead (job change and migration).
 
 ### Council batch 4: investor toolkit (2026-11-27)
 

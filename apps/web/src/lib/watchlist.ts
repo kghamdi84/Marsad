@@ -61,6 +61,12 @@ export async function saveWatchlist(tickers: readonly string[]): Promise<void> {
   if (up.error) throw new Error(`watchlist_items: ${up.error.message}`);
 }
 
+/** Sets or clears the sector fund of one saved ticker (used for strength against the sector). */
+export async function setSector(ticker: string, etf: string | null): Promise<void> {
+  const r = await client().from('watchlist_items').update({ sector_etf: etf }).eq('ticker', ticker);
+  if (r.error) throw new Error(`watchlist_items: ${r.error.message}`);
+}
+
 /** The list with one ticker added at the end; null if the ticker is not a valid symbol. */
 export function withTicker(list: readonly string[], input: string): string[] | null {
   const t = normalizeTicker(input);

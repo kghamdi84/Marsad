@@ -22,6 +22,7 @@ const series = (n: number, close: (i: number) => number) =>
 const BARS: Record<string, ReturnType<typeof series>> = {
   NVDA: series(70, (i) => (i === 69 ? 104 : 100)),
   SPY: series(70, () => 400),
+  XLK: series(70, () => 200),
 };
 
 async function stub(page: Page, posted: unknown[], deleted: string[]) {
@@ -39,7 +40,14 @@ async function stub(page: Page, posted: unknown[], deleted: string[]) {
       deleted.push(decodeURIComponent(r.request().url()));
       return r.fulfill({ status: 204, body: '' });
     }
-    return r.fulfill(json([{ ticker: 'NVDA', position: 0 }]));
+    if (m === 'PATCH') {
+      posted.push({
+        patch: r.request().postDataJSON(),
+        url: decodeURIComponent(r.request().url()),
+      });
+      return r.fulfill({ status: 204, body: '' });
+    }
+    return r.fulfill(json([{ ticker: 'NVDA', position: 0, sector_etf: 'XLK' }]));
   });
   await page.route('**/rest/v1/watchlists**', (r) =>
     r.request().method() === 'POST' ? r.fulfill(json({ id: 7 }, 201)) : r.fulfill(json([])),
@@ -51,6 +59,12 @@ async function stub(page: Page, posted: unknown[], deleted: string[]) {
     const asc = url.searchParams.get('order')?.includes('asc') ?? false;
     return r.fulfill(json(asc ? rows : [...rows].reverse()));
   });
+  // The breadth job's rank for NVDA: 40th of 990, so it beat 96.05% of the universe.
+  await page.route('**/rest/v1/strength_rank_daily**', (r) =>
+    r.fulfill(
+      json([{ ticker: 'NVDA', date: '2026-10-08', percentile: 96.05, rank: 40, members: 990 }]),
+    ),
+  );
   await page.route('**/rest/v1/earnings_estimate_snapshots**', (r) =>
     r.fulfill(
       json([
@@ -87,6 +101,9 @@ test('trader columns: ATR %, stretch, strength against SPY and days to earnings,
   await expect(nvda).toContainText('+1.8 ATR');
   await expect(nvda).toContainText('+4.0%');
   await expect(nvda).toContainText('10 d');
+  // XLK is flat at 200, so the strength against the sector is also +4.0%; the rank comes from the breadth job.
+  await expect(nvda).toContainText('XLK');
+  await expect(nvda).toContainText('Beats 96%');
 });
 
 test('watchlist: add and remove tickers; the list is saved in order', async ({ page }) => {
@@ -105,6 +122,9 @@ test('watchlist: add and remove tickers; the list is saved in order', async ({ p
       { watchlist_id: 7, ticker: 'NVDA', position: 0 },
       { watchlist_id: 7, ticker: 'PLTR', position: 1 },
     ]);
+  await editor.getByLabel('Sector fund for NVDA').selectOption('XLE');
+  await expect.poll(() => JSON.stringify(posted.at(-1))).toContain('"sector_etf":"XLE"');
+  expect(JSON.stringify(posted.at(-1))).toContain('ticker=eq.NVDA');
   await editor.getByRole('button', { name: 'Remove NVDA' }).click();
   await expect
     .poll(() => posted.at(-1))

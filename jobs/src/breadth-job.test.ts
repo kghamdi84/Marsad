@@ -132,6 +132,13 @@ describe('runBreadthJob', () => {
       for (const x of [...m.gainers, ...m.losers]) expect(nov.has(x.ticker), x.ticker).toBe(true);
     expect(movers.at(-1)?.n).toBe(5);
     expect(movers.at(-1)?.sectors.every((x) => x.change === null)).toBe(true);
+    // Strength ranks (strength-1) for the newest session, among November's members only, best first.
+    const strength = log.strength[0];
+    expect(strength?.date).toBe(sessions.at(-1));
+    expect(strength?.rows.length).toBeGreaterThan(0);
+    for (const r of strength?.rows ?? []) expect(nov.has(r.ticker), r.ticker).toBe(true);
+    expect(strength?.rows[0]?.rank).toBe(1);
+    expect(strength?.rows[0]?.percentile).toBe(100);
   });
 
   it('a second run fetches nothing it already has: only the recent splits again', async () => {
