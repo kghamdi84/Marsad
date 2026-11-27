@@ -733,6 +733,12 @@ export const t = {
     noRun: 'Not run yet. The backtest lab runs each Sunday and by hand.',
     ui: {
       lifecycle: 'Lifecycle',
+      outside: (notTestable: number, notRun: number) =>
+        `Not in the lifecycle yet: ${notTestable} not testable, ${notRun} not run. Backtested needs 30 out-of-sample trades.`,
+      filterLabel: 'Which playbooks',
+      filterAll: (n: number) => `All ${n}`,
+      filterTestable: (n: number) => `Testable ${n}`,
+      filterNot: (n: number) => `Not testable ${n}`,
       gateNote:
         'Draft to Backtested needs 30 out-of-sample trades and an expectancy interval above zero after costs. Shadow logs alerts without sending. Demoted rules return to draft.',
       evidence: (label: string) => `Evidence: ${label}`,
