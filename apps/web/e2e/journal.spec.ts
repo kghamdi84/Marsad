@@ -475,6 +475,14 @@ test('journal: the latest weekly review, or when the first one is due', async ({
       ),
     ),
   );
+  await page.route('**/rest/v1/holdings**', (r) =>
+    r.fulfill(
+      json([
+        { ticker: 'NVDA', shares: 10, opened_on: '2026-01-02', closed_on: null },
+        { ticker: 'AAPL', shares: 5, opened_on: '2026-11-24', closed_on: null },
+      ]),
+    ),
+  );
   await page.goto('/journal');
   await openTab(page, 'Trades and review');
   await expect(page.getByText('The first weekly review is written on Sunday')).toBeVisible();
@@ -520,9 +528,10 @@ test('journal: the latest weekly review, or when the first one is due', async ({
   await expect(review.getByText('SPY', { exact: true }).locator('..')).toContainText(
     '▲ +2.0%Close 20 Nov to 27 Nov',
   );
-  // No daily portfolio values are stored, so the portfolio's week is not guessed.
+  // The portfolio's week (held-week-1): NVDA held all week, 500 to 510 on the same closes as SPY, is +2.0%;
+  // AAPL bought inside the week is left out and counted.
   await expect(review.getByText('Portfolio', { exact: true }).locator('..')).toContainText(
-    'Not available yet',
+    '▲ +2.0%1 held all week; 1 bought or sold inside it, left out',
   );
 });
 

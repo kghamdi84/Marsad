@@ -4,6 +4,17 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Weekly Portfolio tile and scheduler line (2026-11-27)
+
+- **Weekly review Portfolio tile (`held-week-1`).** It covers holdings held over the whole week, valued at the same two closes as the SPY tile. Holdings bought or sold inside the week are left out and counted, so cash moving in or out never reads as a return. A missing close makes the tile read "Data unavailable".
+  - Hand-checked core tests and a browser test.
+  - No new table: closed holdings stay in history.
+- **Arabic:** Khaled does not need page content in Arabic. The shell stays bilingual.
+- **Checklist version:** rows and stored review inputs without a version are scored as checklist-1. A test covers it.
+- **Status scheduler line:** a new line on Status reports the Supabase Cron dispatcher in words. It shows one of: no check recorded, the token missing from Vault, GitHub's error, starts accepted, or that the check itself is overdue.
+  - Khaled's screenshot on 27 Nov at 15:38 ET shows halts stale since 12:08 ET. GitHub lists no workflow_dispatch runs from Supabase since step 11; every run since was GitHub's own timer.
+  - The cause is still open. The new line will name it.
+
 ### Design follow-ups: checklist-2, quiet hours, horizon (2026-11-27)
 
 - **checklist-2 (ADR 0046).** New trades and the Sahm ticket use the design's five checks. `trades.checklist_version` keeps every older trade on checklist-1, so no record is relabelled. Adherence scores each trade against the version it answered, with hand-checked tests.

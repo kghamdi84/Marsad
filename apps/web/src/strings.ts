@@ -657,8 +657,11 @@ export const t = {
       tileOf: (n: number, of: number) => `${n} of ${of}`,
       tileMeanR: 'Mean result',
       tilePortfolio: 'Portfolio',
-      portfolioNa: 'Not available yet',
-      portfolioNote: 'Needs daily portfolio values',
+      portfolioNa: 'Data unavailable',
+      portfolioNote: (held: number, leftOut: number) =>
+        `${held} held all week${leftOut ? `; ${leftOut} bought or sold inside it, left out` : ''}`,
+      portfolioNone: 'No holdings held over the week',
+      portfolioMissing: (tickers: string) => `No stored close for ${tickers}`,
       tileSpy: 'SPY',
       spyNote: (from: string, to: string) => `Close ${from} to ${to}`,
       spyNa: 'Data unavailable',
@@ -2363,6 +2366,16 @@ export const t = {
     colPaused: 'Rules paused',
     heartbeat: (ago: string) => `Heartbeat last ran ${ago} ago.`,
     heartbeatNone: 'Heartbeat has not run yet, so stale feeds are not being watched.',
+    scheduler: {
+      none: 'Scheduler: no check recorded. Supabase Cron is not running the jobs yet (SETUP step 11).',
+      ok: (n: number, age: string) =>
+        `Scheduler: GitHub accepted ${n} job start${n === 1 ? '' : 's'} in the last window, checked ${age} ago.`,
+      skipped: (age: string) =>
+        `Scheduler: nothing sent. The GitHub token is not in Supabase Vault as github_actions_token (checked ${age} ago).`,
+      error: (why: string, age: string) => `Scheduler error, checked ${age} ago: ${why}`,
+      unknown: 'no reason recorded',
+      late: 'The check itself is overdue, so Supabase Cron may have stopped.',
+    },
     heartbeatLate: (ago: string) =>
       `Heartbeat last ran ${ago} ago. Stale feeds may be going unreported.`,
     events: { stale: 'STALE', recovered: 'RECOVERED', mismatch: 'MISMATCH' },

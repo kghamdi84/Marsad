@@ -130,6 +130,39 @@ export async function addHoldings(rows: readonly Holding[]): Promise<void> {
   if (r.error) throw new Error(`holdings: ${r.error.message}`);
 }
 
+/**
+ * Holdings that were open at any time between two sessions (closed ones stay in history), with each ticker's
+ * stored bars, for the weekly review's Portfolio tile (held-week-1).
+ */
+export async function loadHoldingsSpan(
+  from: string,
+  to: string,
+): Promise<{
+  holdings: { ticker: string; shares: number; openedOn: string; closedOn: string | null }[];
+  bars: BarsByTicker;
+}> {
+  const r = await client()
+    .from('holdings')
+    .select('ticker, shares, opened_on, closed_on')
+    .lte('opened_on', to)
+    .or(`closed_on.is.null,closed_on.gt.${from}`);
+  if (r.error) throw new Error(`holdings: ${r.error.message}`);
+  const holdings = ((r.data ?? []) as Record<string, unknown>[]).map((x) => ({
+    ticker: String(x['ticker']),
+    shares: Number(x['shares']),
+    openedOn: String(x['opened_on']),
+    closedOn:
+      x['closed_on'] === null || x['closed_on'] === undefined ? null : String(x['closed_on']),
+  }));
+  const bars: BarsByTicker = {};
+  await Promise.all(
+    [...new Set(holdings.map((h) => h.ticker))].map(async (t) => {
+      bars[t] = await loadBars(t);
+    }),
+  );
+  return { holdings, bars };
+}
+
 /** Marks a holding closed today (it stays in history). */
 export async function closeHolding(id: number, on: string): Promise<void> {
   const r = await client().from('holdings').update({ closed_on: on }).eq('id', id);
