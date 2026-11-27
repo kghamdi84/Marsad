@@ -90,7 +90,10 @@ export function sahmTicket(t: TicketInput): string {
   return parts.join(' ');
 }
 
-/** The Jimmy D checklist: patience, process, strict risk, clean setups, take profits, no emotional bias. */
+/**
+ * checklist-1, the Jimmy D checklist: patience, process, strict risk, clean setups, take profits, no emotional
+ * bias. Trades logged before checklist-2 keep these keys and labels; they are never relabelled.
+ */
 export const CHECKLIST = [
   { key: 'cleanSetup', label: 'The setup is clean: it matches a written rule, not a feeling.' },
   { key: 'notExtended', label: 'Price is not extended: within the chase limit of the signal.' },
@@ -99,11 +102,37 @@ export const CHECKLIST = [
   { key: 'bearCaseRead', label: 'I read the bear case and the exit conditions.' },
 ] as const;
 
-export type ChecklistKey = (typeof CHECKLIST)[number]['key'];
+/**
+ * checklist-2 (Marsad v2 design, Khaled's choice 2026-11-27): the five checks before an order, used for every new
+ * trade and by the Sahm ticket. Different checks from checklist-1, so a trade stores which version it answered.
+ */
+export const CHECKLIST_V2 = [
+  { key: 'regimeFit', label: 'Fits the current regime' },
+  { key: 'structuralStop', label: 'Stop set from structure, not hope' },
+  { key: 'bearCaseEarnings', label: 'Bear case and earnings date read' },
+  { key: 'shariahChecked', label: 'Shariah aid checked' },
+  { key: 'manualInSahm', label: 'Order will be entered by hand in Sahm' },
+] as const;
 
-/** Every item must be ticked before the ticket can be copied. */
-export function checklistComplete(ticked: Partial<Record<ChecklistKey, boolean>>): boolean {
-  return CHECKLIST.every((c) => ticked[c.key] === true);
+export type ChecklistVersion = 'checklist-1' | 'checklist-2';
+/** The version new trades and the ticket use. */
+export const CURRENT_CHECKLIST: ChecklistVersion = 'checklist-2';
+
+export type ChecklistKey = (typeof CHECKLIST)[number]['key'] | (typeof CHECKLIST_V2)[number]['key'];
+
+/** The items of one checklist version, in order. */
+export function checklistItems(
+  version: ChecklistVersion,
+): readonly { key: ChecklistKey; label: string }[] {
+  return version === 'checklist-1' ? CHECKLIST : CHECKLIST_V2;
+}
+
+/** Every item of the version must be ticked before the ticket can be copied. */
+export function checklistComplete(
+  ticked: Partial<Record<ChecklistKey, boolean>>,
+  version: ChecklistVersion = CURRENT_CHECKLIST,
+): boolean {
+  return checklistItems(version).every((c) => ticked[c.key] === true);
 }
 
 export interface Holding {

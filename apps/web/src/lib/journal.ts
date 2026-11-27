@@ -18,10 +18,14 @@ function client() {
   return supabase;
 }
 
+export type Horizon = 'long' | 'swing';
+
 export interface StoredHolding extends Holding {
   id: number;
   sectorEtf: string | null;
   thesisStatus: ThesisStatus;
+  /** Long term or Swing, the owner's choice; null until chosen. */
+  horizon: Horizon | null;
 }
 
 /** Bars per ticker (oldest first): every holding, SPY and the assigned sector ETFs. */
@@ -60,7 +64,7 @@ export async function loadHoldings(): Promise<{
   const r = await client()
     .from('holdings')
     .select(
-      'id, ticker, shares, cost_basis, opened_on, stop, targets, trend_break, time_stop_sessions, sector_etf, thesis_status',
+      'id, ticker, shares, cost_basis, opened_on, stop, targets, trend_break, time_stop_sessions, sector_etf, thesis_status, horizon',
     )
     .is('closed_on', null)
     .order('opened_on', { ascending: true });
@@ -79,6 +83,7 @@ export async function loadHoldings(): Promise<{
       timeStopSessions: x['time_stop_sessions'] === null ? null : Number(x['time_stop_sessions']),
       sectorEtf: x['sector_etf'] === null ? null : String(x['sector_etf']),
       thesisStatus: (x['thesis_status'] ?? 'intact') as ThesisStatus,
+      horizon: x['horizon'] === 'long' || x['horizon'] === 'swing' ? x['horizon'] : null,
     };
   });
   const bars: BarsByTicker = {};
@@ -131,6 +136,12 @@ export async function closeHolding(id: number, on: string): Promise<void> {
   if (r.error) throw new Error(`holdings: ${r.error.message}`);
 }
 
+/** Sets a holding's horizon, Long term or Swing, or clears it. */
+export async function setHoldingHorizon(id: number, horizon: Horizon | null): Promise<void> {
+  const r = await client().from('holdings').update({ horizon }).eq('id', id);
+  if (r.error) throw new Error(`holdings: ${r.error.message}`);
+}
+
 /** Sets a holding's sector ETF and thesis status (the owner's call, never inferred). */
 export async function updateHoldingMeta(
   id: number,
@@ -160,6 +171,7 @@ function toTrade(x: Record<string, unknown>): JournalTrade {
     exitDate: x['exit_date'] === null ? null : String(x['exit_date']),
     exitPrice: n(x['exit_price']),
     checklist: (x['checklist'] ?? {}) as JournalTrade['checklist'],
+    checklistVersion: x['checklist_version'] === 'checklist-2' ? 'checklist-2' : 'checklist-1',
     followed: (x['followed'] ?? {}) as JournalTrade['followed'],
     notes: String(x['notes'] ?? ''),
     screenshots: (x['screenshots'] ?? []) as string[],
@@ -210,6 +222,7 @@ export async function addTrade(x: NewTrade): Promise<void> {
     stop: x.stop,
     target: x.target,
     checklist: x.checklist,
+    checklist_version: x.checklistVersion,
     followed: x.followed,
     notes: x.notes,
   });

@@ -15,6 +15,8 @@ import {
 import { Button, ErrorText } from '../ui';
 import { Pill, StopBar } from '../ui/kit';
 import {
+  setHoldingHorizon,
+  type Horizon,
   addHoldings,
   closeHolding,
   loadHoldings,
@@ -59,6 +61,10 @@ function HoldingEdit({ h, all }: { h: StoredHolding; all: BarsByTicker }) {
       updateHoldingMeta(h.id, m),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['holdings'] }),
   });
+  const horizon = useMutation({
+    mutationFn: (x: Horizon | null) => setHoldingHorizon(h.id, x),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['holdings'] }),
+  });
   const hh = j.holdings;
   const exits = exitSignals(h, bars);
   return (
@@ -101,7 +107,22 @@ function HoldingEdit({ h, all }: { h: StoredHolding; all: BarsByTicker }) {
           ))}
         </select>
       </label>
+      <label className="flex flex-col gap-1 text-xs text-ink3">
+        {hh.horizon}
+        <select
+          className={select}
+          value={h.horizon ?? ''}
+          onChange={(e) =>
+            horizon.mutate(e.target.value === '' ? null : (e.target.value as Horizon))
+          }
+        >
+          <option value="">{hh.horizonNone}</option>
+          <option value="long">{hh.horizonLong}</option>
+          <option value="swing">{hh.horizonSwing}</option>
+        </select>
+      </label>
       {meta.isError && <ErrorText message={meta.error.message} />}
+      {horizon.isError && <ErrorText message={horizon.error.message} />}
       <button
         type="button"
         className="min-h-11 self-start text-sm text-ink3 underline"
@@ -185,7 +206,12 @@ function HoldingCard({
     >
       <div className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-col gap-0.5">
-          <TickerLink ticker={h.ticker} className="self-start text-base font-semibold" />
+          <span className="flex flex-wrap items-center gap-2">
+            <TickerLink ticker={h.ticker} className="self-start text-base font-semibold" />
+            {h.horizon && (
+              <Pill tone="neutral">{h.horizon === 'long' ? hh.horizonLong : hh.horizonSwing}</Pill>
+            )}
+          </span>
           <span className="text-xs text-ink3 tabular-nums">
             {ui.sharesCost(h.shares, money(h.costBasis))}
           </span>

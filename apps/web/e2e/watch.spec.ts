@@ -202,7 +202,7 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   const nvda = list.getByRole('row', { name: /^NVDA/ });
   await expect(nvda).toContainText('121.00');
   await expect(nvda).toContainText('+0.8%');
-  await expect(nvda).toContainText('3.0x');
+  await expect(nvda).toContainText('3.0\u00D7');
   // The period control switches the change column: 1 week, then 1 month.
   await list.getByRole('button', { name: '5D' }).click();
   await expect(nvda).toContainText('+4.3%');

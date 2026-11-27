@@ -44,6 +44,15 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
   // Four of five is still not enough: the copy stays disabled (hard rule).
   const boxes = await sizer.getByRole('checkbox').all();
   expect(boxes).toHaveLength(5);
+  // The ticket uses checklist-2, the design's five checks.
+  for (const label of [
+    'Fits the current regime',
+    'Stop set from structure, not hope',
+    'Bear case and earnings date read',
+    'Shariah aid checked',
+    'Order will be entered by hand in Sahm',
+  ])
+    await expect(sizer.getByRole('checkbox', { name: label })).toBeVisible();
   for (const box of boxes.slice(0, 4)) await box.click();
   await expect(copy).toHaveText('Copy Sahm order ticket (4 of 5 checks)');
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
@@ -212,6 +221,7 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
           time_stop_sessions: null,
           sector_etf: 'XLI',
           thesis_status: 'weakening',
+          horizon: 'swing',
         },
       ]),
     );
@@ -259,10 +269,20 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
   await openTab(page, 'Positions');
   // RKLB lags XLI and SPY with a weakening thesis: the card flags a rotation, the edit sheet says why.
   await expect(page.getByText('Rotate to XLI?')).toBeVisible();
+  // The horizon is the owner's choice, shown as a pill and changed under Edit holding.
+  await expect(
+    page
+      .getByRole('listitem')
+      .filter({ hasText: 'RKLB' })
+      .locator('span')
+      .filter({ hasText: /^Swing$/ }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Edit holding' }).click();
   await expect(page.getByRole('dialog')).toContainText(
     'and the thesis is weakening. Consider XLI or SPY instead.',
   );
+  await page.getByRole('dialog').getByLabel('Horizon').selectOption('long');
+  await expect.poll(() => patched).toEqual({ horizon: 'long' });
   await page.keyboard.press('Escape');
   // The thesis pill moves on one step per tap: weakening to broken.
   await page.getByRole('button', { name: 'Thesis weakening, tap to change' }).click();
@@ -408,6 +428,10 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
   await form.getByLabel('Shares', { exact: true }).fill('10');
   await form.getByLabel('Setup (playbook or your own name)').fill('trend-template-breakout');
   await form.getByLabel('The stop was placed in Sahm when the order filled.').check();
+  // New trades answer checklist-2 (the v2 design's checks) and say so.
+  await form.getByLabel('Fits the current regime').check();
+  await form.getByLabel('Order will be entered by hand in Sahm').check();
+  await expect(form.getByLabel(/The setup is clean/)).toHaveCount(0);
   await form.getByRole('button', { name: 'Save trade' }).click();
   await expect
     .poll(() => writes.find((w) => w.method === 'POST' && w.url.includes('/rest/v1/trades'))?.body)
@@ -416,6 +440,8 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
       entry_price: 180,
       shares: 10,
       setup: 'trend-template-breakout',
+      checklist: { regimeFit: true, manualInSahm: true },
+      checklist_version: 'checklist-2',
       followed: { stopPlaced: true },
     });
 });

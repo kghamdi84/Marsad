@@ -48,8 +48,13 @@ export async function pipelineAndStore(
   store: Store,
   items: readonly { input: AlertInput; sourceAt: string | null }[],
   at: Date,
-  settings: AlertSettings = DEFAULT_ALERT_SETTINGS,
+  given?: AlertSettings,
 ): Promise<{ rows: number; decisions: Record<string, number> }> {
+  // The owner's quiet hours and push cap from Settings, over the defaults; critical alerts still bypass both.
+  const settings = given ?? {
+    ...DEFAULT_ALERT_SETTINGS,
+    ...((await store.getAlertPreferences()) ?? {}),
+  };
   const recent = await store.getRecentAlerts(new Date(at.getTime() - 24 * 3_600_000).toISOString());
   const today = localDate(at, settings.timeZone);
   const state = {

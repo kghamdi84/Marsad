@@ -6,7 +6,7 @@ import { Cell, num, td, th, thNum, usd } from './Panel';
 const x = t.study.investor;
 const pct1 = (v: number | null) =>
   v === null ? null : `${v > 0 ? '+' : ''}${toFixedHalfUp(v, 1)}%`;
-const times = (v: number | null) => (v === null ? null : `${toFixedHalfUp(v, 1)}x`);
+const times = (v: number | null) => (v === null ? null : `${toFixedHalfUp(v, 1)}\u00D7`);
 
 function Fact({ k, v, sub }: { k: string; v: React.ReactNode; sub?: string | null }) {
   return (

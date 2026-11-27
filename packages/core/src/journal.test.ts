@@ -31,6 +31,7 @@ const t = (over: Partial<JournalTrade> = {}): JournalTrade => ({
   exitDate: null,
   exitPrice: null,
   checklist: all5,
+  checklistVersion: 'checklist-1',
   followed: { stopPlaced: true, sizedBySizer: true, noEmotion: true },
   notes: '',
   screenshots: [],
@@ -77,6 +78,37 @@ describe('adherence (hand-checked)', () => {
     ]);
     expect(a.broken).toEqual(['The trade names a written setup.']);
     expect(a.score).toBeCloseTo((100 * 8) / 9, 12);
+  });
+});
+
+describe('adherence with checklist-2 (hand-checked)', () => {
+  const v2 = {
+    regimeFit: true,
+    structuralStop: true,
+    bearCaseEarnings: true,
+    shariahChecked: true,
+    manualInSahm: false,
+  };
+  it('scores the five checklist-2 items, never the checklist-1 keys', () => {
+    // 5 checklist-2 items (4 ticked) + 3 followed + a named setup = 9 applicable, 8 honored: 800 / 9.
+    const a = adherence(t({ checklist: v2, checklistVersion: 'checklist-2' }));
+    expect(a.applicable).toBe(9);
+    expect(a.honored).toBe(8);
+    expect(a.score).toBeCloseTo(800 / 9, 12);
+    expect(a.broken).toEqual(['Order will be entered by hand in Sahm']);
+  });
+  it('maps the items to the principles: regime fit is patience, the structural stop is risk', () => {
+    const a = adherence(t({ checklist: v2, checklistVersion: 'checklist-2' }));
+    const p = Object.fromEntries(a.principles.map((x) => [x.key, [x.honored, x.applicable]]));
+    expect(p['patience']).toEqual([1, 1]);
+    // Bear case and earnings, Shariah checked, by hand in Sahm (not ticked).
+    expect(p['process']).toEqual([2, 3]);
+    // Stop placed, sized by the sizer, structural stop.
+    expect(p['risk']).toEqual([3, 3]);
+  });
+  it('a checklist-1 trade keeps its own items and labels', () => {
+    const a = adherence(t({ checklist: { ...all5, cleanSetup: false } }));
+    expect(a.broken).toEqual(['The setup is clean: it matches a written rule, not a feeling.']);
   });
 });
 

@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CHECKLIST,
+  CURRENT_CHECKLIST,
+  checklistItems,
   FOLLOWED,
   PLAYBOOKS,
   adherence,
@@ -226,6 +227,7 @@ function NewTrade({
       stop: Number(f.stop) > 0 ? Number(f.stop) : null,
       target: Number(f.target) > 0 ? Number(f.target) : null,
       checklist: checks,
+      checklistVersion: CURRENT_CHECKLIST,
       followed,
       notes: f.notes.slice(0, 4000),
     });
@@ -304,7 +306,7 @@ function NewTrade({
       </div>
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm font-medium">{x.checklist}</legend>
-        {CHECKLIST.map((c) => (
+        {checklistItems(CURRENT_CHECKLIST).map((c) => (
           <label key={c.key} className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="checkbox"

@@ -118,6 +118,7 @@ export interface FakeSeed {
   halts?: HaltRow[];
   watchlist?: string[];
   recentAlerts?: { key: string; at: string; decision: string }[];
+  alertPreferences?: { quietStart: string; quietEnd: string; dailyPushCap: number } | null;
   barsFetchedAt?: Record<string, string>;
   holdings?: HoldingRef[];
   scenarios?: CatalystScenario[];
@@ -209,6 +210,7 @@ export function fakeStore(seed: FakeSeed | Record<string, FredObservation[]> = {
   const store: Store = {
     getRecentHalts: (since) => Promise.resolve((s.halts ?? []).filter((h) => h.haltedAt >= since)),
     getWatchlistTickers: () => Promise.resolve([...(s.watchlist ?? [])]),
+    getAlertPreferences: () => Promise.resolve(s.alertPreferences ?? null),
     getRecentAlerts: (since) =>
       Promise.resolve((s.recentAlerts ?? []).filter((a) => a.at >= since)),
     insertAlerts: (rows) => {

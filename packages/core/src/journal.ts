@@ -5,7 +5,13 @@
  * whether the trade made money; the statistics then show whether following it paid. Pure.
  */
 import { MIN_CASES } from './stats.js';
-import { CHECKLIST, type ChecklistKey } from './portfolio.js';
+import {
+  CHECKLIST,
+  CHECKLIST_V2,
+  checklistItems,
+  type ChecklistKey,
+  type ChecklistVersion,
+} from './portfolio.js';
 
 export const JOURNAL_VERSION = 'journal-1';
 
@@ -50,6 +56,8 @@ export interface JournalTrade {
   exitDate: string | null;
   exitPrice: number | null;
   checklist: Partial<Record<ChecklistKey, boolean>>;
+  /** Which checklist the trade answered; trades logged before checklist-2 are checklist-1. */
+  checklistVersion: ChecklistVersion;
   followed: Partial<Record<FollowedKey, boolean>>;
   notes: string;
   screenshots: string[];
@@ -57,9 +65,18 @@ export interface JournalTrade {
 
 /** The six Jimmy D principles, each scored from recorded items. */
 export const PRINCIPLES = [
-  { key: 'patience', label: 'Patience', items: ['cleanSetup', 'notExtended'] },
-  { key: 'process', label: 'Process', items: ['bearCaseRead', 'profitPlan'] },
-  { key: 'risk', label: 'Strict risk', items: ['riskDefined', 'stopPlaced', 'sizedBySizer'] },
+  // Each principle lists the items of both checklist versions; only the items a trade answered apply.
+  { key: 'patience', label: 'Patience', items: ['cleanSetup', 'notExtended', 'regimeFit'] },
+  {
+    key: 'process',
+    label: 'Process',
+    items: ['bearCaseRead', 'profitPlan', 'bearCaseEarnings', 'shariahChecked', 'manualInSahm'],
+  },
+  {
+    key: 'risk',
+    label: 'Strict risk',
+    items: ['riskDefined', 'stopPlaced', 'sizedBySizer', 'structuralStop'],
+  },
   { key: 'setups', label: 'Clean setups', items: ['setupNamed'] },
   { key: 'profits', label: 'Take profits', items: ['exitedPerPlan'] },
   { key: 'emotion', label: 'No emotional bias', items: ['noEmotion'] },
@@ -78,18 +95,22 @@ export interface Adherence {
 
 const LABEL: Record<string, string> = {
   ...Object.fromEntries(CHECKLIST.map((c) => [c.key, c.label])),
+  ...Object.fromEntries(CHECKLIST_V2.map((c) => [c.key, c.label])),
   ...Object.fromEntries(FOLLOWED.map((f) => [f.key, f.label])),
   setupNamed: 'The trade names a written setup.',
 };
 
 /**
- * The adherence score. Items: the five checklist items, the four "followed" items (the exit item only once the
+ * The adherence score. Items: the five items of the checklist version the trade answered, the four "followed" items (the exit item only once the
  * trade is closed), and whether the trade names a setup. An item left unanswered counts as not honored.
  */
 export function adherence(t: JournalTrade): Adherence {
   const closed = t.exitDate !== null;
   const items: { key: string; ok: boolean }[] = [
-    ...CHECKLIST.map((c) => ({ key: c.key, ok: t.checklist[c.key] === true })),
+    ...checklistItems(t.checklistVersion).map((c) => ({
+      key: c.key,
+      ok: t.checklist[c.key] === true,
+    })),
     ...FOLLOWED.filter((f) => closed || !f.closedOnly).map((f) => ({
       key: f.key,
       ok: t.followed[f.key] === true,

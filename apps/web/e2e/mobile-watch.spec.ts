@@ -63,7 +63,7 @@ test('phone watch: list rows expand, movers and gaps share one card', async ({ p
   const more = page.locator('#wl-more-NVDA');
   await expect(more).toContainText('+4.3%');
   await expect(more).toContainText('+21.0%');
-  await expect(more).toContainText('3.0x');
+  await expect(more).toContainText('3.0\u00D7');
   await expect(more.getByRole('link', { name: 'Study NVDA' })).toHaveAttribute(
     'href',
     '/study/NVDA',

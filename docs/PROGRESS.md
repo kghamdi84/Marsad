@@ -4,6 +4,19 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Design follow-ups: checklist-2, quiet hours, horizon (2026-11-27)
+
+- **checklist-2 (ADR 0046).** New trades and the Sahm ticket use the design's five checks. `trades.checklist_version` keeps every older trade on checklist-1, so no record is relabelled. Adherence scores each trade against the version it answered, with hand-checked tests.
+- **Quiet hours and the daily push cap** are now editable in Settings. They are stored in `alert_preferences` (owner only, RLS tested) and read by the alert jobs over the defaults; a job test shows a saved window changing the decision. This replaces the wrong "Not built yet" note.
+- **Holding horizon (Long term or Swing):** a pill on the position card, chosen under Edit holding.
+- **Display:** ratios and multiples read "1.8×", as in the design.
+- **Checks:**
+  - Unit tests: 1,116 passed.
+  - Playwright: 191 passed and 11 skipped. That includes the new assertions for checklist-2, quiet hours and horizon.
+- **Still not done:**
+  - Arabic for page content beyond the shell.
+  - The weekly Portfolio tile, which needs stored daily portfolio values.
+
 ### Live news on Watch (2026-11-27, Khaled's go-ahead)
 
 - Migration `20270101000000_realtime_news.sql` adds `news_articles` and `filings` to the `supabase_realtime` publication. It is additive and guarded, and row-level security still applies.
