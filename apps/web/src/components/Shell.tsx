@@ -14,6 +14,7 @@ import {
   Gauge,
   LogOut,
   RefreshCw,
+  Settings as SettingsIcon,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -27,29 +28,33 @@ import {
 import { loadPulse, viewPulse, type PulseView } from '../lib/pulse';
 import { supabase } from '../lib/supabase';
 import { t } from '../strings';
-import { Clock } from './Clock';
+import { zoneName } from './Clock';
+import { useDisplay, useShellText } from '../lib/display';
 import { Sheet } from './Sheet';
 
 const s = t.shell;
 
+type NavKey = 'watch' | 'study' | 'regime' | 'alerts' | 'journal' | 'lab' | 'status' | 'settings';
+
 interface Tab {
-  to: '/' | '/study' | '/regime' | '/alerts' | '/journal' | '/lab' | '/status';
-  label: string;
+  to: '/' | '/study' | '/regime' | '/alerts' | '/journal' | '/lab' | '/status' | '/settings';
+  nav: NavKey;
   icon: LucideIcon;
   key: string;
 }
 
 /** The five tabs of the phone tab bar, in order; the top bar adds Lab and Status. */
 const tabs: Tab[] = [
-  { to: '/', label: t.nav.watch, icon: Eye, key: '1' },
-  { to: '/study', label: t.nav.study, icon: ChartCandlestick, key: '2' },
-  { to: '/regime', label: t.nav.regime, icon: Gauge, key: '3' },
-  { to: '/alerts', label: t.nav.alerts, icon: Bell, key: '4' },
-  { to: '/journal', label: t.nav.journal, icon: BookOpen, key: '5' },
+  { to: '/', nav: 'watch', icon: Eye, key: '1' },
+  { to: '/study', nav: 'study', icon: ChartCandlestick, key: '2' },
+  { to: '/regime', nav: 'regime', icon: Gauge, key: '3' },
+  { to: '/alerts', nav: 'alerts', icon: Bell, key: '4' },
+  { to: '/journal', nav: 'journal', icon: BookOpen, key: '5' },
 ];
 const moreTabs: Tab[] = [
-  { to: '/lab', label: t.nav.lab, icon: FlaskConical, key: '' },
-  { to: '/status', label: t.nav.status, icon: Activity, key: 's' },
+  { to: '/lab', nav: 'lab', icon: FlaskConical, key: '6' },
+  { to: '/status', nav: 'status', icon: Activity, key: 's' },
+  { to: '/settings', nav: 'settings', icon: SettingsIcon, key: '' },
 ];
 
 function useNumberShortcuts() {
@@ -212,26 +217,65 @@ function usePullToRefresh(onRefresh: () => Promise<unknown>) {
   return { phase, text };
 }
 
-function TopTab({ tab }: { tab: Tab }) {
+function TopTab({ tab, label }: { tab: Tab; label: string }) {
   return (
     <Link
       to={tab.to}
       activeOptions={{ exact: tab.to === '/' }}
-      className="flex min-h-11 items-center border-b-2 border-transparent px-2.5 text-sm whitespace-nowrap text-muted hover:text-fg"
-      activeProps={{ className: 'border-b-up! text-white font-semibold', 'aria-current': 'page' }}
+      className="flex min-h-10 items-center rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap text-ink3 hover:text-ink"
+      activeProps={{
+        className: 'bg-accent text-accent-ink! hover:text-accent-ink!',
+        'aria-current': 'page',
+      }}
     >
-      {tab.label}
+      {label}
     </Link>
+  );
+}
+
+/** The observatory mark: a dial with a blue centre (v2 handoff). */
+export function LogoMark({ size = 30 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      aria-hidden="true"
+      className="flex-none"
+    >
+      <rect
+        x="1"
+        y="1"
+        width="30"
+        height="30"
+        rx="8"
+        stroke="var(--color-ink3)"
+        strokeWidth="1.4"
+        fill="var(--color-elev)"
+      />
+      <circle cx="16" cy="16" r="8" stroke="var(--color-ink3)" strokeWidth="1.2" />
+      <path
+        d="M16 5V9M16 23V27M5 16H9M23 16H27"
+        stroke="var(--color-up)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="16" cy="16" r="2.6" fill="var(--color-up)" />
+    </svg>
   );
 }
 
 function Logo() {
   return (
-    <span className="flex flex-col leading-none">
-      <span lang="ar" className="text-start text-xs text-muted">
-        {s.logoArabic}
+    <span className="flex flex-none items-center gap-2.5">
+      <LogoMark />
+      <span className="flex flex-col leading-[1.15]">
+        <span className="text-[15px] font-semibold text-ink">{t.appName}</span>
+        <span lang="ar" dir="rtl" className="font-arabic text-xs text-ink3">
+          {s.logoArabicFull}
+        </span>
       </span>
-      <span className="text-[19px] font-bold text-white">{t.appName}</span>
     </span>
   );
 }
@@ -247,24 +291,25 @@ function MarketSheetBody({
   now: Date;
   health: Health;
 }) {
-  const c = dualClock(now, DEFAULT_LOCAL_ZONE);
+  const { zone } = useDisplay();
+  const c = dualClock(now, zone);
   const next = view?.session.calendarCovered && calendar ? nextRegularOpen(now, calendar) : null;
   return (
     <div className="flex flex-col gap-3.5">
       <div className="grid grid-cols-2 gap-2.5">
         <div className="flex flex-col gap-0.5 rounded-xl bg-surface p-3.5">
           <span className="text-[0.8125rem] text-muted">{s.newYork}</span>
-          <span className="text-[1.75rem] font-bold text-white tabular-nums">{c.et}</span>
+          <span className="text-[1.75rem] font-bold text-ink tabular-nums">{c.et}</span>
           <span className="text-[0.8125rem] text-muted">{etDate(now)}</span>
         </div>
         <div className="flex flex-col gap-0.5 rounded-xl bg-surface p-3.5">
-          <span className="text-[0.8125rem] text-muted">{s.local}</span>
-          <span className="text-[1.75rem] font-bold text-white tabular-nums">{c.local}</span>
+          <span className="text-[0.8125rem] text-muted">{zoneName(zone)}</span>
+          <span className="text-[1.75rem] font-bold text-ink tabular-nums">{c.local}</span>
           <span className="text-[0.8125rem] text-muted">{etDate(now)}</span>
         </div>
       </div>
       <div className="flex flex-col gap-1 rounded-xl bg-surface p-3.5 text-[0.9375rem]">
-        <span className="font-semibold text-white">
+        <span className="font-semibold text-ink">
           {view ? sessionLabel(view.session) : s.market.unknown}
         </span>
         {view && !view.session.calendarCovered && (
@@ -272,7 +317,7 @@ function MarketSheetBody({
         )}
         {next && (
           <span className="text-fg">
-            {s.nextOpen(`${etDate(next)} ${dualClock(next, DEFAULT_LOCAL_ZONE).label}`)}
+            {s.nextOpen(`${etDate(next)} ${dualClock(next, zone).label}`)}
           </span>
         )}
       </div>
@@ -296,7 +341,7 @@ function SourceAttention({ view, health }: { view: PulseView | null; health: Hea
             {s.badgeStale}
           </span>
           <span className="flex flex-col gap-0.5">
-            <span className="font-bold text-white">{name}</span>
+            <span className="font-bold text-ink">{name}</span>
             <span className="text-[0.9375rem] text-fg">{s.staleTitle}</span>
           </span>
         </div>
@@ -307,7 +352,7 @@ function SourceAttention({ view, health }: { view: PulseView | null; health: Hea
             {s.badgeUnchecked}
           </span>
           <span className="flex flex-col gap-0.5">
-            <span className="font-bold text-white">{name}</span>
+            <span className="font-bold text-ink">{name}</span>
             <span className="text-[0.9375rem] text-muted">{s.uncheckedTitle}</span>
           </span>
         </div>
@@ -318,14 +363,15 @@ function SourceAttention({ view, health }: { view: PulseView | null; health: Hea
 
 function SheetLink({ tab, label, onClick }: { tab: Tab; label?: string; onClick: () => void }) {
   const Icon = tab.icon;
+  const nav = useShellText().nav;
   return (
     <Link
       to={tab.to}
       onClick={onClick}
-      className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-white"
+      className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-ink"
     >
       <Icon aria-hidden="true" size={22} className="text-up" />
-      <span className="flex-1">{label ?? tab.label}</span>
+      <span className="flex-1">{label ?? nav[tab.nav]}</span>
       <ChevronRight aria-hidden="true" size={18} className="text-muted" />
     </Link>
   );
@@ -344,36 +390,43 @@ export function Shell() {
   const moreActive = moreTabs.some((x) => pathname.startsWith(x.to));
   const signOut = () => void supabase?.auth.signOut();
   const chipAria = s.chipAria(market, health.label);
+  const text = useShellText();
+  const { zone } = useDisplay();
+  const clock = dualClock(now, zone);
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* Tablet and desktop: one top bar with every tab. */}
+      {/* Tablet and desktop: the v2 header with every page, and the session and clock chip. */}
       <header className="sticky top-0 z-40 hidden border-b border-line bg-surface pt-[env(safe-area-inset-top)] tablet:block">
-        <div className="mx-auto flex min-h-14 max-w-7xl items-center gap-4 px-4">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-2 px-4 py-2.5">
           <Logo />
           <nav
-            aria-label={t.nav.primary}
-            className="flex min-w-0 flex-1 items-center overflow-x-auto"
+            aria-label={text.nav.primary}
+            className="flex max-w-full gap-0.5 overflow-x-auto [scrollbar-width:none]"
           >
             {[...tabs, ...moreTabs].map((tab) => (
-              <TopTab key={tab.to} tab={tab} />
+              <TopTab key={tab.to} tab={tab} label={text.nav[tab.nav]} />
             ))}
           </nav>
           <button
             type="button"
-            aria-label={chipAria}
             onClick={() => setSheet('market')}
-            className={`flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap ${tone}`}
+            className="flex min-h-10 items-center gap-2 rounded-lg border border-line bg-elev px-2.5 text-xs whitespace-nowrap text-ink2"
           >
-            <span aria-hidden="true" className={`size-2 rounded-full ${health.dot}`} />
-            {market}
-          </button>
-          <Clock localZone={DEFAULT_LOCAL_ZONE} localClassName="hidden xl:inline" />
-          <button
-            type="button"
-            className="min-h-11 px-2 text-sm whitespace-nowrap text-muted hover:text-fg"
-            onClick={signOut}
-          >
-            {t.nav.signOut}
+            <span aria-hidden="true" className={`size-2 flex-none rounded-full ${health.dot}`} />
+            <span className={tone.split(' ').find((c) => c.startsWith('text-')) ?? ''}>
+              {market}
+            </span>
+            <span aria-hidden="true" className="text-ink3">
+              ·
+            </span>
+            <span dir="ltr" className="tabular-nums">
+              {clock.et} {t.clock.et}
+            </span>
+            <span dir="ltr" className="text-ink3 tabular-nums">
+              {clock.local} {zoneName(zone)}
+            </span>
+            {/* The visible text stays in the name; health and the action follow for screen readers. */}
+            <span className="sr-only">{s.chipExtra(health.label)}</span>
           </button>
         </div>
       </header>
@@ -381,8 +434,8 @@ export function Shell() {
       {/* Phone: the page title, the market chip and the freshness dot. */}
       <header className="sticky top-0 z-40 border-b border-line bg-surface pt-[env(safe-area-inset-top)] tablet:hidden">
         <div className="flex min-h-14 items-center gap-2 py-1.5 ps-4 pe-3">
-          <span className="shrink-0 text-[1.375rem] leading-tight font-bold text-white">
-            {current?.label ?? t.appName}
+          <span className="shrink-0 text-[1.375rem] leading-tight font-bold text-ink">
+            {current ? text.nav[current.nav] : t.appName}
           </span>
           <button
             type="button"
@@ -424,15 +477,22 @@ export function Shell() {
         )}
       </div>
 
-      <div className="flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] tablet:px-5 tablet:pb-10">
+      <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] tablet:p-6 tablet:pb-10">
         <QuickLookProvider>
           <Outlet />
         </QuickLookProvider>
-      </div>
+      </main>
+
+      <footer className="mx-auto mb-[calc(env(safe-area-inset-bottom)+4.5rem)] flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-2 border-t border-line p-4 text-xs text-ink3 tablet:mb-0">
+        <span>{text.footer}</span>
+        <span dir="ltr" className="tabular-nums">
+          {etDate(now)} · {clock.et} {t.clock.et} ({clock.local} {zoneName(zone)})
+        </span>
+      </footer>
 
       {/* Phone: the bottom tab bar, with Lab, Status and Sign out under More. */}
       <nav
-        aria-label={t.nav.primary}
+        aria-label={text.nav.primary}
         className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 border-t border-faint/30 bg-surface pb-[env(safe-area-inset-bottom)] tablet:hidden"
       >
         {tabs.map((tab) => {
@@ -446,7 +506,7 @@ export function Shell() {
               activeProps={{ className: 'text-up! font-semibold', 'aria-current': 'page' }}
             >
               <Icon aria-hidden="true" size={24} strokeWidth={1.75} />
-              {tab.label}
+              {text.nav[tab.nav]}
             </Link>
           );
         })}
@@ -472,10 +532,10 @@ export function Shell() {
           <button
             type="button"
             onClick={signOut}
-            className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-white"
+            className="flex min-h-14 items-center gap-3 rounded-xl bg-surface px-4 text-[0.9375rem] font-semibold text-ink"
           >
             <LogOut aria-hidden="true" size={22} className="text-muted" />
-            {t.nav.signOut}
+            {text.nav.signOut}
           </button>
         </div>
       </Sheet>

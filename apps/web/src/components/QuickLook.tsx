@@ -39,7 +39,7 @@ export function TickerLink({ ticker, className = '' }: { ticker: string; classNa
         e.stopPropagation();
         open(ticker);
       }}
-      className={`-mx-1 inline-flex min-h-11 items-center rounded-sm px-1 font-bold text-white underline decoration-up/50 decoration-1 underline-offset-4 hover:decoration-up tablet:min-h-0 ${className}`}
+      className={`-mx-1 inline-flex min-h-11 items-center rounded-sm px-1 font-bold text-ink underline decoration-up/50 decoration-1 underline-offset-4 hover:decoration-up tablet:min-h-0 ${className}`}
     >
       {ticker}
     </button>
@@ -102,7 +102,7 @@ function MiniChart({ closes }: { closes: readonly number[] }) {
   );
 }
 
-function Fact({ k, v, tone = 'text-white' }: { k: string; v: string; tone?: string }) {
+function Fact({ k, v, tone = 'text-ink' }: { k: string; v: string; tone?: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 rounded-[10px] bg-bg/50 px-2.5 py-2">
       <dt className="text-xs text-muted">{k}</dt>
@@ -170,7 +170,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
         <>
           <div className="flex items-end justify-between gap-3">
             <span className="flex flex-col">
-              <span className="text-2xl font-bold text-white tabular-nums">
+              <span className="text-2xl font-bold text-ink tabular-nums">
                 ${money(s.lastClose)}
               </span>
               <span
@@ -204,7 +204,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
             <Fact
               k={x.fromHigh}
               v={fromHigh === null ? t.regime.noData : signed(fromHigh, 1)}
-              tone={fromHigh !== null && fromHigh < 0 ? 'text-down' : 'text-white'}
+              tone={fromHigh !== null && fromHigh < 0 ? 'text-down' : 'text-ink'}
             />
             <Fact
               k={x.volume}
@@ -226,7 +226,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
             <Fact
               k={tr.rsSpy}
               v={m?.rsSpy == null ? t.regime.noData : signed(m.rsSpy, 1)}
-              tone={m?.rsSpy == null ? 'text-white' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
+              tone={m?.rsSpy == null ? 'text-ink' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
             />
             <Fact
               k={tr.rankFact}
@@ -281,7 +281,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
             {filings.map((f) => (
               <li key={f.accession} className="flex justify-between gap-2">
                 <span>
-                  <span className="me-1.5 rounded-sm bg-ink px-1.5 py-px text-xs">{x.tier1}</span>
+                  <span className="me-1.5 rounded-sm bg-fill px-1.5 py-px text-xs">{x.tier1}</span>
                   {f.form}
                   {f.items.length > 0 && (
                     <span className="text-muted"> {x.items(f.items.join(', '))}</span>
@@ -304,7 +304,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
               const next = withTicker(list.data.tickers, ticker);
               if (next) add.mutate(next);
             }}
-            className="min-h-12 rounded-[14px] border border-muted/40 font-semibold text-white"
+            className="min-h-12 rounded-[14px] border border-muted/40 font-semibold text-ink"
           >
             {t.watchlist.addTo}
           </button>
@@ -313,7 +313,7 @@ function QuickLookBody({ ticker }: { ticker: string }) {
       <Link
         to="/study/$ticker"
         params={{ ticker }}
-        className="flex min-h-12 items-center justify-center rounded-[14px] bg-white font-bold text-raised"
+        className="flex min-h-12 items-center justify-center rounded-[14px] bg-accent font-bold text-accent-ink"
       >
         {x.openStudy}
       </Link>
@@ -350,14 +350,14 @@ export function QuickLookProvider({ children }: { children: ReactNode }) {
           className="fixed end-0 top-0 bottom-0 z-[60] flex w-[380px] max-w-full flex-col gap-3 overflow-y-auto border-s border-line bg-raised p-5 shadow-2xl"
         >
           <div className="flex items-center justify-between gap-3">
-            <h2 id="quick-look-h" className="text-xl font-bold text-white">
+            <h2 id="quick-look-h" className="text-xl font-bold text-ink">
               {x.title(ticker)}
             </h2>
             <button
               type="button"
               onClick={close}
               aria-label={x.close}
-              className="grid size-11 place-items-center rounded-full bg-bg/50 text-white"
+              className="grid size-11 place-items-center rounded-full bg-bg/50 text-ink"
             >
               <X aria-hidden="true" size={18} />
             </button>

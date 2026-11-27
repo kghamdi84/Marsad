@@ -10,7 +10,7 @@ import { t } from '../../strings';
 const x = t.journal.etf;
 const pct = (v: number) => `${toFixedHalfUp(v * 100, 1)}%`;
 /** Fund colours after light blue (direct), in the design's order. */
-const VIA_FILL = ['bg-ink', 'bg-muted', 'bg-faint'];
+const VIA_FILL = ['bg-fill', 'bg-muted', 'bg-faint'];
 const box = 'flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4';
 
 /** What you hold directly and through SPY, QQQ and DIA, and how much those funds overlap, as the design draws it. */

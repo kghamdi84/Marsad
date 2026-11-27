@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { Info } from '../components/Info';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   DEFAULT_SOURCE_POLICIES,
   PLAN_COSTS,
@@ -13,12 +11,9 @@ import {
   toFixedHalfUp,
   type UpcomingRow,
 } from '@marsad/core';
-import { downloadExport, listExports } from '../lib/exports';
-import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
-import { loadQuoteView, saveQuoteSource, type QuoteSource } from '../lib/quotes';
+import { loadPreferences } from '../lib/settings';
 import { supabase } from '../lib/supabase';
-import { Notifications } from '../components/status/Notifications';
-import { ScrollX, Tabs, cardClass, useRemembered } from '../components/Card';
+import { ScrollX, cardClass } from '../components/Card';
 import { panelTitle } from '../components/study/Panel';
 import { t } from '../strings';
 
@@ -171,246 +166,6 @@ function Latency() {
   );
 }
 
-/**
- * Quote source (ADR 0041): one choice of two, so radio buttons. Saved as soon as it is picked; it changes only
- * which latest price the screens show, never the data rules, charts or alerts use.
- */
-function QuoteSourceCard() {
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['quote-view'], queryFn: loadQuoteView });
-  const [msg, setMsg] = useState<string | null>(null);
-  // The picked option shows at once and stays while the saved setting reloads; a failed save puts it back.
-  const [chosen, setChosen] = useState<QuoteSource | null>(null);
-  const qs = t.status.quoteSource;
-  const save = useMutation({
-    mutationFn: saveQuoteSource,
-    onSuccess: (_v, source) => {
-      setMsg(qs.saved(source === 'tauric' ? qs.tauric : qs.massive));
-      void qc.invalidateQueries({ queryKey: ['quote-view'] });
-    },
-    onError: () => setChosen(null),
-  });
-  const current: QuoteSource = chosen ?? q.data?.source ?? 'massive';
-  const options: { key: QuoteSource; label: string; note: string }[] = [
-    { key: 'massive', label: qs.massive, note: qs.massiveNote },
-    { key: 'tauric', label: qs.tauric, note: qs.tauricNote },
-  ];
-  return (
-    <section aria-labelledby="quote-source-h" className={`${cardClass} gap-3!`}>
-      <h2 id="quote-source-h" className={panelTitle}>
-        {qs.title}
-      </h2>
-      <Info>{qs.intro}</Info>
-      {q.isError ? (
-        <p role="alert" className="text-down">
-          {q.error.message}
-        </p>
-      ) : (
-        <fieldset className="flex flex-col gap-2" disabled={!q.data || save.isPending}>
-          <legend className="mb-1 text-sm text-fg">{qs.legend}</legend>
-          {options.map((o) => (
-            <label
-              key={o.key}
-              className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 ${
-                current === o.key ? 'border-up/60 bg-raised' : 'border-line'
-              }`}
-            >
-              <input
-                type="radio"
-                name="quote-source"
-                value={o.key}
-                className="mt-1 size-4"
-                checked={current === o.key}
-                onChange={() => {
-                  setMsg(null);
-                  setChosen(o.key);
-                  save.mutate(o.key);
-                }}
-              />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold text-white">{o.label}</span>
-                <span className="text-xs text-muted">{o.note}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
-      )}
-      {save.isError && (
-        <p role="alert" className="text-down">
-          {save.error.message}
-        </p>
-      )}
-      {msg && (
-        <p role="status" className="text-sm">
-          {msg}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function Preferences() {
-  const q = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
-  if (q.isError)
-    return (
-      <p role="alert" className="text-down">
-        {q.error.message}
-      </p>
-    );
-  return q.data ? <PreferencesForm initial={q.data} /> : null;
-}
-
-function PreferencesForm({ initial }: { initial: Prefs }) {
-  const qc = useQueryClient();
-  const [p, setP] = useState<Prefs>(initial);
-  const [msg, setMsg] = useState<string | null>(null);
-  const save = useMutation({
-    mutationFn: savePreferences,
-    onSuccess: () => {
-      setMsg(t.status.preferencesSaved);
-      void qc.invalidateQueries({ queryKey: ['preferences'] });
-    },
-  });
-  const pct = (v: number) => String(Math.round(v * 1000) / 10);
-  const sh = p.shariah;
-  const d = t.status.design;
-  const set = (patch: Partial<Prefs['shariah']>) => setP({ ...p, shariah: { ...sh, ...patch } });
-  const cap = (v: string) => (v.trim() === '' ? null : Number(v));
-  const aiOff = p.ai.dailyUsd === null || p.ai.monthlyUsd === null;
-  const field =
-    'min-h-12 w-full rounded-[10px] border border-muted/35 bg-surface px-3 text-[17px] text-white';
-  return (
-    <form
-      aria-label={t.status.preferences}
-      className={`${cardClass} gap-4! p-5!`}
-      onSubmit={(e) => {
-        e.preventDefault();
-        setMsg(null);
-        const ok = [sh.debtMax, sh.cashMax].every((v) => v > 0 && v < 1);
-        if (!ok) return setMsg(t.status.preferencesInvalid);
-        const capsOk = [p.ai.dailyUsd, p.ai.monthlyUsd].every((v) => v === null || v > 0);
-        if (!capsOk) return setMsg(t.status.capsInvalid);
-        save.mutate(p);
-      }}
-    >
-      <h2 className="text-[17px] font-semibold text-white">{t.status.preferences}</h2>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-4">
-        <div className="flex flex-col gap-3 rounded-xl bg-bg p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex flex-col">
-              <span className="text-[15px] font-semibold">{d.shariahTitle}</span>
-              <span className="text-xs text-muted">{d.shariahNote}</span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={sh.enabled}
-              aria-label={d.shariahTitle}
-              onClick={() => set({ enabled: !sh.enabled })}
-              className={`relative h-8 w-[52px] flex-none rounded-full ${sh.enabled ? 'bg-ink' : 'bg-faint/40'}`}
-            >
-              <span
-                className={`absolute top-1 size-6 rounded-full bg-white ${sh.enabled ? 'start-7' : 'start-1'}`}
-              />
-            </button>
-          </div>
-          <div role="radiogroup" aria-label={d.basis} className="grid grid-cols-2 gap-1.5">
-            {(
-              [
-                ['market-cap', t.status.basisMarketCap],
-                ['assets', t.status.basisAssets],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                role="radio"
-                aria-checked={sh.basis === k}
-                onClick={() => set({ basis: k })}
-                className={`min-h-11 rounded-[10px] border text-[13px] text-white ${
-                  sh.basis === k ? 'border-up bg-raised' : 'border-muted/35 bg-transparent'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <label className="flex flex-col gap-1.5 text-xs text-muted">
-              {t.status.debtMax}
-              <input
-                inputMode="decimal"
-                className={field}
-                defaultValue={pct(sh.debtMax)}
-                onChange={(e) => set({ debtMax: Number(e.target.value) / 100 })}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs text-muted">
-              {t.status.cashMax}
-              <input
-                inputMode="decimal"
-                className={field}
-                defaultValue={pct(sh.cashMax)}
-                onChange={(e) => set({ cashMax: Number(e.target.value) / 100 })}
-              />
-            </label>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 rounded-xl bg-bg p-3.5">
-          <span className="flex flex-col">
-            <span className="text-[15px] font-semibold">{d.aiTitle}</span>
-            <span className="text-xs text-muted">{d.aiNote}</span>
-          </span>
-          <div className="grid grid-cols-2 gap-2.5">
-            <label className="flex flex-col gap-1.5 text-xs text-muted">
-              {t.status.aiDailyCap}
-              <input
-                inputMode="decimal"
-                placeholder={d.off}
-                className={field}
-                defaultValue={p.ai.dailyUsd ?? ''}
-                onChange={(e) => setP({ ...p, ai: { ...p.ai, dailyUsd: cap(e.target.value) } })}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs text-muted">
-              {t.status.aiMonthlyCap}
-              <input
-                inputMode="decimal"
-                placeholder={d.off}
-                className={field}
-                defaultValue={p.ai.monthlyUsd ?? ''}
-                onChange={(e) => setP({ ...p, ai: { ...p.ai, monthlyUsd: cap(e.target.value) } })}
-              />
-            </label>
-          </div>
-          <span className={`text-[13px] ${aiOff ? 'text-muted' : 'text-up'}`}>
-            {aiOff ? d.aiOffNote : d.aiOnNote}
-          </span>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={save.isPending}
-          className="min-h-12 rounded-xl bg-white px-[22px] text-[15px] font-bold text-raised disabled:opacity-50"
-        >
-          {t.status.savePreferences}
-        </button>
-        {save.isError && (
-          <p role="alert" className="text-[13px] text-down">
-            {save.error.message}
-          </p>
-        )}
-        {msg && (
-          <p role="status" className="text-[13px] text-fg">
-            {msg}
-          </p>
-        )}
-      </div>
-    </form>
-  );
-}
-
 async function loadCosts() {
   if (!supabase) throw new Error('not configured');
   const monthStart = `${new Date().toISOString().slice(0, 7)}-01T00:00:00Z`;
@@ -457,7 +212,7 @@ function Costs() {
   return (
     <section aria-labelledby="cost-h" className={`${cardClass} p-5!`}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="cost-h" className="text-[17px] font-semibold text-white">
+        <h2 id="cost-h" className="text-[17px] font-semibold text-ink">
           {t.status.costs}
         </h2>
         <span className="text-[22px] font-bold">
@@ -518,45 +273,6 @@ function Costs() {
         )}
       </div>
     </section>
-  );
-}
-
-function Exports() {
-  const q = useQuery({ queryKey: ['exports'], queryFn: listExports });
-  const dl = useMutation({
-    mutationFn: (x: { date: string; file: string }) => downloadExport(x.date, x.file),
-  });
-  return (
-    <div className={`${cardClass} gap-3!`}>
-      <h2 className={panelTitle}>{t.status.exports}</h2>
-      <p className="mb-2 text-sm text-muted">{t.status.exportsIntro}</p>
-      {q.isError && (
-        <p role="alert" className="text-down">
-          {q.error.message}
-        </p>
-      )}
-      {q.data && q.data.length === 0 && <p className="text-muted">{t.status.noExports}</p>}
-      {q.data?.map((e) => (
-        <ul key={e.date} className="mb-2 flex flex-wrap gap-2">
-          {e.files.map((f) => (
-            <li key={f}>
-              <button
-                type="button"
-                className="min-h-11 rounded-sm border border-line px-3 text-sm"
-                onClick={() => dl.mutate({ date: e.date, file: f })}
-              >
-                {t.status.exportFile(e.date, f)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ))}
-      {dl.isError && (
-        <p role="alert" className="text-down">
-          {dl.error.message}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -634,7 +350,7 @@ function HealthHero({ data }: { data: Awaited<ReturnType<typeof load>> }) {
         <span className="text-[13px] text-muted">
           {h.line(hm(checked, 'America/New_York'), hm(checked, 'Asia/Riyadh'))}
         </span>
-        <h1 id="health-h" className="text-[28px] leading-[1.15] font-bold text-white">
+        <h1 id="health-h" className="text-[28px] leading-[1.15] font-bold text-ink">
           {views.length === 0 ? t.status.title : h.title(healthy, views.length)}
         </h1>
         {stale.length > 0 && (
@@ -668,7 +384,7 @@ function Sources({ data }: { data: Awaited<ReturnType<typeof load>> }) {
   return (
     <section aria-labelledby="src-h" className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="src-h" className="text-[17px] font-semibold text-white">
+        <h2 id="src-h" className="text-[17px] font-semibold text-ink">
           {t.status.sources}
         </h2>
         <ul className="flex flex-wrap gap-2.5 text-xs">
@@ -763,7 +479,7 @@ function JobStrips() {
   return (
     <section aria-labelledby="job-h" className={`${cardClass} p-5!`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="job-h" className="text-[17px] font-semibold text-white">
+        <h2 id="job-h" className="text-[17px] font-semibold text-ink">
           {t.status.jobs}
         </h2>
         <ul className="flex flex-wrap gap-3 text-xs text-fg">
@@ -860,7 +576,7 @@ function CapBar({ label, pct }: { label: string; pct: number }) {
           className={`absolute inset-y-0 start-0 rounded-full ${tone}`}
           style={{ width: `${width}%` }}
         />
-        <span className="absolute -top-1 start-[80%] h-4 w-0.5 bg-white" />
+        <span className="absolute -top-1 start-[80%] h-4 w-0.5 bg-ink" />
       </span>
     </div>
   );
@@ -872,83 +588,58 @@ const EVENT_STYLE: Record<AlertRow['event'], string> = {
   recovered: 'bg-up/15 text-up',
 };
 
-const STATUS_TABS = ['health', 'settings'] as const;
-
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: load, refetchInterval: 30_000 });
-  const [tab, setTab] = useRemembered('marsad.status.tab', STATUS_TABS, 'health');
   return (
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       {q.data ? (
         <HealthHero data={q.data} />
       ) : (
         <>
-          <h1 className="text-[28px] font-bold text-white">{t.status.title}</h1>
+          <h1 className="text-[28px] font-bold text-ink">{t.status.title}</h1>
           <p role="status" className={q.isError ? 'text-down' : 'text-muted'}>
             {q.isError ? t.status.dbError(q.error.message) : t.loading}
           </p>
         </>
       )}
 
-      {/* Health first; the setup forms sit under Settings (council batch 2). */}
-      <Tabs
-        pill
-        label={t.status.tabsLabel}
-        idPrefix="status"
-        options={STATUS_TABS.map((k) => ({ key: k, label: t.status.tabs[k] ?? k }))}
-        value={tab}
-        onChange={setTab}
-      >
-        {tab === 'health' ? (
-          <div className="flex flex-col gap-4">
-            {q.data && <Sources data={q.data} />}
+      <div className="flex flex-col gap-4">
+        {q.data && <Sources data={q.data} />}
 
-            <JobStrips />
+        <JobStrips />
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4">
-              <section aria-labelledby="sa-h" className={`${cardClass} gap-1! p-5!`}>
-                <h2 id="sa-h" className="mb-1.5 text-[17px] font-semibold text-white">
-                  {t.status.alerts}
-                </h2>
-                {q.data && q.data.alerts.length === 0 && (
-                  <p className="text-muted">{t.status.noAlerts}</p>
-                )}
-                {q.data?.alerts.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 border-t border-line-soft py-3">
-                    <span
-                      className={`flex-none rounded px-2 py-0.5 text-[11px] font-semibold ${EVENT_STYLE[a.event]}`}
-                    >
-                      {t.status.eventsDesign[a.event]}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4">
+          <section aria-labelledby="sa-h" className={`${cardClass} gap-1! p-5!`}>
+            <h2 id="sa-h" className="mb-1.5 text-[17px] font-semibold text-ink">
+              {t.status.alerts}
+            </h2>
+            {q.data && q.data.alerts.length === 0 && (
+              <p className="text-muted">{t.status.noAlerts}</p>
+            )}
+            {q.data?.alerts.map((a) => (
+              <div key={a.id} className="flex items-start gap-3 border-t border-line-soft py-3">
+                <span
+                  className={`flex-none rounded px-2 py-0.5 text-[11px] font-semibold ${EVENT_STYLE[a.event]}`}
+                >
+                  {t.status.eventsDesign[a.event]}
+                </span>
+                <span className="flex flex-1 flex-col gap-0.5">
+                  <span className="text-sm">{a.headline}</span>
+                  <span className="text-xs text-muted">{dual(a.created_at)}</span>
+                  {a.paused_rules.length > 0 && (
+                    <span className="text-xs text-muted">
+                      {t.status.design.paused(a.paused_rules.join(', '))}
                     </span>
-                    <span className="flex flex-1 flex-col gap-0.5">
-                      <span className="text-sm">{a.headline}</span>
-                      <span className="text-xs text-muted">{dual(a.created_at)}</span>
-                      {a.paused_rules.length > 0 && (
-                        <span className="text-xs text-muted">
-                          {t.status.design.paused(a.paused_rules.join(', '))}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </section>
-              <Costs />
-            </div>
+                  )}
+                </span>
+              </div>
+            ))}
+          </section>
+          <Costs />
+        </div>
 
-            <Latency />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <Notifications />
-
-            <QuoteSourceCard />
-
-            <Preferences />
-
-            <Exports />
-          </div>
-        )}
-      </Tabs>
+        <Latency />
+      </div>
     </div>
   );
 }

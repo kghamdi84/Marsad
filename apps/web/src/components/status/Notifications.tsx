@@ -21,13 +21,13 @@ const x = t.status.push;
 const d = x.d;
 const stepCard = 'flex flex-col gap-2.5 rounded-xl bg-bg p-3.5';
 const btnOutline =
-  'min-h-11 rounded-[10px] border border-muted/40 bg-transparent px-3.5 text-[13px] text-white disabled:opacity-50';
+  'min-h-11 rounded-[10px] border border-muted/40 bg-transparent px-3.5 text-[13px] text-ink disabled:opacity-50';
 function StepTitle({ n, children }: { n: number; children: string }) {
   return (
     <h3 className="flex items-center gap-2 text-sm font-semibold">
       <span
         aria-hidden="true"
-        className="flex size-6 items-center justify-center rounded-full bg-ink text-xs"
+        className="flex size-6 items-center justify-center rounded-full bg-fill text-xs"
       >
         {n}
       </span>
@@ -179,7 +179,7 @@ function ThisDevice({ state }: { state: PushState }) {
         ) : (
           <button
             type="button"
-            className="min-h-11 self-start rounded-[10px] bg-white px-3.5 text-[13px] font-semibold text-raised disabled:opacity-50"
+            className="min-h-11 self-start rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-accent-ink disabled:opacity-50"
             disabled={on.isPending}
             onClick={() => on.mutate()}
           >
@@ -253,7 +253,7 @@ export function Notifications() {
   return (
     <section aria-labelledby="push" className={`${cardClass} gap-4! p-5!`}>
       <div className="flex flex-col gap-0.5">
-        <h2 id="push" className="text-[17px] font-semibold text-white">
+        <h2 id="push" className="text-[17px] font-semibold text-ink">
           {x.title}
         </h2>
         <span className="text-xs text-muted">{d.sub}</span>

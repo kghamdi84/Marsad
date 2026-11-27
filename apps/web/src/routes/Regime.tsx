@@ -158,7 +158,7 @@ function Hero({ data }: { data: RegimeData }) {
           className="size-4 flex-none rounded"
           style={{ background: LABEL_COLOR[last.label] }}
         />
-        <p className="text-4xl leading-[1.05] font-bold text-white">{name(last.label)}</p>
+        <p className="text-4xl leading-[1.05] font-bold text-ink">{name(last.label)}</p>
       </div>
       <p className="text-[15px] leading-[1.45] text-fg">{r.reasons[last.reason] ?? last.reason}</p>
       <p className="sr-only">{r.asOf(last.date, last.ruleVersion)}</p>
@@ -174,7 +174,7 @@ function Hero({ data }: { data: RegimeData }) {
             className={`min-w-0 flex-col gap-0.5 rounded-[10px] bg-bg/50 p-2.5 ${i === 3 ? 'hidden tablet:flex' : 'flex'}`}
           >
             <span className="text-xs text-muted">{k}</span>
-            <span className="text-lg font-bold text-white tabular-nums">{v}</span>
+            <span className="text-lg font-bold text-ink tabular-nums">{v}</span>
           </div>
         ))}
       </div>
@@ -294,7 +294,7 @@ function RecessionCard({ data }: { data: RegimeData }) {
       title={rec.title}
       subtitle={`${last.recessionVersion} · ${rec.summary(last.available, last.triggered)}`}
       aside={
-        <p className="text-[26px] leading-none font-bold text-white">{rec.level[level] ?? level}</p>
+        <p className="text-[26px] leading-none font-bold text-ink">{rec.level[level] ?? level}</p>
       }
     >
       <div
@@ -317,7 +317,7 @@ function RecessionCard({ data }: { data: RegimeData }) {
         {u.levelScale.map((s, i) => (
           <span
             key={s}
-            className={`text-[11px] ${levels[i] === level ? 'font-semibold text-white' : 'text-muted'}`}
+            className={`text-[11px] ${levels[i] === level ? 'font-semibold text-ink' : 'text-muted'}`}
           >
             {s}
           </span>
@@ -331,10 +331,8 @@ function RecessionCard({ data }: { data: RegimeData }) {
               key={s.id}
               className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 border-t border-line py-3"
             >
-              <span className="text-[15px] font-semibold text-white">
-                {rec.names[s.id] ?? s.id}
-              </span>
-              <span className="text-end text-base font-bold text-white">{signalShort(s)}</span>
+              <span className="text-[15px] font-semibold text-ink">{rec.names[s.id] ?? s.id}</span>
+              <span className="text-end text-base font-bold text-ink">{signalShort(s)}</span>
               <span className="text-xs text-muted">{rec.rules[s.id] ?? ''}</span>
               <span
                 className="flex items-center justify-self-end gap-1.5 text-xs"
@@ -356,7 +354,7 @@ function RecessionCard({ data }: { data: RegimeData }) {
                   style={{ width: width(b.fill), background: stateColor(s.state) }}
                 />
                 <span
-                  className="absolute -top-1 -bottom-1 w-0.5 bg-white"
+                  className="absolute -top-1 -bottom-1 w-0.5 bg-ink"
                   style={{ insetInlineStart: width(Math.min(b.tick, 0.995)) }}
                 />
               </div>
@@ -448,7 +446,7 @@ function CapitulationCard({ data }: { data: RegimeData }) {
       <div className="flex flex-wrap items-baseline gap-2.5">
         <p
           data-testid="capitulation-state"
-          className={`text-[30px] leading-none font-bold ${on ? 'text-warn' : 'text-white'}`}
+          className={`text-[30px] leading-none font-bold ${on ? 'text-warn' : 'text-ink'}`}
         >
           {k.state[latest.state]}
         </p>
@@ -466,7 +464,7 @@ function CapitulationCard({ data }: { data: RegimeData }) {
               className={`flex flex-col gap-1 rounded-lg border p-3 ${yes ? 'border-up/40 bg-up/10' : 'border-transparent bg-bg'}`}
             >
               <span className="text-xs text-muted">{k.names[c.key] ?? c.key}</span>
-              <span className="text-xl font-bold text-white">{conditionValue(c)}</span>
+              <span className="text-xl font-bold text-ink">{conditionValue(c)}</span>
               <span
                 className={`flex items-center gap-1.5 text-xs ${yes ? 'text-up' : 'text-muted'}`}
               >
@@ -490,7 +488,7 @@ function CapitulationCard({ data }: { data: RegimeData }) {
       </ul>
       {showPlan && (
         <div className="flex flex-col gap-3">
-          <h3 className="font-semibold text-white">{k.planTitle(plan.triggerDate)}</h3>
+          <h3 className="font-semibold text-ink">{k.planTitle(plan.triggerDate)}</h3>
           <p className="text-sm text-muted">{k.planIntro}</p>
           <ol className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {plan.tranches.map((tr) => (
@@ -498,7 +496,7 @@ function CapitulationCard({ data }: { data: RegimeData }) {
                 key={tr.step}
                 className={`flex flex-col gap-1.5 rounded-lg border p-3 text-sm ${tr.status === 'met' ? 'border-up/40 bg-up/10' : 'border-line bg-bg'}`}
               >
-                <span className="text-lg font-bold text-white">1/3</span>
+                <span className="text-lg font-bold text-ink">1/3</span>
                 <span>
                   {`${k.steps[tr.step]?.(tr.level === null ? r.noData : fixed(tr.level, 2)) ?? ''} ${
                     tr.status === 'met' && tr.date
@@ -586,8 +584,8 @@ function BreadthCard({ data }: { data: RegimeData }) {
   const bar = (label: string, value: number | null, prior: number | null, n: number) => (
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between gap-2 text-[15px]">
-        <span className="text-white">{label}</span>
-        <span className="font-bold text-white">{pctText(value)}</span>
+        <span className="text-ink">{label}</span>
+        <span className="font-bold text-ink">{pctText(value)}</span>
       </div>
       <div aria-hidden="true" className="relative h-2.5 rounded bg-faint/20">
         <span
@@ -596,7 +594,7 @@ function BreadthCard({ data }: { data: RegimeData }) {
         />
         {prior !== null && (
           <span
-            className="absolute -top-1 -bottom-1 w-0.5 bg-white"
+            className="absolute -top-1 -bottom-1 w-0.5 bg-ink"
             style={{ insetInlineStart: width(prior / 100) }}
           />
         )}
@@ -614,12 +612,12 @@ function BreadthCard({ data }: { data: RegimeData }) {
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-lg bg-bg p-3">
           <dt className="text-xs text-muted">{b.netHighs}</dt>
-          <dd className="text-xl font-bold text-white">{signed(now.netNewHighs, 0)}</dd>
+          <dd className="text-xl font-bold text-ink">{signed(now.netNewHighs, 0)}</dd>
           <dd className="text-xs text-muted">{b.highsLows(last.newHighs, last.newLows)}</dd>
         </div>
         <div className="rounded-lg bg-bg p-3">
           <dt className="text-xs text-muted">{b.advDec}</dt>
-          <dd className="text-xl font-bold text-white">
+          <dd className="text-xl font-bold text-ink">
             {b.advDecValue(last.advancers, last.decliners)}
           </dd>
           <dd className="text-xs text-muted">
@@ -733,10 +731,7 @@ function FearGreedCard({ data }: { data: RegimeData }) {
           <path d={arc} fill="none" stroke={toneOf(v)} strokeWidth="9" strokeLinecap="round" />
         </svg>
         <div className="flex flex-col">
-          <p
-            data-testid="fear-greed-value"
-            className="text-[40px] leading-none font-bold text-white"
-          >
+          <p data-testid="fear-greed-value" className="text-[40px] leading-none font-bold text-ink">
             {f.headline(v, f.labels[last.label ?? ''] ?? '')}
           </p>
           {monthAgo?.composite != null && (
@@ -755,7 +750,7 @@ function FearGreedCard({ data }: { data: RegimeData }) {
             key={c.key}
             className="grid min-h-6 grid-cols-[96px_minmax(0,1fr)_88px] items-center gap-2.5 text-[13px]"
           >
-            <span className={c.score === null ? 'text-muted' : 'text-white'}>{SHORT[c.key]}</span>
+            <span className={c.score === null ? 'text-muted' : 'text-ink'}>{SHORT[c.key]}</span>
             <span
               aria-hidden="true"
               className="relative h-2 rounded"
@@ -773,7 +768,7 @@ function FearGreedCard({ data }: { data: RegimeData }) {
                 />
               )}
             </span>
-            <span className="text-end text-white">
+            <span className="text-end text-ink">
               {c.score === null ? (
                 <span className="text-[11px] text-muted">{u.unavailable}</span>
               ) : (
@@ -897,7 +892,7 @@ function StudyCard({ data }: { data: RegimeData }) {
               type="button"
               aria-pressed={on}
               onClick={() => setCond(c)}
-              className={`min-h-11 flex-[1_0_auto] rounded-[9px] px-2.5 text-[13px] font-semibold whitespace-nowrap ${on ? 'bg-raised text-white' : 'text-muted'}`}
+              className={`min-h-11 flex-[1_0_auto] rounded-[9px] px-2.5 text-[13px] font-semibold whitespace-nowrap ${on ? 'bg-raised text-ink' : 'text-muted'}`}
             >
               {c === today ? u.today(name(c)) : name(c)}
             </button>
@@ -908,7 +903,7 @@ function StudyCard({ data }: { data: RegimeData }) {
         {rows.map(({ h, x }) => (
           <li key={h} className="flex flex-col gap-1.5 border-t border-line-soft pt-2.5 pb-1">
             <div className="flex items-baseline justify-between gap-2.5">
-              <span className="text-[15px] text-white">
+              <span className="text-[15px] text-ink">
                 {u.horizonSessions(h)}{' '}
                 <span className="text-[13px] text-muted">{u.nEquals(x?.n ?? 0)}</span>
               </span>
@@ -931,7 +926,7 @@ function StudyCard({ data }: { data: RegimeData }) {
                     }}
                   />
                   <span
-                    className="absolute top-px h-5 w-1 -ms-0.5 rounded-sm bg-white"
+                    className="absolute top-px h-5 w-1 -ms-0.5 rounded-sm bg-ink"
                     style={{ insetInlineStart: pos(x.median) }}
                   />
                 </div>
@@ -1044,7 +1039,7 @@ function GeopoliticsCard({ data }: { data: RegimeData }) {
   );
   const assets = (
     <>
-      <h3 className="font-semibold text-white">{g.assetsTitle}</h3>
+      <h3 className="font-semibold text-ink">{g.assetsTitle}</h3>
       <SnapshotTable
         rows={[
           { label: g.oil, obs: data.series['DCOILWTICO'] ?? [] },
@@ -1096,7 +1091,7 @@ function GeopoliticsCard({ data }: { data: RegimeData }) {
               type="button"
               aria-pressed={on}
               onClick={() => setPicked(x.topic)}
-              className={`flex min-h-24 flex-col gap-1.5 rounded-lg border-2 p-3 text-start text-white ${on ? 'border-up bg-raised' : 'border-transparent bg-bg'}`}
+              className={`flex min-h-24 flex-col gap-1.5 rounded-lg border-2 p-3 text-start text-ink ${on ? 'border-up bg-raised' : 'border-transparent bg-bg'}`}
             >
               <span className="text-sm font-semibold">{g.names[x.topic] ?? x.topic}</span>
               <span className="flex items-baseline gap-1.5">
@@ -1345,12 +1340,12 @@ function GaugeRow({ data }: { data: RegimeData }) {
               className="flex h-full w-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4 text-start"
             >
               <span className="flex items-baseline justify-between gap-2">
-                <span className="text-[0.9375rem] font-semibold text-white">{g.title}</span>
+                <span className="text-[0.9375rem] font-semibold text-ink">{g.title}</span>
                 <span className="text-xs text-muted">{g.meta}</span>
               </span>
               <span className="flex items-baseline gap-2">
                 <span
-                  className={`font-bold ${g.value === u.unavailable ? 'text-lg text-alarm' : 'text-[2rem] leading-none text-white'}`}
+                  className={`font-bold ${g.value === u.unavailable ? 'text-lg text-alarm' : 'text-[2rem] leading-none text-ink'}`}
                 >
                   {g.value}
                 </span>
@@ -1397,7 +1392,7 @@ function Collapsed({
 }) {
   return (
     <details className="group rounded-2xl border border-line bg-surface">
-      <summary className="flex min-h-16 cursor-pointer items-center gap-3 px-4 py-3 text-white select-none">
+      <summary className="flex min-h-16 cursor-pointer items-center gap-3 px-4 py-3 text-ink select-none">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="font-semibold">{title}</span>
           <span className="text-[13px] text-muted">{sum}</span>
@@ -1434,7 +1429,7 @@ export function Regime() {
     <section className="mx-auto flex max-w-[1280px] flex-col gap-4">
       <div>
         {/* On a phone the top bar shows the page title. */}
-        <h1 className="sr-only text-xl font-semibold text-white tablet:not-sr-only">{r.title}</h1>
+        <h1 className="sr-only text-xl font-semibold text-ink tablet:not-sr-only">{r.title}</h1>
         <Info>{r.intro}</Info>
       </div>
       {q.isPending && <SkeletonCards />}
@@ -1528,7 +1523,7 @@ export function Regime() {
             </div>
           </div>
           <GeopoliticsCard data={q.data} />
-          <h2 className="pt-2 text-[17px] font-semibold text-white">{u.moreMeasures}</h2>
+          <h2 className="pt-2 text-[17px] font-semibold text-ink">{u.moreMeasures}</h2>
           <div className={grid}>
             <MeasuresCard
               id="volatility"

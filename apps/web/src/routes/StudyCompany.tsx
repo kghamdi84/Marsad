@@ -93,16 +93,14 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   return (
     <header className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur tablet:static tablet:mx-0 tablet:rounded-xl tablet:border-0 tablet:bg-raised tablet:p-5 tablet:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
-        <h1 className="text-xl leading-tight font-bold text-white tablet:text-[1.75rem]">
-          {ticker}
-        </h1>
+        <h1 className="text-xl leading-tight font-bold text-ink tablet:text-[1.75rem]">{ticker}</h1>
         {data.company?.name && (
           <span className="truncate text-sm text-muted">{data.company.name}</span>
         )}
       </div>
       {s && (
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[1.375rem] font-bold text-white tabular-nums">
+          <span className="text-[1.375rem] font-bold text-ink tabular-nums">
             ${money(s.lastClose)}
           </span>
           <span className="flex items-center gap-2">
@@ -180,7 +178,7 @@ function Summary({
             className="relative mt-1 h-1.5 rounded-full bg-gradient-to-r from-down/55 to-up/60"
           >
             <span
-              className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-white"
+              className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-ink"
               style={{ insetInlineStart: `${posPct}%` }}
             />
           </div>
@@ -194,9 +192,7 @@ function Summary({
             <span className="text-sm text-muted">{t.study.unavailable}</span>
           ) : (
             <>
-              <span className="text-xl font-bold text-white tabular-nums">
-                {s.rsi14.toFixed(1)}
-              </span>
+              <span className="text-xl font-bold text-ink tabular-nums">{s.rsi14.toFixed(1)}</span>
               <div
                 role="img"
                 aria-label={ui.rsiAria(s.rsi14.toFixed(1))}
@@ -205,7 +201,7 @@ function Summary({
                 <span className="absolute inset-y-0 start-0 w-[30%] rounded-s-full bg-up/35" />
                 <span className="absolute inset-y-0 end-0 w-[30%] rounded-e-full bg-down/35" />
                 <span
-                  className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-white"
+                  className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-ink"
                   style={{ insetInlineStart: `${Math.min(100, Math.max(0, s.rsi14)).toFixed(1)}%` }}
                 />
               </div>
@@ -214,20 +210,20 @@ function Summary({
           )}
         </TileBox>
         <TileBox label={t.study.trend}>
-          <span className="text-sm leading-snug font-semibold text-white">
+          <span className="text-sm leading-snug font-semibold text-ink">
             {t.study.trendLabels[s.trend]}
           </span>
         </TileBox>
         <TileBox label={ui.averages}>
           <span className="flex justify-between gap-2 text-sm">
             <span className="text-muted">{t.study.sma50}</span>
-            <span className="text-white tabular-nums">
+            <span className="text-ink tabular-nums">
               {s.sma50 === null ? t.study.unavailable : `$${money(s.sma50)}`}
             </span>
           </span>
           <span className="flex justify-between gap-2 text-sm">
             <span className="text-muted">{t.study.sma200}</span>
-            <span className="text-white tabular-nums">
+            <span className="text-ink tabular-nums">
               {s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}
             </span>
           </span>
@@ -239,7 +235,7 @@ function Summary({
             <span className="text-sm text-muted">{ui.noEarnings}</span>
           ) : (
             <>
-              <span className="text-lg font-bold text-white tabular-nums">{earnings.date}</span>
+              <span className="text-lg font-bold text-ink tabular-nums">{earnings.date}</span>
               <span className="text-[0.6875rem] text-muted">
                 {ui.earningsRange(earnings.from, earnings.to)}
               </span>
@@ -256,7 +252,7 @@ function Summary({
             <span className="text-sm text-muted">{ui.noShort}</span>
           ) : (
             <>
-              <span className="text-lg font-bold text-white tabular-nums">
+              <span className="text-lg font-bold text-ink tabular-nums">
                 {ui.shortShares(toFixedHalfUp(si.shortInterest / 1e6, 1))}
               </span>
               <span className="text-[0.6875rem] text-muted">
@@ -337,7 +333,7 @@ function SectionAccordions({ render }: { render: (k: SectionKey) => React.ReactN
           }}
           className="group rounded-2xl border border-line bg-surface"
         >
-          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-white select-none">
+          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-ink select-none">
             {ui.sectionNames[k]}
             <ChevronRight
               aria-hidden="true"
@@ -581,7 +577,7 @@ export function StudyCompany() {
       aria-pressed={toggles[k]}
       onClick={() => setToggles({ ...toggles, [k]: !toggles[k] })}
       className={`min-h-11 rounded-full border px-3 text-sm ${
-        toggles[k] ? 'border-up/60 bg-up/15 font-semibold text-white' : 'border-line text-muted'
+        toggles[k] ? 'border-up/60 bg-up/15 font-semibold text-ink' : 'border-line text-muted'
       }`}
     >
       {label}
@@ -609,7 +605,7 @@ export function StudyCompany() {
                   >
                     <Lock aria-hidden="true" size={18} className="mt-0.5 flex-none text-muted" />
                     <span className="flex flex-col gap-0.5">
-                      <span className="font-medium text-white">{p.name}</span>
+                      <span className="font-medium text-ink">{p.name}</span>
                       <span className="text-sm">
                         <span className="font-medium">{p.state}.</span>{' '}
                         <span className="text-muted">{p.why}</span>
@@ -666,7 +662,7 @@ export function StudyCompany() {
         {t.study.back}
       </Link>
 
-      {!q.data && <h1 className="text-[1.75rem] font-bold text-white">{ticker}</h1>}
+      {!q.data && <h1 className="text-[1.75rem] font-bold text-ink">{ticker}</h1>}
       {q.isPending && <SkeletonCards heights={['6rem', '7rem', '22rem']} />}
       {q.isError && (
         <p role="alert" className="text-down">
@@ -719,7 +715,7 @@ export function StudyCompany() {
               </Suspense>
             </div>
             <div className="flex flex-col gap-2">
-              <h3 className="text-[0.9375rem] font-semibold text-white">{t.study.markers}</h3>
+              <h3 className="text-[0.9375rem] font-semibold text-ink">{t.study.markers}</h3>
               <Info>{t.study.markersNote}</Info>
               {markers.length === 0 ? (
                 <p className="text-sm text-muted">{t.study.noMarkers}</p>

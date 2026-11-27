@@ -140,7 +140,7 @@ function Sizer() {
         void navigator.clipboard?.writeText(ticket).then(() => setCopied(true));
       }}
       className={`min-h-[54px] w-full rounded-[14px] text-[1.0625rem] font-bold ${
-        ready ? 'bg-white text-raised' : 'cursor-not-allowed bg-faint/22 text-fg'
+        ready ? 'bg-accent text-accent-ink' : 'cursor-not-allowed bg-faint/22 text-fg'
       }`}
     >
       {copied ? s.copiedShort : ready ? s.copy : s.copyCount(n)}
@@ -203,16 +203,16 @@ function Sizer() {
                 setTicked({ ...ticked, [c.key]: !on });
               }}
               className={`flex min-h-[52px] items-center gap-3 rounded-xl border px-3 text-start text-[0.9375rem] ${
-                on ? 'border-up bg-ink/35' : 'border-muted/30'
+                on ? 'border-up bg-fill/35' : 'border-muted/30'
               }`}
             >
               <span
                 aria-hidden="true"
                 className={`grid size-[22px] flex-none place-items-center rounded-md border-2 ${
-                  on ? 'border-up bg-ink' : 'border-muted'
+                  on ? 'border-up bg-fill' : 'border-muted'
                 }`}
               >
-                {on && <Check size={14} strokeWidth={3} className="text-white" />}
+                {on && <Check size={14} strokeWidth={3} className="text-ink" />}
               </span>
               <span className="flex flex-col">
                 <span>{label}</span>
@@ -225,7 +225,7 @@ function Sizer() {
       <code
         data-testid="sahm-ticket"
         className={`rounded-2xl border border-line bg-surface px-4 py-3.5 font-mono text-[0.9375rem] break-words ${
-          ticket ? 'text-white' : 'text-muted'
+          ticket ? 'text-ink' : 'text-muted'
         }`}
       >
         {ticket ?? s.ticketEmpty}
@@ -276,7 +276,7 @@ function PlanBar({ h, last }: { h: StoredHolding; last: number | null }) {
           style={{ insetInlineStart: at(h.costBasis) }}
         />
         <span
-          className="absolute -top-1.5 -ms-[11px] size-[22px] rounded-full border-4 border-surface bg-white"
+          className="absolute -top-1.5 -ms-[11px] size-[22px] rounded-full border-4 border-surface bg-ink"
           style={{ insetInlineStart: at(last) }}
         />
       </div>
@@ -429,7 +429,7 @@ function HoldingCard({ h, all }: { h: StoredHolding; all: BarsByTicker }) {
         <span className="flex flex-col gap-0.5 rounded-[10px] bg-bg px-2.5 py-2">
           <span className="text-xs text-muted">{ui.trendBreakLabel}</span>
           <span
-            className={`text-[0.8125rem] ${kinds.has('trend-break') ? 'text-down' : 'text-white'}`}
+            className={`text-[0.8125rem] ${kinds.has('trend-break') ? 'text-down' : 'text-ink'}`}
           >
             {tbLabel === null
               ? ui.notSet
@@ -459,7 +459,7 @@ function HoldingCard({ h, all }: { h: StoredHolding; all: BarsByTicker }) {
           onClick={() =>
             meta.mutate({ sectorEtf: h.sectorEtf, thesisStatus: NEXT_THESIS[h.thesisStatus] })
           }
-          className="flex min-h-11 items-center gap-2 rounded-full border border-muted/35 px-3 text-[0.8125rem] text-white"
+          className="flex min-h-11 items-center gap-2 rounded-full border border-muted/35 px-3 text-[0.8125rem] text-ink"
         >
           <span
             aria-hidden="true"
@@ -544,7 +544,7 @@ function Holdings({ onTrade }: { onTrade: () => void }) {
             <button
               type="button"
               onClick={onTrade}
-              className="min-h-[52px] rounded-xl bg-white text-base font-bold text-raised"
+              className="min-h-[52px] rounded-xl bg-accent text-base font-bold text-accent-ink"
             >
               {j.ui.emptyTrade}
             </button>
@@ -561,7 +561,7 @@ function Holdings({ onTrade }: { onTrade: () => void }) {
         aria-expanded={importing}
         aria-controls="csv-import"
         onClick={() => setImporting(!importing)}
-        className="min-h-12 rounded-xl border border-muted/40 text-[0.9375rem] text-white"
+        className="min-h-12 rounded-xl border border-muted/40 text-[0.9375rem] text-ink"
       >
         {j.ui.importCsv}
       </button>
@@ -656,7 +656,7 @@ function positionsOf(holdings: StoredHolding[], bars: BarsByTicker, vix: DatedVa
 }
 
 /** Sector colours in the design's order, then the remaining tokens. */
-const SECTOR_FILL = ['bg-up', 'bg-ink', 'bg-muted', 'bg-faint', 'bg-warn', 'bg-raised'];
+const SECTOR_FILL = ['bg-up', 'bg-fill', 'bg-muted', 'bg-faint', 'bg-warn', 'bg-raised'];
 
 function Exposure({
   holdings,
@@ -702,7 +702,7 @@ function Exposure({
             className="absolute inset-y-0 start-0 rounded-[5px] bg-up"
             style={{ width: `${toFixedHalfUp(Math.min(1, Math.max(0, b / 2)) * 100, 1)}%` }}
           />
-          <span className="absolute -inset-y-1 start-1/2 w-0.5 bg-white" />
+          <span className="absolute -inset-y-1 start-1/2 w-0.5 bg-ink" />
         </span>
         <span className="text-[0.8125rem] text-muted">{x.betaLine}</span>
         {r.betaAssumed.length > 0 && (
@@ -806,7 +806,7 @@ function WeeklyReview() {
       className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4"
     >
       <h2 id="weekly-review" className="flex flex-col gap-0.5">
-        <span className="font-semibold text-white">{q.data ? q.data.title : x.title}</span>
+        <span className="font-semibold text-ink">{q.data ? q.data.title : x.title}</span>
         {q.data && (
           <span className="text-[13px] font-normal text-muted">
             {x.written(weekdayDayMonth(q.data.forDate))}
@@ -819,8 +819,8 @@ function WeeklyReview() {
         <dl className="grid grid-cols-2 gap-2">
           {(
             [
-              [x.tileClosed, String(q.data.tiles.closed), 'text-white'],
-              [x.tileFollowed, x.tileOf(q.data.tiles.followed, q.data.tiles.touched), 'text-white'],
+              [x.tileClosed, String(q.data.tiles.closed), 'text-ink'],
+              [x.tileFollowed, x.tileOf(q.data.tiles.followed, q.data.tiles.touched), 'text-ink'],
               [
                 x.tileMeanR,
                 q.data.tiles.meanR === null
@@ -892,7 +892,7 @@ function Kpis() {
         tot.unpriced.length > 0
           ? ui.unpriced(tot.unpriced.length)
           : ui.valueSub(holdings.length, newest ? dayMonth(newest) : '', wide),
-      tone: 'text-white',
+      tone: 'text-ink',
       bg: 'bg-raised',
     },
     {
@@ -906,14 +906,14 @@ function Kpis() {
       label: ui.beta,
       v: toFixedHalfUp(r.portfolioBeta, 2),
       sub: ui.betaSub(Math.round((r.portfolioBeta - 1) * 100)),
-      tone: 'text-white',
+      tone: 'text-ink',
       bg: 'bg-surface',
     },
     {
       label: ui.attention,
       v: String(flagged),
       sub: attention.length ? attention.slice(0, 3).join(' · ') : ui.noneAttention,
-      tone: flagged > 0 ? 'text-down' : 'text-white',
+      tone: flagged > 0 ? 'text-down' : 'text-ink',
       bg: 'bg-surface',
     },
   ];
@@ -957,7 +957,7 @@ function Kpis() {
         {tiles.map((k, i) => (
           <span
             key={k.label}
-            className={`h-1.5 rounded-[3px] ${i === slide ? 'w-[18px] bg-white' : 'w-1.5 bg-muted/40'}`}
+            className={`h-1.5 rounded-[3px] ${i === slide ? 'w-[18px] bg-ink' : 'w-1.5 bg-muted/40'}`}
           />
         ))}
       </div>
@@ -991,7 +991,7 @@ export function Journal() {
   return (
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{j.title}</h1>
+        <h1 className="sr-only text-[28px] font-bold text-ink tablet:not-sr-only">{j.title}</h1>
         <Info>{j.intro}</Info>
       </div>
       <Kpis />

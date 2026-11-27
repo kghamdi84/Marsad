@@ -100,7 +100,7 @@ function Row({
         className="grid min-h-[60px] grid-cols-[minmax(0,1fr)_64px_auto] items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 hover:bg-raised/60"
       >
         <span className="flex min-w-0 flex-col">
-          <span className="text-base font-bold text-white">{tk}</span>
+          <span className="text-base font-bold text-ink">{tk}</span>
           {earnings && (
             <span className="truncate text-xs text-muted">{s.earningsAround(earnings)}</span>
           )}
@@ -108,7 +108,7 @@ function Row({
         </span>
         <Sparkline values={line} className={tone} />
         <span className="flex flex-col items-end gap-0.5 tabular-nums">
-          <span className="text-white">{sum ? toFixedHalfUp(sum.close, 2) : t.regime.noData}</span>
+          <span className="text-ink">{sum ? toFixedHalfUp(sum.close, 2) : t.regime.noData}</span>
           {p !== null && (
             <span
               className={`text-[0.8125rem] font-semibold ${Number(p) > 0 ? 'text-up' : Number(p) < 0 ? 'text-down' : 'text-muted'}`}
@@ -178,7 +178,7 @@ export function Study() {
 
   return (
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
-      <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{s.title}</h1>
+      <h1 className="sr-only text-[28px] font-bold text-ink tablet:not-sr-only">{s.title}</h1>
       <form onSubmit={open} role="search" className="flex flex-col gap-1.5">
         <label htmlFor="ticker" className="text-sm text-muted">
           {s.openLabel}
@@ -206,7 +206,7 @@ export function Study() {
           </span>
           <button
             type="submit"
-            className="min-h-12 rounded-xl bg-white px-5 font-bold text-raised hover:bg-fg"
+            className="min-h-12 rounded-xl bg-accent px-5 font-bold text-accent-ink hover:bg-fg"
           >
             {s.open}
           </button>

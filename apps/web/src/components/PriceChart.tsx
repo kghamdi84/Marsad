@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useDisplay } from '../lib/display';
 import {
   CandlestickSeries,
   ColorType,
@@ -75,6 +76,7 @@ export default function PriceChart({
   const host = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLDivElement>(null);
 
+  const { theme } = useDisplay();
   useEffect(() => {
     const el = host.current;
     if (!el || bars.length === 0) return;
@@ -226,7 +228,8 @@ export default function PriceChart({
         to: bars.length - 0.5,
       });
     return () => chart.remove();
-  }, [bars, markers, toggles, height, visibleSessions]);
+    // The theme is a dependency: the colours are read from the theme tokens when the chart is drawn.
+  }, [bars, markers, toggles, height, visibleSessions, theme]);
 
   return (
     <div className="relative">
@@ -236,7 +239,7 @@ export default function PriceChart({
         hidden
         aria-hidden="true"
         data-testid="chart-readout"
-        className="pointer-events-none absolute start-2 top-2 z-10 rounded-md bg-raised px-2 py-1 text-xs font-semibold text-white tabular-nums shadow"
+        className="pointer-events-none absolute start-2 top-2 z-10 rounded-md bg-raised px-2 py-1 text-xs font-semibold text-ink tabular-nums shadow"
       />
     </div>
   );

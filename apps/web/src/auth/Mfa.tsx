@@ -68,7 +68,7 @@ export function Mfa({ mode, onDone }: { mode: 'enroll' | 'verify'; onDone: () =>
             alt={t.mfa.qrAlt}
             width={200}
             height={200}
-            className="bg-white p-2"
+            className="bg-ink p-2"
           />
           <p className="text-sm text-muted">{t.mfa.secretLabel}</p>
           <code className="break-all select-all text-sm">{enrollment.secret}</code>

@@ -83,7 +83,7 @@ function PositionCard({
         >
           ▼ −${usd0(v.maxLoss)}
         </span>
-        <span aria-hidden="true" className="w-[3px] bg-white" />
+        <span aria-hidden="true" className="w-[3px] bg-ink" />
         <span
           aria-hidden="true"
           className="flex items-center justify-end bg-up/18 px-2 text-up"
@@ -335,7 +335,7 @@ export function OptionPositions() {
         aria-expanded={adding}
         aria-controls="option-new"
         onClick={() => setAdding(!adding)}
-        className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-white"
+        className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-ink"
       >
         {x.add}
       </button>

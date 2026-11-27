@@ -96,7 +96,7 @@ function BriefCard({ briefs }: { briefs: StoredBrief[] }) {
         aria-label={w.brief.title}
         className="flex flex-col gap-1 rounded-xl border border-dashed border-line p-4"
       >
-        <h2 className="text-[17px] font-semibold text-white">{u.noBriefTitle}</h2>
+        <h2 className="text-[17px] font-semibold text-ink">{u.noBriefTitle}</h2>
         <p className="text-sm text-muted">{w.brief.none}</p>
         <p className="text-sm text-muted">{u.membersNote}</p>
       </section>
@@ -120,7 +120,7 @@ function BriefCard({ briefs }: { briefs: StoredBrief[] }) {
     >
       <div className="flex items-start justify-between gap-2.5">
         <span className="flex flex-col gap-0.5">
-          <h2 id="brief-h" className="text-lg font-bold text-white">
+          <h2 id="brief-h" className="text-lg font-bold text-ink">
             <span className="sr-only">{w.brief.title}: </span>
             {u.briefTitle(kind, weekdayDayMonth(b.forDate))}
           </h2>
@@ -214,7 +214,7 @@ function StripCard({ data }: { data: WatchData }) {
                 <span className="truncate font-semibold text-fg">{name}</span>
                 {x.date && <span className="whitespace-nowrap text-muted">{dayMonth(x.date)}</span>}
               </span>
-              <span className="text-lg font-semibold text-white tabular-nums">
+              <span className="text-lg font-semibold text-ink tabular-nums">
                 {value ?? t.regime.noData}
               </span>
               {value !== null && (
@@ -272,7 +272,7 @@ function RangeDot({ s }: { s: TickerSummary }) {
       <span>{toFixedHalfUp(r.low, 0)}</span>
       <span className="relative h-1 min-w-16 flex-1 rounded-sm bg-faint/30">
         <span
-          className="absolute -top-1 -ms-1.5 size-3 rounded-full border-2 border-surface bg-white"
+          className="absolute -top-1 -ms-1.5 size-3 rounded-full border-2 border-surface bg-ink"
           style={{ insetInlineStart: `${pos}%` }}
         />
       </span>
@@ -334,7 +334,7 @@ function LatestCell({ latest }: { latest: Latest }) {
     return <span className="text-xs text-muted">{noLatest(latest)}</span>;
   return (
     <span className="flex flex-col items-end gap-0.5">
-      <span className="font-semibold text-white">{latest.price}</span>
+      <span className="font-semibold text-ink">{latest.price}</span>
       <span className="text-xs whitespace-nowrap">
         <Change v={latest.change} digits={2} />
       </span>
@@ -380,7 +380,7 @@ function PhoneRow({
           open ? 'bg-raised/40' : ''
         }`}
       >
-        <span className="text-base font-bold text-white">{tk}</span>
+        <span className="text-base font-bold text-ink">{tk}</span>
         <Sparkline
           values={line}
           className={
@@ -388,7 +388,7 @@ function PhoneRow({
           }
         />
         <span className="flex flex-col items-end gap-0.5">
-          <span className="text-base text-white tabular-nums">
+          <span className="text-base text-ink tabular-nums">
             {s ? toFixedHalfUp(s.close, 2) : t.regime.noData}
           </span>
           {s && (
@@ -440,14 +440,14 @@ function PhoneRow({
             type="button"
             aria-haspopup="dialog"
             onClick={() => quickLook(tk)}
-            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-white"
+            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-ink"
           >
             {t.quickLook.button(tk)}
           </button>
           <Link
             to="/study/$ticker"
             params={{ ticker: tk }}
-            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-white"
+            className="flex min-h-11 items-center justify-center rounded-[10px] border border-muted/40 font-semibold text-ink"
           >
             {u.studyTicker(tk)}
           </Link>
@@ -516,7 +516,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
             type="button"
             aria-pressed={trader === 'on'}
             onClick={() => setTrader(trader === 'on' ? 'off' : 'on')}
-            className={`min-h-11 rounded-[10px] border border-muted/35 px-3 text-sm text-white ${
+            className={`min-h-11 rounded-[10px] border border-muted/35 px-3 text-sm text-ink ${
               trader === 'on' ? 'bg-raised' : ''
             }`}
           >
@@ -526,7 +526,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
             type="button"
             aria-pressed={sorted}
             onClick={() => setSorted(!sorted)}
-            className={`min-h-11 rounded-[10px] border border-muted/35 px-3 text-sm text-white ${
+            className={`min-h-11 rounded-[10px] border border-muted/35 px-3 text-sm text-ink ${
               sorted ? 'bg-raised' : ''
             }`}
           >
@@ -584,7 +584,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
                     <Link
                       to="/study/$ticker"
                       params={{ ticker: tk }}
-                      className="inline-flex min-h-11 min-w-11 items-center text-white hover:text-up"
+                      className="inline-flex min-h-11 min-w-11 items-center text-ink hover:text-up"
                     >
                       {tk}
                     </Link>
@@ -607,9 +607,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
                   {s ? (
                     <>
                       <td className={`${cell} ${num}`}>
-                        <span className="font-semibold text-white">
-                          {toFixedHalfUp(s.close, 2)}
-                        </span>
+                        <span className="font-semibold text-ink">{toFixedHalfUp(s.close, 2)}</span>
                         {s.date !== newest && (
                           <span className="block text-[11px] text-warn">{u.olderDate(s.date)}</span>
                         )}
@@ -679,7 +677,7 @@ function WatchlistCard({ data }: { data: WatchData }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="min-h-11 self-start rounded-xl border border-muted/35 px-4 text-sm text-white"
+          className="min-h-11 self-start rounded-xl border border-muted/35 px-4 text-sm text-ink"
         >
           {t.watchlist.edit}
         </button>
@@ -711,7 +709,7 @@ function SectorsCard({ data }: { data: WatchData }) {
             {m.sectors.map((x) => (
               <li
                 key={x.ticker}
-                className="flex min-h-[60px] min-w-0 flex-col justify-between gap-1 rounded-lg p-2 text-white tablet:min-h-[76px] tablet:p-2.5"
+                className="flex min-h-[60px] min-w-0 flex-col justify-between gap-1 rounded-lg p-2 text-ink tablet:min-h-[76px] tablet:p-2.5"
                 style={{
                   background:
                     x.change === null || x.change === 0 ? 'rgba(138,153,178,0.14)' : tint(x.change),
@@ -745,7 +743,7 @@ function MoverRows({ xs, max }: { xs: MoverList; max: number }) {
       <tbody>
         {xs.map((x) => (
           <tr key={x.ticker}>
-            <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">
+            <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-ink">
               <TickerLink ticker={x.ticker} />
             </td>
             <td className="py-1.5 align-middle">
@@ -831,7 +829,7 @@ function GapRows({ rows }: { rows: GapRow[] }) {
           const bg = x.gap > 0 ? 'bg-up' : 'bg-down';
           return (
             <tr key={x.tk}>
-              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-white">
+              <td className="w-14 py-1.5 pe-2 align-middle font-semibold text-ink">
                 <TickerLink ticker={x.tk} />
               </td>
               <td className="py-1.5 align-middle">
@@ -1080,7 +1078,7 @@ function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
                 >
                   <span aria-hidden="true" className={`size-2.5 flex-none rounded-full ${i.dot}`} />
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className={i.strong ? 'font-bold text-white' : 'text-fg'}>
+                    <span className={i.strong ? 'font-bold text-ink' : 'text-fg'}>
                       {i.ticker ? (
                         <>
                           <TickerLink ticker={i.ticker} /> {u.earningsWord}
@@ -1097,7 +1095,7 @@ function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
                   </span>
                   <span
                     className={`flex-none rounded-sm px-1.5 py-0.5 text-xs text-fg ${
-                      i.tag === u.tagWatchlist ? 'bg-ink' : 'bg-raised'
+                      i.tag === u.tagWatchlist ? 'bg-fill' : 'bg-raised'
                     }`}
                   >
                     {i.tag}
@@ -1138,7 +1136,7 @@ export function Watch() {
       <header className="flex flex-col gap-1">
         {session && <p className="text-[13px] text-muted">{u.lastSession(session)}</p>}
         {/* On a phone the top bar shows the page title. */}
-        <h1 className="sr-only text-[28px] leading-tight font-bold text-white tablet:not-sr-only">
+        <h1 className="sr-only text-[28px] leading-tight font-bold text-ink tablet:not-sr-only">
           {w.title}
         </h1>
         <p className="text-xs text-muted">{w.endOfDay}</p>

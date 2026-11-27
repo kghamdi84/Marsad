@@ -100,7 +100,7 @@ function AlertRow({
             >
               {a.priority[row.priority] ?? row.priority}
             </span>
-            {row.ticker && <span className="font-bold text-white">{row.ticker}</span>}
+            {row.ticker && <span className="font-bold text-ink">{row.ticker}</span>}
           </span>
           {headline && <span className="text-[0.9375rem] leading-snug text-fg">{headline}</span>}
           <span className="text-[13px] text-muted">{whenShort(row.createdAt)}</span>
@@ -145,7 +145,7 @@ function PlanVisual({ input }: { input: AlertInput }) {
           />
         ))}
         <span
-          className="absolute -top-1.5 -ms-2.5 size-5 rounded-full border-[3px] border-surface bg-white"
+          className="absolute -top-1.5 -ms-2.5 size-5 rounded-full border-[3px] border-surface bg-ink"
           style={{ insetInlineStart: at(now) }}
         />
       </div>
@@ -214,7 +214,7 @@ function RiskVisual({ input }: { input: AlertInput }) {
                 />
               )}
               <span
-                className="absolute -top-1 h-4 w-0.5 bg-white"
+                className="absolute -top-1 h-4 w-0.5 bg-ink"
                 style={{ insetInlineStart: `${pc(rate)}%` }}
               />
             </span>
@@ -309,7 +309,7 @@ function AlertDetail({ row, inSheet = false }: { row: StoredAlertRow; inSheet?: 
               {a.decision[row.decision] ?? row.decision}
             </span>
           </span>
-          <h2 id={hid} className={inSheet ? 'sr-only' : 'text-xl font-bold text-white'}>
+          <h2 id={hid} className={inSheet ? 'sr-only' : 'text-xl font-bold text-ink'}>
             {header.heading}
           </h2>
           {header.lines.map((l) => (
@@ -339,7 +339,7 @@ function AlertDetail({ row, inSheet = false }: { row: StoredAlertRow; inSheet?: 
         {a.delivery(row.delivery['push'] ?? 'none')}
       </p>
       <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 ring-1 ring-line">
-        <span className="text-sm font-semibold text-white">{a.feedbackPrompt}</span>
+        <span className="text-sm font-semibold text-ink">{a.feedbackPrompt}</span>
         <div role="group" aria-label={a.feedback} className="grid grid-cols-3 gap-2">
           {VERDICTS.map((v) => (
             <button
@@ -349,7 +349,7 @@ function AlertDetail({ row, inSheet = false }: { row: StoredAlertRow; inSheet?: 
               disabled={m.isPending}
               onClick={() => m.mutate(v)}
               className={`min-h-11 rounded-xl border px-2 text-sm font-semibold ${
-                row.feedback === v ? 'border-up bg-raised text-white' : 'border-muted/40 text-white'
+                row.feedback === v ? 'border-up bg-raised text-ink' : 'border-muted/40 text-ink'
               }`}
             >
               {a.verdicts[v]}
@@ -477,7 +477,7 @@ function Scorecard() {
           {perAlert.map((al) => (
             <li key={al.id} className="flex flex-col gap-1.5 border-t border-line-soft py-2.5">
               <span className="flex justify-between gap-2.5">
-                <span className="font-semibold text-white">{al.label}</span>
+                <span className="font-semibold text-ink">{al.label}</span>
                 <span className="text-[13px] text-muted">{al.day}</span>
               </span>
               <span className="grid grid-cols-3 gap-1.5">
@@ -550,7 +550,7 @@ export function Alerts() {
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
+          <h1 className="sr-only text-[28px] font-bold text-ink tablet:not-sr-only">{a.title}</h1>
           <Info>{a.intro}</Info>
         </div>
         {q.data && q.data.length > 0 && wide && (
@@ -580,7 +580,7 @@ export function Alerts() {
             <p className="text-fg">{a.none}</p>
             <Link
               to="/lab"
-              className="flex min-h-11 items-center rounded-xl border border-muted/40 px-4 font-semibold text-white"
+              className="flex min-h-11 items-center rounded-xl border border-muted/40 px-4 font-semibold text-ink"
             >
               {a.openLab}
             </Link>

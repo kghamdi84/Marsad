@@ -124,16 +124,16 @@ const STAGES: Stage[] = [
 const BADGE: Record<Stage, string> = {
   notTestable: 'bg-muted/15 text-muted',
   notRun: 'bg-muted/15 text-fg',
-  draft: 'bg-muted/20 text-white',
+  draft: 'bg-muted/20 text-ink',
   backtested: 'bg-up/15 text-up',
   shadow: 'bg-warn/15 text-warn',
-  live: 'bg-ink text-white',
+  live: 'bg-fill text-white',
   demoted: 'bg-down/15 text-down',
 };
 const COUNT_TONE: Record<Stage, string> = {
   notTestable: 'text-muted',
   notRun: 'text-fg',
-  draft: 'text-white',
+  draft: 'text-ink',
   backtested: 'text-up',
   shadow: 'text-warn',
   live: 'text-up',
@@ -169,7 +169,7 @@ function PlaybookCard({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabR
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2.5">
           <span className="text-sm font-bold text-faint">{String(p.number).padStart(2, '0')}</span>
-          <h2 className="text-base leading-[1.3] font-semibold text-white">{p.title}</h2>
+          <h2 className="text-base leading-[1.3] font-semibold text-ink">{p.title}</h2>
         </div>
         <span
           className={`flex-none rounded-full px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap ${BADGE[stage]}`}
@@ -303,7 +303,7 @@ export function Lab() {
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-col gap-1">
         {/* On a phone the top bar shows the page title, and the design has no intro line. */}
-        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{l.title}</h1>
+        <h1 className="sr-only text-[28px] font-bold text-ink tablet:not-sr-only">{l.title}</h1>
         <p className="hidden text-[13px] text-muted tablet:block">{l.intro(PLAYBOOKS.length)}</p>
       </div>
       {q.isError && (
@@ -326,7 +326,7 @@ export function Lab() {
               )}
               <span
                 className={`relative grid size-8 place-items-center rounded-full border-2 text-sm font-bold ${
-                  counts[k] ? 'border-up bg-ink text-white' : 'border-muted/40 bg-bg text-muted'
+                  counts[k] ? 'border-up bg-fill text-white' : 'border-muted/40 bg-bg text-muted'
                 }`}
               >
                 {counts[k]}
@@ -366,7 +366,7 @@ export function Lab() {
               type="button"
               aria-pressed={filter === k}
               onClick={() => setFilter((f) => (f === k ? null : k))}
-              className={`flex min-h-16 flex-[1_0_92px] flex-col items-start gap-0.5 rounded-[10px] border-2 px-2.5 py-2 text-start text-white ${
+              className={`flex min-h-16 flex-[1_0_92px] flex-col items-start gap-0.5 rounded-[10px] border-2 px-2.5 py-2 text-start text-ink ${
                 filter === k ? 'border-up bg-raised' : 'border-transparent bg-bg'
               }`}
             >
@@ -389,7 +389,7 @@ export function Lab() {
         })}
       </ul>
       <section aria-labelledby="left-out" className={`${cardClass} p-5!`}>
-        <h2 id="left-out" className="text-[17px] font-semibold text-white">
+        <h2 id="left-out" className="text-[17px] font-semibold text-ink">
           {l.leftOut}
         </h2>
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-2.5">

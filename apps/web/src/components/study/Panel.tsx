@@ -4,7 +4,7 @@ import { cardClass } from '../Card';
 import { t } from '../../strings';
 
 /** The title style every Study panel shares. */
-export const panelTitle = 'text-[17px] font-semibold text-white';
+export const panelTitle = 'text-[17px] font-semibold text-ink';
 
 /** A pulsing placeholder while a panel loads; the text says Loading for screen readers. */
 export function LoadingBar() {

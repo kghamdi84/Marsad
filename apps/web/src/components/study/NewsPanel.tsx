@@ -78,7 +78,7 @@ export function NewsPanel({ ticker }: { ticker: string }) {
               type="button"
               aria-pressed={all}
               onClick={() => setAll(!all)}
-              className="min-h-11 self-start rounded-xl border border-muted/35 px-3 text-sm text-white"
+              className="min-h-11 self-start rounded-xl border border-muted/35 px-3 text-sm text-ink"
             >
               {all ? n.reportingOnly : n.showOpinion(hidden)}
             </button>

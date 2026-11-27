@@ -27,8 +27,13 @@ export function Clock({
           |
         </span>
         <span className="font-medium">{c.local}</span>{' '}
-        <span className="text-muted">{t.clock.local}</span>
+        <span className="text-muted">{zoneName(localZone)}</span>
       </span>
     </p>
   );
+}
+
+/** The city shown beside the local time: "Riyadh" for Asia/Riyadh; UTC stays UTC. */
+export function zoneName(zone: string): string {
+  return zone === 'UTC' ? 'UTC' : (zone.split('/').at(-1) ?? zone).replace(/_/g, ' ');
 }

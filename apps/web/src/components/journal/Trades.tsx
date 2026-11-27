@@ -363,7 +363,7 @@ function TradeRow({ tr, onOpen }: { tr: JournalTrade; onOpen: () => void }) {
         onClick={onOpen}
         className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 gap-y-0.5 py-2.5 text-start"
       >
-        <span className="font-bold text-white">
+        <span className="font-bold text-ink">
           {tr.ticker}{' '}
           <span className="text-[13px] font-normal text-muted">
             {dayMonth(tr.exitDate ?? tr.entryDate)}
@@ -493,7 +493,7 @@ export function Trades() {
             aria-expanded={adding}
             aria-controls="trade-new"
             onClick={() => setAdding(!adding)}
-            className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-white"
+            className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-ink"
           >
             {x.add}
           </button>

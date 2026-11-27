@@ -1,4 +1,4 @@
-import { t } from '../strings';
+import { t } from '../../strings';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 
 export function Button({ className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -46,9 +46,9 @@ export function Panel({ title, children }: { title: string; children: ReactNode 
         <span lang="ar" className="text-start text-sm text-muted">
           {t.shell.logoArabic}
         </span>
-        <span className="text-[1.375rem] font-bold text-white">{t.appName}</span>
+        <span className="text-[1.375rem] font-bold text-ink">{t.appName}</span>
       </span>
-      <h1 className="text-2xl font-bold text-white">{title}</h1>
+      <h1 className="text-2xl font-bold text-ink">{title}</h1>
       {children}
     </main>
   );

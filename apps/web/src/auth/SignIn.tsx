@@ -29,13 +29,13 @@ type Step = 'password' | 'signup' | 'email' | 'code';
 
 /** Phone sizes are rem so Dynamic Type scales them; from 760 px the card uses the desktop pixel sizes. */
 const fieldBox =
-  'min-h-[3.375rem] rounded-[14px] border bg-surface px-4 text-[1.0625rem] text-white tablet:min-h-[52px] tablet:rounded-xl tablet:px-[14px] tablet:text-[17px]';
+  'min-h-[3.375rem] rounded-[14px] border bg-surface px-4 text-[1.0625rem] text-ink tablet:min-h-[52px] tablet:rounded-xl tablet:px-[14px] tablet:text-[17px]';
 const primaryBtn =
-  'min-h-14 rounded-[14px] border-0 bg-white text-[1.0625rem] font-bold text-raised disabled:opacity-50 tablet:min-h-[54px] tablet:rounded-xl tablet:text-[17px]';
+  'min-h-14 rounded-[14px] border-0 bg-accent text-[1.0625rem] font-bold text-accent-ink disabled:opacity-50 tablet:min-h-[54px] tablet:rounded-xl tablet:text-[17px]';
 const quietBtn =
   'min-h-12 rounded-[14px] border-0 bg-transparent text-base text-up tablet:min-h-11 tablet:rounded-none tablet:text-[15px]';
 const outlineBtn =
-  'min-h-12 rounded-[14px] border border-white/35 bg-transparent text-base font-semibold text-white tablet:min-h-[52px] tablet:rounded-xl tablet:text-[16px]';
+  'min-h-12 rounded-[14px] border border-white/35 bg-transparent text-base font-semibold text-ink tablet:min-h-[52px] tablet:rounded-xl tablet:text-[16px]';
 
 function SignInField({
   label,
@@ -199,7 +199,7 @@ export function SignIn() {
             <span lang="ar" className="text-start text-[1.25rem] text-muted tablet:text-[18px]">
               {t.shell.logoArabic}
             </span>
-            <span className="text-[2.25rem] leading-none font-bold text-white tablet:text-[32px]">
+            <span className="text-[2.25rem] leading-none font-bold text-ink tablet:text-[32px]">
               {t.appName}
             </span>
           </span>
@@ -232,7 +232,7 @@ export function SignIn() {
         >
           <h1
             id="signin-h"
-            className="m-0 text-2xl font-bold text-white tablet:text-[20px] tablet:font-semibold"
+            className="m-0 text-2xl font-bold text-ink tablet:text-[20px] tablet:font-semibold"
           >
             {title}
           </h1>
@@ -326,7 +326,7 @@ export function SignIn() {
                 enterKeyHint="next"
                 autoCapitalize="none"
                 spellCheck={false}
-                borderColor={n > 0 && n < 10 ? '#f5d06f' : 'rgba(255,255,255,0.24)'}
+                borderColor={n > 0 && n < 10 ? 'var(--color-warn)' : 'var(--color-line-strong)'}
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
@@ -342,7 +342,7 @@ export function SignIn() {
                     <span
                       key={i}
                       className={`h-1 flex-1 rounded-[2px] ${
-                        i < n ? (n >= 10 ? 'bg-up' : 'bg-warn') : 'bg-white/16'
+                        i < n ? (n >= 10 ? 'bg-up' : 'bg-warn') : 'bg-ink/16'
                       }`}
                     />
                   ))}
@@ -356,7 +356,7 @@ export function SignIn() {
                 enterKeyHint="go"
                 autoCapitalize="none"
                 spellCheck={false}
-                borderColor={mismatch ? '#ff9f5a' : 'rgba(255,255,255,0.24)'}
+                borderColor={mismatch ? 'var(--color-down)' : 'var(--color-line-strong)'}
                 aria-invalid={mismatch}
                 value={newPassword2}
                 onChange={(e) => {

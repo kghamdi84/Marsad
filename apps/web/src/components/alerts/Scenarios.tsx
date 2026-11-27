@@ -47,7 +47,7 @@ function ScenarioItem({ s }: { s: StoredScenario }) {
       className={`flex flex-col gap-2 rounded-xl border p-4 text-sm ${s.active ? 'border-line bg-surface' : 'border-line/60 bg-surface/50 text-muted'}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold text-white">{s.name}</h3>
+        <h3 className="font-semibold text-ink">{s.name}</h3>
         <button
           type="button"
           role="switch"
@@ -59,10 +59,10 @@ function ScenarioItem({ s }: { s: StoredScenario }) {
         >
           <span
             aria-hidden="true"
-            className={`relative h-6 w-11 rounded-full ${s.active ? 'bg-ink' : 'bg-faint/40'}`}
+            className={`relative h-6 w-11 rounded-full ${s.active ? 'bg-fill' : 'bg-faint/40'}`}
           >
             <span
-              className={`absolute top-0.5 size-5 rounded-full bg-white ${s.active ? 'end-0.5' : 'start-0.5'}`}
+              className={`absolute top-0.5 size-5 rounded-full bg-ink ${s.active ? 'end-0.5' : 'start-0.5'}`}
             />
           </span>
         </button>
@@ -316,7 +316,7 @@ export function Scenarios() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="min-h-[52px] rounded-[14px] bg-white text-base font-bold text-raised"
+            className="min-h-[52px] rounded-[14px] bg-accent text-base font-bold text-accent-ink"
           >
             {x.newScenario}
           </button>

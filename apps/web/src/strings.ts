@@ -77,12 +77,53 @@ export const t = {
     journal: 'Journal',
     status: 'Status',
     lab: 'Lab',
+    settings: 'Settings',
     signOut: 'Sign out',
     primary: 'Main sections',
   },
+  /** Page titles and subtitles (Marsad v2); translated in `ar` below. */
+  pages: {
+    watch: {
+      title: 'Watch',
+      subtitle:
+        'Morning brief, watchlist with company names, latest news, calendar and sectors. Prices are end of day.',
+    },
+    study: {
+      title: 'Study',
+      subtitle:
+        'Search a company: chart, snapshot, news, filings, financials, holders and the thesis.',
+    },
+    regime: {
+      title: 'Market regime',
+      subtitle:
+        'The regime label and why, what the S&P did next, the recession filter, Fear and Greed, capitulation watch and sector rotation.',
+    },
+    alerts: {
+      title: 'Alerts',
+      subtitle:
+        'Every alert carries its trigger, plan, risk history, checklist, bear case and sources. No buy or sell advice.',
+    },
+    journal: {
+      title: 'Journal',
+      subtitle:
+        'Positions by horizon, the position sizer and the manual Sahm ticket, options, exposure and trades.',
+    },
+    lab: {
+      title: 'Lab',
+      subtitle: 'Eleven playbooks. Each earns live status only through out-of-sample tests.',
+    },
+    status: { title: 'Status', subtitle: 'Every row of source_status, job runs and costs.' },
+    settings: {
+      title: 'Settings',
+      subtitle: 'Language, theme, notifications, Shariah limits, AI caps and security.',
+    },
+  },
+  footer:
+    'Alert-only observatory. Never places orders and never gives personal buy or sell recommendations.',
   clock: { et: 'ET', local: 'local' },
   shell: {
     logoArabic: '\u0645\u0631\u0635\u062F',
+    logoArabicFull: 'مرصد السوق',
     more: 'More',
     close: 'Close',
     market: {
@@ -100,6 +141,7 @@ export const t = {
     unchecked: (n: number) => `${n} unchecked`,
     noSources: 'No source status yet',
     healthUnknown: 'Health unavailable',
+    chipExtra: (health: string) => `. ${health}. Show times and source health`,
     chipAria: (market: string, health: string) =>
       `${market}. ${health}. Show times and source health`,
     marketTitle: 'Market and data',
@@ -1981,5 +2023,86 @@ export const t = {
     dbOk: (at: string) => `Database reachable, checked ${at}`,
     dbError: (msg: string) => `Database unreachable: ${msg}`,
   },
+  settings: {
+    display: 'Display',
+    language: 'Language',
+    english: 'English',
+    arabic: 'العربية',
+    theme: 'Theme',
+    navy: 'Navy',
+    daylight: 'Daylight',
+    zone: 'Second time zone',
+    zoneNote: 'Times show in ET first, then this zone.',
+    displayNote: 'Display choices are kept on this device only.',
+    security: 'Security',
+    securityLines: [
+      'Sign-in with email and password; a one-time code by email as a fallback.',
+      'Authenticator app (TOTP) second step: relaxed while testing (ADR 0039); restored before the platform is final.',
+      'New accounts join as members who read shared data only (ADR 0040).',
+      'No brokerage access: Marsad never reads or places orders. You place every order in Sahm.',
+    ],
+  },
   errors: { generic: 'Something went wrong.' },
 } as const;
+
+type Texts<T> = { [K in keyof T]: T[K] extends string ? string : Texts<T[K]> };
+
+/**
+ * Arabic (Marsad v2): navigation, page titles and subtitles and the notices. Everything else stays in English
+ * for now; numbers, tickers, dates and times keep their left-to-right order inside Arabic text.
+ */
+export const ar: {
+  nav: Texts<typeof t.nav>;
+  pages: Texts<typeof t.pages>;
+  footer: string;
+} = {
+  nav: {
+    watch: 'المراقبة',
+    study: 'الدراسة',
+    regime: 'النظام السوقي',
+    alerts: 'التنبيهات',
+    journal: 'السجل',
+    lab: 'المختبر',
+    status: 'الحالة',
+    settings: 'الإعدادات',
+    signOut: 'تسجيل الخروج',
+    primary: 'الأقسام الرئيسية',
+  },
+  pages: {
+    watch: {
+      title: 'المراقبة',
+      subtitle:
+        'ملخص الصباح وقائمة المراقبة وآخر الأخبار والتقويم والقطاعات. الأسعار بنهاية اليوم.',
+    },
+    study: {
+      title: 'الدراسة',
+      subtitle:
+        'ابحث عن شركة: الرسم البياني والملخص والأخبار والإفصاحات والقوائم المالية والملاك والأطروحة.',
+    },
+    regime: {
+      title: 'النظام السوقي',
+      subtitle:
+        'تسمية السوق وسببها، ودراسة الأحداث، وفلتر الركود، والخوف والطمع، ومراقبة الاستسلام.',
+    },
+    alerts: {
+      title: 'التنبيهات',
+      subtitle: 'كل تنبيه مع المحفز والخطة وسجل المخاطر وقائمة التحقق وحالة الهبوط والمصادر.',
+    },
+    journal: {
+      title: 'السجل',
+      subtitle: 'المراكز وحاسبة الحجم وتذكرة سهم اليدوية والخيارات والتعرض.',
+    },
+    lab: {
+      title: 'المختبر',
+      subtitle: 'إحدى عشرة استراتيجية لا تصبح حية إلا بعد اختبار خارج العينة.',
+    },
+    status: { title: 'الحالة', subtitle: 'حالة مصادر البيانات والمهام والتكاليف.' },
+    settings: {
+      title: 'الإعدادات',
+      subtitle: 'اللغة والمظهر والتنبيهات والحدود الشرعية وحدود الذكاء الاصطناعي والأمان.',
+    },
+  },
+  footer: 'مرصد للتنبيهات فقط. لا ينفذ أوامر ولا يقدم توصيات شراء أو بيع شخصية.',
+};
+
+export type PageKey = keyof typeof t.pages;

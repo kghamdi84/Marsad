@@ -3,13 +3,15 @@ import { existsSync } from 'node:fs';
 
 // Cloud sessions ship a preinstalled Chromium; CI installs its own.
 const preinstalled = '/opt/pw-browsers/chromium';
+// PW_PORT lets two checkouts run their suites side by side.
+const port = Number(process.env['PW_PORT'] ?? 4173);
 
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:${port}`,
     launchOptions: existsSync(preinstalled) ? { executablePath: preinstalled } : {},
   },
   // Desktop, and an iPad-sized touch screen (Khaled's device, Phase 8 pass): every test and scan runs on both.
@@ -22,8 +24,8 @@ export default defineConfig({
   ],
   webServer: {
     // A fake project address: tests intercept every Supabase request.
-    command: 'pnpm build && pnpm preview',
-    url: 'http://localhost:4173',
+    command: `pnpm build && pnpm preview --port ${port} --strictPort`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: false,
     timeout: 120_000,
     env: {

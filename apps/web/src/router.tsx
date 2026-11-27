@@ -48,6 +48,11 @@ const routeTree = root.addChildren([
     path: '/lab',
     component: lazyRouteComponent(() => import('./routes/Lab'), 'Lab'),
   }),
+  createRoute({
+    getParentRoute: () => root,
+    path: '/settings',
+    component: lazyRouteComponent(() => import('./routes/Settings'), 'Settings'),
+  }),
 ]);
 
 export const router = createRouter({ routeTree });

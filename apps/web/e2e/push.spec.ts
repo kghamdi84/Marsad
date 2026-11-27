@@ -49,7 +49,10 @@ test('creating keys saves only the public key; the private key never leaves the 
   page.on('request', (r) => sent.push(`${r.url()} ${r.postData() ?? ''}`));
   await page.goto('/status');
   // Setup forms sit under Settings (council batch 2).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   const section = page.getByRole('region', { name: 'Notifications' });
   await expect(section.getByText('No keys yet.')).toBeVisible();
   await expect(section.getByText('Create the keys first.')).toBeVisible();
@@ -113,7 +116,10 @@ test('the device list says which devices work, which fail and which the push ser
   });
   await page.goto('/status');
   // Setup forms sit under Settings (council batch 2).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   const section = page.getByRole('region', { name: 'Notifications' });
   await expect(dev(section, 'iPad')).toContainText('Active');
   await expect(dev(section, 'iPhone')).toContainText('Failing (2 in a row): 500: server error');
@@ -139,7 +145,10 @@ test('a refused permission prompt explains where to allow notifications', async 
   await mockPush(page, { key: 'B'.padEnd(87, 'A'), devices: [] });
   await page.goto('/status');
   // Setup forms sit under Settings (council batch 2).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   const section = page.getByRole('region', { name: 'Notifications' });
   await section.getByRole('button', { name: 'Turn on for this device' }).click();
   await expect(section.getByRole('alert')).toContainText('Allow Notifications');

@@ -36,16 +36,16 @@ export function Sheet({
       className="m-0 mt-auto max-h-[88vh] w-full max-w-none overflow-y-auto rounded-t-[20px] bg-raised p-0 text-fg backdrop:bg-[rgba(0,8,32,0.66)]"
     >
       <div className="flex flex-col gap-3.5 px-4 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
-        <span aria-hidden="true" className="h-[5px] w-10 self-center rounded-sm bg-white/30" />
+        <span aria-hidden="true" className="h-[5px] w-10 self-center rounded-sm bg-ink/30" />
         <div className="flex items-center justify-between gap-3">
-          <h2 id={titleId} className="text-lg font-bold text-white">
+          <h2 id={titleId} className="text-lg font-bold text-ink">
             {title}
           </h2>
           <button
             type="button"
             aria-label={t.shell.close}
             onClick={onClose}
-            className="flex size-11 flex-none items-center justify-center rounded-full bg-white/10 text-white"
+            className="flex size-11 flex-none items-center justify-center rounded-full bg-ink/10 text-ink"
           >
             <X aria-hidden="true" size={18} />
           </button>
