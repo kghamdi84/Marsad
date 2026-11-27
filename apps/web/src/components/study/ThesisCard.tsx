@@ -3,31 +3,37 @@ import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lines, validateThesis, type ThesisDraft, type ThesisStatus } from '@marsad/core';
 import { Button, ErrorText } from '../ui';
+import { Pill, type Tone } from '../ui/kit';
 import { loadTheses, saveThesis, type ThesisVersion } from '../../lib/thesis';
-import { cardClass } from '../Card';
 import { t } from '../../strings';
-import { panelTitle } from './Panel';
+import { panelTitle, tileClass } from './Panel';
 
 const x = t.study.thesis;
-const area = 'rounded-sm border border-line bg-bg p-2 text-sm text-fg';
+const area = 'rounded-lg border border-line-strong bg-surface p-2 text-sm text-ink';
+
+const STATUS_TONE: Record<string, Tone> = { intact: 'up', weakening: 'warn', broken: 'down' };
 
 function Version({ v }: { v: ThesisVersion }) {
   return (
-    <div className="flex flex-col gap-2 text-sm">
-      <p>
-        <span className="font-medium">{x.status}:</span> {x.statuses[v.status]}.{' '}
-        <span className="text-muted">{x.savedAt(v.createdAt.slice(0, 16).replace('T', ' '))}</span>
+    <div className="flex flex-col gap-2.5 text-[13px] leading-relaxed text-ink2">
+      <p className="flex flex-wrap items-center gap-2">
+        <Pill tone={STATUS_TONE[v.status] ?? 'neutral'} className="font-semibold">
+          {x.status}: {x.statuses[v.status]}.
+        </Pill>
+        <span className="text-xs text-ink3">
+          {x.savedAt(v.createdAt.slice(0, 16).replace('T', ' '))}
+        </span>
       </p>
       <div>
-        <h3 className="font-medium">{x.bull}</h3>
-        <p className="whitespace-pre-wrap">{v.bull}</p>
+        <h3 className="inline font-semibold text-ink">{x.bull}: </h3>
+        <p className="inline whitespace-pre-wrap">{v.bull}</p>
+      </div>
+      <div className="rounded-lg bg-down-soft p-3 text-ink">
+        <h3 className="inline font-semibold text-down">{x.bear}: </h3>
+        <p className="inline whitespace-pre-wrap">{v.bear}</p>
       </div>
       <div>
-        <h3 className="font-medium">{x.bear}</h3>
-        <p className="whitespace-pre-wrap">{v.bear}</p>
-      </div>
-      <div>
-        <h3 className="font-medium">{x.risks}</h3>
+        <h3 className="font-semibold text-ink">{x.risks}</h3>
         <ul className="list-disc ps-5">
           {v.risks.map((r) => (
             <li key={r}>{r}</li>
@@ -35,8 +41,8 @@ function Version({ v }: { v: ThesisVersion }) {
         </ul>
       </div>
       <div>
-        <h3 className="font-medium">{x.changeView}</h3>
-        <p className="whitespace-pre-wrap">{v.changeView}</p>
+        <h3 className="inline font-semibold text-ink">{x.changeView}: </h3>
+        <p className="inline whitespace-pre-wrap">{v.changeView}</p>
       </div>
       {v.sources.length > 0 && (
         <ul className="flex flex-col">
@@ -46,7 +52,7 @@ function Version({ v }: { v: ThesisVersion }) {
                 href={s}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center break-all underline underline-offset-2"
+                className="inline-flex min-h-11 items-center break-all text-link underline underline-offset-2"
               >
                 {s}
               </a>
@@ -117,7 +123,7 @@ function Editor({
       <label className="flex flex-col gap-1 text-sm font-medium">
         {x.status}
         <select
-          className="min-h-11 rounded-sm border border-line bg-bg px-2 text-fg"
+          className="min-h-11 rounded-lg border border-line-strong bg-surface px-2 text-ink"
           value={status}
           onChange={(e) => setStatus(e.target.value as ThesisStatus)}
         >
@@ -150,14 +156,18 @@ export function ThesisCard({ ticker }: { ticker: string }) {
   const [saved, setSaved] = useState(false);
   const [latest, ...older] = q.data ?? [];
   return (
-    <section aria-labelledby="thesis" className={`${cardClass} gap-3!`}>
+    <section aria-labelledby="thesis" className={tileClass}>
       <h2 id="thesis" className={panelTitle}>
         {x.title}
       </h2>
       <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
-        (latest ? <Version v={latest} /> : !editing && <p className="text-muted">{x.none}</p>)}
+        (latest ? (
+          <Version v={latest} />
+        ) : (
+          !editing && <p className="text-sm text-ink3">{x.none}</p>
+        ))}
       {saved && !editing && <p className="text-sm">{x.saved}</p>}
       {q.data &&
         (editing ? (
@@ -176,7 +186,7 @@ export function ThesisCard({ ticker }: { ticker: string }) {
         ))}
       {older.length > 0 && (
         <details className="text-sm">
-          <summary className="min-h-11 cursor-pointer py-2 text-muted">
+          <summary className="min-h-11 cursor-pointer py-2 text-ink3">
             {x.history(older.length)}
           </summary>
           <div className="flex flex-col gap-4">
@@ -186,7 +196,7 @@ export function ThesisCard({ ticker }: { ticker: string }) {
           </div>
         </details>
       )}
-      <p className="text-xs text-muted">{x.ai}</p>
+      <p className="text-xs text-ink3">{x.ai}</p>
     </section>
   );
 }

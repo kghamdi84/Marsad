@@ -1168,9 +1168,8 @@ export const t = {
     title: 'Study',
     intro: 'Pick a company to study. Prices are end-of-day, never a live quote.',
     etfs: 'Benchmark ETFs',
-    openLabel: 'Open any ticker',
-    search: 'Search or open a ticker',
-    noMatch: (q: string) => `No company in this list matches "${q}". Choose Open to look it up.`,
+    openLabel: 'Search a ticker or company',
+    search: 'Ticker or company name',
     earningsAround: (date: string) => `Earnings around ${date} (estimated)`,
     stocks: 'Starting stocks',
     open: 'Open',
@@ -1460,7 +1459,10 @@ export const t = {
       lag: 'Short interest settles on the 15th and the last business day, and is published about a week later.',
     },
     news: {
-      title: 'News',
+      title: 'Latest company news',
+      newest: (when: string) => `Newest ${when}`,
+      showMore: (n: number) => `Show ${n} more`,
+      showFewer: 'Show the newest 4',
       note: 'Grouped so one story from several outlets counts once, shown at its earliest time. Source tier and opinion are labelled. Free-plan news comes from three publishers only.',
       none: 'No news stored for this ticker.',
       outlets: (n: number) => (n === 1 ? '1 outlet' : `${n} outlets`),
@@ -1480,10 +1482,66 @@ export const t = {
     },
 
     markersNote:
-      'Markers show 8-Ks of high or medium materiality, splits and ex-dividend dates. A filing accepted after the 4:00 pm ET close sits on the next trading day. Form 4s stay in the filings list.',
+      'Markers show 8-Ks of high or medium materiality (E for results under Item 2.02, F for the others), splits, ex-dividend dates, trading halts, Marsad alerts and insider open-market purchases. A filing accepted after the 4:00 pm ET close sits on the next trading day. Other Form 4s stay in the filings list.',
     noMarkers: 'No high or medium materiality 8-Ks or splits in this period.',
     summary: 'Summary',
     ui: {
+      searchLabel: 'Search ticker or company',
+      searchNone: (q: string) => `No company matches "${q}".`,
+      searchMatches: 'Matching companies',
+      searching: 'Searching',
+      headerMeta: (date: string) => `Massive daily bars \u00B7 close of ${date}`,
+      shariahPill: {
+        'passes-ratios': 'Shariah ratios within limits',
+        'fails-ratios': 'Shariah: a ratio over its limit',
+        unknown: 'Shariah ratios not checked',
+        off: 'Shariah aid off',
+      } as Record<string, string>,
+      rsiChip: (v: string | null) => (v === null ? 'RSI 14: not enough history' : `RSI 14: ${v}`),
+      markerPrompt:
+        'Tap a marker on the chart, or choose one from the list below, to see its detail here.',
+      nextSession: (pct: string) => `${pct} next session`,
+      largeMove: 'over 25%, check the news before trusting it',
+      legend: (range: string, lo: string, hi: string) =>
+        `E results 8-K \u00B7 F other 8-K \u00B7 D dividend \u00B7 S split \u00B7 H halt \u00B7 A Marsad alert \u00B7 B insider buy \u00B7 ${range} ${lo} to ${hi}`,
+      markersAll: (n: number) => `All chart markers (${n})`,
+      trendLine: (trend: string, s50: string, s200: string) =>
+        `Trend: ${trend} \u00B7 SMA 50 ${s50} \u00B7 SMA 200 ${s200}`,
+      snapshot: {
+        title: 'Snapshot',
+        marketValue: 'Market value',
+        mvSub: (shares: string, close: string) => `${shares} shares \u00D7 ${close}`,
+        revenue: 'Revenue, last 4 quarters',
+        revenueYoY: (pct: string) => `${pct} on a year earlier`,
+        revenueTo: (end: string) => `Four quarters to ${end}`,
+        netMargin: 'Net margin',
+        netMarginSub: 'Last 4 quarters',
+        nextEarnings: 'Next earnings',
+        nextSub: 'Estimated from 8-K dates',
+        shortInterest: 'Short interest',
+        notReported: 'Not reported',
+        noFiler: 'No SEC filer record',
+        provenance: (asOf: string, close: string, version: string) =>
+          `Source: SEC XBRL company facts as filed by ${asOf}; market value uses the close of ${close}. Formula ${version}.`,
+      },
+      filingsCard: {
+        title: 'Filings and announcements',
+        source: 'SEC EDGAR',
+        showAll: (n: number) => `Show all ${n} filings`,
+        showFewer: 'Show the newest 6',
+      },
+      details: 'Company details',
+      riskToggle: 'Risk factor comparison',
+      riskModes: { yoy: 'Year on year (10-K)', qoq: 'Quarter on quarter (10-Q)' } as Record<
+        string,
+        string
+      >,
+      nextResults: 'Next results (estimated)',
+      nextResultsSub: 'Estimated from past results 8-K dates (Item 2.02), within this window:',
+      impliedMissing:
+        'Implied move and IV rank need options data, which the current Massive plan does not include.',
+      shariahRatioName: { debt: 'Debt ratio', cash: 'Cash ratio' } as Record<string, string>,
+      shariahLimitTick: 'The tick on each bar marks the limit set in Settings.',
       endOfDay: 'End of day',
       staleBadge: 'Stale',
       latestNotCovered: (tk: string) => `Tauric does not cover ${tk}`,
@@ -1513,17 +1571,17 @@ export const t = {
       ranges: { '3m': '3M', '6m': '6M', '1y': '1Y' } as Record<string, string>,
       sections: 'Company sections',
       sectionNames: {
-        overview: 'Overview',
+        overview: 'Overview and thesis',
         financials: 'Financials',
         earnings: 'Earnings',
         holders: 'Holders and insiders',
-        short: 'Short data',
-        risk: 'Risk factors',
-        news: 'News',
-        dividends: 'Dividends',
+        risk: 'Risk factor diff',
         shariah: 'Shariah aid',
+        short: 'Short data',
+        dividends: 'Dividends',
       } as Record<string, string>,
       markerLetters: {
+        results: 'E',
         'high-8k': 'F',
         'medium-8k': 'F',
         split: 'S',
@@ -1532,8 +1590,6 @@ export const t = {
         halt: 'H',
         alert: 'A',
       } as Record<string, string>,
-      markerLegend:
-        'F: 8-K filing \u00B7 S: split \u00B7 D: ex-dividend \u00B7 B: insider purchase \u00B7 H: trading halt \u00B7 A: Marsad alert',
     },
     lastClose: 'Last close',
     change: 'Change',
@@ -1564,7 +1620,7 @@ export const t = {
     missing: 'Not available on the free plan',
     shariah: {
       title: 'Shariah screening aid',
-      off: 'The Shariah screening aid is off. Turn it on in Status, under Preferences.',
+      off: 'The Shariah screening aid is off. Turn it on in Settings, under Preferences.',
       noBalance: 'No balance sheet is stored for this company, so the ratios cannot be computed.',
       basis: (b: string) =>
         b === 'assets'

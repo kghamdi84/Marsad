@@ -114,10 +114,36 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     /^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d+\.\d{2}$/,
   );
 
-  // 08:57 ET pre-market on the 23rd, so the 8-K marker sits on the 23rd's bar.
+  // v2 chart card: the indicator toggles, RSI 14 as a value chip (a steady rise has no losses, so 100.0), the range.
+  const indicators = page.getByRole('group', { name: 'Indicators' });
+  await expect(indicators.getByRole('button', { name: 'SMA 50' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(indicators.getByRole('button', { name: 'RSI 14: 100.0' })).toBeVisible();
+  await expect(
+    page.getByRole('group', { name: 'Chart range' }).getByRole('button', { name: '1Y' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  // 52-week range in the legend: closes rise 0.5 a day for 252 sessions, highs 2 above and lows 2 below the close.
+  await expect(page.getByText(/52-week range \$172\.50 to \$302\.00/)).toBeVisible();
+
+  // 08:57 ET pre-market on the 23rd, so the 8-K marker sits on the 23rd's bar. It is the newest marker, so its
+  // detail line shows under the chart until another is picked; F is an 8-K that is not results.
+  await expect(
+    page.getByText('F · 23 Nov 2026 · 8-K: Executive or director change (High)'),
+  ).toBeVisible();
+  await page.locator('summary', { hasText: 'All chart markers (1)' }).click();
   await expect(
     page.getByText('2026-11-23: 8-K: Executive or director change (High)'),
   ).toBeVisible();
+
+  // Snapshot: no XBRL facts stored here, so the figures say not reported rather than guess.
+  const snapshot = page.getByRole('region', { name: 'Snapshot' });
+  await expect(snapshot.getByText('Market value', { exact: true })).toBeVisible();
+  await expect(snapshot.getByText('Not reported').first()).toBeVisible();
+  // News and filings sit side by side as their own cards.
+  await expect(page.getByRole('heading', { name: 'Latest company news' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Filings and announcements' })).toBeVisible();
 
   // Anything the free plan cannot give says so, and says what it would take (Overview, open first).
   await expect(page.getByText('Requires a higher Massive plan.').first()).toBeVisible();
@@ -125,8 +151,8 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     page.getByText('Earnings against estimates, surprise and implied move'),
   ).toBeVisible();
 
-  // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag.
-  await openSection(page, 'Risk factors');
+  // The 8-K is labelled in plain words with its materiality; the Form 4 shows its reporting lag (v2: the
+  // Filings and announcements card, on the page).
   await expect(page.getByText('Item 5.02: Executive or director change')).toBeVisible();
   await expect(page.getByText('Item 9.01: Attached documents and exhibits')).toBeVisible();
   await expect(page.getByText('High', { exact: true }).first()).toBeVisible();
@@ -137,7 +163,9 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     'href',
     'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm',
   );
-  // Quarterly risk factors are built now (ADR 0036): their own section, loaded when opened.
+  // Quarterly risk factors are built now (ADR 0036): the other half of the risk factor diff toggle.
+  await openSection(page, 'Risk factor diff');
+  await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
   await expect(
     page.getByRole('heading', { name: 'Risk factors, quarter over quarter (10-Q)' }),
   ).toBeVisible();
@@ -163,7 +191,6 @@ test('a ticker with no stored bars says so instead of showing an empty chart', a
   await page.goto('/study/RKLB');
   await expect(page.getByText(/No daily bars stored for this ticker yet/)).toBeVisible();
   await expect(page.getByText(/No company record yet/)).toBeVisible();
-  await openSection(page, 'Risk factors');
   await expect(page.getByText('No filings stored for this company.')).toBeVisible();
 });
 
@@ -173,11 +200,39 @@ test('the Study list opens a company and rejects a bad ticker', async ({ page })
   await page.goto('/study');
   await expect(page.getByRole('link', { name: 'NVDA' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'SPY' })).toBeVisible();
-  await page.getByLabel('Open any ticker').fill('nvda; drop');
+  await page.getByLabel('Search a ticker or company').fill('nvda; drop');
   await page.getByRole('button', { name: 'Open' }).click();
   await expect(page.getByRole('alert')).toContainText('is not a valid ticker');
-  await page.getByLabel('Open any ticker').fill('rklb');
+  await page.getByLabel('Search a ticker or company').fill('rklb');
   await page.getByRole('button', { name: 'Open' }).click();
+  await expect(page).toHaveURL(/\/study\/RKLB$/);
+});
+
+test('search finds a company by name: one match opens it, several are listed to choose from', async ({
+  page,
+}) => {
+  await mock(page, '2026-11-24');
+  await page.goto('/study/NVDA');
+  // The header search (v2) asks for the ticker or a name match in one query, and never passes the raw text through.
+  await page.route('**/rest/v1/instruments**', (r) => {
+    const url = decodeURIComponent(r.request().url()).replaceAll('+', ' ');
+    if (url.includes('ilike."*semi*"'))
+      return json(r, [
+        { ticker: 'AMD', name: 'ADVANCED MICRO DEVICES INC' },
+        { ticker: 'MU', name: 'MICRON TECHNOLOGY INC' },
+      ]);
+    if (url.includes('ilike."*Rocket Lab*"'))
+      return json(r, [{ ticker: 'RKLB', name: 'ROCKET LAB CORP' }]);
+    return json(r, [{ cik: '0001045810', name: 'NVIDIA CORP' }]);
+  });
+  const search = page.getByRole('searchbox', { name: 'Search ticker or company' });
+  await search.fill('semi');
+  await search.press('Enter');
+  const matches = page.getByRole('navigation', { name: 'Matching companies' });
+  await expect(matches.getByRole('link', { name: /AMD/ })).toBeVisible();
+  await expect(matches.getByRole('link', { name: /MU/ })).toBeVisible();
+  await search.fill('Rocket Lab');
+  await search.press('Enter');
   await expect(page).toHaveURL(/\/study\/RKLB$/);
 });
 

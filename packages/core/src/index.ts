@@ -14,6 +14,7 @@ export * from './news.js';
 export * from './news-impact.js';
 export * from './tickers.js';
 export * from './study.js';
+export * from './snapshot.js';
 export * from './xml.js';
 export * from './form4.js';
 export * from './fundamentals.js';

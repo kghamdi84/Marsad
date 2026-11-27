@@ -1,7 +1,6 @@
 import { etDate, type DividendEvent } from '@marsad/core';
-import { cardClass } from '../Card';
 import { t } from '../../strings';
-import { panelTitle } from './Panel';
+import { panelTitle, tileClass } from './Panel';
 
 export interface DividendRowData extends DividendEvent {
   payDate: string | null;
@@ -13,7 +12,7 @@ export function Dividends({ rows }: { rows: readonly DividendRowData[] }) {
   const d = t.study.dividends;
   const today = etDate(new Date());
   return (
-    <section aria-labelledby="dividends" className={`${cardClass} gap-3!`}>
+    <section aria-labelledby="dividends" className={tileClass}>
       <h2 id="dividends" className={panelTitle}>
         {d.title}
       </h2>
