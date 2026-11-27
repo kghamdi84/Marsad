@@ -59,13 +59,15 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
     ),
   );
   await page.goto('/');
-  const agenda = page.getByRole('region', { name: 'Agenda' });
+  const agenda = page.getByRole('region', { name: 'Economic and earnings calendar' });
+  await expect(agenda.getByText('ET · Riyadh')).toBeVisible();
   await expect(agenda.getByRole('heading', { name: 'Today, Wed 25 Nov' })).toBeVisible();
   // GDP at 08:30 ET is 13:30 UTC, 16:30 in Riyadh, 1 h 30 min after 12:00 UTC.
   const gdp = agenda.getByRole('listitem').filter({ hasText: 'GDP' });
   await expect(gdp).toContainText('08:30 ET · 16:30 Riyadh · in 1 h 30 min');
   await expect(gdp).toContainText('High impact');
-  await expect(gdp).toContainText('Macro');
+  await expect(gdp).toContainText('HIGH');
+  await expect(gdp).toContainText('Source: FRED release');
   // The FOMC statement on 2026-12-09, 14:00 EST, is 19:00 UTC and 22:00 in Riyadh.
   await expect(
     agenda.getByRole('listitem').filter({ hasText: 'FOMC statement and projections' }),
@@ -78,9 +80,10 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
   const nvdaEarnings = agenda.getByRole('listitem').filter({ hasText: 'NVDA earnings' });
   await expect(nvdaEarnings).toContainText('Estimated, 17 Feb to 03 Mar');
   await expect(nvdaEarnings).toContainText('Same quarter last year, 52 weeks on');
-  await expect(nvdaEarnings).toContainText('Watchlist');
+  await expect(nvdaEarnings).toContainText('EARN');
+  await expect(nvdaEarnings).toContainText('Source: SEC 8-K dates');
   await expect(
-    agenda.getByText('blue: watchlist earnings, estimated', { exact: false }),
+    agenda.getByText('EARN: watchlist earnings, estimated', { exact: false }),
   ).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/watch.png`, fullPage: true });
@@ -187,6 +190,12 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   await expect(strip.getByRole('listitem').filter({ hasText: '10-year yield' })).toContainText(
     '▲ +0.05 pts',
   );
+  // Nine items, each with its own data date; a series that is not stored says so instead of a number.
+  await expect(strip.getByRole('listitem')).toHaveCount(9);
+  await expect(strip.getByRole('listitem').filter({ hasText: 'VIX' })).toContainText('23 Nov');
+  await expect(strip.getByRole('listitem').filter({ hasText: 'WTI oil' })).toContainText(
+    'No data stored',
+  );
 
   const list = page.getByRole('region', { name: 'Watchlist' });
   await expect(list.getByText('Showing the starting tickers')).toBeVisible();
@@ -202,7 +211,8 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   await expect(list.getByRole('button', { name: '1M' })).toHaveAttribute('aria-pressed', 'true');
   await expect(nvda.getByRole('link', { name: 'NVDA' })).toHaveAttribute('href', '/study/NVDA');
 
-  const sectors = page.getByRole('region', { name: 'Sector heatmap' });
+  const sectors = page.getByRole('region', { name: 'US sectors' });
+  await expect(sectors.getByText('3 SPDR ETFs · close of 24 Nov')).toBeVisible();
   await expect(sectors.getByRole('listitem').filter({ hasText: 'Technology' })).toContainText(
     '+2.10%',
   );
@@ -219,7 +229,13 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
   const gaps = page.getByRole('region', { name: 'Gap scanner' });
   await expect(gaps.getByRole('row').first()).toContainText('+2.50%');
 
-  const news = page.getByRole('region', { name: 'Watchlist news' });
+  const news = page.getByRole('region', { name: 'Latest news' });
+  // Both stories score 2 (impact-1): Zacks is Tier 3 opinion (0) and Odd is Tier 4 (0), each naming a watchlist
+  // ticker (2). The newer one is the highlight.
+  await expect(news.getByRole('article')).toContainText('Highlight of the day');
+  await expect(news.getByRole('article')).toContainText('NVDA headline');
+  await expect(news.getByRole('article')).toContainText('Impact score 2 (impact-1).');
+  await expect(news.getByText('Low', { exact: true })).toHaveCount(2);
   await expect(news.getByRole('link', { name: 'NVDA headline' })).toHaveAttribute(
     'href',
     'https://example.com/a1',
@@ -262,6 +278,12 @@ test('watch: the latest brief with its sections and email state', async ({ page 
     ),
   );
   await page.goto('/');
+  // The cockpit header carries the brief line: 13:30 UTC is 08:30 ET and 16:30 in Riyadh.
+  await expect(
+    page
+      .getByRole('region', { name: 'Morning decision cockpit' })
+      .getByText('Pre-market brief · 08:30 ET · 16:30 Riyadh · Not emailed'),
+  ).toBeVisible();
   const brief = page.getByRole('region', { name: 'Latest brief' });
   await expect(
     brief.getByRole('heading', { name: 'Latest brief: Pre-market brief · Wed 25 Nov' }),
@@ -342,3 +364,178 @@ test('watch: with Massive chosen (the default) there is no Tauric column', async
   await expect(list.getByRole('row', { name: /^NVDA/ })).toContainText('121.00');
   await expect(list.getByRole('columnheader', { name: 'Latest (Tauric)' })).toHaveCount(0);
 });
+
+// Marsad v2 cockpit and impact ranking. The clock is Friday 2026-11-27 15:43 UTC (10:43 ET), an early-close day.
+// Every ticker has the synthetic bars above (last close 121.00 on Mon 16 Nov, +0.83% on the day). Holdings: NVDA
+// with a stop at 100 (inside its plan) and TSLA with a stop at 125 (121.00 is at or below it).
+for (const theme of ['dark', 'light'] as const)
+  test(`watch: the morning cockpit, company names, Held tags and news ranked by impact (${theme})`, async ({
+    page,
+  }) => {
+    await seedSession(page, 'aal2');
+    // Daylight runs the same checks and the same accessibility scan.
+    await page.addInitScript((th) => {
+      localStorage.setItem(
+        'marsad.display',
+        JSON.stringify({ theme: th, lang: 'en', zone: 'Asia/Riyadh' }),
+      );
+    }, theme);
+    await page.clock.setFixedTime(new Date('2026-11-27T15:43:00Z'));
+    const json = (body: unknown) => ({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    });
+    await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+    await page.route('**/rest/v1/daily_bars**', (r) => r.fulfill(json(syntheticBars())));
+    const holding = (id: number, ticker: string, stop: number) => ({
+      id,
+      ticker,
+      shares: 10,
+      cost_basis: 110,
+      opened_on: '2026-10-30',
+      stop,
+      targets: [200],
+      trend_break: null,
+      time_stop_sessions: null,
+      sector_etf: null,
+      thesis_status: 'intact',
+    });
+    await page.route('**/rest/v1/holdings**', (r) =>
+      r.fulfill(json([holding(1, 'NVDA', 100), holding(2, 'TSLA', 125)])),
+    );
+    // Newest first, as the query orders them: two Bull calm days after a Stress day.
+    await page.route('**/rest/v1/regime_daily**', (r) =>
+      r.fulfill(
+        json(
+          [
+            ['2026-11-26', 'bull-calm', 14.82],
+            ['2026-11-25', 'bull-calm', 15.1],
+            ['2026-11-24', 'stress', 31],
+          ].map(([date, label, vix]) => ({
+            date,
+            label,
+            rule_version: 'regime-1',
+            inputs: { vix },
+          })),
+        ),
+      ),
+    );
+    // 580 of 1,000 members above their 50-day average: 58%.
+    await page.route('**/rest/v1/breadth_daily**', (r) =>
+      r.fulfill(json([{ date: '2026-11-26', version: 'breadth-1', above50: 580, n50: 1000 }])),
+    );
+    await page.route('**/rest/v1/market_holidays**', (r) =>
+      r.fulfill(
+        json([
+          {
+            date: '2026-11-27',
+            exchange: 'NYSE',
+            name: 'Thanksgiving',
+            status: 'early-close',
+            open_at: '2026-11-27T14:30:00Z',
+            close_at: '2026-11-27T18:00:00Z',
+          },
+        ]),
+      ),
+    );
+    await page.route('**/rest/v1/instruments**', (r) =>
+      r.fulfill(
+        json([
+          { ticker: 'NVDA', cik: '0001045810', name: 'NVIDIA Corporation' },
+          { ticker: 'TSLA', cik: '0001318605', name: 'Tesla, Inc.' },
+        ]),
+      ),
+    );
+    // Accepted after the 16 Nov close: a Tier 1 filing since the last close.
+    await page.route('**/rest/v1/filings**', (r) =>
+      r.fulfill(
+        json([
+          {
+            accession: '0001318605-26-000123',
+            cik: '0001318605',
+            form: '8-K',
+            filing_date: '2026-11-26',
+            accepted_at: '2026-11-26T22:05:00+00:00',
+            primary_document: 'tsla-8k.htm',
+            items: ['5.02'],
+          },
+        ]),
+      ),
+    );
+    await page.route('**/rest/v1/news_articles**', (r) =>
+      r.fulfill(
+        json([
+          {
+            id: 'r1',
+            published_at: '2026-11-26T13:12:00+00:00',
+            publisher: 'Reuters',
+            title: 'NVIDIA supplier lifts guidance on data-center demand',
+            url: 'https://example.com/r1',
+            tickers: ['NVDA'],
+          },
+        ]),
+      ),
+    );
+    await page.goto('/');
+
+    await expect(page.getByText('Massive · end of day · close of Mon 16 Nov')).toBeVisible();
+    const cockpit = page.getByRole('region', { name: 'Morning decision cockpit' });
+    const regime = cockpit.getByRole('link', { name: /^Regime/ });
+    await expect(regime).toHaveAttribute('href', '/regime');
+    await expect(regime).toContainText('Bull calm');
+    await expect(regime).toContainText('2 sessions · regime-1 · 26 Nov');
+    await expect(regime).toContainText('VIX 14.82 · breadth 58% above 50-day');
+    const movers = cockpit.getByRole('link', { name: /^Last session movers/ });
+    await expect(movers).toContainText('NVDA ▲ +0.83%');
+    await expect(movers).toContainText('Close of Mon 16 Nov');
+    await expect(movers).toHaveAttribute('href', '/study/NVDA');
+    // 18:00 UTC is 13:00 ET and 21:00 in Riyadh.
+    const today = cockpit.getByRole('link', { name: /^Today/ });
+    await expect(today).toContainText('Early close 13:00 ET');
+    await expect(today).toContainText('21:00 Riyadh');
+    await expect(today).toContainText('1 Tier 1 filing: TSLA 8-K 5.02');
+    const exits = cockpit.getByRole('link', { name: /^Exit rules/ });
+    await expect(exits).toContainText('TSLA closed under its stop');
+    await expect(exits).toContainText('1 other holding inside plan');
+    await expect(exits).toHaveAttribute('href', '/journal');
+
+    const list = page.getByRole('region', { name: 'Watchlist', exact: true });
+    const nvda = list.getByRole('row', { name: /^NVDA/ });
+    await expect(nvda).toContainText('NVIDIA Corporation');
+    await expect(nvda).toContainText('Held');
+    await expect(list.getByRole('row', { name: /^RKLB/ })).not.toContainText('Held');
+    // A row opens Study.
+    await nvda.getByRole('cell').nth(3).click();
+    await expect(page).toHaveURL(/\/study\/NVDA$/);
+    await page.goBack();
+
+    // impact-1 by hand: the TSLA 8-K is Tier 1 (3) + item 5.02, high (3) + a holding (3) = 9, high. The Reuters
+    // story is Tier 2 (2) + a holding (3) = 5, medium.
+    const news = page.getByRole('region', { name: 'Latest news' });
+    const hl = news.getByRole('article');
+    await expect(hl).toContainText('Highlight of the day');
+    await expect(hl).toContainText('High impact');
+    await expect(
+      hl.getByRole('link', { name: 'TSLA files 8-K, item 5.02: Executive or director change' }),
+    ).toHaveAttribute(
+      'href',
+      'https://www.sec.gov/Archives/edgar/data/1318605/000131860526000123/tsla-8k.htm',
+    );
+    await expect(hl).toContainText('SEC EDGAR');
+    await expect(hl).toContainText('Tier 1');
+    await expect(hl).toContainText('Touches your holdings: TSLA.');
+    await expect(hl).toContainText('Impact score 9 (impact-1).');
+    const reuters = news.getByRole('listitem').filter({ hasText: 'NVIDIA supplier' });
+    await expect(reuters).toContainText('Medium');
+    await expect(reuters).toContainText('Reuters');
+    await expect(reuters).toContainText('Tier 2');
+    // 13:12 UTC is 08:12 ET and 16:12 in Riyadh.
+    await expect(reuters).toContainText('26 Nov 08:12 ET · 16:12 Riyadh');
+    await expect(news).not.toContainText(/\bLive\b/);
+    if (process.env.SHOT_DIR)
+      await page.screenshot({
+        path: `${process.env.SHOT_DIR}/watch-v2-${theme}.png`,
+        fullPage: true,
+      });
+  });

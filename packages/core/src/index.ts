@@ -11,6 +11,7 @@ export * from './health.js';
 export * from './reconcile.js';
 export * from './filings.js';
 export * from './news.js';
+export * from './news-impact.js';
 export * from './tickers.js';
 export * from './study.js';
 export * from './xml.js';

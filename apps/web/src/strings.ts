@@ -206,7 +206,8 @@ export const t = {
       source: 'Source: Massive daily bars, split-adjusted. Click a ticker to study it.',
     },
     sectors: {
-      title: 'Sector heatmap',
+      title: 'US sectors',
+      aside: (n: number, day: string) => `${n} SPDR ETFs \u00B7 close of ${day}`,
       none: 'No sector data yet. It comes from the breadth job (after its first full run).',
       asOf: (date: string) => `Day change of the Select Sector SPDRs on ${date}.`,
       source: 'Source: Massive grouped daily (end of day), splits applied by Marsad.',
@@ -238,8 +239,119 @@ export const t = {
             : `Email failed: ${state.replace(/^failed: /, '')}.`,
     },
     news: {
-      title: 'Watchlist news',
+      title: 'Latest news',
       none: 'No news stored for the watchlist yet.',
+    },
+    v2: {
+      noData: 'No data stored',
+      sourceChip: (day: string) => `Massive \u00B7 end of day \u00B7 close of ${day}`,
+      cockpit: {
+        title: 'Morning decision cockpit',
+        regime: 'Regime',
+        movers: 'Last session movers',
+        today: 'Today',
+        exits: 'Exit rules',
+        notYet: 'Not available yet',
+        regimeNone: 'The regime job has not stored a day yet.',
+        labels: {
+          stress: 'Stress',
+          bear: 'Bear',
+          recovery: 'Recovery',
+          'bull-calm': 'Bull calm',
+          'bull-correction': 'Bull correction',
+          'insufficient-data': 'Insufficient data',
+        } as Record<string, string>,
+        run: (n: number, atLeast: boolean, version: string, day: string) =>
+          `${atLeast ? 'At least ' : ''}${n} session${n === 1 ? '' : 's'} \u00B7 ${version} \u00B7 ${day}`,
+        vix: (v: string) => `VIX ${v}`,
+        vixNone: 'VIX not stored',
+        breadth: (p: string) => `breadth ${p}% above 50-day`,
+        breadthNone: 'breadth not stored',
+        moversNone: 'No watchlist bars stored yet.',
+        closeOf: (day: string) => `Close of ${day}`,
+        closed: (name: string) => `Market closed: ${name}`,
+        earlyClose: (et: string) => `Early close ${et} ET`,
+        event: (name: string, et: string) => `${name} ${et} ET`,
+        local: (time: string, city: string) => `${time} ${city}`,
+        moreToday: (n: number) => `${n} more today`,
+        noEvents: 'No scheduled releases today',
+        calendarNone: 'Calendar not stored yet',
+        filings: (n: number, first: string) =>
+          n === 0
+            ? 'No Tier 1 filing since the last close'
+            : `${n} Tier 1 filing${n === 1 ? '' : 's'}: ${first}`,
+        filingsUnavailable: 'Filings unavailable',
+        exitsNone: 'No holdings recorded',
+        exitsNoneSub: 'Add holdings in the Journal to check their exit rules.',
+        allInside: 'Every holding inside its plan',
+        checked: (n: number, day: string) =>
+          `${n} holding${n === 1 ? '' : 's'} checked at the close of ${day}`,
+        others: (n: number) =>
+          n === 0
+            ? 'No other holding flagged'
+            : `${n} other holding${n === 1 ? '' : 's'} inside plan`,
+        signal: {
+          stop: (tk: string) => `${tk} closed under its stop`,
+          'trend-break': (tk: string, period: string) => `${tk} under its ${period}-day average`,
+          'time-stop': (tk: string) => `${tk} reached its time stop`,
+          target: (tk: string) => `${tk} reached a target`,
+        },
+        holdingsUnavailable: 'Holdings unavailable',
+        briefLine: (kind: string, et: string, local: string, city: string, state: string) =>
+          `${kind} \u00B7 ${et} ET \u00B7 ${local} ${city} \u00B7 ${state}`,
+        noBrief: 'No brief yet',
+      },
+      list: {
+        hint: 'Tap a row to open Study \u00B7 volume against the 20-day average \u00B7 earnings dates are estimated',
+        colCompany: 'Company',
+        colRange: '52-week position',
+        colVolume: 'Volume',
+        held: 'Held',
+        showTrader: 'Show trader columns',
+        hideTrader: 'Hide trader columns',
+        position: (p: string) => `${p}%`,
+        open: (tk: string) => `Open ${tk} in Study`,
+      },
+      news: {
+        asOf: (et: string) => `Read ${et} ET \u00B7 refreshes when the page loads`,
+        highlight: 'Highlight of the day',
+        impact: { high: 'High impact', medium: 'Medium', low: 'Low' } as Record<string, string>,
+        secEdgar: 'SEC EDGAR',
+        tier: (n: number) => `Tier ${n}`,
+        opinion: 'Opinion',
+        loading: 'Loading',
+        filingTitle: (tk: string, form: string, items: string, plain: string) =>
+          `${tk} files ${form}${items ? `, item ${items}` : ''}${plain ? `: ${plain}` : ''}`,
+        why: {
+          held: (tks: string) => `Touches your holdings: ${tks}.`,
+          watched: (tks: string) => `Names watchlist tickers: ${tks}.`,
+          topic: (topic: string, ratio: string) =>
+            `${topic} headlines are running at ${ratio}x the weekly norm.`,
+          filing: (plain: string) => `SEC filing: ${plain}.`,
+          tier: (tier: number) => `Tier ${tier} source.`,
+          score: (score: number, version: string) => `Impact score ${score} (${version}).`,
+        },
+        topics: {
+          conflict: 'Conflict',
+          sanctions: 'Sanctions and export control',
+          tariffs: 'Tariff and trade',
+          elections: 'Election',
+          centralBanks: 'Central bank',
+          energy: 'Energy',
+        } as Record<string, string>,
+        more: (n: number) => `${n} more stor${n === 1 ? 'y' : 'ies'}`,
+        about:
+          'Ranked by impact (impact-1): source tier, the filing item, whether it names your holdings or watchlist, and how busy its topic is against the 4-week norm. The price move since the story is left out: it needs prices after the story, and Marsad stores end-of-day bars. Not realtime: the list is read when the page loads. Filings: SEC EDGAR 8-K, 10-Q and 10-K of the watchlist and holdings, last 10 days.',
+      },
+      calendar: {
+        title: 'Economic and earnings calendar',
+        zones: (city: string) => `ET \u00B7 ${city}`,
+        pill: { high: 'HIGH', medium: 'MED', low: 'LOW', earn: 'EARN' } as Record<string, string>,
+        source: (src: string) => `Source: ${src}`,
+        earnSource: 'SEC 8-K dates',
+        legend:
+          'HIGH, MED and LOW: expected market impact of the release \u00B7 EARN: watchlist earnings, estimated from past filing dates',
+      },
     },
     ui: {
       lastSession: (date: string) => `Last completed session ${date}`,
