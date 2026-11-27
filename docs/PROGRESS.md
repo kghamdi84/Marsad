@@ -4,6 +4,16 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Quick look shows position, performance and a short company brief (2026-11-27)
+
+- Tapping any ticker now shows three new sections under the header:
+  - **Your position**, shown for open holdings only: value, gain, weight, stop bar, thesis, exit rules and horizon.
+  - **Performance**: 1M, 3M and 1Y returns against SPY and the sector fund, the 52-week position, ATR %, rank, volume, revenue and net margin.
+  - **Company brief**: what the company does, the top strengths and risks, sentiment, the latest report and the next earnings estimate.
+- The extra data loads only when the quick look opens and shares the Study page's cache.
+- The next-earnings estimate now comes from the stored results 8-Ks, as it does on Study.
+- **Known issue (existing):** a ticker link inside a modal sheet (the Journal trade card, phone sheets) opens a quick look that the sheet blocks.
+
 ### Regime squeezed (2026-11-27, Khaled: squeeze Regime too)
 
 - One summary card first: six one-line rows (the label and its run, the recession filter with n of 5 signals on, Fear and Greed, the capitulation watch with n of 4 conditions, the leading and lagging sector against SPY over 1 month, GPR and EPU percentiles). Each row opens its detail and moves focus there. The past-year ribbon sits under the rows; "Why this label" with the day's reason sits beside them.
