@@ -15,9 +15,14 @@ export interface LabRun {
   ruleId: string;
   version: number;
   createdAt: string;
+  /** Variants tried for this run (counted for the deflated Sharpe); null when the row has none. */
+  trials: number | null;
   params: {
     tickers?: string[];
     costs?: { commissionBps: number; slippageBps: number; fxBps: number };
+    /** Walk-forward folds and the untouched holdout share of the dates, as the job ran them. */
+    folds?: number;
+    holdoutFraction?: number;
   };
   report: {
     trades?: number;
@@ -39,7 +44,7 @@ export async function loadLab(): Promise<{ rules: LabRule[]; runs: LabRun[] }> {
     client().from('rules').select('id, version, status').order('version', { ascending: false }),
     client()
       .from('backtest_runs')
-      .select('rule_id, version, created_at, params, report')
+      .select('rule_id, version, created_at, trials, params, report')
       .order('created_at', { ascending: false })
       .limit(50),
   ]);
@@ -60,6 +65,7 @@ export async function loadLab(): Promise<{ rules: LabRule[]; runs: LabRun[] }> {
         ruleId: String(x['rule_id']),
         version: Number(x['version']),
         createdAt: String(x['created_at']),
+        trials: typeof x['trials'] === 'number' ? x['trials'] : null,
         params: (x['params'] ?? {}) as LabRun['params'],
         report: (x['report'] ?? {}) as LabRun['report'],
       });

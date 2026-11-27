@@ -53,7 +53,7 @@ test('creating keys saves only the public key; the private key never leaves the 
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
     .click();
-  const section = page.getByRole('region', { name: 'Notifications' });
+  const section = page.getByRole('region', { name: 'Push setup' });
   await expect(section.getByText('No keys yet.')).toBeVisible();
   await expect(section.getByText('Create the keys first.')).toBeVisible();
   await section.getByRole('button', { name: 'Create keys' }).click();
@@ -121,6 +121,7 @@ test('the device list says which devices work, which fail and which the push ser
     .getByRole('link', { name: 'Settings' })
     .click();
   const section = page.getByRole('region', { name: 'Notifications' });
+  const setup = page.getByRole('region', { name: 'Push setup' });
   await expect(dev(section, 'iPad')).toContainText('Active');
   await expect(dev(section, 'iPhone')).toContainText('Failing (2 in a row): 500: server error');
   await expect(dev(section, 'iPhone')).toContainText('Never');
@@ -129,11 +130,19 @@ test('the device list says which devices work, which fail and which the push ser
   await expect.poll(() => m.deleted.length).toBe(1);
   expect(m.deleted[0]).toContain('id=eq.2');
 
+  // The summary row counts the devices that are not stopped and names each state.
+  await expect(section.getByText('2 devices', { exact: true })).toBeVisible();
+  await expect(
+    section.getByText(/iPad active \u00B7 iPhone failing \(500: server error\)/),
+  ).toBeVisible();
+  // Quiet hours and a daily cap are not built yet, and the card says so.
+  await expect(section.getByText('Not available yet')).toHaveCount(2);
+
   // Replacing keys asks first and says what it costs.
-  await section.getByRole('button', { name: 'Replace keys' }).click();
-  await expect(section.getByText(/New keys stop every device/)).toBeVisible();
-  await section.getByRole('button', { name: 'Cancel' }).click();
-  await expect(section.getByText(/New keys stop every device/)).toHaveCount(0);
+  await setup.getByRole('button', { name: 'Replace keys' }).click();
+  await expect(setup.getByText(/New keys stop every device/)).toBeVisible();
+  await setup.getByRole('button', { name: 'Cancel' }).click();
+  await expect(setup.getByText(/New keys stop every device/)).toHaveCount(0);
   expect(m.saved).toHaveLength(0);
 });
 
@@ -149,7 +158,7 @@ test('a refused permission prompt explains where to allow notifications', async 
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
     .click();
-  const section = page.getByRole('region', { name: 'Notifications' });
+  const section = page.getByRole('region', { name: 'Push setup' });
   await section.getByRole('button', { name: 'Turn on for this device' }).click();
   await expect(section.getByRole('alert')).toContainText('Allow Notifications');
 });

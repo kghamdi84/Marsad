@@ -38,6 +38,7 @@ export * from './stats.js';
 export * from './rules.js';
 export * from './backtest.js';
 export * from './playbooks.js';
+export * from './rule-text.js';
 export * from './lifecycle.js';
 export * from './replay.js';
 export * from './alerts.js';
