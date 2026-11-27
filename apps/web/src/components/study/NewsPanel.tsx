@@ -45,7 +45,6 @@ export function NewsPanel({ ticker }: { ticker: string }) {
       id="news"
       title={n.title}
       state={q}
-      card
       aside={
         newest ? (
           <span className="text-xs text-ink3">

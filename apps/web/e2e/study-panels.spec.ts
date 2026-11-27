@@ -77,6 +77,18 @@ async function setup(page: Page) {
   await seedSession(page, 'aal2');
   await page.clock.setFixedTime(new Date('2026-11-25T01:00:00Z'));
   const empty = (r: Route) => json(r, []);
+  // The company brief's own inputs (company-brief-1) are empty unless a test registers rows.
+  for (const table of [
+    'annual_sections',
+    'quarterly_sections',
+    'regime_daily',
+    'watchlist_items',
+    'holdings',
+    'strength_rank_daily',
+    'halts',
+    'alerts',
+  ])
+    await page.route(`**/rest/v1/${table}**`, empty);
   await page.route('**/rest/v1/market_holidays**', empty);
   await page.route('**/rest/v1/splits**', empty);
   await page.route('**/rest/v1/daily_bars**', (r) => json(r, bars()));
@@ -314,6 +326,12 @@ async function setup(page: Page) {
         title: x['title'],
         url: x['article_url'],
         tickers: x['tickers'],
+        // Stored as the news job writes it: the vendor's label per ticker (company-brief-1 counts these).
+        sentiment: ((x['insights'] ?? []) as Json[]).map((i) => ({
+          ticker: i['ticker'],
+          label: i['sentiment'],
+          reasoning: i['sentiment_reasoning'] ?? null,
+        })),
       })),
     ),
   );
@@ -330,6 +348,8 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   // the same quarters: 31.910 + 42.960 (120.067 - 77.107) + 58.321 + 59.688 = 192.879 billion, 63.66% of revenue.
   // Market value: the 300.00 close x 24.1 billion shares (cover page filed 2026-08-26) = 7.23 trillion. The four
   // quarters a year earlier are not all in the facts, so there is no change on a year earlier, only the period.
+  // Squeezed: the snapshot tiles sit at the top of the Financials tab.
+  await openSection(page, 'Financials');
   const snapshot = page.getByRole('region', { name: 'Snapshot' });
   await expect(snapshot).toContainText('$7.23T');
   await expect(snapshot).toContainText('24.10B shares × 300.00');
@@ -337,7 +357,6 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await expect(snapshot).toContainText('Four quarters to 2026-07-26');
   await expect(snapshot).toContainText('63.7%');
   await expect(snapshot).not.toContainText('on a year earlier');
-  await openSection(page, 'Financials');
   const panel = page.getByRole('region', { name: 'Financials, as filed' });
   await expect(panel.getByText('Latest filing used: 2026-08-26')).toBeVisible();
   // The newest quarter (reported directly), its revenue and growth over the same quarter a year earlier.
@@ -373,6 +392,120 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await expect(quarters.getByRole('row', { name: /^2026-04-26/ })).toContainText('$81.62B');
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/panels.png`, fullPage: true });
+});
+
+test('company brief: the recorded facts, news labels, insiders and short interest, each line with its date', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/regime_daily**', (r) =>
+    json(r, [
+      {
+        date: '2026-11-24',
+        label: 'bull-calm',
+        rule_version: 'regime-1',
+        recession_version: 'recession-1',
+        recession_level: 'clear',
+        recession: { triggered: 0, available: 3 },
+      },
+    ]),
+  );
+  await page.route('**/rest/v1/watchlist_items**', (r) => json(r, [{ sector_etf: 'XLK' }]));
+  await page.route('**/rest/v1/strength_rank_daily**', (r) =>
+    json(r, [{ date: '2026-11-24', percentile: 90, rank: 3, members: 21 }]),
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/study/NVDA');
+  const brief = page.getByRole('region', { name: 'Company brief' });
+  // Company: the 300.00 close x 24.1 billion shares (cover page for 2026-08-21) = 7.23 trillion (snapshot-1).
+  await expect(brief).toContainText('$7.23T');
+  await expect(brief).toContainText(
+    '24.10B shares × $300.00 (close of 24 Nov 2026, shares at 21 Aug 2026)',
+  );
+  // Performance: 302.969 billion over the four quarters to 2026-07-26 (summed in the financials test), with no
+  // year-earlier figure in the recorded facts; 192.879 / 302.969 = 63.66% net margin.
+  await expect(brief).toContainText('$303.0B to 26 Jul 2026 (no year-earlier figure)');
+  await expect(brief).toContainText('63.7% over 4 quarters to 26 Jul 2026');
+  // Capital spending is only recorded up to 2020, so free cash flow is not available rather than guessed.
+  await expect(brief.getByText('Free cash flow', { exact: true }).locator('..')).toContainText(
+    'Not available',
+  );
+  // Diluted shares 24.285 billion (quarter to 2026-07-26) against 24.532 billion (to 2025-07-27): -1.0068%.
+  await expect(brief).toContainText(
+    'Diluted shares −1.0% on a year earlier (quarter to 26 Jul 2026)',
+  );
+  await expect(brief).toContainText(
+    '90 percentile, 3 of 21 universe stocks by 3-month return (24 Nov 2026)',
+  );
+  // Checks, each with its rule: cash 22.443 billion minus long-term debt 33.366 billion = net debt 10.923 billion.
+  await expect(brief.getByText('Code-based checks, not advice')).toBeVisible();
+  await expect(
+    brief.getByText('Net margin 63.7% over 4 quarters to 26 Jul 2026. Rule: 15% or more.'),
+  ).toBeVisible();
+  await expect(
+    brief.getByText(
+      'Diluted shares down 1.0% on a year earlier (quarter to 26 Jul 2026). Rule: down 1% or more.',
+    ),
+  ).toBeVisible();
+  await expect(
+    brief.getByText(
+      'Net debt $10.9B at 26 Jul 2026: long-term debt above cash and short-term investments.',
+    ),
+  ).toBeVisible();
+  await expect(
+    brief.getByText(
+      'Strength rank 90 percentile of 21 universe stocks (24 Nov 2026). Rule: 80 or higher.',
+    ),
+  ).toBeVisible();
+  // Two open-market sales on 2026-11-19: 1,434 x 146.0298 + 1,410 x 157.4947 = $431,474.26; the amended Form 5's
+  // sales (2023 and 2024) are outside the 90 days.
+  await expect(
+    brief.getByText('Insiders sold $431,474.26 in 90 days to 24 Nov 2026 (2 sales), none bought.'),
+  ).toBeVisible();
+  await expect(brief).toContainText(
+    'Net −$431,474.26: 0 open-market buys $0.00, 2 sales $431,474.26',
+  );
+  // Sentiment: the 30 recorded stories carry the vendor's labels for NVDA: 10 positive, 12 neutral, 8 negative.
+  // 30 labelled stories is enough for percentages: 33%, 40%, 27%.
+  await expect(brief).toContainText('10 positive · 12 neutral · 8 negative, of 30 stored stories');
+  await expect(brief).toContainText(
+    '33% positive, 40% neutral, 27% negative of the labelled stories.',
+  );
+  // Short interest settled 2026-10-30: 279,579,505 shares, 1.16% of 24.1 billion; 301,622,687 on 2026-10-15
+  // before it, so -7.31%.
+  await expect(brief).toContainText('279.6M shares');
+  await expect(brief).toContainText(
+    '1.2% of shares outstanding · −7.3% since 15 Oct 2026 · 2.8 days to cover · settled 30 Oct 2026',
+  );
+  // Context, never an outlook.
+  await expect(brief).toContainText('Bull calm (close of 24 Nov 2026, rules regime-1)');
+  await expect(brief).toContainText('0 of 3 on, level clear (24 Nov 2026)');
+  await expect(brief.getByText('XLK against SPY')).toBeVisible();
+  await expect(brief).toContainText('(to 24 Nov 2026, set on the watchlist)');
+  await expect(brief).toContainText('Marsad does not forecast or predict prices.');
+  // What's next: the declared December dividend.
+  await expect(brief).toContainText('02 Dec 2026, $0.25 a share');
+  await expect(brief).toContainText('No results filings stored');
+  // Each block opens its detail in one tap.
+  await brief.getByRole('button', { name: 'Open Financials' }).click();
+  await expect(page.getByRole('tab', { name: 'Financials' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('region', { name: 'Snapshot' })).toContainText('$7.23T');
+  await brief.getByRole('button', { name: 'Open News' }).click();
+  await expect(page.getByRole('heading', { name: 'Latest company news' })).toBeVisible();
+  if (process.env.SHOT_DIR) {
+    await page.reload();
+    await expect(brief).toContainText('$7.23T');
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/brief-dark.png`, fullPage: true });
+    await page.evaluate(() =>
+      localStorage.setItem('marsad.display', JSON.stringify({ theme: 'light', lang: 'en' })),
+    );
+    await page.reload();
+    await expect(brief).toContainText('$7.23T');
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/brief-light.png`, fullPage: true });
+  }
 });
 
 test('earnings: each release matched to its quarter, the move in the session that could trade, gaps said out loud', async ({
@@ -566,9 +699,13 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
       no_material_changes: false,
     },
   ];
+  // The company brief reads only the newest 10-Q's flag (no text); the text is read only when opened.
   let asked = 0;
+  let flagReads = 0;
   await page.route('**/rest/v1/quarterly_sections**', (r) => {
-    asked++;
+    const select = new URL(r.request().url()).searchParams.get('select') ?? '';
+    if (select.split(',').includes('text')) asked++;
+    else flagReads++;
     return json(r, rows);
   });
   await page.goto('/study/NVDA');
@@ -577,6 +714,15 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
   await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
   const panel = page.getByRole('region', { name: 'Risk factors, quarter over quarter (10-Q)' });
   expect(asked).toBe(0);
+  expect(flagReads).toBe(1);
+  // The brief flags the newest 10-Q's risk factor changes, with its date.
+  await expect(
+    page
+      .getByRole('region', { name: 'Company brief' })
+      .getByText(
+        'The newest 10-Q (filed 09 Nov 2026) lists risk factors added or changed since the annual report.',
+      ),
+  ).toBeVisible();
   await panel.getByText('Show the quarterly updates').click();
   await expect(panel.getByText('Newest 10-Q, filed 2026-11-09.')).toBeVisible();
   await expect(panel.getByText(/This quarter lists risk factors added or changed/)).toBeVisible();
@@ -608,10 +754,23 @@ test('business: the real 10-K Item 1 text loads only when opened, with its filin
     ]);
   });
   await page.goto('/study/NVDA');
+  // The company brief reads the section once for its first sentence, as filed, with the filing date; the panel
+  // below reuses that read rather than asking again (company-brief-1).
+  const brief = page.getByRole('region', { name: 'Company brief' });
+  await expect(
+    brief.getByText(
+      'NVIDIA pioneered accelerated computing to help solve the most challenging computational problems.',
+    ),
+  ).toBeVisible();
+  await expect(
+    brief.getByText(
+      'First sentence of the 10-K business section, as filed 25 Feb 2026 (year ended 25 Jan 2026).',
+    ),
+  ).toBeVisible();
   const panel = page.getByRole('region', { name: 'What the company does (10-K, Item 1)' });
   await openInfo(page.getByRole('region', { name: 'What the company does (10-K, Item 1)' }));
   await expect(panel.getByText(/not an independent view/)).toBeVisible();
-  expect(asked).toHaveLength(0);
+  expect(asked).toHaveLength(1);
   await panel.getByText('Show the business description').click();
   await expect(panel.getByText('Year ended 2026-01-25, filed 2026-02-25.')).toBeVisible();
   await expect(panel.getByText(/NVIDIA pioneered accelerated computing/)).toBeVisible();
@@ -620,6 +779,7 @@ test('business: the real 10-K Item 1 text loads only when opened, with its filin
     'https://www.sec.gov/Archives/edgar/data/1045810/0001045810-26-000021.txt',
   );
   expect(asked[0]).toContain('section=eq.business');
+  expect(asked).toHaveLength(1);
 });
 
 test('risk factors: nothing is fetched until opened, then two real 10-Ks are compared by sentence', async ({
@@ -628,6 +788,8 @@ test('risk factors: nothing is fetched until opened, then two real 10-Ks are com
   await setup(page);
   let fetched = 0;
   await page.route('**/rest/v1/annual_sections**', (r) => {
+    // The company brief reads the business section; only the risk factor reads count here.
+    if (!r.request().url().includes('section=eq.risk_factors')) return json(r, []);
     fetched++;
     return json(r, sectionRows());
   });
@@ -791,7 +953,7 @@ test('short data: both definitions, the lag, and the real rows', async ({ page }
   await setup(page);
   await page.goto('/study/NVDA');
   await openSection(page, 'Short data');
-  // The key tile reads the same stored rows as the panel.
+  // The company brief's short interest line reads the same stored rows as the panel.
   await expect(page.getByText(/M shares$/).first()).toBeVisible();
   const panel = page.getByRole('region', { name: 'Short interest and short volume' });
   await expect(
@@ -809,7 +971,8 @@ test('news: tiers and opinion labelled, one story once, links open the publisher
 }) => {
   await setup(page);
   await page.goto('/study/NVDA');
-  // v2: the news is its own card on the page, beside the filings, not a section tab.
+  // Squeezed: the news is a tab of the company area, beside the filings, one tap away.
+  await page.getByRole('tab', { name: 'News', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Latest company news' });
   // Reporting shows first; opinion and tier 3 or 4 sit behind a toggle (council batch 2).
   await expect(panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' })).toHaveCount(0);
@@ -880,6 +1043,8 @@ test('thesis card: a new version needs a real bear case, is saved append-only an
     return r.fulfill({ status: 201, body: '' });
   });
   await page.route('**/rest/v1/holdings**', (r) => {
+    // The company brief reads a holding's sector fund; only writes are recorded here.
+    if (r.request().method() === 'GET') return json(r, []);
     saved.push({
       table: 'holdings',
       method: r.request().method(),

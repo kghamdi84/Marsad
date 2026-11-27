@@ -37,7 +37,8 @@ import { ShortData } from '../components/study/ShortData';
 import { CompanySearch } from '../components/study/CompanySearch';
 import { FilingsCard } from '../components/study/FilingsCard';
 import { markerLetter } from '../components/study/markers';
-import { filingEvents, loadStudy, type StudyData } from '../lib/study';
+import { filingEvents, formatUsd, loadStudy, type StudyData } from '../lib/study';
+import { CompanyBrief, type BriefTarget } from '../components/study/CompanyBrief';
 import {
   loadChartEvents,
   loadDividends,
@@ -179,6 +180,8 @@ const RANGE_SESSIONS: Record<Range, number> = { '3m': 63, '6m': 126, '1y': 252 }
 
 const SECTIONS = [
   'overview',
+  'news',
+  'filings',
   'financials',
   'earnings',
   'holders',
@@ -217,8 +220,16 @@ function SectionTabs({
 }
 
 /** Phones: every section as a collapsible block, the overview open first; closed ones load nothing. */
-function SectionAccordions({ render }: { render: (k: SectionKey) => React.ReactNode }) {
-  const [open, setOpen] = useState<Record<string, boolean>>({ overview: true });
+function SectionAccordions({
+  render,
+  open,
+  setOpen,
+}: {
+  render: (k: SectionKey) => React.ReactNode;
+  /** Which blocks are open; the page owns it so a company brief link can open one. */
+  open: Record<string, boolean>;
+  setOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}) {
   return (
     <section aria-label={ui.details} className="flex flex-col gap-3">
       {SECTIONS.map((k) => (
@@ -475,16 +486,6 @@ function Snapshot({
   );
 }
 
-/** Dollars in the units a person reads: $7.23T, $304.2B, $812.4M. */
-function formatUsd(v: number): string {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '−' : '';
-  if (abs >= 1e12) return `${sign}$${toFixedHalfUp(abs / 1e12, 2)}T`;
-  if (abs >= 1e9) return `${sign}$${toFixedHalfUp(abs / 1e9, 1)}B`;
-  if (abs >= 1e6) return `${sign}$${toFixedHalfUp(abs / 1e6, 1)}M`;
-  return `${sign}$${money(abs)}`;
-}
-
 export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
@@ -497,7 +498,16 @@ export function StudyCompany() {
   );
   const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
   const [picked, setPicked] = useState<string | null>(null);
+  const [phoneOpen, setPhoneOpen] = useState<Record<string, boolean>>({ overview: true });
   const wide = useWide();
+  // A brief block's link: choose that section (open it on phones) and bring the area into view.
+  const openSection = (k: BriefTarget) => {
+    setSection(k);
+    setPhoneOpen((o) => (o[k] ? o : { ...o, [k]: true }));
+    requestAnimationFrame(() =>
+      document.getElementById('study-area')?.scrollIntoView({ block: 'start' }),
+    );
+  };
   const q = useQuery({
     queryKey: ['study', ticker],
     queryFn: () => loadStudy(ticker as string),
@@ -646,8 +656,19 @@ export function StudyCompany() {
             </section>
           </>
         );
+      case 'news':
+        return <NewsPanel ticker={q.data.ticker} />;
+      case 'filings':
+        return <FilingsCard data={q.data} />;
       case 'financials':
-        return <>{cikOf && <Financials cik={cikOf} bars={q.data.bars} />}</>;
+        return (
+          <>
+            {summary && (
+              <Snapshot ticker={ticker} cik={cikOf} s={summary} earnings={earningsEstimate} />
+            )}
+            {cikOf && <Financials cik={cikOf} bars={q.data.bars} />}
+          </>
+        );
       case 'earnings':
         return (
           <>
@@ -741,6 +762,17 @@ export function StudyCompany() {
       )}
 
       {q.data && <Header ticker={ticker} data={q.data} s={summary} />}
+      {q.data && (
+        <CompanyBrief
+          data={q.data}
+          earnings={earningsEstimate}
+          results={results}
+          insiders={insiders}
+          events={events}
+          dividends={dividends}
+          onOpen={openSection}
+        />
+      )}
       {q.data && !q.data.company && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
       {q.data && q.data.bars.length === 0 && <p className="text-sm text-ink3">{t.study.noBars}</p>}
 
@@ -851,23 +883,18 @@ export function StudyCompany() {
               {t.study.provenance(summary.asOf, summary.sessions, summary.formulaVersion)}
             </p>
           </section>
-          <Snapshot ticker={ticker} cik={cik} s={summary} earnings={earningsEstimate} />
         </>
       )}
 
       {q.data && (
-        <AutoGrid min={380} gap="gap-5" className="items-start">
-          <NewsPanel ticker={q.data.ticker} />
-          <FilingsCard data={q.data} />
-        </AutoGrid>
+        <div id="study-area" className="scroll-mt-4">
+          {wide ? (
+            <SectionTabs value={section} onChange={setSection} render={render} />
+          ) : (
+            <SectionAccordions render={render} open={phoneOpen} setOpen={setPhoneOpen} />
+          )}
+        </div>
       )}
-
-      {q.data &&
-        (wide ? (
-          <SectionTabs value={section} onChange={setSection} render={render} />
-        ) : (
-          <SectionAccordions render={render} />
-        ))}
     </div>
   );
 }

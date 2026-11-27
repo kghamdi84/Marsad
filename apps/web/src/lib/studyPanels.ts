@@ -1,5 +1,9 @@
 import type {
   AlertEvent,
+  BriefFiling,
+  BriefNews,
+  BriefRegime,
+  DailyBar,
   DatedSection,
   DividendEvent,
   EarningsFiling,
@@ -516,5 +520,182 @@ export async function loadRiskFactorSections(cik: string): Promise<DatedSection[
     filingDate: String(r['filing_date']),
     filingUrl: String(r['filing_url']),
     text: String(r['text']),
+  }));
+}
+
+// Company brief inputs (company-brief-1). Each loads on its own, so one failure leaves the rest of the brief.
+
+/** Stored news of one ticker since `sinceIso` with the vendor's sentiment labels; `capped` when the limit was hit. */
+export async function loadNewsSentiment(
+  ticker: string,
+  sinceIso: string,
+): Promise<{ rows: BriefNews[]; capped: boolean }> {
+  const LIMIT = 500;
+  const rows = check(
+    await client()
+      .from('news_articles')
+      .select('id, published_at, sentiment')
+      .contains('tickers', [ticker])
+      .gte('published_at', sinceIso)
+      .order('published_at', { ascending: false })
+      .limit(LIMIT),
+    'news_articles',
+  ) as Record<string, unknown>[];
+  return {
+    capped: rows.length >= LIMIT,
+    rows: rows.map((r) => ({
+      id: String(r['id']),
+      publishedAt: new Date(String(r['published_at'])).toISOString(),
+      sentiment: Array.isArray(r['sentiment'])
+        ? (r['sentiment'] as Record<string, unknown>[]).flatMap((s) =>
+            typeof s['ticker'] === 'string' && typeof s['label'] === 'string'
+              ? [{ ticker: s['ticker'], label: s['label'] }]
+              : [],
+          )
+        : null,
+    })),
+  };
+}
+
+/** The newest stored regime day: the label and the recession filter count (ADR 0009). Null before the first run. */
+export async function loadLatestRegime(): Promise<BriefRegime | null> {
+  const rows = check(
+    await client()
+      .from('regime_daily')
+      .select('date, label, rule_version, recession_version, recession_level, recession')
+      .order('date', { ascending: false })
+      .limit(1),
+    'regime_daily',
+  ) as Record<string, unknown>[];
+  const r = rows[0];
+  if (!r) return null;
+  const rec = (r['recession'] ?? {}) as Record<string, unknown>;
+  return {
+    date: String(r['date']),
+    label: String(r['label']),
+    ruleVersion: String(r['rule_version']),
+    recessionVersion: String(r['recession_version']),
+    recessionLevel: String(r['recession_level']),
+    triggered: Number(rec['triggered'] ?? 0),
+    available: Number(rec['available'] ?? 0),
+  };
+}
+
+/** Daily bars of one ticker, the newest `sessions`, oldest first. */
+export async function loadRecentDailyBars(ticker: string, sessions = 300): Promise<DailyBar[]> {
+  const rows = check(
+    await client()
+      .from('daily_bars')
+      .select('date, open, high, low, close, volume, vwap')
+      .eq('ticker', ticker)
+      .order('date', { ascending: false })
+      .limit(sessions),
+    `daily_bars ${ticker}`,
+  ) as Record<string, unknown>[];
+  return rows
+    .map((b) => ({
+      date: String(b['date']),
+      open: Number(b['open']),
+      high: Number(b['high']),
+      low: Number(b['low']),
+      close: Number(b['close']),
+      volume: Number(b['volume']),
+      vwap: b['vwap'] === null || b['vwap'] === undefined ? null : Number(b['vwap']),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * The sector fund set for this ticker (on the watchlist first, then on a holding) and its bars. Null when none is
+ * set: Marsad stores no industry code to map from, so it never guesses one.
+ */
+export async function loadSectorFund(
+  ticker: string,
+): Promise<{ etf: string; source: 'watchlist' | 'holding'; bars: DailyBar[] } | null> {
+  const [w, h] = await Promise.all([
+    client().from('watchlist_items').select('sector_etf').eq('ticker', ticker).limit(1),
+    client().from('holdings').select('sector_etf').eq('ticker', ticker).limit(1),
+  ]);
+  const pick = (rows: Record<string, unknown>[]) => {
+    const v = rows[0]?.['sector_etf'];
+    return typeof v === 'string' && v !== '' ? v : null;
+  };
+  const fromWatch = pick(check(w, 'watchlist_items') as Record<string, unknown>[]);
+  const fromHolding = pick(check(h, 'holdings') as Record<string, unknown>[]);
+  const etf = fromWatch ?? fromHolding;
+  if (!etf) return null;
+  return {
+    etf,
+    source: fromWatch ? 'watchlist' : 'holding',
+    bars: await loadRecentDailyBars(etf),
+  };
+}
+
+/** The newest stored strength rank of one ticker (strength-1), or null. */
+export async function loadStrengthRank(
+  ticker: string,
+): Promise<{ date: string; percentile: number; rank: number; members: number } | null> {
+  const rows = check(
+    await client()
+      .from('strength_rank_daily')
+      .select('date, percentile, rank, members')
+      .eq('version', 'strength-1')
+      .eq('ticker', ticker)
+      .order('date', { ascending: false })
+      .limit(1),
+    'strength_rank_daily',
+  ) as Record<string, unknown>[];
+  const r = rows[0];
+  return r
+    ? {
+        date: String(r['date']),
+        percentile: Number(r['percentile']),
+        rank: Number(r['rank']),
+        members: Number(r['members']),
+      }
+    : null;
+}
+
+/** Whether the newest stored 10-Q says its risk factors changed; the text itself is not loaded here. */
+export async function loadRiskFlag(
+  cik: string,
+): Promise<{ filingDate: string; noMaterialChanges: boolean; filingUrl: string } | null> {
+  const rows = check(
+    await client()
+      .from('quarterly_sections')
+      .select('filing_date, filing_url, no_material_changes')
+      .eq('cik', cik)
+      .order('filing_date', { ascending: false })
+      .limit(1),
+    'quarterly_sections',
+  ) as Record<string, unknown>[];
+  const r = rows[0];
+  return r
+    ? {
+        filingDate: String(r['filing_date']),
+        noMaterialChanges: r['no_material_changes'] === true,
+        filingUrl: String(r['filing_url']),
+      }
+    : null;
+}
+
+/** The newest 8-K, 10-Q and 10-K filings (with amendments), whatever the page's newest-200 list holds. */
+export async function loadLatestReports(cik: string): Promise<BriefFiling[]> {
+  const rows = check(
+    await client()
+      .from('filings')
+      .select('accession, form, filing_date, primary_document, items')
+      .eq('cik', cik)
+      .in('form', ['8-K', '8-K/A', '10-Q', '10-Q/A', '10-K', '10-K/A'])
+      .order('filing_date', { ascending: false })
+      .limit(5),
+    'filings',
+  ) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    accession: String(r['accession']),
+    form: String(r['form']),
+    filingDate: String(r['filing_date']),
+    primaryDocument: r['primary_document'] ? String(r['primary_document']) : null,
+    items: Array.isArray(r['items']) ? (r['items'] as string[]) : [],
   }));
 }

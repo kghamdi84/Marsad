@@ -10,7 +10,7 @@ import {
 import { secUrl, type FilingRow, type StudyData } from '../../lib/study';
 import { dayMonthYear } from '../../lib/dates';
 import { t } from '../../strings';
-import { Card } from '../Card';
+import { panelTitle, tileClass } from './Panel';
 import { Num, Pill, type Tone } from '../ui/kit';
 
 const FIRST = 6;
@@ -49,7 +49,7 @@ function FilingTitle({ f }: { f: FilingRow }) {
 }
 
 /**
- * Filings and announcements (v2): the newest SEC filings as rows of form, what it says in plain words, when the SEC
+ * Filings and announcements (v2, a tab of the company area): the newest SEC filings as rows of form, what it says in plain words, when the SEC
  * accepted it (ET and local) and the form's reporting lag. The full list of up to 60 is one tap away.
  */
 export function FilingsCard({ data }: { data: StudyData }) {
@@ -57,11 +57,13 @@ export function FilingsCard({ data }: { data: StudyData }) {
   const list = data.filings.slice(0, 60);
   const shown = all ? list : list.slice(0, FIRST);
   return (
-    <Card
-      id="filings"
-      title={ui.filingsCard.title}
-      aside={<span className="text-xs text-ink3">{ui.filingsCard.source}</span>}
-    >
+    <section aria-labelledby="filings" className={tileClass}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="filings" className={panelTitle}>
+          {ui.filingsCard.title}
+        </h2>
+        <span className="text-xs text-ink3">{ui.filingsCard.source}</span>
+      </div>
       <p className="text-xs text-ink3">{t.study.filingsNote}</p>
       {list.length === 0 ? (
         <p className="text-sm text-ink3">{t.study.noFilings}</p>
@@ -123,6 +125,6 @@ export function FilingsCard({ data }: { data: StudyData }) {
           )}
         </>
       )}
-    </Card>
+    </section>
   );
 }
