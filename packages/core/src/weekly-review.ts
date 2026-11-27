@@ -57,6 +57,22 @@ export function weeklyTiles(x: Pick<WeeklyInputs, 'weekEnding' | 'trades'>): Wee
   };
 }
 
+/**
+ * A fund's (or index's) return over the review week, close to close: the last close on or before `weekEnding`
+ * against the last close before the week began (`weekEnding` minus 6 days). Null when either close is missing,
+ * so a gap in the stored bars reads as unavailable, never as a flat week. Bars are oldest first.
+ */
+export function weekReturn(
+  bars: readonly { date: string; close: number }[],
+  weekEnding: string,
+): { pct: number; from: string; to: string } | null {
+  const start = addDays(weekEnding, -6);
+  const end = [...bars].reverse().find((b) => b.date <= weekEnding);
+  const base = [...bars].reverse().find((b) => b.date < start);
+  if (!end || !base || end.date < start || !(base.close > 0)) return null;
+  return { pct: end.close / base.close - 1, from: base.date, to: end.date };
+}
+
 export function weeklyReview(x: WeeklyInputs): Brief {
   const start = addDays(x.weekEnding, -6);
   const inWeek = (d: string | null) => d !== null && d >= start && d <= x.weekEnding;

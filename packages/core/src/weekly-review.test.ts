@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JournalTrade } from './journal.js';
-import { weeklyReview, weeklyTiles } from './weekly-review.js';
+import { weekReturn, weeklyReview, weeklyTiles } from './weekly-review.js';
 
 const all5 = {
   cleanSetup: true,
@@ -113,5 +113,27 @@ describe('weeklyTiles', () => {
       ],
     });
     expect(t).toEqual({ closed: 2, followed: 0, touched: 3, meanR: 0.75 });
+  });
+});
+
+describe('weekReturn', () => {
+  // Hand-checked: the week ending Sunday 2026-11-29 starts Monday 2026-11-23. Base is the Friday 2026-11-20 close
+  // 500.00; end is the Friday 2026-11-27 close 510.00: 510 / 500 - 1 = 0.02 exactly (tolerance 1e-12).
+  const bars = [
+    { date: '2026-11-19', close: 498 },
+    { date: '2026-11-20', close: 500 },
+    { date: '2026-11-23', close: 505 },
+    { date: '2026-11-27', close: 510 },
+    { date: '2026-11-30', close: 520 },
+  ];
+  it('is close to close over the week, ignoring bars after it', () => {
+    const r = weekReturn(bars, '2026-11-29');
+    expect(r?.pct).toBeCloseTo(0.02, 12);
+    expect(r).toMatchObject({ from: '2026-11-20', to: '2026-11-27' });
+  });
+  it('is null when the week has no close or nothing precedes it', () => {
+    expect(weekReturn(bars.slice(0, 2), '2026-11-29')).toBeNull();
+    expect(weekReturn(bars.slice(2), '2026-11-29')).toBeNull();
+    expect(weekReturn([], '2026-11-29')).toBeNull();
   });
 });

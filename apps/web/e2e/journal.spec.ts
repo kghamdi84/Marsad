@@ -15,34 +15,44 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
   await seedSession(page, 'aal2');
   await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
   await page.goto('/journal');
-  await openTab(page, 'New trade');
+  await openTab(page, 'Sizer and Sahm ticket');
   const sizer = page.getByRole('region', { name: 'Pre-trade checklist and position sizer' });
   await expect(sizer.getByTestId('sahm-ticket')).toHaveText('Fill in ticker, entry and stop');
   await sizer.getByLabel('Ticker').fill('rklb');
   await sizer.getByLabel('Account ($)').fill('50000');
-  await sizer.getByLabel('Risk (%)').fill('0.5');
-  await sizer.getByLabel('Entry').fill('24.15');
+  await sizer.getByLabel('Risk per trade (%)').fill('0.5');
+  await sizer.getByLabel('Limit entry').fill('24.15');
   await sizer.getByLabel('Stop', { exact: true }).fill('22.15');
   await sizer.getByLabel('Targets').fill('28.15 30.15');
   // USD 250 at risk over a 2.00 stop distance: 125 shares, USD 3,018.75 (6.0% of the account); 2.0R and 3.0R.
   for (const [label, value] of [
     ['Shares', '125'],
-    ['Risk', '$250'],
+    ['Dollar risk', '$250'],
     ['Position', '$3,019'],
-    ['Of account', '6.0%'],
+    ['Position', '6.0% of account'],
+    ['Reward to risk', '2.0R'],
   ])
     await expect(sizer.getByText(label, { exact: true }).locator('..')).toContainText(value);
-  await expect(sizer.getByText('28.15 = 2.0R')).toBeVisible();
-  await expect(sizer.getByText('30.15 = 3.0R')).toBeVisible();
+  await expect(sizer.getByText(/28\.15 = 2\.0R/)).toBeVisible();
+  await expect(sizer.getByText(/30\.15 = 3\.0R/)).toBeVisible();
   await expect(sizer.getByTestId('sahm-ticket')).toHaveText(
     'BUY 125 RKLB LIMIT 24.15 STOP 22.15 GTC',
   );
   const copy = sizer.getByRole('button', { name: /^Copy Sahm order ticket/ });
   await expect(copy).toHaveText('Copy Sahm order ticket (0 of 5 checks)');
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
-  for (const box of await sizer.getByRole('checkbox').all()) await box.click();
+  // Four of five is still not enough: the copy stays disabled (hard rule).
+  const boxes = await sizer.getByRole('checkbox').all();
+  expect(boxes).toHaveLength(5);
+  for (const box of boxes.slice(0, 4)) await box.click();
+  await expect(copy).toHaveText('Copy Sahm order ticket (4 of 5 checks)');
+  await expect(copy).toHaveAttribute('aria-disabled', 'true');
+  await boxes[4]?.click();
   await expect(copy).toHaveText('Copy Sahm order ticket');
   await expect(copy).toHaveAttribute('aria-disabled', 'false');
+  // Unticking one disables it again.
+  await boxes[0]?.click();
+  await expect(copy).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('journal: holdings show the result and triggered exits; a CSV with mistakes names them', async ({
@@ -109,7 +119,8 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
   await expect(rklb).toContainText('\u25BC \u2212$250');
   await expect(rklb).toContainText('\u221210.4%');
   await expect(rklb).toContainText('Stop hit');
-  await expect(rklb).toContainText('Closed under 3-day');
+  // The rules line: (25 + 24 + 21.5) / 3 = 23.50.
+  await expect(rklb).toContainText('Trend break: closed under the 3-day 23.50');
   await expect(rklb).toContainText('Triggered: Closed at 21.50, at or below the stop 22.00.');
   await expect(rklb).toContainText('below the 3-day SMA');
   await expect(holdings.getByRole('listitem').filter({ hasText: 'SOFI' })).toContainText(
@@ -227,16 +238,23 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
     rt.fulfill(json([...vixRows].reverse())),
   );
   await page.goto('/journal');
-  await openTab(page, 'Exposure');
-  const exposure = page.getByRole('region', { name: 'Exposure, beta and stress' });
-  await expect(exposure.getByText('2.00', { exact: true })).toBeVisible();
+  await openTab(page, 'Exposure and look-through');
+  const exposure = page.getByRole('region', { name: 'Exposure', exact: true });
+  await expect(exposure).toContainText('Beta to SPY 2.00');
   // One holding, so every scenario is -20% of its value: 100 shares at the last RKLB close.
   const loss = `▼ −$${Math.round((closes.RKLB?.at(-1) ?? 0) * 100 * 0.2).toLocaleString('en-US')}`;
   for (const name of ['SPY down 10%', 'VIX up 10 points', 'Industrials (XLI) down 10%'])
     await expect(exposure.getByRole('listitem').filter({ hasText: name })).toContainText(loss);
+  await expect(exposure.getByRole('listitem').filter({ hasText: 'SPY down 10%' })).toContainText(
+    '−20.0% of portfolio',
+  );
   await expect(
     exposure.getByRole('listitem').filter({ hasText: 'Industrials' }).first(),
   ).toContainText('100.0%');
+  // The KPI strip reads the same beta.
+  await expect(page.getByRole('region', { name: 'Portfolio at a glance' })).toContainText(
+    'Beta to SPY2.00100% more than the market',
+  );
 
   await openTab(page, 'Positions');
   // RKLB lags XLI and SPY with a weakening thesis: the card flags a rotation, the edit sheet says why.
@@ -334,14 +352,14 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
     });
   });
   await page.goto('/journal');
-  await openTab(page, 'Trades');
+  await openTab(page, 'Trades and review');
   const section = page.getByRole('region', { name: 'Trades and adherence' });
   // RKLB: (28 - 24) / (24 - 22) = 2R, USD 400; 10 items, noEmotion not honored: 9 of 10 = 90.
   // The design's rows: result in R and whether the plan was followed (80 or more); a tap opens the full card.
   const rklbRow = section.getByRole('button', { name: /^RKLB/ });
   await expect(rklbRow).toContainText('▲ +2.0R');
   await expect(rklbRow).toContainText('Followed plan');
-  await expect(section.getByRole('img', { name: 'Adherence 45 of 100' })).toBeVisible(); // (90 + 0) / 2
+  await expect(section.getByText('Adherence 45', { exact: true })).toBeVisible(); // (90 + 0) / 2
   await expect(section).toContainText('1 of 2 trades followed the plan');
   await rklbRow.click();
   const rklb = page.getByRole('dialog', { name: 'RKLB trade' });
@@ -411,8 +429,28 @@ test('journal: the latest weekly review, or when the first one is due', async ({
   await page.route('**/rest/v1/briefs**', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) }),
   );
+  // SPY closes 500.00 on Friday 20 Nov and 510.00 on Friday 27 Nov: +2.0% over the week ending 29 Nov.
+  await page.route('**/rest/v1/daily_bars**', (r) =>
+    r.fulfill(
+      json(
+        [
+          ['2026-11-27', 510],
+          ['2026-11-23', 505],
+          ['2026-11-20', 500],
+        ].map(([date, close]) => ({
+          date,
+          open: close,
+          high: close,
+          low: close,
+          close,
+          volume: 1,
+          vwap: null,
+        })),
+      ),
+    ),
+  );
   await page.goto('/journal');
-  await openTab(page, 'Weekly review');
+  await openTab(page, 'Trades and review');
   await expect(page.getByText('The first weekly review is written on Sunday')).toBeVisible();
   rows = [
     {
@@ -453,6 +491,13 @@ test('journal: the latest weekly review, or when the first one is due', async ({
   await expect(review.getByText('Trades closed').locator('..')).toContainText('1');
   await expect(review.getByText('Plan followed').locator('..')).toContainText('0 of 1');
   await expect(review.getByText('Mean result').locator('..')).toContainText('▲ +2.00R');
+  await expect(review.getByText('SPY', { exact: true }).locator('..')).toContainText(
+    '▲ +2.0%Close 20 Nov to 27 Nov',
+  );
+  // No daily portfolio values are stored, so the portfolio's week is not guessed.
+  await expect(review.getByText('Portfolio', { exact: true }).locator('..')).toContainText(
+    'Not available yet',
+  );
 });
 
 test('options positions: the stored spread with its risk, exit rules and bear case; a naked call is refused', async ({
@@ -497,11 +542,11 @@ test('options positions: the stored spread with its risk, exit rules and bear ca
   const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread' });
   // Debit 300, maximum gain 700, breakeven 103; at 105 the spread is worth +200 at expiry.
   await expect(card).toContainText('Long 100 C, short 110 C · 1 contract');
-  await expect(card).toContainText('23days left');
+  await expect(card).toContainText('23 days to expiry');
   await expect(
     card.getByRole('img', { name: 'Maximum loss $300, maximum gain $700' }),
   ).toBeVisible();
-  await expect(card.getByText('Breakeven 103.00 · expires 18 Dec 2026')).toBeVisible();
+  await expect(card).toContainText('Breakeven 103.00 · expires 18 Dec 2026 · defined risk only');
   await card.getByRole('button', { name: 'Details' }).click();
   const sheet = page.getByRole('dialog');
   await expect(
@@ -622,8 +667,8 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
     return r.fulfill(json(funds[etf] ?? []));
   });
   await page.goto('/journal');
-  await openTab(page, 'ETF look-through');
-  const etf = page.getByRole('region', { name: 'ETF look-through and overlap' });
+  await openTab(page, 'Exposure and look-through');
+  const etf = page.getByRole('region', { name: 'ETF look-through (SEC N-PORT)' });
   // Portfolio 15,000: NVDA 1,000 direct (6.7%), 750 via SPY (5.0%), 320 via QQQ (2.1%), 2,070 in all (13.8%).
   await expect(etf).toContainText('Direct plus via SPY and QQQ, % of portfolio');
   await expect(
@@ -635,6 +680,15 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
     'N-PORT for 30 Jun 2026',
   );
   await expect(etf).toContainText('published up to 60 days after the month they describe');
+  // The position card's rules line: (750 + 320) / 15,000 = 7.1% more NVDA through the funds.
+  await openTab(page, 'Positions');
+  await expect(
+    page
+      .getByRole('region', { name: 'Holdings and exit conditions' })
+      .getByRole('listitem')
+      .filter({ hasText: 'NVDA' })
+      .first(),
+  ).toContainText('ETF look-through adds 7.1% via SPY and QQQ');
 });
 
 test.describe('on a phone', () => {
@@ -691,21 +745,21 @@ test.describe('on a phone', () => {
       card.getByRole('img', { name: 'Stop 22.00, now 21.50, targets 27.' }),
     ).toBeVisible();
     // Bars on 2, 3, 4 and 5 October follow the 1 October open: 4 of 10 sessions used.
-    await expect(card.getByText('Time stop \u00B7 4 of 10')).toBeVisible();
-    // Design: five segments with Options, Trades and Weekly review under More, and swipeable summary cards.
+    await expect(card).toContainText('time stop 4 of 10 sessions');
+    // Design: the five section buttons wrap onto two rows; the KPI tiles sit two by two.
     await expect(page.getByRole('tab')).toHaveText([
       'Positions',
-      'New trade',
-      'Exposure',
-      'ETF look-through',
-      'More',
+      'Sizer and Sahm ticket',
+      'Options',
+      'Exposure and look-through',
+      'Trades and review',
     ]);
-    await page.getByRole('tab', { name: 'More' }).click();
+    await page.getByRole('tab', { name: 'Options' }).click();
     await expect(page.getByRole('tab', { name: 'Options' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    await expect(page.getByRole('tab', { name: 'Weekly review' })).toBeVisible();
+    await openTab(page, 'Positions');
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,
