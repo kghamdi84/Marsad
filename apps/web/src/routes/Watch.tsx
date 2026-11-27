@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { etDate, tickerSummary } from '@marsad/core';
-import { SkeletonCards } from '../components/Card';
+import { Segmented, SkeletonCards, useRemembered } from '../components/Card';
 import { PageTitle, Pill } from '../components/ui/kit';
 import { Cockpit } from '../components/watch/Cockpit';
 import { Strip } from '../components/watch/Strip';
 import { WatchlistCard } from '../components/watch/WatchlistCard';
 import { NewsCard } from '../components/watch/NewsCard';
 import { CalendarCard } from '../components/watch/CalendarCard';
-import { GapsCard, MoversCard, MoversGapsPhone, SectorsCard } from '../components/watch/Market';
+import { GapsCard, MoversCard, SectorsCard } from '../components/watch/Market';
 import { Failure, useNow, v } from '../components/watch/shared';
 import { loadHoldings } from '../lib/journal';
 import { weekdayDayMonth } from '../lib/dates';
@@ -18,13 +18,13 @@ import { useLiveNews } from '../lib/liveNews';
 /** Filings shown as news: the last 10 days. */
 const FILING_DAYS = 10;
 
-const pairCols = 'grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-5';
-const pairGrid = `grid ${pairCols}`;
+const FEED_TABS = ['news', 'calendar'] as const;
+const MARKET_TABS = ['sectors', 'movers', 'gaps'] as const;
 
 /**
- * Watch (Marsad v2): the morning decision cockpit with the brief, the market strip, the watchlist, latest news
- * ranked by impact, the calendar, US sectors, and the universe movers and gap scanner. End-of-day data, each
- * number with its date.
+ * Watch (Marsad v2, squeezed): one Today card (regime, movers, today's events, exit rules, the brief one tap away),
+ * the market strip, the watchlist, then two switchable cards: news or calendar, and sectors, movers or gaps. Nothing
+ * is dropped; each view is one tap away and the choice is remembered. End-of-day data, each number with its date.
  */
 export function Watch() {
   const now = useNow();
@@ -54,6 +54,9 @@ export function Watch() {
     enabled: !!wq.data && !hq.isPending,
   });
   const session = wq.data ? tickerSummary(wq.data.bars['SPY'] ?? [])?.date : undefined;
+  const [feed, setFeed] = useRemembered('marsad.watch.feed', FEED_TABS, 'news');
+  const [market, setMarket] = useRemembered('marsad.watch.market', MARKET_TABS, 'sectors');
+  const sw = v.switch;
   return (
     <div className="flex flex-col gap-5">
       <PageTitle
@@ -81,32 +84,44 @@ export function Watch() {
           <WatchlistCard data={wq.data} names={co.data?.names ?? {}} held={held} />
         </>
       )}
-      <div className={pairGrid}>
-        {wq.data && (
-          <NewsCard
-            data={wq.data}
-            filings={co.data?.filings ?? []}
-            holdings={heldList}
-            topics={cq.data?.topics ?? []}
-            readAt={wq.dataUpdatedAt}
-            live={live}
-          />
+      <div className="flex flex-col gap-2.5">
+        <Segmented
+          label={sw.feedLabel}
+          options={FEED_TABS.map((key) => ({ key, label: sw.feed[key] }))}
+          value={feed}
+          onChange={setFeed}
+        />
+        {feed === 'news' ? (
+          wq.data && (
+            <NewsCard
+              data={wq.data}
+              filings={co.data?.filings ?? []}
+              holdings={heldList}
+              topics={cq.data?.topics ?? []}
+              readAt={wq.dataUpdatedAt}
+              live={live}
+            />
+          )
+        ) : (
+          <>
+            {cal.isPending && <SkeletonCards heights={['14rem']} />}
+            {cal.isError && <Failure message={cal.error.message} />}
+            {cal.data && <CalendarCard data={cal.data} now={now} />}
+          </>
         )}
-        {cal.isPending && !wq.isPending && <SkeletonCards heights={['14rem']} />}
-        {cal.isError && <Failure message={cal.error.message} />}
-        {cal.data && <CalendarCard data={cal.data} now={now} />}
       </div>
       {wq.data && (
-        <>
-          <SectorsCard data={wq.data} />
-          <div className={`hidden tablet:grid ${pairCols}`}>
-            <MoversCard data={wq.data} />
-            <GapsCard data={wq.data} />
-          </div>
-          <div className="tablet:hidden">
-            <MoversGapsPhone data={wq.data} />
-          </div>
-        </>
+        <div className="flex flex-col gap-2.5">
+          <Segmented
+            label={sw.marketLabel}
+            options={MARKET_TABS.map((key) => ({ key, label: sw.market[key] }))}
+            value={market}
+            onChange={setMarket}
+          />
+          {market === 'sectors' && <SectorsCard data={wq.data} />}
+          {market === 'movers' && <MoversCard data={wq.data} />}
+          {market === 'gaps' && <GapsCard data={wq.data} />}
+        </div>
       )}
     </div>
   );

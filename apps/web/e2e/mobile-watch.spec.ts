@@ -69,12 +69,16 @@ test('phone watch: list rows expand, movers and gaps share one card', async ({ p
     '/study/NVDA',
   );
 
-  const mg = page.getByRole('region', { name: 'Movers and gaps' });
-  await expect(mg.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
-  await mg.getByRole('button', { name: 'Down' }).click();
-  await expect(mg.getByRole('row', { name: /DN1/ })).toContainText('−8.0%');
-  await mg.getByRole('button', { name: 'Gaps' }).click();
-  await expect(mg.getByRole('row').first()).toContainText('+2.50%');
+  // Sectors, movers and gaps share one switchable card.
+  const market = page.getByRole('group', { name: 'Sectors, movers or gaps' });
+  await market.getByRole('button', { name: 'Movers' }).click();
+  const movers = page.getByRole('region', { name: 'Movers in the Marsad universe' });
+  await expect(movers.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
+  await expect(movers.getByRole('row', { name: /DN1/ })).toContainText('−8.0%');
+  await market.getByRole('button', { name: 'Gaps' }).click();
+  await expect(
+    page.getByRole('region', { name: 'Gap scanner' }).getByRole('row').first(),
+  ).toContainText('+2.50%');
   // The page never scrolls sideways on a phone.
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

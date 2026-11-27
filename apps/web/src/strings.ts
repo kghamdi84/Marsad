@@ -243,6 +243,12 @@ export const t = {
       none: 'No news stored for the watchlist yet.',
     },
     v2: {
+      switch: {
+        feedLabel: 'News or calendar',
+        feed: { news: 'Latest news', calendar: 'Calendar' },
+        marketLabel: 'Sectors, movers or gaps',
+        market: { sectors: 'US sectors', movers: 'Movers', gaps: 'Gaps' },
+      },
       noData: 'No data stored',
       sourceChip: (day: string) => `Massive \u00B7 end of day \u00B7 close of ${day}`,
       cockpit: {
@@ -300,6 +306,7 @@ export const t = {
         briefLine: (kind: string, et: string, local: string, city: string, state: string) =>
           `${kind} \u00B7 ${et} ET \u00B7 ${local} ${city} \u00B7 ${state}`,
         noBrief: 'No brief yet',
+        fullBrief: 'Read the full brief',
       },
       list: {
         hint: 'Tap a row to open Study \u00B7 volume against the 20-day average \u00B7 earnings dates are estimated',

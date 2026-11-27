@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { tickerSummary, toFixedHalfUp } from '@marsad/core';
-import { Card, Segmented } from '../Card';
+import { Card } from '../Card';
 import { Info } from '../Info';
 import { TickerLink } from '../QuickLook';
 import { num } from '../study/Panel';
@@ -198,48 +197,6 @@ export function GapsCard({ data }: { data: WatchData }) {
         <>
           <GapRows rows={rows} />
           <p className="text-xs text-ink3">{u.gapLegend}</p>
-        </>
-      )}
-    </Card>
-  );
-}
-
-type MgTab = 'up' | 'down' | 'gaps';
-
-/** Phones: movers and gaps share one card, switched with a segmented control. */
-export function MoversGapsPhone({ data }: { data: WatchData }) {
-  const [tab, setTab] = useState<MgTab>('up');
-  const m = data.movers;
-  const gaps = gapRows(data);
-  return (
-    <Card id="movers-gaps-h" title={u.moversGaps}>
-      <Segmented
-        label={u.moversGaps}
-        options={[
-          { key: 'up', label: u.tabUp },
-          { key: 'down', label: u.tabDown },
-          { key: 'gaps', label: u.tabGaps },
-        ]}
-        value={tab}
-        onChange={setTab}
-        stretch
-      />
-      {tab === 'gaps' ? (
-        gaps.length === 0 ? (
-          <p className="text-sm text-ink3">{w.gaps.none}</p>
-        ) : (
-          <>
-            <GapRows rows={gaps} />
-            <Info>{w.gaps.intro}</Info>
-            <p className="text-xs text-ink3">{u.gapLegend}</p>
-          </>
-        )
-      ) : !m ? (
-        <p className="text-sm text-ink3">{w.movers.none}</p>
-      ) : (
-        <>
-          <MoverRows xs={tab === 'up' ? m.gainers : m.losers} max={moverMax(m)} />
-          <p className="text-xs text-ink3">{w.movers.asOf(m.date, m.n)}</p>
         </>
       )}
     </Card>

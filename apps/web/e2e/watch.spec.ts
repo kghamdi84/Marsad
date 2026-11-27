@@ -1,10 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { economicCalendar, estimateNextEarnings } from '@marsad/core';
 import releaseDates from '../../../fixtures/fred/fred-release-dates-2026-11-25.json' with { type: 'json' };
 import upcoming from '../../../fixtures/massive/market-status-upcoming.json' with { type: 'json' };
 import { seedSession, scanAfterEach } from './helpers';
 
 scanAfterEach();
+
+/** Watch shows one view of each switchable card at a time (squeezed v2); tap the view a check needs. */
+async function show(page: Page, group: string, view: string) {
+  await page.getByRole('group', { name: group }).getByRole('button', { name: view }).click();
+}
 
 // The calendar from the real FRED release dates (recorded 2026-11-25) through the job's own core function.
 const dates = (
@@ -59,6 +64,7 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
     ),
   );
   await page.goto('/');
+  await show(page, 'News or calendar', 'Calendar');
   const agenda = page.getByRole('region', { name: 'Economic and earnings calendar' });
   await expect(agenda.getByText('ET · Riyadh')).toBeVisible();
   await expect(agenda.getByRole('heading', { name: 'Today, Wed 25 Nov' })).toBeVisible();
@@ -95,6 +101,7 @@ test('watch: before the calendar job has run, the page says so', async ({ page }
     r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
   await page.goto('/');
+  await show(page, 'News or calendar', 'Calendar');
   await expect(page.getByText(/No calendar yet/)).toBeVisible();
   await expect(page.getByText(/No estimates yet/)).toBeVisible();
 });
@@ -221,11 +228,13 @@ test('watch: market strip, watchlist, sector heatmap, movers, gap scanner and ne
     'No data',
   );
 
+  await show(page, 'Sectors, movers or gaps', 'Movers');
   const movers = page.getByRole('region', { name: 'Movers in the Marsad universe' });
   await expect(movers.getByText(/among 987 members/)).toBeVisible();
   await expect(movers.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
   await expect(movers.getByRole('row', { name: /DN1/ })).toContainText('−8.0%');
 
+  await show(page, 'Sectors, movers or gaps', 'Gaps');
   const gaps = page.getByRole('region', { name: 'Gap scanner' });
   await expect(gaps.getByRole('row').first()).toContainText('+2.50%');
 
@@ -284,6 +293,8 @@ test('watch: the latest brief with its sections and email state', async ({ page 
       .getByRole('region', { name: 'Morning decision cockpit' })
       .getByText('Pre-market brief · 08:30 ET · 16:30 Riyadh · Not emailed'),
   ).toBeVisible();
+  // The full brief is one tap away under the Today rows.
+  await page.getByText('Read the full brief').click();
   const brief = page.getByRole('region', { name: 'Latest brief' });
   await expect(
     brief.getByRole('heading', { name: 'Latest brief: Pre-market brief · Wed 25 Nov' }),
