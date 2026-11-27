@@ -29,7 +29,8 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
           rule_id: 'index-trend-filter',
           version: 1,
           created_at: '2026-11-29T06:21:00+00:00',
-          params: { tickers: ['SPY', 'QQQ'], costs },
+          trials: 1,
+          params: { tickers: ['SPY', 'QQQ'], costs, folds: 4, holdoutFraction: 0.2 },
           report: {
             trades: 52,
             gate: {
@@ -72,12 +73,35 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
   );
   await page.goto('/lab');
   await expect(page.getByRole('heading', { name: 'Lab', exact: true })).toBeVisible();
-  const trend = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: 'Index core with a trend filter' }) });
+
+  // Counts by stage: 8 not testable, 1 not run, 1 draft, 1 backtested; a count filters the list.
+  const counts = page.getByRole('region', { name: 'Playbooks by stage' });
+  await expect(counts.getByRole('button', { name: 'Not testable 8' })).toBeVisible();
+  await expect(counts.getByRole('button', { name: 'Not run 1' })).toBeVisible();
+  await expect(counts.getByRole('button', { name: 'Draft 1' })).toBeVisible();
+  await expect(counts.getByRole('button', { name: 'Live 0' })).toBeVisible();
+  const list = page.getByRole('list', { name: '11 playbooks' });
+  await expect(list.getByRole('listitem')).toHaveCount(11);
+  const backtested = counts.getByRole('button', { name: 'Backtested 1' });
+  await backtested.click();
+  await expect(backtested).toHaveAttribute('aria-pressed', 'true');
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await backtested.click();
+  await expect(list.getByRole('listitem')).toHaveCount(11);
+
+  // The first playbook is open; its detail is the region named by its title.
+  await expect(
+    list.getByRole('button', { name: /Index core with a trend filter/ }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  const trend = page.getByRole('region', { name: 'Index core with a trend filter' });
+  const tile = (scope: typeof trend, label: string) =>
+    scope.getByText(label, { exact: true }).locator('..');
   await expect(
     trend.getByText('Playbook 1. Evidence: Moderate. Horizon: Long term. Status: Backtested.'),
   ).toBeAttached();
+  // The gate is the main visual: 34 out-of-sample trades against the 30 needed.
+  await expect(trend.getByText('Gate passed', { exact: true })).toBeVisible();
+  await expect(trend.getByText('34 out of sample, 30 needed')).toBeVisible();
   await expect(
     trend.getByText('Out-of-sample expectancy +1.23% per trade (90% interval +0.21% to +2.34%).'),
   ).toBeVisible();
@@ -85,9 +109,14 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
   await expect(
     trend.getByText('Maximum drawdown -12.34%; Monte Carlo worst 5% -20.11%.'),
   ).toBeVisible();
-  await expect(
-    trend.getByText('Costs per side: commission 5, slippage 5, currency 0 basis points.'),
-  ).toBeVisible();
+  // Costs per side (commission 5, slippage 5, currency 0 basis points), walk-forward, holdout and trials, all
+  // from the stored run.
+  await expect(tile(trend, 'Costs per side')).toContainText('10 bps');
+  await expect(tile(trend, 'Costs per side')).toContainText('5 fee, 5 slippage, 0 FX');
+  await expect(tile(trend, 'Walk-forward')).toContainText('4 folds');
+  await expect(tile(trend, 'Holdout')).toContainText('Last 20%');
+  await expect(tile(trend, 'Trials counted')).toContainText('1');
+  await expect(trend.getByText(/entry: close crossesAbove sma\(200\)/)).toBeVisible();
   // The stored curve is drawn, with its numbers in words for screen readers.
   await expect(trend.getByText('Equity curve, out of sample')).toBeVisible();
   await expect(
@@ -96,19 +125,23 @@ test('lab: playbooks with evidence, stored runs with intervals or insufficient h
     }),
   ).toBeVisible();
 
-  const breakout = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: /trend template/ }) });
+  await list.getByRole('button', { name: /trend template/ }).click();
+  const breakout = page.getByRole('region', { name: /trend template/ });
   // Fewer than 30 trades: no percentage at all, only "insufficient history".
   await expect(breakout.getByText('Insufficient history', { exact: true })).toBeVisible();
   await expect(breakout.getByText('4 of 30 out of sample')).toBeVisible();
   await expect(breakout.getByText(/Win rate/)).toHaveCount(0);
-  // A report stored before curves existed shows none (the design's rule).
+  // A report stored before curves existed shows none (the design's rule), and says so.
   await expect(breakout.getByText('Equity curve, out of sample')).toHaveCount(0);
+  await expect(
+    breakout.getByText(/Equity curve appears when the backtest report has one/),
+  ).toBeVisible();
+  // A run stored without the split or the trial count says "Not recorded", never a guess.
+  await expect(tile(breakout, 'Walk-forward')).toContainText('Not recorded');
+  await expect(tile(breakout, 'Trials counted')).toContainText('Not recorded');
 
-  const dual = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: 'Dual momentum rotation' }) });
+  await list.getByRole('button', { name: /Dual momentum rotation/ }).click();
+  const dual = page.getByRole('region', { name: 'Dual momentum rotation' });
   await expect(dual.getByText(/Needs ranking across assets/)).toBeVisible();
   await expect(page.getByText('Copying congressional trades', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Lab' })).toHaveAttribute('aria-current', 'page');
