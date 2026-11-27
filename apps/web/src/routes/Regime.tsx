@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import {
   BREADTH_VERSION,
@@ -218,7 +219,7 @@ function Hero({ data }: { data: RegimeData }) {
       <div className="hidden tablet:block">
         <ContextLine data={data} />
       </div>
-      <p className="text-xs text-muted">{r.inputsSource}</p>
+      <Info>{r.inputsSource}</Info>
     </section>
   );
 }
@@ -515,7 +516,7 @@ function CapitulationCard({ data }: { data: RegimeData }) {
       )}
       <p className="rounded-lg bg-down/10 px-3.5 py-3 text-[13px] leading-relaxed">{k.bearCase}</p>
       <Details>
-        <p className="text-sm text-muted">{k.intro}</p>
+        <Info>{k.intro}</Info>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -628,7 +629,7 @@ function BreadthCard({ data }: { data: RegimeData }) {
       </dl>
       {last.suspect > 0 && <p className="text-sm text-muted">{b.suspect(last.suspect)}</p>}
       <Details>
-        <p className="text-sm text-muted">{b.intro}</p>
+        <Info>{b.intro}</Info>
         <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted">{b.avg10}</dt>
@@ -653,8 +654,10 @@ function BreadthCard({ data }: { data: RegimeData }) {
           </div>
         </dl>
         <p className="text-xs text-muted">{b.outOf(last.n252)} (52-week highs and lows)</p>
-        <p className="text-xs text-muted">{b.warmup}</p>
-        <p className="text-xs text-muted">{b.source(`${UNIVERSE_VERSION}, ${BREADTH_VERSION}`)}</p>
+        <Info>
+          <p>{b.warmup}</p>
+          <p>{b.source(`${UNIVERSE_VERSION}, ${BREADTH_VERSION}`)}</p>
+        </Info>
       </Details>
     </Card>
   );
@@ -782,7 +785,7 @@ function FearGreedCard({ data }: { data: RegimeData }) {
       </ul>
       <p className="text-xs text-muted">{f.bands}</p>
       <Details>
-        <p className="text-sm text-muted">{f.intro}</p>
+        <Info>{f.intro}</Info>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -818,7 +821,7 @@ function FearGreedCard({ data }: { data: RegimeData }) {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-muted">{f.method}</p>
+        <Info>{f.method}</Info>
       </Details>
     </Card>
   );
@@ -937,8 +940,10 @@ function StudyCard({ data }: { data: RegimeData }) {
           </li>
         ))}
       </ul>
-      <p className="text-xs text-muted">{s.note(any.dataFrom, any.dataTo)}</p>
-      <p className="text-xs text-muted">{u.scaleNote}</p>
+      <Info>
+        <p>{s.note(any.dataFrom, any.dataTo)}</p>
+        <p>{u.scaleNote}</p>
+      </Info>
       <Details>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
@@ -1031,7 +1036,7 @@ function GeopoliticsCard({ data }: { data: RegimeData }) {
           { label: g.iyt, obs: data.bars['IYT'] ?? [] },
         ]}
       />
-      <p className="text-xs text-muted">{g.source}</p>
+      <Info>{g.source}</Info>
     </>
   );
   if (!last || !sum)
@@ -1049,7 +1054,7 @@ function GeopoliticsCard({ data }: { data: RegimeData }) {
       subtitle={g.asOf(last.date, sum.recentDays, sum.baselineDays)}
       aside={chips}
     >
-      <p className="text-sm text-muted">{g.intro}</p>
+      <Info>{g.intro}</Info>
       <div
         role="group"
         aria-label={g.colTopic}
@@ -1411,7 +1416,7 @@ export function Regime() {
       <div>
         {/* On a phone the top bar shows the page title. */}
         <h1 className="sr-only text-xl font-semibold text-white tablet:not-sr-only">{r.title}</h1>
-        <p className="hidden text-sm text-muted tablet:block">{r.intro}</p>
+        <Info>{r.intro}</Info>
       </div>
       {q.isPending && <SkeletonCards />}
       {q.isError && (

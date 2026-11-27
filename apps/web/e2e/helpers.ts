@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // A locally forged session. The app decodes the token's aal claim to decide
 // what to show; the database enforces the real check (see supabase/tests).
@@ -105,4 +105,14 @@ export async function openSection(
 /** Opens a tab by its name on pages that show one section at a time (Journal, Lab). */
 export async function openTab(page: Page, name: string) {
   await page.getByRole('tab', { name, exact: true }).click();
+}
+
+/** Opens every "About this data" control in scope, so method and source text can be checked (council batch 2). */
+export async function openInfo(scope: Page | Locator): Promise<void> {
+  await scope.locator('summary', { hasText: 'About this data' }).first().waitFor();
+  await scope.locator('details:not([open])').evaluateAll((ds) => {
+    for (const d of ds as HTMLDetailsElement[])
+      if (d.querySelector(':scope > summary')?.textContent?.includes('About this data'))
+        d.open = true;
+  });
 }

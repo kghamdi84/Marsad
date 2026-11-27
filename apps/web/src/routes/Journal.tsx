@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Info } from '../components/Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CHECKLIST,
@@ -950,7 +951,7 @@ export function Journal() {
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{j.title}</h1>
-        <p className="hidden text-sm text-muted tablet:block">{j.intro}</p>
+        <Info>{j.intro}</Info>
       </div>
       <Kpis />
       {wide ? (

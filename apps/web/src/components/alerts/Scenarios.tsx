@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { normalizeTicker, toFixedHalfUp, type CatalystScenario } from '@marsad/core';
 import { useWide } from '../Card';
@@ -296,7 +297,7 @@ export function Scenarios() {
         {x.title}
       </h2>
       <p className="text-[13px] text-muted">{x.sub}</p>
-      <p className="hidden text-sm text-muted tablet:block">{x.intro}</p>
+      <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.length === 0 ? (

@@ -146,6 +146,7 @@ test('the status page shows alert latency by kind and lets the owner save a week
   await expect(row).toContainText('5');
   await expect(row).toContainText('3s');
   await expect(row).toContainText('8s');
+  await page.getByRole('tab', { name: 'Settings' }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: '2026-11-29: trades.json' }).click();
   expect((await download).suggestedFilename()).toBe('marsad-2026-11-29-trades.json');
@@ -168,6 +169,8 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
     return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
   await page.goto('/status');
+  // Setup forms sit under Settings (council batch 2).
+  await page.getByRole('tab', { name: 'Settings' }).click();
   const form = page.getByRole('form', { name: 'Preferences' });
   const toggle = form.getByRole('switch', { name: 'Shariah screening aid' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
@@ -235,6 +238,7 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
   // The monthly bar shows the same 90% against its 80% warning tick.
   await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
   await expect(page.getByText('90% of the cap')).toBeVisible();
+  await page.getByRole('tab', { name: 'Settings' }).click();
   // A settings row without stored limits falls back to the defaults, never "NaN".
   const prefs = page.getByRole('form', { name: 'Preferences' });
   await expect(prefs.getByLabel('Debt limit (%)')).toHaveValue('33');
@@ -302,6 +306,8 @@ test('status: the quote source is one choice of two, Massive by default, saved a
     });
   });
   await page.goto('/status');
+  // Setup forms sit under Settings (council batch 2).
+  await page.getByRole('tab', { name: 'Settings' }).click();
   const card = page.getByRole('region', { name: 'Quote source' });
   const massive = card.getByRole('radio', { name: /Massive \(default\)/ });
   const tauric = card.getByRole('radio', { name: /Tauric/ });

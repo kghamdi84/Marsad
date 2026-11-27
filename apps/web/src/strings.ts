@@ -803,6 +803,7 @@ export const t = {
     } as Record<string, string>,
     overdue: 'Overdue: no newer results filing yet',
   },
+  info: { label: 'About this data' },
   quickLook: {
     open: (ticker: string) => `${ticker}, quick look`,
     title: (ticker: string) => ticker,
@@ -1104,6 +1105,9 @@ export const t = {
       none: 'No news stored for this ticker.',
       outlets: (n: number) => (n === 1 ? '1 outlet' : `${n} outlets`),
       opinion: 'Analysis or opinion',
+      noReporting: 'No reporting from tier 1 or 2 sources in the stored news.',
+      showOpinion: (n: number) => `Show opinion and tier 3 or 4 (${n})`,
+      reportingOnly: 'Reporting only',
       reporting: 'Reporting',
       tier: (n: number) => `Tier ${n}`,
     },
@@ -1717,6 +1721,8 @@ export const t = {
       string
     >,
     title: 'System status',
+    tabsLabel: 'Status sections',
+    tabs: { health: 'Health', settings: 'Settings' } as Record<string, string>,
     sources: 'Data sources \u00B7 public.source_status',
     jobs: 'Job runs, last 24 hours',
     strips: {

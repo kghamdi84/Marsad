@@ -65,6 +65,8 @@ test('quick look: a ticker opens a side panel with its facts, why it is here and
   // The last synthetic close: 20 x 1.001^259.
   await expect(panel).toContainText(`$${(20 * 1.001 ** 259).toFixed(2)}`);
   await expect(panel).toContainText('▲ +0.10%');
+  // Every price keeps its freshness word next to it (council batch 2): these synthetic bars end in July.
+  await expect(panel.getByText(/^(End of day|Stale) · \d{2} [A-Z][a-z]{2}$/)).toBeVisible();
   await expect(panel).toContainText('Volume vs 20-day');
   await expect(panel).toContainText('1.0x');
   await expect(panel).toContainText('No estimate stored');

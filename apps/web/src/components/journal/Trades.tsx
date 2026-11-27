@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CHECKLIST,
@@ -353,7 +354,7 @@ export function Trades() {
       <h2 id="trades" className={panelTitle}>
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data && (
         <>

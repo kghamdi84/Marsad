@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Info } from '../components/Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
@@ -247,7 +248,8 @@ function ChecklistVisual({ input }: { input: AlertInput }) {
 }
 
 /** The full card, in the order the alert pipeline wrote it, with the feedback buttons. */
-function AlertDetail({ row }: { row: StoredAlertRow }) {
+/** The full alert card. In the phone sheet the sheet title already shows the headline, so it is not repeated. */
+function AlertDetail({ row, inSheet = false }: { row: StoredAlertRow; inSheet?: boolean }) {
   const qc = useQueryClient();
   const m = useMutation({
     mutationFn: (v: Verdict) => saveFeedback(row.id, v),
@@ -269,7 +271,15 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
         {row.input && sec.heading.startsWith('Risk') && <RiskVisual input={row.input} />}
         {row.input && sec.heading === 'Checklist' && <ChecklistVisual input={row.input} />}
         {sec.lines.map((l) => (
-          <p key={l} className="text-sm leading-snug text-fg">
+          // Where a visual draws the risk or the checklist, its sentence is for screen readers only (council batch 2).
+          <p
+            key={l}
+            className={
+              row.input && (sec.heading.startsWith('Risk') || sec.heading === 'Checklist')
+                ? 'sr-only'
+                : 'text-sm leading-snug text-fg'
+            }
+          >
             {l}
           </p>
         ))}
@@ -299,7 +309,7 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
               {a.decision[row.decision] ?? row.decision}
             </span>
           </span>
-          <h2 id={hid} className="text-xl font-bold text-white">
+          <h2 id={hid} className={inSheet ? 'sr-only' : 'text-xl font-bold text-white'}>
             {header.heading}
           </h2>
           {header.lines.map((l) => (
@@ -541,7 +551,7 @@ export function Alerts() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
-          <p className="hidden text-[13px] text-muted tablet:block">{a.intro}</p>
+          <Info>{a.intro}</Info>
         </div>
         {q.data && q.data.length > 0 && wide && (
           <Segmented
@@ -626,7 +636,7 @@ export function Alerts() {
                 onClose={() => setSheetOpen(false)}
                 title={selected?.card[0]?.heading ?? a.title}
               >
-                {selected && <AlertDetail row={selected} />}
+                {selected && <AlertDetail row={selected} inSheet />}
               </Sheet>
             )}
           </>

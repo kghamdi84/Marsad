@@ -35,7 +35,7 @@ import vix3m from '../../../fixtures/fred/fredgraph-VXVCLS.json' with { type: 'j
 import oil from '../../../fixtures/fred/fredgraph-DCOILWTICO.json' with { type: 'json' };
 import dollar from '../../../fixtures/fred/fredgraph-DTWEXBGS.json' with { type: 'json' };
 import newsSample from '../../../fixtures/massive/news-market-sample-2026-11-24.json' with { type: 'json' };
-import { seedSession, scanAfterEach } from './helpers';
+import { seedSession, scanAfterEach, openInfo } from './helpers';
 
 scanAfterEach();
 
@@ -277,6 +277,7 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(label.getByText('As of the close on 2026-11-23. Rules regime-1.')).toBeVisible();
   await expect(label.getByText('26.62')).toBeVisible();
   await expect(label.getByText('25.50')).toBeVisible();
+  await openInfo(page.getByRole('region', { name: 'Market regime' }));
   await expect(label.getByText(/FRED keeps 10 years|goes back 10 years/)).toBeVisible();
 
   // The recession filter on 2026-11-23: elevated, with only the curve triggered.
@@ -298,6 +299,8 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   );
   // The benchmark has 119 one-month windows: shown with its median and middle half.
   await expect(study.getByRole('row', { name: /All days/ })).toContainText('n 119');
+  // Method and source text sits behind "About this data" (council batch 2).
+  await openInfo(page);
   await expect(study.getByText(/Data 2016-11-25 to 2026-11-23/)).toBeVisible();
   await expect(study.getByRole('columnheader', { name: '6 months (126 sessions)' })).toBeVisible();
   await expect(study.getByRole('row', { name: /^VIX at or above 30 / })).toContainText(
@@ -533,6 +536,7 @@ test('regime: the quality screen lists passing companies with its counts and cav
   await expect(row).toContainText('5.9%');
   await expect(row).toContainText('0.18');
   await expect(s.getByRole('link', { name: 'JNJ' })).toHaveAttribute('href', '/study/JNJ');
+  await openInfo(page.getByRole('region', { name: 'Quality at a discount' }));
   await expect(s.getByText(/not a recommendation/)).toBeVisible();
 });
 

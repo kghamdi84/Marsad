@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
+import { Info } from '../components/Info';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -719,7 +720,7 @@ export function StudyCompany() {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-[0.9375rem] font-semibold text-white">{t.study.markers}</h3>
-              <p className="text-xs text-muted">{t.study.markersNote}</p>
+              <Info>{t.study.markersNote}</Info>
               {markers.length === 0 ? (
                 <p className="text-sm text-muted">{t.study.noMarkers}</p>
               ) : (

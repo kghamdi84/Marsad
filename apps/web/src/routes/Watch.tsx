@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Check } from 'lucide-react';
@@ -233,7 +234,7 @@ function StripCard({ data }: { data: WatchData }) {
           );
         })}
       </ul>
-      <p className="text-xs text-muted">{w.strip.source}</p>
+      <Info>{w.strip.source}</Info>
     </section>
   );
 }
@@ -625,7 +626,7 @@ function SectorsCard({ data }: { data: WatchData }) {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-muted">{w.sectors.source}</p>
+          <Info>{w.sectors.source}</Info>
         </>
       )}
     </Card>
@@ -806,7 +807,7 @@ function MoversGapsPhone({ data }: { data: WatchData }) {
         ) : (
           <>
             <GapRows rows={gaps} />
-            <p className="text-xs text-muted">{w.gaps.intro}</p>
+            <Info>{w.gaps.intro}</Info>
             <p className="text-xs text-muted">{u.gapLegend}</p>
           </>
         )

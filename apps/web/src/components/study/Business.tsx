@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorText } from '../ui';
 import { loadBusinessSection } from '../../lib/studyPanels';
@@ -48,7 +49,7 @@ export function Business({ cik }: { cik: string }) {
       <h2 id="business" className={panelTitle}>
         {b.title}
       </h2>
-      <p className="text-sm text-muted">{b.intro}</p>
+      <Info>{b.intro}</Info>
       <details
         className="rounded-sm border border-line p-3"
         onToggle={(e) => setOpen(e.currentTarget.open)}

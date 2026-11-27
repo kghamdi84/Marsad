@@ -2,7 +2,16 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (council batches 1 and 5).
+Last updated 2026-11-27 (council batches 1, 2 and 5).
+
+### Council batch 2: say less, show more (2026-11-27)
+
+- "About this data" (`apps/web/src/components/Info.tsx`): 33 method and source paragraphs across Watch, Regime, Study, Journal, Alerts, Lab and Status now sit behind one tap. Freshness words, as-of dates, "estimated", case counts, disclosure lags and bear cases stay visible; the notes that carry a lag or a filing date (13F, insiders, Financials, N-PORT) stay open.
+- No repeated facts in the alert card: on a phone the sheet title is the headline (no second copy), and where a visual draws the risk or the checklist, its sentence is for screen readers only.
+- Company news shows reporting first (tier 1 or 2, not opinion), grouped by day; opinion and tier 3 or 4 sit behind "Show opinion and tier 3 or 4 (n)".
+- Status splits into Health (sources, jobs, system alerts, costs, latency) and Settings (notifications, quote source, preferences, exports).
+- Kept as the design draws it, where the council differed: the Watch brief hero and tiles, and Study's accordions instead of sticky tabs.
+- Checks: Prettier, tsc, ESLint, 1,050 unit tests, Playwright 173 passed. Tests that read method text now open "About this data" first (`openInfo` helper); a test checks the quick-look price keeps its freshness word.
 
 ### Council batches 1 and 5: tap any ticker, refresh rules (2026-11-27)
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import { Ban, ChevronDown, Clock, Lock } from 'lucide-react';
 import { cardClass } from '../components/Card';
@@ -57,7 +58,7 @@ function EquityChart({ points }: { points: EquityPoints }) {
       <p className="text-xs text-muted" aria-hidden="true">
         {first.date} to {last.date} {'\u00B7'} {l.equitySummary(fmt(last.equity), fmt(low))}
       </p>
-      <p className="text-xs text-muted">{l.equityNote}</p>
+      <Info>{l.equityNote}</Info>
     </figure>
   );
 }
@@ -321,7 +322,7 @@ export function Lab() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted">{l.ui.gateNote}</p>
+        <Info>{l.ui.gateNote}</Info>
       </section>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] items-start gap-3">
         {PLAYBOOKS.map((p, i) => {

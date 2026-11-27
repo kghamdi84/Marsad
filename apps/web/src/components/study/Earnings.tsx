@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import {
   buildEarningsHistory,
@@ -81,7 +82,7 @@ export function Earnings({
         <p className="text-muted">{e.none}</p>
       ) : (
         <>
-          <p className="text-sm text-muted">{e.note}</p>
+          <Info>{e.note}</Info>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>

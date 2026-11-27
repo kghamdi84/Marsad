@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
+import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Search } from 'lucide-react';
@@ -216,7 +217,7 @@ export function Study() {
           {error}
         </p>
       )}
-      <p className="text-xs text-muted">{s.intro}</p>
+      <Info>{s.intro}</Info>
       {bars.isError && (
         <p role="alert" className="text-down">
           {bars.error.message}

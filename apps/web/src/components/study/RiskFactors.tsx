@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import {
   CHANGED_SENTENCE_DICE,
@@ -189,7 +190,7 @@ export function RiskFactors({ cik }: { cik: string }) {
       <h2 id="risk" className={panelTitle}>
         {r.title}
       </h2>
-      <p className="text-sm text-muted">{r.intro}</p>
+      <Info>{r.intro}</Info>
       <details
         className="rounded-sm border border-line p-3"
         onToggle={(e) => setOpen(e.currentTarget.open)}
