@@ -47,7 +47,12 @@ const LEVEL_TONE: Record<string, Tone> = {
 /** The recession filter: its level, and the 5 signals with their rule, state, source and data date. */
 export function Recession({ data }: { data: RegimeData }) {
   const last = data.days.at(-1);
-  if (!last) return null;
+  if (!last)
+    return (
+      <Card id="recession" title={rec.title}>
+        <p className="text-sm text-ink3">{rec.none}</p>
+      </Card>
+    );
   const level = last.recessionLevel;
   return (
     <Card

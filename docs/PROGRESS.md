@@ -4,6 +4,12 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Regime squeezed (2026-11-27, Khaled: squeeze Regime too)
+
+- One summary card first: six one-line rows (the label and its run, the recession filter with n of 5 signals on, Fear and Greed, the capitulation watch with n of 4 conditions, the leading and lagging sector against SPY over 1 month, GPR and EPU percentiles). Each row opens its detail and moves focus there. The past-year ribbon sits under the rows; "Why this label" with the day's reason sits beside them.
+- The ten detail cards now live in two switchable areas. Risk gauges: recession filter, Fear and Greed, capitulation watch (with its plan, exits and bear case), breadth. Context: what the S&P did next, sector rotation, geopolitics, the quality screen, more measures. The choice is remembered on the device.
+- Nothing is dropped: every number, rule, source line, data date and "About this data" stays one tap away. The summary rows use the same stored rows and core functions as the cards; a missing input reads "Data unavailable", and a percentile from under a year of data says how many days it rests on.
+
 ### Watch squeezed (2026-11-27, Khaled: merge, squeeze and summarize)
 
 - The four cockpit tiles are now four one-line rows in one Today card: regime, movers, today, exit rules. The full pre-market brief folds behind "Read the full brief".

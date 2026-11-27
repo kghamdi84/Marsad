@@ -28,7 +28,7 @@ function componentValue(key: ComponentKey, v: number): string {
 }
 
 /** Score tone by the published bands: greed blue, fear orange, neutral grey. Words carry the meaning. */
-const toneText = (score: number) =>
+export const toneText = (score: number) =>
   score >= 56 ? 'text-up' : score <= 44 ? 'text-down' : 'text-ink2';
 const toneBar = (score: number) => (score >= 56 ? 'bg-up' : score <= 44 ? 'bg-down' : 'bg-ink3');
 
