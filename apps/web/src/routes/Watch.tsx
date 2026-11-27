@@ -13,6 +13,7 @@ import { Failure, useNow, v } from '../components/watch/shared';
 import { loadHoldings } from '../lib/journal';
 import { weekdayDayMonth } from '../lib/dates';
 import { loadBriefs, loadCalendar, loadCockpit, loadCompanies, loadWatch } from '../lib/watch';
+import { useLiveNews } from '../lib/liveNews';
 
 /** Filings shown as news: the last 10 days. */
 const FILING_DAYS = 10;
@@ -30,6 +31,7 @@ export function Watch() {
   const today = etDate(now);
   const cal = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
   const wq = useQuery({ queryKey: ['watch'], queryFn: loadWatch });
+  const live = useLiveNews();
   const bq = useQuery({ queryKey: ['briefs'], queryFn: loadBriefs });
   const hq = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const cq = useQuery({ queryKey: ['cockpit', today], queryFn: () => loadCockpit(today) });
@@ -87,6 +89,7 @@ export function Watch() {
             holdings={heldList}
             topics={cq.data?.topics ?? []}
             readAt={wq.dataUpdatedAt}
+            live={live}
           />
         )}
         {cal.isPending && !wq.isPending && <SkeletonCards heights={['14rem']} />}

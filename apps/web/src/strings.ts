@@ -314,6 +314,9 @@ export const t = {
       },
       news: {
         asOf: (et: string) => `Read ${et} ET \u00B7 refreshes when the page loads`,
+        live: (et: string) =>
+          `Live \u00B7 new stories appear as they are stored \u00B7 read ${et} ET`,
+        newTag: 'New',
         highlight: 'Highlight of the day',
         impact: { high: 'High impact', medium: 'Medium', low: 'Low' } as Record<string, string>,
         secEdgar: 'SEC EDGAR',
@@ -341,7 +344,7 @@ export const t = {
         } as Record<string, string>,
         more: (n: number) => `${n} more stor${n === 1 ? 'y' : 'ies'}`,
         about:
-          'Ranked by impact (impact-1): source tier, the filing item, whether it names your holdings or watchlist, and how busy its topic is against the 4-week norm. The price move since the story is left out: it needs prices after the story, and Marsad stores end-of-day bars. Not realtime: the list is read when the page loads. Filings: SEC EDGAR 8-K, 10-Q and 10-K of the watchlist and holdings, last 10 days.',
+          'Ranked by impact (impact-1): source tier, the filing item, whether it names your holdings or watchlist, and how busy its topic is against the 4-week norm. The price move since the story is left out: it needs prices after the story, and Marsad stores end-of-day bars. Realtime updates: new stories and filings appear when the jobs store them (news three times each weekday, filings twice an hour on weekdays), marked New for a minute; if the live connection is down, the card says when it read the list. Filings: SEC EDGAR 8-K, 10-Q and 10-K of the watchlist and holdings, last 10 days.',
       },
       calendar: {
         title: 'Economic and earnings calendar',

@@ -4,6 +4,15 @@
 
 Last updated 2026-11-27 (Marsad v2 redesign).
 
+### Live news on Watch (2026-11-27, Khaled's go-ahead)
+
+- Migration `20270101000000_realtime_news.sql` adds `news_articles` and `filings` to the `supabase_realtime` publication. It is additive and guarded, and row-level security still applies.
+- Watch subscribes to new rows and refetches. The news card says "Live" only while the channel is subscribed; otherwise it shows when it read the list. Stories that arrive while the page is open are marked "New" for 60 seconds.
+- Tests:
+  - Unit test for the tag timing.
+  - Browser test with a stand-in realtime socket: subscribe, insert, "New", then the tag drops after a minute.
+- Not done: the Journal checklist wording. The design's five items are different checks, not a rewording of the stored ones, so relabelling would misstate past trades and alert checklists. This is waiting on Khaled's decision.
+
 ### Marsad v2 redesign (2026-11-27, PR #76)
 
 - Built from the Claude Design handoff "Marsad v2" (Khaled: "full implement").
