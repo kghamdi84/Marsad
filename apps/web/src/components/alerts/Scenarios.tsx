@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { normalizeTicker, toFixedHalfUp, type CatalystScenario } from '@marsad/core';
-import { useWide } from '../Card';
+import { etDate, normalizeTicker, toFixedHalfUp, type CatalystScenario } from '@marsad/core';
+import { Pill } from '../ui/kit';
+import { cardClass, useWide } from '../Card';
 import { Sheet } from '../Sheet';
 import { Button, ErrorText, Field } from '../ui';
 import {
@@ -42,41 +43,45 @@ function ScenarioItem({ s }: { s: StoredScenario }) {
     mutationFn: () => setScenarioActive(s.id, !s.active),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['scenarios'] }),
   });
+  const state = s.expiresOn < etDate(new Date()) ? 'expired' : s.active ? 'active' : 'paused';
+  const watch = [
+    s.tickers.join(', '),
+    ...(s.keywords.length ? [s.keywords.map((k) => `“${k}”`).join(', ')] : []),
+  ].join(' · ');
   return (
     <li
-      className={`flex flex-col gap-2 rounded-xl border p-4 text-sm ${s.active ? 'border-line bg-surface' : 'border-line/60 bg-surface/50 text-muted'}`}
+      className={`flex flex-col gap-1.5 rounded-[10px] border border-line bg-elev p-3 text-[13px] leading-snug ${s.active ? 'text-ink2' : 'text-ink3'}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold text-ink">{s.name}</h3>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={s.active}
-          aria-label={s.active ? x.pause : x.resume}
-          onClick={() => toggle.mutate()}
-          disabled={toggle.isPending}
-          className="flex min-h-11 min-w-11 flex-none items-center justify-center"
-        >
-          <span
-            aria-hidden="true"
-            className={`relative h-6 w-11 rounded-full ${s.active ? 'bg-fill' : 'bg-faint/40'}`}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="min-w-0 text-sm font-semibold text-ink">{s.name}</h3>
+        <span className="flex flex-none items-center gap-1">
+          <Pill tone={state === 'active' ? 'up' : 'neutral'}>{x.state[state]}</Pill>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={s.active}
+            aria-label={s.active ? x.pause : x.resume}
+            onClick={() => toggle.mutate()}
+            disabled={toggle.isPending}
+            className="flex min-h-11 min-w-11 flex-none items-center justify-center"
           >
             <span
-              className={`absolute top-0.5 size-5 rounded-full bg-ink ${s.active ? 'end-0.5' : 'start-0.5'}`}
-            />
-          </span>
-        </button>
+              aria-hidden="true"
+              className={`relative h-6 w-11 rounded-full border ${s.active ? 'border-accent bg-accent' : 'border-line-strong bg-sub'}`}
+            >
+              <span
+                className={`absolute top-px size-5 rounded-full ${s.active ? 'end-px bg-accent-ink' : 'start-px bg-ink3'}`}
+              />
+            </span>
+          </button>
+        </span>
       </div>
-      <ul aria-label={s.tickers.join(', ')} className="flex flex-wrap gap-1.5">
-        {s.tickers.map((tk) => (
-          <li key={tk} className="rounded bg-bg px-2 py-0.5 text-xs font-semibold text-fg">
-            {tk}
-          </li>
-        ))}
-      </ul>
+      <p className="text-xs text-ink2">{watch}</p>
       <p>{x.triggersLine(triggerText(s))}</p>
       <p>{x.planLine(s.plan.entry, pctText(s.plan.chaseGuardPct), s.plan.invalidation)}</p>
-      <p className="text-muted">{x.expiresLine(s.expiresOn, s.active)}</p>
+      <p className="text-xs text-ink3">
+        {state === 'expired' ? x.expiredLine(s.expiresOn) : x.expiresLine(s.expiresOn, s.active)}
+      </p>
       {toggle.isError && <ErrorText message={toggle.error.message} />}
     </li>
   );
@@ -292,38 +297,44 @@ export function Scenarios() {
   const wide = useWide();
   const [open, setOpen] = useState(false);
   return (
-    <section aria-labelledby="scenarios" className="flex flex-col gap-3">
-      <h2 id="scenarios" className="font-semibold">
-        {x.title}
-      </h2>
-      <p className="text-[13px] text-muted">{x.sub}</p>
+    <section aria-labelledby="scenarios" className={cardClass}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="scenarios" className="text-base font-semibold text-ink">
+          {x.title}
+        </h2>
+        <button
+          type="button"
+          aria-expanded={wide ? open : undefined}
+          aria-controls={wide ? 'scenario-form' : undefined}
+          onClick={() => setOpen(!open)}
+          className="min-h-10 rounded-lg bg-accent px-3 text-[13px] font-semibold whitespace-nowrap text-accent-ink pointer-coarse:min-h-11"
+        >
+          {x.newScenario}
+        </button>
+      </div>
+      <p className="-mt-1 text-xs text-ink3">{x.sub}</p>
       <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.length === 0 ? (
-          <p className="text-muted">{x.none}</p>
+          <p className="text-sm text-ink3">{x.none}</p>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 tablet:grid-cols-2 wide:grid-cols-3">
+          <ul className="flex flex-col gap-2.5">
             {q.data.map((s) => (
               <ScenarioItem key={s.id} s={s} />
             ))}
           </ul>
         ))}
       {wide ? (
-        <NewScenario />
+        open && (
+          <div id="scenario-form" className="rounded-[10px] border border-line bg-elev p-3.5">
+            <NewScenario />
+          </div>
+        )
       ) : (
-        <>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="min-h-[52px] rounded-[14px] bg-accent text-base font-bold text-accent-ink"
-          >
-            {x.newScenario}
-          </button>
-          <Sheet open={open} onClose={() => setOpen(false)} title={x.add}>
-            <NewScenario stepped />
-          </Sheet>
-        </>
+        <Sheet open={open} onClose={() => setOpen(false)} title={x.add}>
+          <NewScenario stepped />
+        </Sheet>
       )}
     </section>
   );

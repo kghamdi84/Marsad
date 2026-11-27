@@ -6,6 +6,7 @@ import {
   parseHoldingsCsv,
   positionSize,
   rewardRisk,
+  gapToStop,
   sahmTicket,
   markDuplicateHoldings,
   portfolioTotals,
@@ -49,6 +50,18 @@ describe('positionSize (hand-checked)', () => {
     const rr = rewardRisk(24.15, 23.7, [25.05, 26.4]);
     expect(rr[0]).toBeCloseTo(2, 9);
     expect(rr[1]).toBeCloseTo(5, 9);
+  });
+
+  it('gap to stop (hand-checked, tolerance 1e-9)', () => {
+    // Close 388.90 against a stop of 390.00: 388.90 / 390 - 1 = -1.10 / 390 = -0.0028205128 (-0.28%).
+    expect(gapToStop(388.9, 390)).toBeCloseTo(-0.0028205128, 9);
+    // 101 against 95: 6 / 95 = 0.0631578947 (+6.32%).
+    expect(gapToStop(101, 95)).toBeCloseTo(0.0631578947, 9);
+    expect(gapToStop(95, 95)).toBe(0);
+    // No positive stop or price: no number rather than a wrong one.
+    expect(gapToStop(100, 0)).toBeNull();
+    expect(gapToStop(0, 95)).toBeNull();
+    expect(gapToStop(Number.NaN, 95)).toBeNull();
   });
 });
 

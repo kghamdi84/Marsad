@@ -74,9 +74,17 @@ test('alerts: a stored halt alert as a card with its decision, reasons, latency 
   await expect(card.getByText(/End-to-end latency 30.5 s/)).toBeVisible();
   // The pipeline's reasons are shown as chips under "Why".
   await expect(card.getByText('critical: pushed (bypasses quiet hours and the cap)')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sent 1' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Sent (1)' })).toHaveAttribute(
     'aria-pressed',
     'true',
+  );
+  await expect(page.getByRole('button', { name: 'Held back (0)' })).toBeVisible();
+  // v2 order: the decision path as chips, the 5-item checklist (n/a for a halt) and the bear case beside it.
+  await expect(card.getByRole('list', { name: 'Decision path' })).toContainText('data fresh');
+  await expect(card.getByRole('list', { name: 'Checklist' })).toContainText('Clean setup: n/a');
+  await expect(card.getByRole('heading', { name: 'Bear case' })).toBeVisible();
+  await expect(card.getByRole('list', { name: 'Delivery channels' })).toContainText(
+    'Web push: not-configured',
   );
   await card.getByRole('button', { name: 'Useful' }).click();
   await expect
@@ -161,6 +169,15 @@ test('alerts: the scorecard summarizes stored outcomes per rule, live and shadow
   await expect(box).toContainText('Insufficient history (3 of 30)');
   await expect(box).toContainText('Hit rates appear at 30 scored alerts');
   await expect(box).not.toContainText('%');
+  // The header says the scorecard is short of 30 cases; no rate appears anywhere in the card.
+  await expect(card.getByText('Insufficient history (3 of 30)').first()).toBeVisible();
+  await expect(card.getByText(/Win rate/)).toHaveCount(0);
+  // Each alert's own result against SPY: alert 1 gained 4% while SPY gained 1%, so +3.0% (excess).
+  const perAlert = card.getByRole('region', { name: 'Result of each recent alert by horizon' });
+  await expect(perAlert.getByRole('columnheader', { name: '20 sessions' })).toBeVisible();
+  await expect(perAlert).toContainText('\u25B2 +3.0%');
+  await expect(perAlert).toContainText('\u25BC \u22122.0%');
+  await expect(perAlert).toContainText('Pending');
   await expect(card.getByText('exit-stop (shadow)')).toHaveCount(0); // pending outcomes are not scored
   await expect(card).toContainText('1 outcome is still waiting for its sessions.');
   await expect(card).toContainText(
@@ -213,7 +230,11 @@ test('catalyst scenarios: a written scenario is listed; saving needs a trigger a
   await expect(item).toContainText('Triggers: 8-K item 5.02; news at tier 2 or better.');
   await expect(item).toContainText('No entry beyond a 10.0% move.');
   await expect(item).toContainText('Active, expires 2026-12-31.');
+  await expect(item).toContainText('NVDA · \u201Cceo\u201D');
 
+  // The form opens from the card's New scenario button (design: header button).
+  await expect(section.getByRole('form', { name: 'Write a scenario' })).toHaveCount(0);
+  await section.getByRole('button', { name: 'New scenario' }).click();
   const form = section.getByRole('form', { name: 'Write a scenario' });
   await form.getByLabel('Name').fill('SOFI charter news');
   await form.getByLabel('Tickers (separate with commas)').fill('sofi');
@@ -371,6 +392,10 @@ test('alerts: a setup alert shows its plan bar, reward to risk, risk interval an
   ).toBeVisible();
   await expect(card.getByText('2.0R')).toBeVisible();
   await expect(card.getByText('4.0R')).toBeVisible();
+  // Trigger tiles from the stored input: gap to stop 101 / 95 - 1 = +6.32%.
+  await expect(card.getByText('Gap to stop')).toBeVisible();
+  await expect(card.getByText('\u25B2 +6.32%')).toBeVisible();
+  await expect(card.getByText('Plan levels (you place orders by hand in Sahm)')).toBeVisible();
   await expect(card.getByText('30.0% loss rate, n = 40')).toBeVisible();
   await expect(card.getByText('Insufficient history (9 of 30)')).toBeVisible();
   await expect(card.getByText('Does not apply')).toBeVisible();
