@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JournalTrade } from './journal.js';
-import { weeklyReview } from './weekly-review.js';
+import { weeklyReview, weeklyTiles } from './weekly-review.js';
 
 const all5 = {
   cleanSetup: true,
@@ -75,5 +75,43 @@ describe('weeklyReview (hand-checked)', () => {
     expect(b.title).toBe('Weekly review, week ending 2026-11-29');
     expect(b.pushBody).toBe('2 closed, USD 300.00; adherence 86; 4 rule breaks.');
     expect(b.kind).toBe('weekly-review');
+  });
+});
+
+describe('weeklyTiles', () => {
+  const base = {
+    id: 1,
+    ticker: 'RKLB',
+    side: 'long' as const,
+    setup: 'trend',
+    tags: [],
+    alertId: null,
+    entryDate: '2026-11-17',
+    entryPrice: 24,
+    stop: 22,
+    shares: 100,
+    target: null,
+    checklist: {},
+    followed: {},
+    exitDate: null,
+    exitPrice: null,
+    notes: '',
+    screenshots: [],
+  };
+  it('counts closed trades, plan followed of touched, and the mean R (hand-checked)', () => {
+    const t = weeklyTiles({
+      weekEnding: '2026-11-22',
+      trades: [
+        // Closed in the week at 28: (28 - 24) / (24 - 22) = +2R; nothing ticked, so not followed.
+        { ...base, id: 1, exitDate: '2026-11-20', exitPrice: 28 },
+        // Closed at 23: -0.5R.
+        { ...base, id: 2, exitDate: '2026-11-21', exitPrice: 23 },
+        // Opened in the week, still open.
+        { ...base, id: 3 },
+        // Outside the week entirely.
+        { ...base, id: 4, entryDate: '2026-10-01', exitDate: '2026-10-05', exitPrice: 30 },
+      ],
+    });
+    expect(t).toEqual({ closed: 2, followed: 0, touched: 3, meanR: 0.75 });
   });
 });

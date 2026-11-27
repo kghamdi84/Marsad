@@ -419,11 +419,40 @@ test('journal: the latest weekly review, or when the first one is due', async ({
       title: 'Weekly review, week ending 2026-11-29',
       for_date: '2026-11-29',
       sections: [{ heading: 'Behavior', lines: ['Mean adherence 86 over 3 trades.'] }],
+      // The stored inputs: one trade closed in the week at +2R (24 to 28, stop 22), nothing ticked.
+      inputs: {
+        weekEnding: '2026-11-29',
+        trades: [
+          {
+            id: 1,
+            ticker: 'RKLB',
+            side: 'long',
+            setup: 'trend',
+            tags: [],
+            alertId: null,
+            entryDate: '2026-11-24',
+            entryPrice: 24,
+            shares: 100,
+            stop: 22,
+            target: null,
+            exitDate: '2026-11-27',
+            exitPrice: 28,
+            checklist: {},
+            followed: {},
+            notes: '',
+            screenshots: [],
+          },
+        ],
+      },
     },
   ];
   await page.reload();
   const review = page.getByRole('region', { name: 'Weekly review, week ending 2026-11-29' });
   await expect(review).toContainText('Mean adherence 86 over 3 trades.');
+  // The design's tiles, computed from the stored inputs.
+  await expect(review.getByText('Trades closed').locator('..')).toContainText('1');
+  await expect(review.getByText('Plan followed').locator('..')).toContainText('0 of 1');
+  await expect(review.getByText('Mean result').locator('..')).toContainText('▲ +2.00R');
 });
 
 test('options positions: the stored spread with its risk, exit rules and bear case; a naked call is refused', async ({

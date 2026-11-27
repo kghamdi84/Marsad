@@ -7,6 +7,8 @@ import {
   type DatedValue,
   type Holding,
   type JournalTrade,
+  type WeeklyTiles,
+  weeklyTiles,
   type ThesisStatus,
 } from '@marsad/core';
 import { supabase } from './supabase';
@@ -260,14 +262,23 @@ export async function screenshotUrl(path: string): Promise<string> {
 }
 
 /** The newest weekly review (a brief of kind weekly-review), or null before the first Sunday run. */
+/** Tiles from the stored review inputs; null when they are missing or not in the expected shape. */
+function tilesOf(inputs: unknown): WeeklyTiles | null {
+  const i = inputs as { weekEnding?: unknown; trades?: unknown } | null;
+  if (!i || typeof i.weekEnding !== 'string' || !Array.isArray(i.trades)) return null;
+  return weeklyTiles({ weekEnding: i.weekEnding, trades: i.trades as JournalTrade[] });
+}
+
 export async function loadWeeklyReview(): Promise<{
   title: string;
   forDate: string;
   sections: { heading: string; lines: string[] }[];
+  /** The design's tiles, computed by core from the stored inputs; null for a review stored without them. */
+  tiles: WeeklyTiles | null;
 } | null> {
   const r = await client()
     .from('briefs')
-    .select('title, for_date, sections')
+    .select('title, for_date, sections, inputs')
     .eq('kind', 'weekly-review')
     .order('for_date', { ascending: false })
     .limit(1);
@@ -278,6 +289,7 @@ export async function loadWeeklyReview(): Promise<{
         title: String(x['title']),
         forDate: String(x['for_date']),
         sections: (x['sections'] ?? []) as { heading: string; lines: string[] }[],
+        tiles: tilesOf(x['inputs']),
       }
     : null;
 }

@@ -29,6 +29,34 @@ const addDays = (d: string, n: number) =>
 const money = (v: number) => `${v < 0 ? '-' : ''}USD ${toFixedHalfUp(Math.abs(v), 2)}`;
 const r1 = (v: number) => `${v > 0 ? '+' : ''}${toFixedHalfUp(v, 2)}R`;
 
+/** "Followed the plan": an adherence score of 80 or more, the same line the Journal uses. */
+export const PLAN_FOLLOWED_AT = 80;
+
+export interface WeeklyTiles {
+  /** Trades closed in the week. */
+  closed: number;
+  /** Trades touched in the week (opened or closed) whose adherence was 80 or more, of all touched. */
+  followed: number;
+  touched: number;
+  /** Mean result in R of the closed trades with a stop; null when none. */
+  meanR: number | null;
+}
+
+/** The design's tiles for the weekly review, from the same stored inputs as the text. */
+export function weeklyTiles(x: Pick<WeeklyInputs, 'weekEnding' | 'trades'>): WeeklyTiles {
+  const start = addDays(x.weekEnding, -6);
+  const inWeek = (d: string | null) => d !== null && d >= start && d <= x.weekEnding;
+  const closed = x.trades.filter((t) => inWeek(t.exitDate));
+  const touched = x.trades.filter((t) => inWeek(t.entryDate) || inWeek(t.exitDate));
+  const rs = closed.map(rMultiple).filter((v): v is number => v !== null);
+  return {
+    closed: closed.length,
+    followed: touched.filter((t) => adherence(t).score >= PLAN_FOLLOWED_AT).length,
+    touched: touched.length,
+    meanR: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : null,
+  };
+}
+
 export function weeklyReview(x: WeeklyInputs): Brief {
   const start = addDays(x.weekEnding, -6);
   const inWeek = (d: string | null) => d !== null && d >= start && d <= x.weekEnding;
