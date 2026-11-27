@@ -342,6 +342,18 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await expect(panel.getByText('37.9x')).toBeVisible();
   await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
   await expect(panel.getByText('$320.27B')).toBeVisible();
+  // Council batch 4: free cash flow needs capital spending, which this recorded file only has up to 2020, so it is
+  // not reported rather than guessed; dilution uses the diluted share counts it does have.
+  const investor = panel.getByRole('region', { name: 'Cash, value and dilution' });
+  await expect(
+    investor.getByText('Free cash flow, 12 months', { exact: true }).locator('..'),
+  ).toContainText('Not reported');
+  await expect(
+    investor.getByText('Diluted shares, 1 year', { exact: true }).locator('..'),
+  ).toContainText('%');
+  await expect(investor.getByText('Market value', { exact: true }).locator('..')).toContainText(
+    '$',
+  );
   // Point in time: the day before the Q2 10-Q was filed, that quarter is not there yet.
   await panel.getByLabel('Known as of').fill('2026-08-25');
   await expect(panel.getByText('Latest filing used: 2026-05-20')).toBeVisible();

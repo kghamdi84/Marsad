@@ -35,13 +35,13 @@ describe('runFactsJob on the real NVIDIA company facts', () => {
     ]);
     const run = await runFactsJob({ http, cfg: sec, store, now: () => NOW });
     expect(run.status).toBe('ok');
-    // 224 of the 240 recorded rows are for the 13 financial concepts and the share count (counted separately in
-    // Python); the 16 capex rows are left out.
-    expect(run.rows_written).toBe(224);
-    expect(log.facts[0]?.facts).toHaveLength(224);
+    // All 240 recorded rows: 224 for the 13 financial concepts and the share count (counted separately in Python),
+    // plus the 16 capital-spending rows, which investor-1 (council batch 4) now keeps for free cash flow.
+    expect(run.rows_written).toBe(240);
+    expect(log.facts[0]?.facts).toHaveLength(240);
     expect(
       log.facts[0]?.facts.some((f) => f.concept === 'PaymentsToAcquirePropertyPlantAndEquipment'),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       log.facts[0]?.facts.find(
         (f) => f.concept === 'Revenues' && f.end === '2026-07-26' && f.start === '2026-04-27',

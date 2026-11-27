@@ -32,6 +32,16 @@ export const STUDY_CONCEPTS: Readonly<Record<string, readonly string[]>> = Objec
     'CashAndCashEquivalentsAtCarryingValue',
     'LongTermDebt',
     'NetCashProvidedByUsedInOperatingActivities',
+    // investor-1 (council batch 4): capital spending, stock-based pay, buybacks, short-term investments, debt parts.
+    'PaymentsToAcquirePropertyPlantAndEquipment',
+    'PaymentsToAcquireProductiveAssets',
+    'ShareBasedCompensation',
+    'PaymentsForRepurchaseOfCommonStock',
+    'MarketableSecuritiesCurrent',
+    'ShortTermInvestments',
+    'AvailableForSaleSecuritiesDebtSecuritiesCurrent',
+    'LongTermDebtNoncurrent',
+    'LongTermDebtCurrent',
   ],
   dei: ['EntityCommonStockSharesOutstanding'],
 });

@@ -2,7 +2,15 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (council batches 1, 2, 3 and 5).
+Last updated 2026-11-27 (council batches 1 to 5).
+
+### Council batch 4: investor toolkit (2026-11-27)
+
+- Core `investor.ts` (formula `investor-1`, hand-checked tests, point in time): free cash flow (operating cash flow minus capital spending), stock-based pay and its share of revenue, buybacks, diluted shares against a year earlier, net cash (cash plus short-term investments minus both parts of debt), and with the close: market value, enterprise value, EV / sales, EV / operating income, price / free cash flow and free cash flow yield. Multiples on negative earnings or cash flow show "Not meaningful".
+- The facts job now also stores capital spending (two tags: NVIDIA moved off `PaymentsToAcquirePropertyPlantAndEquipment` after 2020), stock-based pay, buybacks, short-term investments and the current and non-current parts of debt. The new figures appear after the next SEC facts run (weekdays 06:15 UTC) once this is merged; until then they read "Not reported".
+- Study, Financials: a "Cash, value and dilution" section and a ten-year table of revenue (with bars), EPS and free cash flow, missing years marked.
+- Kept as the design draws it: Earnings history stays its own section (the design has separate Financials and Earnings accordions), so it is not merged into the Financials table.
+- Checks: Prettier, tsc, ESLint, 1,066 unit tests, Playwright 177 passed and 11 skipped. The facts-job test now expects 240 stored rows from the recorded NVIDIA file (the 16 capital-spending rows are kept on purpose).
 
 ### Council batch 3: trader toolkit (2026-11-27)
 
