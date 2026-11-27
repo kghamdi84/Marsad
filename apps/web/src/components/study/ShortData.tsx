@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Info } from '../Info';
 import { formatFactValue } from '@marsad/core';
 import { loadShortData } from '../../lib/studyPanels';
 import { t } from '../../strings';
@@ -45,7 +46,7 @@ export function ShortData({ ticker }: { ticker: string }) {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-sm text-muted">{s.volumeDef}</p>
+            <Info>{s.volumeDef}</Info>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>

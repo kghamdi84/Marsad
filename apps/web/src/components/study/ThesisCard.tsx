@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lines, validateThesis, type ThesisDraft, type ThesisStatus } from '@marsad/core';
 import { Button, ErrorText } from '../ui';
@@ -153,7 +154,7 @@ export function ThesisCard({ ticker }: { ticker: string }) {
       <h2 id="thesis" className={panelTitle}>
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (latest ? <Version v={latest} /> : !editing && <p className="text-muted">{x.none}</p>)}

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
+import { Info } from '../components/Info';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -19,6 +20,7 @@ import {
   type Materiality,
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
+import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { Dividends } from '../components/study/Dividends';
 import { Earnings } from '../components/study/Earnings';
@@ -67,10 +69,13 @@ const ui = t.study.ui;
 function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSummary | null }) {
   const stale = !!s && !!data.lastCompletedDay && s.asOf < data.lastCompletedDay;
   // The viewer's quote source (ADR 0041): with Tauric, its latest price sits under the Massive close.
+  const quotePoll = useQuotePoll();
   const qv = useQuery({
     queryKey: ['quote-view'],
     queryFn: loadQuoteView,
-    refetchInterval: 60_000,
+    // Quotes move only in the session; the rest of the page is end of day (ADR 0042).
+    staleTime: 0,
+    refetchInterval: quotePoll,
   });
   const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
@@ -88,7 +93,9 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   return (
     <header className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur tablet:static tablet:mx-0 tablet:rounded-xl tablet:border-0 tablet:bg-raised tablet:p-5 tablet:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
-        <h1 className="text-[1.75rem] leading-tight font-bold text-white">{ticker}</h1>
+        <h1 className="text-xl leading-tight font-bold text-white tablet:text-[1.75rem]">
+          {ticker}
+        </h1>
         {data.company?.name && (
           <span className="truncate text-sm text-muted">{data.company.name}</span>
         )}
@@ -673,7 +680,10 @@ export function StudyCompany() {
 
       {q.data && summary && (
         <>
-          <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          {/* The design puts the chart first on a phone; the tiles follow it. */}
+          {wide && (
+            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          )}
           <Card
             id="chart"
             title={t.study.chart}
@@ -710,7 +720,7 @@ export function StudyCompany() {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-[0.9375rem] font-semibold text-white">{t.study.markers}</h3>
-              <p className="text-xs text-muted">{t.study.markersNote}</p>
+              <Info>{t.study.markersNote}</Info>
               {markers.length === 0 ? (
                 <p className="text-sm text-muted">{t.study.noMarkers}</p>
               ) : (
@@ -745,6 +755,9 @@ export function StudyCompany() {
               )}
             </div>
           </Card>
+          {!wide && (
+            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
+          )}
         </>
       )}
 

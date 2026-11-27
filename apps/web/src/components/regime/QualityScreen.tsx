@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import { toFixedHalfUp } from '@marsad/core';
 import { num, td, th, thNum } from '../study/Panel';
@@ -17,7 +18,7 @@ export function QualityScreen({ capitulationOn }: { capitulationOn: boolean }) {
       <h2 id="quality" className="font-semibold">
         {q.title}
       </h2>
-      <p className="text-sm text-muted">{q.intro}</p>
+      <Info>{q.intro}</Info>
       <p className="text-sm font-medium">{capitulationOn ? q.active : q.inactive}</p>
       {r.isError && <ErrorText message={r.error.message} />}
       {r.data &&
@@ -91,7 +92,7 @@ export function QualityScreen({ capitulationOn }: { capitulationOn: boolean }) {
                 </table>
               </div>
             )}
-            <p className="text-xs text-muted">{q.caveats}</p>
+            <Info>{q.caveats}</Info>
           </>
         ))}
     </section>

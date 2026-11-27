@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CHECKLIST,
@@ -6,6 +7,7 @@ import {
   PLAYBOOKS,
   adherence,
   adherenceVsResult,
+  daysBetween,
   etDate,
   normalizeTicker,
   pnl,
@@ -17,9 +19,10 @@ import {
   type JournalTrade,
 } from '@marsad/core';
 import { Button, ErrorText, Field } from '../ui';
-import { num, td, th, thNum, panelTitle } from '../study/Panel';
 import { addScreenshot, addTrade, closeTrade, loadTrades, screenshotUrl } from '../../lib/journal';
-import { cardClass } from '../Card';
+import { Sheet } from '../Sheet';
+import { TickerLink } from '../QuickLook';
+import { dayMonth } from '../../lib/dates';
 import { t } from '../../strings';
 
 const x = t.journal.trades;
@@ -70,7 +73,8 @@ function TradeCard({ tr }: { tr: JournalTrade }) {
   return (
     <li className="flex flex-col gap-2 rounded-sm border border-line p-3 text-sm">
       <h3 className="font-semibold">
-        {tr.ticker} {tr.side === 'short' ? `(${x.short})` : ''} {tr.setup && `· ${tr.setup}`}
+        <TickerLink ticker={tr.ticker} /> {tr.side === 'short' ? `(${x.short})` : ''}{' '}
+        {tr.setup && `· ${tr.setup}`}
       </h3>
       <p>{x.entered(tr.entryDate, money(tr.entryPrice), tr.shares)}</p>
       {tr.exitDate !== null && tr.exitPrice !== null ? (
@@ -341,75 +345,174 @@ function NewTrade({
   );
 }
 
+/** "Followed the plan": an adherence score of 80 or more, the same line the result comparison uses. */
+const FOLLOWED_AT = 80;
+
+/** One closed or open trade as the design's row; a tap opens the full card (exits, screenshots, notes). */
+function TradeRow({ tr, onOpen }: { tr: JournalTrade; onOpen: () => void }) {
+  const r = rMultiple(tr);
+  const a = adherence(tr);
+  const ok = a.score >= FOLLOWED_AT;
+  const end = tr.exitDate ?? etDate(new Date());
+  const held = daysBetween(tr.entryDate, end);
+  return (
+    <li className="border-b border-line-soft last:border-b-0">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={onOpen}
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 gap-y-0.5 py-2.5 text-start"
+      >
+        <span className="font-bold text-white">
+          {tr.ticker}{' '}
+          <span className="text-[13px] font-normal text-muted">
+            {dayMonth(tr.exitDate ?? tr.entryDate)}
+          </span>
+        </span>
+        <span
+          className={`text-end font-bold tabular-nums ${r === null ? 'text-muted' : r >= 0 ? 'text-up' : 'text-down'}`}
+        >
+          {tr.exitDate === null
+            ? x.openShort
+            : r === null
+              ? '–'
+              : `${r >= 0 ? '▲ +' : '▼ −'}${toFixedHalfUp(Math.abs(r), 1)}R`}
+        </span>
+        <span className="text-[13px] text-muted">
+          {x.rowSub(tr.setup.trim() || x.noSetup, held)}
+        </span>
+        <span
+          className={`justify-self-end rounded-sm px-1.5 py-px text-xs ${ok ? 'bg-up/14 text-up' : 'bg-down/16 text-down'}`}
+        >
+          {ok ? x.followedPlan : x.brokePlan}
+        </span>
+      </button>
+    </li>
+  );
+}
+
 export function Trades() {
   const q = useQuery({ queryKey: ['trades'], queryFn: loadTrades });
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
   const stats = q.data ? statsBySetup(q.data.trades) : [];
   const vs = q.data ? adherenceVsResult(q.data.trades) : null;
   const r2 = (v: number | null) => (v === null ? '–' : signed(v, 'R'));
+  const trades = q.data?.trades ?? [];
+  const scores = trades.map((tr) => adherence(tr).score);
+  const mean = scores.length ? scores.reduce((p, c) => p + c, 0) / scores.length : null;
+  const followed = scores.filter((sc) => sc >= FOLLOWED_AT).length;
+  const opened = trades.find((tr) => tr.id === openId);
   return (
-    <section aria-labelledby="trades" className={`${cardClass} gap-3!`}>
-      <h2 id="trades" className={panelTitle}>
+    <section aria-labelledby="trades" className="flex flex-col gap-2.5">
+      <h2 id="trades" className="sr-only">
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data && (
         <>
-          {q.data.trades.length === 0 ? (
+          {trades.length === 0 ? (
             <p className="text-muted">{x.none}</p>
           ) : (
             <>
-              <h3 className="text-sm font-semibold">{x.statsTitle}</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className={th}>{x.colSetup}</th>
-                      <th className={thNum}>{x.colClosed}</th>
-                      <th className={thNum}>{x.colWin}</th>
-                      <th className={thNum}>{x.colR}</th>
-                      <th className={thNum}>{x.colPnl}</th>
-                      <th className={thNum}>{x.colAdherence}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.map((s) => (
-                      <tr key={s.setup}>
-                        <td className={td}>{s.setup}</td>
-                        <td className={`${td} ${num}`}>
-                          {s.closed} ({s.open})
-                        </td>
-                        <td className={`${td} ${num}`}>
-                          {s.winRate === null ? '–' : `${toFixedHalfUp(s.winRate * 100, 1)}%`}
-                          {s.insufficient && s.closed > 0 ? ` (${x.insufficient})` : ''}
-                        </td>
-                        <td className={`${td} ${num}`}>
-                          {r2(s.meanR)} ({s.rCount})
-                        </td>
-                        <td className={`${td} ${num}`}>{signed(s.totalPnl, '')}</td>
-                        <td className={`${td} ${num}`}>
-                          {s.meanAdherence === null ? '–' : toFixedHalfUp(s.meanAdherence, 0)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {vs && (
-                <p className="text-sm text-muted">
-                  {vs.insufficient
-                    ? x.vsInsufficient
-                    : x.vs(vs.high.n, r2(vs.high.meanR), vs.low.n, r2(vs.low.meanR))}
-                </p>
+              {mean !== null && (
+                <div className="flex items-center gap-3.5 rounded-2xl border border-line bg-surface p-4">
+                  <svg
+                    viewBox="0 0 36 36"
+                    role="img"
+                    aria-label={x.ringAria(Math.round(mean))}
+                    className="size-[72px] flex-none -rotate-90"
+                  >
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.9"
+                      fill="none"
+                      stroke="rgba(138,153,178,0.18)"
+                      strokeWidth="3.5"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.9"
+                      fill="none"
+                      stroke="var(--color-up)"
+                      strokeWidth="3.5"
+                      strokeDasharray={`${Math.round(mean)} 100`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="flex flex-col">
+                    <span className="text-[13px] text-muted">{x.ringTitle}</span>
+                    <span className="text-[1.75rem] font-bold tabular-nums">
+                      {Math.round(mean)}
+                    </span>
+                    <span className="text-[13px] text-fg">
+                      {x.followedOf(followed, trades.length)}
+                    </span>
+                  </span>
+                </div>
               )}
-              <ul className="flex flex-col gap-3">
-                {q.data.trades.map((tr) => (
-                  <TradeCard key={tr.id} tr={tr} />
+              <ul className="rounded-2xl border border-line bg-surface px-4 py-1">
+                {trades.map((tr) => (
+                  <TradeRow key={tr.id} tr={tr} onOpen={() => setOpenId(tr.id)} />
                 ))}
               </ul>
+              <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+                <h3 className="font-semibold">{x.statsTitle}</h3>
+                <ul className="flex flex-col gap-2">
+                  {stats.map((st) => (
+                    <li key={st.setup} className="flex justify-between gap-2.5">
+                      <span>{st.setup}</span>
+                      <span className="text-[13px] whitespace-nowrap text-muted tabular-nums">
+                        {/* No percentage from fewer than 30 cases (integrity rule 10). */}
+                        {st.insufficient || st.winRate === null
+                          ? x.insufficientWin(st.closed)
+                          : x.setupNote(
+                              `${toFixedHalfUp(st.winRate * 100, 1)}%`,
+                              r2(st.meanR),
+                              st.closed,
+                            )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {vs && (
+                  <p className="text-[13px] text-muted">
+                    {vs.insufficient
+                      ? x.vsInsufficient
+                      : x.vs(vs.high.n, r2(vs.high.meanR), vs.low.n, r2(vs.low.meanR))}
+                  </p>
+                )}
+              </div>
             </>
           )}
-          <NewTrade alerts={q.data.alerts} />
+          <button
+            type="button"
+            aria-expanded={adding}
+            aria-controls="trade-new"
+            onClick={() => setAdding(!adding)}
+            className="min-h-11 rounded-xl border border-muted/35 px-4 text-[0.9375rem] text-white"
+          >
+            {x.add}
+          </button>
+          {adding && (
+            <div id="trade-new" className="rounded-2xl border border-line bg-surface p-4">
+              <NewTrade alerts={q.data.alerts} />
+            </div>
+          )}
+          <Sheet
+            open={opened !== undefined}
+            onClose={() => setOpenId(null)}
+            title={opened ? x.cardTitle(opened.ticker) : ''}
+          >
+            {opened && (
+              <ul>
+                <TradeCard tr={opened} />
+              </ul>
+            )}
+          </Sheet>
         </>
       )}
     </section>

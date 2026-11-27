@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import { Ban, ChevronDown, Clock, Lock } from 'lucide-react';
-import { cardClass } from '../components/Card';
+import { Tabs, cardClass } from '../components/Card';
 import { LEFT_OUT, PLAYBOOKS, toFixedHalfUp, type Playbook } from '@marsad/core';
 import { loadLab, type LabRule, type LabRun } from '../lib/lab';
 import { t } from '../strings';
@@ -57,7 +58,7 @@ function EquityChart({ points }: { points: EquityPoints }) {
       <p className="text-xs text-muted" aria-hidden="true">
         {first.date} to {last.date} {'\u00B7'} {l.equitySummary(fmt(last.equity), fmt(low))}
       </p>
-      <p className="text-xs text-muted">{l.equityNote}</p>
+      <Info>{l.equityNote}</Info>
     </figure>
   );
 }
@@ -139,6 +140,9 @@ const COUNT_TONE: Record<Stage, string> = {
   demoted: 'text-down',
 };
 
+/** The design's stepper: the lifecycle stages, in order. */
+const LIFECYCLE: Stage[] = ['draft', 'backtested', 'shadow', 'live', 'demoted'];
+
 function stageOf(p: Playbook, rule?: LabRule): Stage {
   if (p.notTestableBecause) return 'notTestable';
   const s = rule?.status;
@@ -199,7 +203,7 @@ function PlaybookCard({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabR
           l.stage[stage] ?? stage,
         )}
       </p>
-      <p className="text-sm leading-[1.45] text-pretty text-fg">{p.summary}</p>
+      <p className="hidden text-sm leading-[1.45] text-pretty text-fg tablet:block">{p.summary}</p>
       {run && o ? (
         <div className="flex flex-col gap-1.5 rounded-[10px] bg-bg p-3">
           {insufficient ? (
@@ -249,6 +253,7 @@ function PlaybookCard({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabR
       </button>
       {open && (
         <div id={bodyId} className="flex flex-col gap-2.5 border-t border-line pt-2.5 text-[13px]">
+          <p className="text-sm leading-[1.45] text-fg tablet:hidden">{p.summary}</p>
           {run && (
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -287,6 +292,7 @@ function PlaybookCard({ p, stage, run }: { p: Playbook; stage: Stage; run?: LabR
 export function Lab() {
   const q = useQuery({ queryKey: ['lab'], queryFn: loadLab });
   const [filter, setFilter] = useState<Stage | null>(null);
+  const [kind, setKind] = useState<'all' | 'testable' | 'notTestable'>('all');
   const ruleOf = (id: string) => q.data?.rules.find((r) => r.id === id);
   const runOf = (id: string) => q.data?.runs.find((r) => r.ruleId === id);
   const stages = PLAYBOOKS.map((p) => stageOf(p, ruleOf(p.id)));
@@ -296,15 +302,63 @@ export function Lab() {
   return (
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-[28px] font-bold text-white">{l.title}</h1>
-        <p className="text-[13px] text-muted">{l.intro(PLAYBOOKS.length)}</p>
+        {/* On a phone the top bar shows the page title, and the design has no intro line. */}
+        <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{l.title}</h1>
+        <p className="hidden text-[13px] text-muted tablet:block">{l.intro(PLAYBOOKS.length)}</p>
       </div>
       {q.isError && (
         <p role="alert" className="text-down">
           {q.error.message}
         </p>
       )}
-      <section aria-label={l.ui.lifecycle} className={`${cardClass} gap-3!`}>
+      <section
+        aria-label={l.ui.lifecycle}
+        className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface px-3 py-3.5 tablet:hidden"
+      >
+        <ol className="flex items-start">
+          {LIFECYCLE.map((k, i) => (
+            <li key={k} className="relative flex min-w-0 flex-1 flex-col items-center gap-1">
+              {i < LIFECYCLE.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute start-1/2 top-[15px] h-0.5 w-full bg-muted/30"
+                />
+              )}
+              <span
+                className={`relative grid size-8 place-items-center rounded-full border-2 text-sm font-bold ${
+                  counts[k] ? 'border-up bg-ink text-white' : 'border-muted/40 bg-bg text-muted'
+                }`}
+              >
+                {counts[k]}
+              </span>
+              <span className="max-w-full truncate text-center text-xs text-fg">{l.stage[k]}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="text-[13px] leading-snug text-muted">
+          {l.ui.outside(counts.notTestable, counts.notRun)}
+        </p>
+      </section>
+      <div className="tablet:hidden">
+        <Tabs
+          pill
+          label={l.ui.filterLabel}
+          idPrefix="lab-kind"
+          options={[
+            { key: 'all' as const, label: l.ui.filterAll(PLAYBOOKS.length) },
+            {
+              key: 'testable' as const,
+              label: l.ui.filterTestable(PLAYBOOKS.length - counts.notTestable),
+            },
+            { key: 'notTestable' as const, label: l.ui.filterNot(counts.notTestable) },
+          ]}
+          value={kind}
+          onChange={setKind}
+        >
+          {null}
+        </Tabs>
+      </div>
+      <section aria-label={l.ui.lifecycle} className={`${cardClass} hidden gap-3! tablet:flex`}>
         <div className="flex items-stretch gap-1.5 overflow-x-auto">
           {STAGES.map((k) => (
             <button
@@ -321,11 +375,13 @@ export function Lab() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted">{l.ui.gateNote}</p>
+        <Info>{l.ui.gateNote}</Info>
       </section>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] items-start gap-3">
         {PLAYBOOKS.map((p, i) => {
           if (filter && stages[i] !== filter) return null;
+          if (kind === 'testable' && stages[i] === 'notTestable') return null;
+          if (kind === 'notTestable' && stages[i] !== 'notTestable') return null;
           const run = runOf(p.id);
           return (
             <PlaybookCard key={p.id} p={p} stage={stages[i] as Stage} {...(run ? { run } : {})} />

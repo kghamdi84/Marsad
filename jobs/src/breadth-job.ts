@@ -15,6 +15,7 @@ import {
   type MarketMovers,
   type MassiveConfig,
   type TickerSeries,
+  strengthRanks,
 } from '@marsad/core';
 import type { BreadthRow, Store, UniverseRow } from './store.js';
 
@@ -202,6 +203,18 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
         movers.push(marketMovers(dates, series, new Set(u.members.map((m) => m.ticker)), i));
       }
       await store.upsertMovers(movers);
+
+      // Strength rank of the newest session within its month's universe (strength-1, council leftover).
+      const lastAt = dates.length - 1;
+      const lastUniverse = [...h.universes].reverse().find((x) => x.at <= lastAt);
+      const ranks = lastUniverse
+        ? strengthRanks(
+            series,
+            lastUniverse.members.map((m) => m.ticker),
+            lastAt,
+          )
+        : [];
+      if (ranks.length > 0) await store.upsertStrengthRanks(dates[lastAt] as string, ranks);
 
       const last = rows.at(-1);
       if (failed.length > 0)

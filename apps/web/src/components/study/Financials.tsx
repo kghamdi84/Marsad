@@ -4,6 +4,7 @@ import { etDate, peRatio, summarizeFinancials, toFixedHalfUp, type DailyBar } fr
 import { loadFacts } from '../../lib/studyPanels';
 import { t } from '../../strings';
 import { Cell, PanelShell, num, td, th, thNum, usd } from './Panel';
+import { InvestorFigures } from './InvestorFigures';
 
 // A table column keeps one decimal everywhere (75.0%, not 75%), unlike running text which trims zeros.
 const pct = (v: number | null) => (v === null ? '' : `${toFixedHalfUp(v, 1)}%`);
@@ -169,6 +170,7 @@ export function Financials({ cik, bars }: { cik: string; bars: readonly DailyBar
               </div>
             </>
           )}
+          {q.data && <InvestorFigures facts={q.data} asOf={asOf} price={price} />}
           <p className="text-xs text-muted">{f.valuation}</p>
           <p className="text-xs text-muted">Formulas: {s.formulaVersion}</p>
         </>

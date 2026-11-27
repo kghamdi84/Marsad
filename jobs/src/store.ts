@@ -7,7 +7,13 @@ import {
   encodeSnapshot,
   MIN_SNAPSHOT_DOLLAR_VOLUME,
 } from './snapshot-codec.js';
-import { PERSONAL_EXPORT_TABLES, SHARED_EXPORT_TABLES, etDate } from '@marsad/core';
+import {
+  PERSONAL_EXPORT_TABLES,
+  SHARED_EXPORT_TABLES,
+  etDate,
+  STRENGTH_VERSION,
+  type StrengthRank,
+} from '@marsad/core';
 import type {
   CatalystEvent,
   CatalystScenario,
@@ -135,6 +141,8 @@ export interface Store {
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
   upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  /** The universe strength ranks of one session (strength-1). */
+  upsertStrengthRanks(date: string, rows: readonly StrengthRank[]): Promise<number>;
   /** Halts whose halt time is on or after `since`. */
   getRecentHalts(since: string): Promise<HaltRow[]>;
   /** Tickers on any saved watchlist. */
@@ -295,6 +303,9 @@ export interface EventStatRow {
   q3: number | null;
   min: number | null;
   max: number | null;
+  /** 90% bootstrap interval of the median (event-study-2). */
+  ciLow: number | null;
+  ciHigh: number | null;
   episodes: string[];
   dataFrom: string;
   dataTo: string;
@@ -1576,6 +1587,26 @@ export function supabaseStore(url: string, secretKey: string): Store {
       if (error) throw new Error(`alerts insert failed: ${error.message}`);
       return out.length;
     },
+    async upsertStrengthRanks(date, rows) {
+      if (rows.length === 0) return 0;
+      const out = rows.map((r) => ({
+        version: STRENGTH_VERSION,
+        date,
+        ticker: r.ticker,
+        return_63: r.return63,
+        rank: r.rank,
+        members: r.members,
+        percentile: r.percentile,
+        computed_at: new Date().toISOString(),
+      }));
+      for (let i = 0; i < out.length; i += 500) {
+        const { error } = await db
+          .from('strength_rank_daily')
+          .upsert(out.slice(i, i + 500), { onConflict: 'version,date,ticker' });
+        if (error) throw new Error(`strength_rank_daily upsert failed: ${error.message}`);
+      }
+      return out.length;
+    },
     async upsertMovers(rows) {
       if (rows.length === 0) return 0;
       const out = rows.map((r) => ({
@@ -1646,6 +1677,8 @@ export function supabaseStore(url: string, secretKey: string): Store {
         q3: r.q3,
         min: r.min,
         max: r.max,
+        ci_low: r.ciLow,
+        ci_high: r.ciHigh,
         episodes: r.episodes,
         data_from: r.dataFrom,
         data_to: r.dataTo,

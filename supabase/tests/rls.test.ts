@@ -122,6 +122,8 @@ beforeAll(async () => {
       values ('pre-market', date '2026-11-25', 'brief-1', 'Pre-market brief, Wed 2026-11-25', 'Regime Stress.', '[]'::jsonb, '{}'::jsonb);
     insert into public.market_movers_daily (date, version, n, gainers, losers, sectors)
       values (date '2026-11-24', 'watch-1', 990, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb);
+    insert into public.strength_rank_daily (version, date, ticker, return_63, rank, members, percentile)
+      values ('strength-1', date '2026-11-24', 'NVDA', 0.12, 40, 990, 96.05);
     insert into public.econ_calendar_snapshots (fetched_at, version, range_from, range_to, events)
       values (timestamptz '2026-11-25 23:40:00+00', 'calendar-1', date '2026-11-25', date '2027-01-24', '[]'::jsonb);
     insert into public.earnings_estimate_snapshots (computed_at, version, estimates)
@@ -365,6 +367,7 @@ describe('system tables', () => {
       'capitulation_plans',
       'news_topic_days',
       'market_movers_daily',
+      'strength_rank_daily',
       'briefs',
       'rules',
       'rule_events',

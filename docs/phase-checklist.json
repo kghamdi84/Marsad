@@ -611,8 +611,8 @@
         {
           "id": "6.3",
           "title": "Term structure and skew",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-2 (packages/core/src/options-analytics.ts): term structure with 30-day IV interpolated in total variance, slope and inversion; 25-delta skew from a chain (IV interpolated in delta), hand-checked tests. Still to do: daily chains (needs the options plan)."
         },
         {
           "id": "6.4",
@@ -623,26 +623,26 @@
         {
           "id": "6.5",
           "title": "Implied versus realized earnings moves",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-2: implied against realized moves for the last 8 reports, count of reports that moved more (never a percentage), median ratio; a floating-point tolerance stops an exact 5% move counting as more. Hand-checked tests. Still to do: straddle history (needs the options plan)."
         },
         {
           "id": "6.6",
           "title": "IV-crush guard",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-2: IV-crush warning when a net-debit idea spans an earnings date between today and expiry; tests for credit, past and post-expiry earnings. Still to do: wiring into the strategy helper with live chains (needs the options plan)."
         },
         {
           "id": "6.7",
           "title": "Unusual-activity filters with stated limits",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-2: unusual-activity filter (volume at least 2x open interest, $100k premium, $50 a contract, |delta| 0.15 to 0.85, the liquidity guard) with the stated limits text; hand-checked tests. Still to do: daily option volume (needs the options plan)."
         },
         {
           "id": "6.8",
           "title": "Put/call ratios",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "options-2: put/call ratios by volume and open interest, equity and index apart, null without calls; hand-checked tests. Still to do: daily option volume and open interest (needs the options plan)."
         },
         {
           "id": "6.9",

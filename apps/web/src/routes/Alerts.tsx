@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Info } from '../components/Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_LOCAL_ZONE,
@@ -24,6 +25,8 @@ import {
   type StoredAlertRow,
   type Verdict,
 } from '../lib/alerts';
+import { dayMonth, weekdayDayMonth } from '../lib/dates';
+import { TickerLink } from '../components/QuickLook';
 import { t } from '../strings';
 
 const a = t.alerts;
@@ -53,6 +56,14 @@ const whenText = (iso: string) => {
   return `${etDate(d)} ${dualClock(d, DEFAULT_LOCAL_ZONE).label}`;
 };
 
+/** The design's list time: "Wed 25 Nov · 16:42 ET · 00:42 Riyadh". */
+function whenShort(iso: string): string {
+  const d = new Date(iso);
+  const c = dualClock(d, DEFAULT_LOCAL_ZONE);
+  const city = (DEFAULT_LOCAL_ZONE.split('/').at(-1) ?? '').replace(/_/g, ' ');
+  return a.when(weekdayDayMonth(etDate(d)), c.et, c.local, city);
+}
+
 /** One alert in the list: priority bar, kind, priority, ticker, headline, decision and time (words carry it all). */
 function AlertRow({
   row,
@@ -80,6 +91,9 @@ function AlertRow({
         />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="order-last ms-auto font-semibold text-up">
+              {a.decisionShort[row.decision] ?? row.decision}
+            </span>
             <span className="font-bold tracking-wide text-muted">{row.kind.toUpperCase()}</span>
             <span
               className={`rounded px-1.5 py-px font-semibold ${BADGE[row.priority] ?? BADGE['normal']}`}
@@ -88,11 +102,8 @@ function AlertRow({
             </span>
             {row.ticker && <span className="font-bold text-white">{row.ticker}</span>}
           </span>
-          <span className="text-[0.9375rem] leading-snug text-fg">{headline}</span>
-        </span>
-        <span className="flex flex-none flex-col items-end gap-1 text-xs text-muted">
-          <span className="font-semibold text-up">{a.decision[row.decision] ?? row.decision}</span>
-          <span className="whitespace-nowrap">{whenText(row.createdAt)}</span>
+          {headline && <span className="text-[0.9375rem] leading-snug text-fg">{headline}</span>}
+          <span className="text-[13px] text-muted">{whenShort(row.createdAt)}</span>
         </span>
       </button>
     </li>
@@ -237,7 +248,8 @@ function ChecklistVisual({ input }: { input: AlertInput }) {
 }
 
 /** The full card, in the order the alert pipeline wrote it, with the feedback buttons. */
-function AlertDetail({ row }: { row: StoredAlertRow }) {
+/** The full alert card. In the phone sheet the sheet title already shows the headline, so it is not repeated. */
+function AlertDetail({ row, inSheet = false }: { row: StoredAlertRow; inSheet?: boolean }) {
   const qc = useQueryClient();
   const m = useMutation({
     mutationFn: (v: Verdict) => saveFeedback(row.id, v),
@@ -259,7 +271,15 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
         {row.input && sec.heading.startsWith('Risk') && <RiskVisual input={row.input} />}
         {row.input && sec.heading === 'Checklist' && <ChecklistVisual input={row.input} />}
         {sec.lines.map((l) => (
-          <p key={l} className="text-sm leading-snug text-fg">
+          // Where a visual draws the risk or the checklist, its sentence is for screen readers only (council batch 2).
+          <p
+            key={l}
+            className={
+              row.input && (sec.heading.startsWith('Risk') || sec.heading === 'Checklist')
+                ? 'sr-only'
+                : 'text-sm leading-snug text-fg'
+            }
+          >
             {l}
           </p>
         ))}
@@ -284,12 +304,12 @@ function AlertDetail({ row }: { row: StoredAlertRow }) {
             >
               {a.priority[row.priority] ?? row.priority}
             </span>
-            {row.ticker && <span className="text-base font-bold text-white">{row.ticker}</span>}
+            {row.ticker && <TickerLink ticker={row.ticker} className="text-base" />}
             <span className="ms-auto rounded bg-bg px-2 py-0.5 font-semibold text-up">
               {a.decision[row.decision] ?? row.decision}
             </span>
           </span>
-          <h2 id={hid} className="text-xl font-bold text-white">
+          <h2 id={hid} className={inSheet ? 'sr-only' : 'text-xl font-bold text-white'}>
             {header.heading}
           </h2>
           {header.lines.map((l) => (
@@ -365,90 +385,55 @@ function Scorecard() {
   const rows = summarize(q.data.alerts, q.data.outcomes);
   const pending = q.data.outcomes.filter((o) => o.status === 'pending').length;
   const cal = calibration(q.data.alerts, q.data.outcomes, '5d');
-  // One session scores first, so the strip fills soonest; the table below has every horizon.
-  const five = new Map(
-    q.data.outcomes.filter((o) => o.horizon === '1d').map((o) => [o.alertId, o]),
-  );
-  const strip = [...q.data.alerts]
-    .sort((x, y) => x.createdAt.localeCompare(y.createdAt))
-    .filter((al) => five.has(al.id))
-    .slice(-30)
-    .map((al) => five.get(al.id) as (typeof q.data.outcomes)[number]);
   const perAlert = [...q.data.alerts]
     .sort((x, y) => y.createdAt.localeCompare(x.createdAt))
     .slice(0, 8)
-    .map((al) => ({ id: al.id, label: `${al.ruleId} ${al.ticker ?? ''}`.trim() }));
-  const tone = (o: (typeof strip)[number]) =>
-    o.status !== 'done' || o.ret === null
-      ? 'bg-faint/40'
-      : o.ret > 0
-        ? 'bg-up'
-        : o.ret < 0
-          ? 'bg-down'
-          : 'bg-muted';
+    .map((al) => ({
+      id: al.id,
+      label: `${al.ticker ?? ''} ${al.ruleId}`.trim(),
+      day: dayMonth(etDate(new Date(al.createdAt))),
+    }));
+  // Rules with fewer than 30 scored cases get the design's box; the rest keep the table.
+  const enough = rows.filter((r) => !r.insufficient);
+  const thin = [
+    ...new Map(
+      rows
+        .filter(
+          (r) =>
+            r.insufficient && !enough.some((e) => e.ruleId === r.ruleId && e.status === r.status),
+        )
+        .sort((x, y) => y.n - x.n)
+        .reverse()
+        .map((r) => [`${r.ruleId}-${r.status}`, r]),
+    ).values(),
+  ];
   return (
     <section aria-labelledby="scorecard" className={`${cardClass} gap-3!`}>
       <h2 id="scorecard" className={panelTitle}>
         {s.title}
       </h2>
-      <p className="text-sm text-muted">{s.intro}</p>
-      {strip.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-muted">{s.strip(strip.length)}</span>
-          <div
-            role="img"
-            aria-label={s.stripAria(
-              strip.filter((o) => o.status === 'done' && (o.ret ?? 0) > 0).length,
-              strip.filter((o) => o.status === 'done' && (o.ret ?? 0) < 0).length,
-              strip.filter((o) => o.status !== 'done').length,
-            )}
-            className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-0.5"
-          >
-            {strip.map((o) => (
-              <span key={o.alertId} className={`h-6 rounded-sm ${tone(o)}`} />
+      <p className="text-[13px] text-muted">{s.sub}</p>
+      <p className="sr-only">{s.intro}</p>
+      {rows.length === 0 && <p className="text-muted">{s.none}</p>}
+      {thin.map((r) => (
+        <div
+          key={`${r.ruleId}-${r.status}`}
+          className="flex flex-col gap-1.5 rounded-xl bg-bg px-3 py-2.5"
+        >
+          <span className="text-xs text-muted">{s.ruleLabel(r.ruleId, r.status === 'shadow')}</span>
+          <span className="text-[15px] text-fg">{s.insufficientRow(r.n)}</span>
+          <span aria-hidden="true" className="flex gap-0.5">
+            {Array.from({ length: 30 }, (_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 flex-1 rounded-[1px] ${i < r.n ? 'bg-fg' : 'bg-faint/25'}`}
+              />
             ))}
-          </div>
-          <span className="text-xs text-muted">{s.stripNote}</span>
+          </span>
+          <span className="text-[13px] text-muted">{s.hitRatesAt}</span>
         </div>
-      )}
-      {perAlert.length > 0 && (
-        <ScrollX label={s.perAlertLabel}>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className={th}>{s.colAlert}</th>
-                {(['1d', '5d', '20d'] as const).map((h) => (
-                  <th key={h} className={thNum}>
-                    {s.sessions(h.replace('d', ''))}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {perAlert.map((al) => (
-                <tr key={al.id}>
-                  <td className={td}>
-                    <span className="font-semibold text-white">{al.label}</span>
-                  </td>
-                  {(['1d', '5d', '20d'] as const).map((h) => {
-                    const o = q.data.outcomes.find((x) => x.alertId === al.id && x.horizon === h);
-                    return (
-                      <td key={h} className={`${td} ${num}`}>
-                        {o && o.status === 'done' && o.ret !== null
-                          ? pctSigned(o.ret)
-                          : s.pendingCell}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollX>
-      )}
-      {rows.length === 0 ? (
-        <p className="text-muted">{s.none}</p>
-      ) : (
+      ))}
+      {enough.length > 0 && (
         <ScrollX label={s.tableLabel}>
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -464,18 +449,14 @@ function Scorecard() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {enough.map((r) => (
                 <tr key={`${r.ruleId}-${r.status}-${r.horizon}`}>
-                  <td className={td}>
-                    {r.ruleId} ({r.status === 'shadow' ? s.shadow : s.live})
-                  </td>
+                  <td className={td}>{s.ruleLabel(r.ruleId, r.status === 'shadow')}</td>
                   <td className={`${td} ${num}`}>{r.horizon.replace('d', '')}</td>
                   <td className={`${td} ${num}`}>{r.n}</td>
                   <td className={`${td} ${num}`}>
-                    {r.winRate === null ? '\u2013' : share(r.winRate)}{' '}
-                    {r.winCi
-                      ? `(${share(r.winCi.low)} to ${share(r.winCi.high)})`
-                      : `(${s.insufficient})`}
+                    {r.winRate === null ? '–' : share(r.winRate)}{' '}
+                    {r.winCi ? `(${share(r.winCi.low)} to ${share(r.winCi.high)})` : ''}
                   </td>
                   <td className={`${td} ${num}`}>{pctSigned(r.meanRet)}</td>
                   <td className={`${td} ${num}`}>{pctSigned(r.meanExcess)}</td>
@@ -491,6 +472,36 @@ function Scorecard() {
           </table>
         </ScrollX>
       )}
+      {perAlert.length > 0 && (
+        <ul aria-label={s.perAlertLabel} className="flex flex-col">
+          {perAlert.map((al) => (
+            <li key={al.id} className="flex flex-col gap-1.5 border-t border-line-soft py-2.5">
+              <span className="flex justify-between gap-2.5">
+                <span className="font-semibold text-white">{al.label}</span>
+                <span className="text-[13px] text-muted">{al.day}</span>
+              </span>
+              <span className="grid grid-cols-3 gap-1.5">
+                {(['1d', '5d', '20d'] as const).map((h) => {
+                  const o = q.data.outcomes.find((x) => x.alertId === al.id && x.horizon === h);
+                  const done = o && o.status === 'done' && o.ret !== null ? o.ret : null;
+                  return (
+                    <span key={h} className="flex flex-col rounded-[10px] bg-bg px-2 py-1.5">
+                      <span className="text-xs text-muted">{s.sessions(h.replace('d', ''))}</span>
+                      <span
+                        className={`font-semibold tabular-nums ${done === null ? 'text-fg' : done >= 0 ? 'text-up' : 'text-down'}`}
+                      >
+                        {done === null
+                          ? s.pendingCell
+                          : `${done >= 0 ? '▲' : '▼'} ${pctSigned(done)}`}
+                      </span>
+                    </span>
+                  );
+                })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       {pending > 0 && <p className="text-xs text-muted">{s.pending(pending)}</p>}
       <h3 className="text-sm font-semibold">{s.calibration}</h3>
       {cal === null ? (
@@ -499,8 +510,10 @@ function Scorecard() {
         <ul className="text-sm">
           {cal.map((b) => (
             <li key={b.low}>
-              {s.bin(b.low, b.high)}: n={b.n}, {b.winRate === null ? '\u2013' : share(b.winRate)}
-              {b.ci ? ` (${share(b.ci.low)} to ${share(b.ci.high)})` : ''}
+              {s.bin(b.low, b.high)}: n={b.n},{' '}
+              {b.ci === null || b.winRate === null
+                ? s.binInsufficient
+                : `${share(b.winRate)} (${share(b.ci.low)} to ${share(b.ci.high)})`}
             </li>
           ))}
         </ul>
@@ -538,14 +551,14 @@ export function Alerts() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="sr-only text-[28px] font-bold text-white tablet:not-sr-only">{a.title}</h1>
-          <p className="text-[13px] text-muted">{a.intro}</p>
+          <Info>{a.intro}</Info>
         </div>
         {q.data && q.data.length > 0 && wide && (
           <Segmented
             label={a.tabsLabel}
             options={TABS.map((k) => ({
               key: k,
-              label: `${a.tabs[k]} (${rows.filter((r) => inTab(r, k)).length})`,
+              label: a.tabCount(a.tabs[k] ?? k, rows.filter((r) => inTab(r, k)).length),
             }))}
             value={tab}
             onChange={(k) => {
@@ -579,7 +592,7 @@ export function Alerts() {
                 label={a.tabsLabel}
                 options={TABS.map((k) => ({
                   key: k,
-                  label: `${a.tabs[k]} (${rows.filter((r) => inTab(r, k)).length})`,
+                  label: a.tabCount(a.tabs[k] ?? k, rows.filter((r) => inTab(r, k)).length),
                 }))}
                 value={tab}
                 onChange={(k) => {
@@ -623,7 +636,7 @@ export function Alerts() {
                 onClose={() => setSheetOpen(false)}
                 title={selected?.card[0]?.heading ?? a.title}
               >
-                {selected && <AlertDetail row={selected} />}
+                {selected && <AlertDetail row={selected} inSheet />}
               </Sheet>
             )}
           </>

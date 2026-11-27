@@ -72,7 +72,7 @@ test('phone watch: list rows expand, movers and gaps share one card', async ({ p
   const mg = page.getByRole('region', { name: 'Movers and gaps' });
   await expect(mg.getByRole('row', { name: /UP1/ })).toContainText('+12.0%');
   await mg.getByRole('button', { name: 'Down' }).click();
-  await expect(mg.getByRole('row', { name: /DN1/ })).toContainText('-8.0%');
+  await expect(mg.getByRole('row', { name: /DN1/ })).toContainText('−8.0%');
   await mg.getByRole('button', { name: 'Gaps' }).click();
   await expect(mg.getByRole('row').first()).toContainText('+2.50%');
   // The page never scrolls sideways on a phone.

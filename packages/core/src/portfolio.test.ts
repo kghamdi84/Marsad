@@ -64,10 +64,10 @@ describe('Sahm ticket', () => {
         stop: 23.7,
         tif: 'GTC',
       }),
-    ).toBe('BUY 125 RKLB LIMIT 24.15, STOP 23.70, GTC');
+    ).toBe('BUY 125 RKLB LIMIT 24.15 STOP 23.70 GTC');
     expect(
       sahmTicket({ side: 'SELL', shares: 40, ticker: 'SOFI', type: 'MARKET', tif: 'DAY' }),
-    ).toBe('SELL 40 SOFI MARKET, DAY');
+    ).toBe('SELL 40 SOFI MARKET DAY');
   });
 });
 

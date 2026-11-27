@@ -74,6 +74,44 @@ export interface WatchData {
   series: Record<string, Obs[]>;
   movers: MarketMovers | null;
   news: NewsItem[];
+  /** The sector fund chosen for each saved ticker (null when none is set). */
+  sectorOf: Record<string, string | null>;
+  /** The newest universe strength rank (strength-1) of each ticker in the universe. */
+  strength: Record<string, StrengthView>;
+}
+
+export interface StrengthView {
+  date: string;
+  percentile: number;
+  rank: number;
+  members: number;
+}
+
+/** The newest strength rank of each ticker; tickers outside the 1,000-stock universe have none. */
+export async function loadStrength(
+  tickers: readonly string[],
+): Promise<Record<string, StrengthView>> {
+  if (tickers.length === 0) return {};
+  const r = await client()
+    .from('strength_rank_daily')
+    .select('ticker, date, percentile, rank, members')
+    .eq('version', 'strength-1')
+    .in('ticker', [...tickers])
+    .order('date', { ascending: false })
+    .limit(tickers.length * 5);
+  if (r.error) throw new Error(`strength_rank_daily: ${r.error.message}`);
+  const out: Record<string, StrengthView> = {};
+  for (const x of (r.data ?? []) as Record<string, unknown>[]) {
+    const t = String(x['ticker']);
+    if (out[t]) continue;
+    out[t] = {
+      date: String(x['date']),
+      percentile: num(x['percentile']),
+      rank: num(x['rank']),
+      members: num(x['members']),
+    };
+  }
+  return out;
 }
 
 const num = (v: unknown): number => Number(v);
@@ -148,13 +186,18 @@ export async function loadRecentBars(
 export async function loadWatch(): Promise<WatchData> {
   const items = await client()
     .from('watchlist_items')
-    .select('ticker, position')
+    .select('ticker, position, sector_etf')
     .order('position', { ascending: true })
     .limit(100);
   if (items.error) throw new Error(`watchlist_items: ${items.error.message}`);
+  const sectorOf: Record<string, string | null> = {};
+  for (const x of (items.data ?? []) as { ticker: string; sector_etf: string | null }[])
+    sectorOf[x.ticker] = x.sector_etf ?? null;
   const saved = [...new Set(((items.data ?? []) as { ticker: string }[]).map((x) => x.ticker))];
   const tickers = saved.length > 0 ? saved : [...STARTING_TICKERS];
-  const barTickers = [...new Set([...tickers, ...STRIP_BARS])];
+  const sectorFunds = Object.values(sectorOf).filter((s): s is string => s !== null);
+  const barTickers = [...new Set([...tickers, ...STRIP_BARS, ...sectorFunds])];
+  const strengthP = loadStrength(tickers);
   const [barLists, seriesLists, moversR, newsR] = await Promise.all([
     Promise.all(barTickers.map((t) => barsOf(t))),
     Promise.all(STRIP_SERIES.map((id) => seriesOf(id))),
@@ -176,6 +219,8 @@ export async function loadWatch(): Promise<WatchData> {
   return {
     tickers,
     defaultList: saved.length === 0,
+    sectorOf,
+    strength: await strengthP,
     bars,
     series,
     movers: m

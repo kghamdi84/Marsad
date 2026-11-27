@@ -1,3 +1,4 @@
+import { QuickLookProvider } from './QuickLook';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
@@ -424,7 +425,9 @@ export function Shell() {
       </div>
 
       <div className="flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] tablet:px-5 tablet:pb-10">
-        <Outlet />
+        <QuickLookProvider>
+          <Outlet />
+        </QuickLookProvider>
       </div>
 
       {/* Phone: the bottom tab bar, with Lab, Status and Sign out under More. */}

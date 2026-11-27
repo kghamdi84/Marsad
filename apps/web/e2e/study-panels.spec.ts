@@ -6,7 +6,7 @@ import business from '../../../fixtures/massive/sections-NVDA-business.json' wit
 import shortInterest from '../../../fixtures/massive/short-interest-NVDA.json' with { type: 'json' };
 import shortVolume from '../../../fixtures/massive/short-volume-NVDA.json' with { type: 'json' };
 import factsFixture from '../../../fixtures/sec/companyfacts-NVDA-trimmed.json' with { type: 'json' };
-import { seedSession, scanAfterEach, openSection } from './helpers';
+import { seedSession, scanAfterEach, openSection, openInfo } from './helpers';
 
 scanAfterEach();
 
@@ -342,6 +342,18 @@ test('financials: as filed, with derived quarters marked, and a date picker that
   await expect(panel.getByText('37.9x')).toBeVisible();
   await expect(panel.getByText('Balance sheet at 2026-07-26')).toBeVisible();
   await expect(panel.getByText('$320.27B')).toBeVisible();
+  // Council batch 4: free cash flow needs capital spending, which this recorded file only has up to 2020, so it is
+  // not reported rather than guessed; dilution uses the diluted share counts it does have.
+  const investor = panel.getByRole('region', { name: 'Cash, value and dilution' });
+  await expect(
+    investor.getByText('Free cash flow, 12 months', { exact: true }).locator('..'),
+  ).toContainText('Not reported');
+  await expect(
+    investor.getByText('Diluted shares, 1 year', { exact: true }).locator('..'),
+  ).toContainText('%');
+  await expect(investor.getByText('Market value', { exact: true }).locator('..')).toContainText(
+    '$',
+  );
   // Point in time: the day before the Q2 10-Q was filed, that quarter is not there yet.
   await panel.getByLabel('Known as of').fill('2026-08-25');
   await expect(panel.getByText('Latest filing used: 2026-05-20')).toBeVisible();
@@ -565,6 +577,7 @@ test('business: the real 10-K Item 1 text loads only when opened, with its filin
   });
   await page.goto('/study/NVDA');
   const panel = page.getByRole('region', { name: 'What the company does (10-K, Item 1)' });
+  await openInfo(page.getByRole('region', { name: 'What the company does (10-K, Item 1)' }));
   await expect(panel.getByText(/not an independent view/)).toBeVisible();
   expect(asked).toHaveLength(0);
   await panel.getByText('Show the business description').click();
@@ -589,6 +602,7 @@ test('risk factors: nothing is fetched until opened, then two real 10-Ks are com
   await page.goto('/study/NVDA');
   await openSection(page, 'Risk factors');
   const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
+  await openInfo(page.getByRole('region', { name: 'Risk factors, year over year (10-K)' }));
   await expect(panel.getByText(/by computer rules and not by a model/)).toBeVisible();
   await expect(panel.getByText('Latest filing used')).toHaveCount(0);
   expect(fetched).toBe(0); // two 110 KB reports are not loaded for everyone who opens the page
@@ -751,6 +765,7 @@ test('short data: both definitions, the lag, and the real rows', async ({ page }
   await expect(
     panel.getByText(/Short interest: shares sold short and not yet covered/),
   ).toBeVisible();
+  await openInfo(page.getByRole('region', { name: 'Short interest and short volume' }));
   await expect(panel.getByText(/It is not short interest/)).toBeVisible();
   await expect(panel.getByRole('row', { name: /^2026-10-30/ })).toContainText('279,579,505');
   await expect(panel.getByRole('row', { name: /^2026-10-30/ })).toContainText('2.8');
@@ -764,6 +779,9 @@ test('news: tiers and opinion labelled, one story once, links open the publisher
   await page.goto('/study/NVDA');
   await openSection(page, 'News');
   const panel = page.getByRole('region', { name: 'News' });
+  // Reporting shows first; opinion and tier 3 or 4 sit behind a toggle (council batch 2).
+  await expect(panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' })).toHaveCount(0);
+  await panel.getByRole('button', { name: /^Show opinion and tier 3 or 4/ }).click();
   const first = panel.getByRole('link', { name: 'Why Sandisk Stock Plunged Today' });
   await expect(first).toHaveAttribute('target', '_blank');
   await expect(first).toHaveAttribute('rel', /noopener/);

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { normalizeTicker, toFixedHalfUp, type CatalystScenario } from '@marsad/core';
 import { useWide } from '../Card';
@@ -295,7 +296,8 @@ export function Scenarios() {
       <h2 id="scenarios" className="font-semibold">
         {x.title}
       </h2>
-      <p className="text-sm text-muted">{x.intro}</p>
+      <p className="text-[13px] text-muted">{x.sub}</p>
+      <Info>{x.intro}</Info>
       {q.isError && <ErrorText message={q.error.message} />}
       {q.data &&
         (q.data.length === 0 ? (
@@ -311,9 +313,13 @@ export function Scenarios() {
         <NewScenario />
       ) : (
         <>
-          <Button type="button" onClick={() => setOpen(true)}>
-            {x.add}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[52px] rounded-[14px] bg-white text-base font-bold text-raised"
+          >
+            {x.newScenario}
+          </button>
           <Sheet open={open} onClose={() => setOpen(false)} title={x.add}>
             <NewScenario stepped />
           </Sheet>

@@ -70,7 +70,7 @@ export interface TicketInput {
   tif: 'GTC' | 'DAY';
 }
 
-/** The order as plain text for Sahm, for example "BUY 125 RKLB LIMIT 24.15, STOP 23.70, GTC". */
+/** The order as plain text for Sahm, as the design writes it: "BUY 125 RKLB LIMIT 24.15 STOP 23.70 GTC". */
 export function sahmTicket(t: TicketInput): string {
   const price = (v: number) => toFixedHalfUp(v, 2);
   const parts = [
@@ -78,7 +78,7 @@ export function sahmTicket(t: TicketInput): string {
   ];
   if (t.stop) parts.push(`STOP ${price(t.stop)}`);
   parts.push(t.tif);
-  return parts.join(', ');
+  return parts.join(' ');
 }
 
 /** The Jimmy D checklist: patience, process, strict risk, clean setups, take profits, no emotional bias. */

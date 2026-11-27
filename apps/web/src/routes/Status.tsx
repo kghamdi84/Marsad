@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Info } from '../components/Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_SOURCE_POLICIES,
@@ -17,7 +18,7 @@ import { loadPreferences, savePreferences, type Preferences as Prefs } from '../
 import { loadQuoteView, saveQuoteSource, type QuoteSource } from '../lib/quotes';
 import { supabase } from '../lib/supabase';
 import { Notifications } from '../components/status/Notifications';
-import { ScrollX, cardClass } from '../components/Card';
+import { ScrollX, Tabs, cardClass, useRemembered } from '../components/Card';
 import { panelTitle } from '../components/study/Panel';
 import { t } from '../strings';
 
@@ -199,7 +200,7 @@ function QuoteSourceCard() {
       <h2 id="quote-source-h" className={panelTitle}>
         {qs.title}
       </h2>
-      <p className="text-sm text-muted">{qs.intro}</p>
+      <Info>{qs.intro}</Info>
       {q.isError ? (
         <p role="alert" className="text-down">
           {q.error.message}
@@ -871,8 +872,11 @@ const EVENT_STYLE: Record<AlertRow['event'], string> = {
   recovered: 'bg-up/15 text-up',
 };
 
+const STATUS_TABS = ['health', 'settings'] as const;
+
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: load, refetchInterval: 30_000 });
+  const [tab, setTab] = useRemembered('marsad.status.tab', STATUS_TABS, 'health');
   return (
     <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
       {q.data ? (
@@ -886,49 +890,65 @@ export function Status() {
         </>
       )}
 
-      {q.data && <Sources data={q.data} />}
+      {/* Health first; the setup forms sit under Settings (council batch 2). */}
+      <Tabs
+        pill
+        label={t.status.tabsLabel}
+        idPrefix="status"
+        options={STATUS_TABS.map((k) => ({ key: k, label: t.status.tabs[k] ?? k }))}
+        value={tab}
+        onChange={setTab}
+      >
+        {tab === 'health' ? (
+          <div className="flex flex-col gap-4">
+            {q.data && <Sources data={q.data} />}
 
-      <JobStrips />
+            <JobStrips />
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4">
-        <section aria-labelledby="sa-h" className={`${cardClass} gap-1! p-5!`}>
-          <h2 id="sa-h" className="mb-1.5 text-[17px] font-semibold text-white">
-            {t.status.alerts}
-          </h2>
-          {q.data && q.data.alerts.length === 0 && (
-            <p className="text-muted">{t.status.noAlerts}</p>
-          )}
-          {q.data?.alerts.map((a) => (
-            <div key={a.id} className="flex items-start gap-3 border-t border-line-soft py-3">
-              <span
-                className={`flex-none rounded px-2 py-0.5 text-[11px] font-semibold ${EVENT_STYLE[a.event]}`}
-              >
-                {t.status.eventsDesign[a.event]}
-              </span>
-              <span className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm">{a.headline}</span>
-                <span className="text-xs text-muted">{dual(a.created_at)}</span>
-                {a.paused_rules.length > 0 && (
-                  <span className="text-xs text-muted">
-                    {t.status.design.paused(a.paused_rules.join(', '))}
-                  </span>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-4">
+              <section aria-labelledby="sa-h" className={`${cardClass} gap-1! p-5!`}>
+                <h2 id="sa-h" className="mb-1.5 text-[17px] font-semibold text-white">
+                  {t.status.alerts}
+                </h2>
+                {q.data && q.data.alerts.length === 0 && (
+                  <p className="text-muted">{t.status.noAlerts}</p>
                 )}
-              </span>
+                {q.data?.alerts.map((a) => (
+                  <div key={a.id} className="flex items-start gap-3 border-t border-line-soft py-3">
+                    <span
+                      className={`flex-none rounded px-2 py-0.5 text-[11px] font-semibold ${EVENT_STYLE[a.event]}`}
+                    >
+                      {t.status.eventsDesign[a.event]}
+                    </span>
+                    <span className="flex flex-1 flex-col gap-0.5">
+                      <span className="text-sm">{a.headline}</span>
+                      <span className="text-xs text-muted">{dual(a.created_at)}</span>
+                      {a.paused_rules.length > 0 && (
+                        <span className="text-xs text-muted">
+                          {t.status.design.paused(a.paused_rules.join(', '))}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </section>
+              <Costs />
             </div>
-          ))}
-        </section>
-        <Costs />
-      </div>
 
-      <Notifications />
+            <Latency />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <Notifications />
 
-      <QuoteSourceCard />
+            <QuoteSourceCard />
 
-      <Preferences />
+            <Preferences />
 
-      <Latency />
-
-      <Exports />
+            <Exports />
+          </div>
+        )}
+      </Tabs>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Info } from '../Info';
 import { useQuery } from '@tanstack/react-query';
 import { diffRiskFactors } from '@marsad/core';
 import { ErrorText } from '../ui';
@@ -62,7 +63,7 @@ export function QuarterlyRiskFactors({ cik }: { cik: string }) {
       <h2 id="quarterly" className={panelTitle}>
         {k.title}
       </h2>
-      <p className="text-sm text-muted">{k.intro}</p>
+      <Info>{k.intro}</Info>
       <details
         className="rounded-sm border border-line p-3"
         onToggle={(e) => setOpen(e.currentTarget.open)}

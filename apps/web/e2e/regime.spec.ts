@@ -35,7 +35,7 @@ import vix3m from '../../../fixtures/fred/fredgraph-VXVCLS.json' with { type: 'j
 import oil from '../../../fixtures/fred/fredgraph-DCOILWTICO.json' with { type: 'json' };
 import dollar from '../../../fixtures/fred/fredgraph-DTWEXBGS.json' with { type: 'json' };
 import newsSample from '../../../fixtures/massive/news-market-sample-2026-11-24.json' with { type: 'json' };
-import { seedSession, scanAfterEach } from './helpers';
+import { seedSession, scanAfterEach, openInfo } from './helpers';
 
 scanAfterEach();
 
@@ -101,6 +101,8 @@ function statRows() {
         median: s.median,
         q1: s.q1,
         q3: s.q3,
+        ci_low: s.ciLow,
+        ci_high: s.ciHigh,
         episodes,
         data_from: spx[0]?.date,
         data_to: spx.at(-1)?.date,
@@ -277,6 +279,7 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(label.getByText('As of the close on 2026-11-23. Rules regime-1.')).toBeVisible();
   await expect(label.getByText('26.62')).toBeVisible();
   await expect(label.getByText('25.50')).toBeVisible();
+  await openInfo(page.getByRole('region', { name: 'Market regime' }));
   await expect(label.getByText(/FRED keeps 10 years|goes back 10 years/)).toBeVisible();
 
   // The recession filter on 2026-11-23: elevated, with only the curve triggered.
@@ -292,12 +295,21 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
   await expect(rec.getByRole('row', { name: /Jobless claims/ })).toContainText('197,750');
 
   // The event study: 16 stress episodes with a 63-session return is not enough to show numbers.
-  const study = page.getByRole('region', { name: 'What happened next (event study)' });
+  const study = page.getByRole('region', { name: 'What the S&P did next' });
   await expect(study.getByRole('row', { name: /^Stress/ })).toContainText(
     'Insufficient history: 16 episodes, 30 needed',
   );
   // The benchmark has 119 one-month windows: shown with its median and middle half.
   await expect(study.getByRole('row', { name: /All days/ })).toContainText('n 119');
+  // event-study-2: with 30 or more episodes the bar is the 90% bootstrap interval of the median.
+  await expect(study).toContainText('Median and middle half'); // Stress: too few episodes for an interval
+  await study.getByRole('button', { name: 'All days (benchmark)' }).click();
+  await expect(study).toContainText('Median and 90% interval');
+  await expect(
+    study.getByText(/^90% interval [−+-]?\d+\.\d% to [−+-]?\d+\.\d%$/).first(),
+  ).toBeVisible();
+  // Method and source text sits behind "About this data" (council batch 2).
+  await openInfo(page);
   await expect(study.getByText(/Data 2016-11-25 to 2026-11-23/)).toBeVisible();
   await expect(study.getByRole('columnheader', { name: '6 months (126 sessions)' })).toBeVisible();
   await expect(study.getByRole('row', { name: /^VIX at or above 30 / })).toContainText(
@@ -533,6 +545,7 @@ test('regime: the quality screen lists passing companies with its counts and cav
   await expect(row).toContainText('5.9%');
   await expect(row).toContainText('0.18');
   await expect(s.getByRole('link', { name: 'JNJ' })).toHaveAttribute('href', '/study/JNJ');
+  await openInfo(page.getByRole('region', { name: 'Quality at a discount' }));
   await expect(s.getByText(/not a recommendation/)).toBeVisible();
 });
 
@@ -561,9 +574,7 @@ test.describe('on a phone', () => {
     await expect(sheet).toBeHidden();
 
     // The event study stays on the page; the longer context waits behind a tap.
-    await expect(
-      page.getByRole('region', { name: 'What happened next (event study)' }),
-    ).toBeVisible();
+    await expect(page.getByRole('region', { name: 'What the S&P did next' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeHidden();
     await page.locator('summary', { hasText: 'Geopolitical panel' }).click();
     await expect(page.getByRole('region', { name: 'Geopolitical panel' })).toBeVisible();

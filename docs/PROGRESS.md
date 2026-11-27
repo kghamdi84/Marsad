@@ -2,7 +2,70 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-25 (Phase 6 math ahead of options data; Khaled travelling, working autonomously on his instruction).
+Last updated 2026-11-27 (council batches 1 to 5 and leftovers).
+
+### Event study 90% intervals (2026-11-27, Khaled's go-ahead)
+
+- `event-study-2` (ADR 0044): a 90% percentile-bootstrap interval of the median for each condition and horizon with at least 30 episodes (2,000 resamples, seed 1, replayable). Known-answer test against a numpy reference to 1e-12.
+- Migration `20261231000000_event_study_ci.sql` adds `ci_low` and `ci_high` to `regime_event_stats`; the regime job fills them on its next run. Until then rows fall back to the middle half, labelled as such.
+- Regime shows "Median and 90% interval" and "90% interval a to b" where the interval exists. Most labels still have fewer than 30 episodes in 10 years of S&P 500 data, so they keep saying "Insufficient history".
+- Checks: Prettier, tsc, ESLint, 1,072 unit tests, Playwright 177 passed and 11 skipped; the Edge copy passes `deno check` and the Node and Deno parity run locally.
+
+### Council leftovers (2026-11-27)
+
+- Lab on phones matches the design: lifecycle stepper with a "not in the lifecycle yet" line, All / Testable / Not testable tabs, and the playbook summary in its details.
+- Journal Trades and Weekly review match the design: adherence ring (mean score; "followed the plan" is 80 or more, the line the result comparison uses), compact rows with Followed plan or Broke plan, By setup notes, the full trade card in a sheet, the log form behind a button; the weekly review gets its header and numbered notes. The design's four weekly tiles need structured data the review job does not store yet.
+- Universe strength rank (ADR 0043, formula `strength-1`): the breadth job ranks the newest universe by 63-session return into `strength_rank_daily` (additive migration `20261230000000_strength_rank.sql`, RLS tested). Watch's trader columns and the quick look show "Beats n%".
+- Sector strength: "Edit list" lets each ticker take a sector fund (`watchlist_items.sector_etf`); Watch then shows strength against it.
+- Checks: Prettier, tsc, ESLint, 1,069 unit tests, Playwright 177 passed and 11 skipped.
+- Still not built: the one-read nightly summary for the whole Watch page (Watch still reads each ticker's bars for sparklines and ranges).
+
+### Council batch 4: investor toolkit (2026-11-27)
+
+- Core `investor.ts` (formula `investor-1`, hand-checked tests, point in time): free cash flow (operating cash flow minus capital spending), stock-based pay and its share of revenue, buybacks, diluted shares against a year earlier, net cash (cash plus short-term investments minus both parts of debt), and with the close: market value, enterprise value, EV / sales, EV / operating income, price / free cash flow and free cash flow yield. Multiples on negative earnings or cash flow show "Not meaningful".
+- The facts job now also stores capital spending (two tags: NVIDIA moved off `PaymentsToAcquirePropertyPlantAndEquipment` after 2020), stock-based pay, buybacks, short-term investments and the current and non-current parts of debt. The new figures appear after the next SEC facts run (weekdays 06:15 UTC) once this is merged; until then they read "Not reported".
+- Study, Financials: a "Cash, value and dilution" section and a ten-year table of revenue (with bars), EPS and free cash flow, missing years marked.
+- Kept as the design draws it: Earnings history stays its own section (the design has separate Financials and Earnings accordions), so it is not merged into the Financials table.
+- Checks: Prettier, tsc, ESLint, 1,066 unit tests, Playwright 177 passed and 11 skipped. The facts-job test now expects 240 stored rows from the recorded NVIDIA file (the 16 capital-spending rows are kept on purpose).
+
+### Council batch 3: trader toolkit (2026-11-27)
+
+- Core `trader.ts` (formula `trader-1`, hand-checked tests): ATR 14 as % of the close, stretch from the 20- and 50-day averages in ATRs, 63-session relative strength against SPY (and a sector fund when given), distance from the 252-session closing high, calendar days to a date.
+- Watch: a remembered "Trader columns" toggle (off by default, so the table matches the design) adds ATR %, stretch (50-day), strength against SPY, distance from the high and days to estimated earnings.
+- Watchlist editing: "Edit list" adds, removes and reorders tickers; each change saves at once through row-level security. The first edit saves the tickers already shown, so nothing is dropped. At most 40 tickers; a new ticker gets prices after the next nightly bars run.
+- Quick look: ATR %, stretch (20- and 50-day), strength against SPY, and "Add to watchlist" (or "On your watchlist"). Phone watchlist rows open the quick look from their expanded panel.
+- Checks: Prettier, tsc, ESLint, 1,058 unit tests, Playwright 177 passed and 11 skipped (new `trader.spec.ts`).
+- Not yet: strength against the sector fund on Watch (needs each ticker's sector), and a rank in the 1,000-stock universe.
+
+### Council batch 2: say less, show more (2026-11-27)
+
+- "About this data" (`apps/web/src/components/Info.tsx`): 33 method and source paragraphs across Watch, Regime, Study, Journal, Alerts, Lab and Status now sit behind one tap. Freshness words, as-of dates, "estimated", case counts, disclosure lags and bear cases stay visible; the notes that carry a lag or a filing date (13F, insiders, Financials, N-PORT) stay open.
+- No repeated facts in the alert card: on a phone the sheet title is the headline (no second copy), and where a visual draws the risk or the checklist, its sentence is for screen readers only.
+- Company news shows reporting first (tier 1 or 2, not opinion), grouped by day; opinion and tier 3 or 4 sit behind "Show opinion and tier 3 or 4 (n)".
+- Status splits into Health (sources, jobs, system alerts, costs, latency) and Settings (notifications, quote source, preferences, exports).
+- Kept as the design draws it, where the council differed: the Watch brief hero and tiles, and Study's accordions instead of sticky tabs.
+- Checks: Prettier, tsc, ESLint, 1,050 unit tests, Playwright 173 passed. Tests that read method text now open "About this data" first (`openInfo` helper); a test checks the quick-look price keeps its freshness word.
+
+### Council batches 1 and 5: tap any ticker, refresh rules (2026-11-27)
+
+- Ticker link and quick look (`apps/web/src/components/QuickLook.tsx`): a ticker in Watch movers, gaps, news and Agenda earnings, the alert card, Journal holdings and trades, and ETF look-through opens a quick look. It is a sheet on a phone and a side panel from 760 px, so the list stays visible; Escape or the close button shuts it. It shows the last close with its day change and freshness, the Tauric price if chosen (never "Live"), a three-month chart with the 50- and 200-day lines, trend, RSI 14, the 52-week range, distance from the high, volume against 20 days, dollar volume, the estimated days to earnings, why it is here (your holding with stop, targets and thesis, or the latest alert), the two newest filings, and "Open full study".
+- Saved watchlist tickers now get daily bars from the nightly job (valid symbols, at most 40 a night; workflow timeout 30 minutes).
+- Refresh rules (ADR 0042): queries stay fresh 30 minutes instead of 10 seconds; quotes poll once a minute only in the regular session. Pull to refresh still reloads everything.
+- Checks: Prettier, tsc, ESLint, 1,050 unit tests, Playwright 173 passed and 11 skipped (new `quick-look.spec.ts`).
+- Left for later: the nightly per-ticker summary table (one read for Watch and the quick look), "Size a trade" and "Add to watchlist" in the quick look (need watchlist editing, batch 3), ATR %, stretch and relative strength (batch 3), headlines in the quick look (filings only for now), and ticker links in Lab, insiders and the alert list rows (the whole row is already a button).
+
+### Phone design match against the Claude Design handoff (2026-11-26)
+
+Each page was rendered from `design_handoff_marsad_redesign/mobile/*.dc.html` and compared side by side with the app at 390 x 844 (Playwright, isMobile and hasTouch, temporary config deleted after each run).
+
+- Journal: summary carousel with dots, pill tabs with More (Options, Trades, Weekly review), holding cards with the stop-to-target bar, triangle gain, Stop hit, Target hit and Rotate to ETF flags, CSV import behind a button. New trade has 01 Prices, 02 Size, 03 Checklist and a pinned copy button. The Sahm ticket now reads `BUY 125 RKLB LIMIT 24.15 STOP 22.15 GTC` (core test updated). Exposure and ETF look-through use the design's bars. Options cards show name, legs, days left, a loss-to-gain bar and breakeven; details sit in a sheet.
+- Watch: brief hero ("Pre-market brief · Wed 25 Nov", Emailed chip, tiles), market tiles with inline sparklines, and the Agenda list by day with Macro and Watchlist tags.
+- Regime: hero with three tiles and the labelled ribbon, "What the S&P did next" rows with dashed 30-tick insufficient boxes, and context sections as collapsed rows with a value.
+- Study: on phones the chart comes first and the tiles follow.
+- Alerts: list cards with Pushed or In digest, the design time line, "Sent 4" tabs, scorecard boxes per rule under 30 cases, per-alert tiles, and a New scenario button.
+- Status: the checked line reads "Checked 03:48 ET · 11:48 Riyadh". Sign in already matched.
+- Checks: Prettier, tsc, ESLint, 1,046 unit tests, Playwright 170 passed and 10 skipped.
+- Not matched, and why: the event study shows the middle half, not a 90% interval (the stored study has no bootstrap bars; adding them needs a job change and a migration, waiting for Khaled). No company names in watchlist or Study rows (not in the data). The Shariah tab has no filing reference or dollar figures. Trades and Weekly review keep their current layout. Option bar fills are lighter than the design so the labels meet WCAG AA. CI is blocked by the GitHub billing lock until Khaled clears it.
 
 ### Phase 1 session 1 (2026-11-23): what exists
 
