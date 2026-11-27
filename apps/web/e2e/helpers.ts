@@ -89,15 +89,14 @@ export function scanAfterEach() {
 export async function openSection(
   page: Page,
   name:
-    | 'Overview'
+    | 'Overview and thesis'
     | 'Financials'
     | 'Earnings'
     | 'Holders and insiders'
+    | 'Risk factor diff'
+    | 'Shariah aid'
     | 'Short data'
-    | 'Risk factors'
-    | 'News'
-    | 'Dividends'
-    | 'Shariah aid',
+    | 'Dividends',
 ) {
   await page.getByRole('tab', { name }).click();
 }

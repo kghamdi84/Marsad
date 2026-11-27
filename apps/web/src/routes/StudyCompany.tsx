@@ -3,25 +3,26 @@ import { Info } from '../components/Info';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  DEFAULT_LOCAL_ZONE,
   buildEventMarkers,
+  companySnapshot,
+  earningsMove,
   estimateNextEarnings,
-  toFixedHalfUp,
-  type EarningsEstimate,
-  describeEightK,
-  disclosureLag,
-  dualClock,
   etDate,
-  formLabel,
   mergeFilingEvents,
   normalizeTicker,
   summarizeBars,
+  toFixedHalfUp,
   type BarSummary,
-  type Materiality,
+  type ChartMarker,
+  type EarningsEstimate,
+  type EarningsMove,
 } from '@marsad/core';
 import type { ChartToggles } from '../components/PriceChart';
 import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
+import { loadPreferences } from '../lib/settings';
+import { shariahAsOf } from '../lib/shariah';
+import { dayMonthYear, weekdayDayMonth } from '../lib/dates';
 import { Dividends } from '../components/study/Dividends';
 import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
@@ -33,19 +34,21 @@ import { QuarterlyRiskFactors } from '../components/study/QuarterlyRiskFactors';
 import { RiskFactors } from '../components/study/RiskFactors';
 import { ShariahAid } from '../components/study/ShariahAid';
 import { ShortData } from '../components/study/ShortData';
-import { filingEvents, loadStudy, secUrl, type FilingRow, type StudyData } from '../lib/study';
+import { CompanySearch } from '../components/study/CompanySearch';
+import { FilingsCard } from '../components/study/FilingsCard';
+import { markerLetter } from '../components/study/markers';
+import { filingEvents, loadStudy, type StudyData } from '../lib/study';
 import {
   loadChartEvents,
   loadDividends,
   loadEarningsFilings,
+  loadFacts,
   loadInsiders,
   loadShortData,
-  type ShortData as ShortRows,
 } from '../lib/studyPanels';
 import { ThesisCard } from '../components/study/ThesisCard';
 import { ChevronRight, Lock } from 'lucide-react';
 import {
-  Card,
   Segmented,
   SkeletonCards,
   Tabs,
@@ -53,19 +56,63 @@ import {
   useRemembered,
   useWide,
 } from '../components/Card';
-import { panelTitle } from '../components/study/Panel';
+import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
+import { panelTitle, tileClass } from '../components/study/Panel';
 import { t } from '../strings';
 
 const PriceChart = lazy(() => import('../components/PriceChart'));
 
-const th = 'border-b border-line px-2 py-2 text-start font-medium text-muted';
-const td = 'border-b border-line px-2 py-2 align-top';
 const money = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const usd = (n: number) => `$${money(n)}`;
 
 const ui = t.study.ui;
 
-/** The header: ticker, name, last close with its change, and whether the newest session is stored. */
+/** The day's change as a soft pill with sign and arrow; no arrow and a neutral tone when unchanged. */
+function ChangePill({ pct }: { pct: number | null }) {
+  if (pct === null) return <Pill>{t.study.unavailable}</Pill>;
+  const tone: Tone = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral';
+  return (
+    <Pill tone={tone} className="font-semibold">
+      <Num>{pct === 0 ? '0.00%' : signedPct(pct, 2)}</Num>
+    </Pill>
+  );
+}
+
+const SHARIAH_TONE: Record<string, Tone> = {
+  'passes-ratios': 'up',
+  'fails-ratios': 'down',
+  unknown: 'neutral',
+  off: 'neutral',
+};
+
+/** The header's Shariah aid status: the verdict when the aid is on, "off" when it is not. A screening aid, not a ruling. */
+function ShariahPill({ cik, bars }: { cik: string | undefined; bars: StudyData['bars'] }) {
+  const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
+  const sh = prefs.data?.shariah;
+  const facts = useQuery({
+    queryKey: ['facts', cik],
+    queryFn: () => loadFacts(cik as string),
+    enabled: !!sh?.enabled && cik !== undefined,
+  });
+  if (!prefs.data) return null;
+  const key = !sh?.enabled
+    ? 'off'
+    : !cik
+      ? 'unknown'
+      : facts.data
+        ? (shariahAsOf(facts.data, bars, sh, etDate(new Date()))?.verdict ?? 'unknown')
+        : null;
+  if (key === null) return null;
+  return (
+    <Pill tone={SHARIAH_TONE[key] ?? 'neutral'}>
+      <span className="sr-only">{ui.shariahPrefix} </span>
+      {ui.shariahPill[key]}
+    </Pill>
+  );
+}
+
+/** The header: ticker, name, Shariah aid status, last close with its change, source and date, and the search. */
 function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSummary | null }) {
   const stale = !!s && !!data.lastCompletedDay && s.asOf < data.lastCompletedDay;
   // The viewer's quote source (ADR 0041): with Tauric, its latest price sits under the Massive close.
@@ -80,201 +127,49 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   const tq = qv.data?.source === 'tauric' ? qv.data.quotes[ticker] : undefined;
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
   const notCovered = qv.data?.source === 'tauric' && !tq && qv.data.notCovered.includes(ticker);
-  const change = s?.changePct ?? null;
-  const arrow = change === null ? '' : change > 0 ? '\u25B2' : change < 0 ? '\u25BC' : '';
-  const tint =
-    change === null
-      ? ''
-      : change > 0
-        ? 'bg-up/15 text-up'
-        : change < 0
-          ? 'bg-down/15 text-down'
-          : '';
   return (
-    <header className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur tablet:static tablet:mx-0 tablet:rounded-xl tablet:border-0 tablet:bg-raised tablet:p-5 tablet:backdrop-blur-none">
-      <div className="flex min-w-0 flex-col">
-        <h1 className="text-xl leading-tight font-bold text-ink tablet:text-[1.75rem]">{ticker}</h1>
-        {data.company?.name && (
-          <span className="truncate text-sm text-muted">{data.company.name}</span>
+    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <h1 className="text-2xl leading-tight font-semibold tracking-[-0.01em] text-ink">
+            {ticker}
+          </h1>
+          {data.company?.name && (
+            <span className="min-w-0 truncate text-lg text-ink2">{data.company.name}</span>
+          )}
+          <ShariahPill cik={data.company?.cik} bars={data.bars} />
+        </div>
+        {s && (
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="text-lg font-semibold text-ink">
+              <Num>{usd(s.lastClose)}</Num>
+            </span>
+            <ChangePill pct={s.changePct} />
+            <span className="text-xs text-ink3">
+              <Num>{ui.headerMeta(weekdayDayMonth(s.asOf))}</Num>
+              {' · '}
+              <span className={stale ? 'font-semibold text-warn' : ''}>
+                {stale ? ui.staleBadge : ui.endOfDay}
+              </span>
+            </span>
+          </div>
+        )}
+        {tq && latest && (
+          <span
+            data-testid="latest-quote"
+            className={`text-xs tabular-nums ${latest.state === 'stale' ? 'text-warn' : 'text-ink3'}`}
+          >
+            {ui.latestLine(money(tq.price), latest.label)}
+          </span>
+        )}
+        {notCovered && (
+          <span data-testid="latest-quote" className="text-xs text-ink3">
+            {ui.latestNotCovered(ticker)}
+          </span>
         )}
       </div>
-      {s && (
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-[1.375rem] font-bold text-ink tabular-nums">
-            ${money(s.lastClose)}
-          </span>
-          <span className="flex items-center gap-2">
-            <span className={`rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums ${tint}`}>
-              {change === null
-                ? t.study.unavailable
-                : `${arrow} ${change > 0 ? '+' : ''}${change.toFixed(2)}%`}
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                stale ? 'bg-warn/15 text-warn' : 'bg-muted/15 text-fg'
-              }`}
-            >
-              {stale ? ui.staleBadge : ui.endOfDay}
-            </span>
-          </span>
-          {tq && latest && (
-            <span
-              data-testid="latest-quote"
-              className={`text-xs tabular-nums ${latest.state === 'stale' ? 'text-warn' : 'text-muted'}`}
-            >
-              {ui.latestLine(money(tq.price), latest.label)}
-            </span>
-          )}
-          {notCovered && (
-            <span data-testid="latest-quote" className="text-xs text-muted">
-              {ui.latestNotCovered(ticker)}
-            </span>
-          )}
-        </div>
-      )}
+      <CompanySearch id="company-search" label={ui.searchLabel} className="w-full tablet:w-80" />
     </header>
-  );
-}
-
-function TileBox({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-line bg-surface p-3 tablet:p-3.5">
-      <span className="text-xs text-muted">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-/** Key tiles: the range, RSI 14 with its zones, the trend and the two averages. */
-function Summary({
-  data,
-  s,
-  earnings,
-  short,
-}: {
-  data: StudyData;
-  s: BarSummary;
-  earnings: EarningsEstimate | null | undefined;
-  short: ShortRows | undefined;
-}) {
-  const si = short?.interest[0];
-  const staleLine =
-    data.lastCompletedDay && s.asOf < data.lastCompletedDay
-      ? t.study.stale(s.asOf, data.lastCompletedDay)
-      : t.study.current;
-  const span = s.high52w - s.low52w;
-  const pos = span > 0 ? Math.min(1, Math.max(0, (s.lastClose - s.low52w) / span)) : 0.5;
-  const posPct = (pos * 100).toFixed(0);
-  return (
-    <section aria-labelledby="summary" className="flex flex-col gap-2">
-      <h2 id="summary" className="sr-only">
-        {t.study.summary}
-      </h2>
-      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-3 tablet:gap-3">
-        <TileBox label={t.study.range(s.rangeSessions)}>
-          <div
-            role="img"
-            aria-label={ui.rangeAria(`$${money(s.low52w)}`, `$${money(s.high52w)}`, posPct)}
-            className="relative mt-1 h-1.5 rounded-full bg-gradient-to-r from-down/55 to-up/60"
-          >
-            <span
-              className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-ink"
-              style={{ insetInlineStart: `${posPct}%` }}
-            />
-          </div>
-          <span className="flex justify-between text-[0.8125rem] text-fg tabular-nums">
-            <span>${money(s.low52w)}</span>
-            <span>${money(s.high52w)}</span>
-          </span>
-        </TileBox>
-        <TileBox label={t.study.rsi}>
-          {s.rsi14 === null ? (
-            <span className="text-sm text-muted">{t.study.unavailable}</span>
-          ) : (
-            <>
-              <span className="text-xl font-bold text-ink tabular-nums">{s.rsi14.toFixed(1)}</span>
-              <div
-                role="img"
-                aria-label={ui.rsiAria(s.rsi14.toFixed(1))}
-                className="relative h-1.5 rounded-full bg-faint/20"
-              >
-                <span className="absolute inset-y-0 start-0 w-[30%] rounded-s-full bg-up/35" />
-                <span className="absolute inset-y-0 end-0 w-[30%] rounded-e-full bg-down/35" />
-                <span
-                  className="absolute -top-[5px] -ms-2 size-4 rounded-full border-[3px] border-surface bg-ink"
-                  style={{ insetInlineStart: `${Math.min(100, Math.max(0, s.rsi14)).toFixed(1)}%` }}
-                />
-              </div>
-              <span className="text-[0.6875rem] text-muted">{ui.rsiZones}</span>
-            </>
-          )}
-        </TileBox>
-        <TileBox label={t.study.trend}>
-          <span className="text-sm leading-snug font-semibold text-ink">
-            {t.study.trendLabels[s.trend]}
-          </span>
-        </TileBox>
-        <TileBox label={ui.averages}>
-          <span className="flex justify-between gap-2 text-sm">
-            <span className="text-muted">{t.study.sma50}</span>
-            <span className="text-ink tabular-nums">
-              {s.sma50 === null ? t.study.unavailable : `$${money(s.sma50)}`}
-            </span>
-          </span>
-          <span className="flex justify-between gap-2 text-sm">
-            <span className="text-muted">{t.study.sma200}</span>
-            <span className="text-ink tabular-nums">
-              {s.sma200 === null ? t.study.unavailable : `$${money(s.sma200)}`}
-            </span>
-          </span>
-        </TileBox>
-        <TileBox label={ui.nextEarnings}>
-          {earnings === undefined ? (
-            <span className="text-sm text-muted">{t.loading}</span>
-          ) : earnings === null ? (
-            <span className="text-sm text-muted">{ui.noEarnings}</span>
-          ) : (
-            <>
-              <span className="text-lg font-bold text-ink tabular-nums">{earnings.date}</span>
-              <span className="text-[0.6875rem] text-muted">
-                {ui.earningsRange(earnings.from, earnings.to)}
-              </span>
-              {earnings.overdue && (
-                <span className="text-[0.6875rem] text-warn">{ui.earningsOverdue}</span>
-              )}
-            </>
-          )}
-        </TileBox>
-        <TileBox label={ui.shortInterest}>
-          {short === undefined ? (
-            <span className="text-sm text-muted">{t.loading}</span>
-          ) : !si ? (
-            <span className="text-sm text-muted">{ui.noShort}</span>
-          ) : (
-            <>
-              <span className="text-lg font-bold text-ink tabular-nums">
-                {ui.shortShares(toFixedHalfUp(si.shortInterest / 1e6, 1))}
-              </span>
-              <span className="text-[0.6875rem] text-muted">
-                {ui.shortSub(
-                  si.daysToCover === null ? null : toFixedHalfUp(si.daysToCover, 1),
-                  si.date,
-                )}
-              </span>
-            </>
-          )}
-        </TileBox>
-      </div>
-      <p
-        className={staleLine === t.study.current ? 'text-xs text-muted' : 'text-sm text-warn'}
-        role="status"
-      >
-        {staleLine}
-      </p>
-      <p className="text-xs text-muted">
-        {t.study.provenance(s.asOf, s.sessions, s.formulaVersion)}
-      </p>
-    </section>
   );
 }
 
@@ -287,15 +182,16 @@ const SECTIONS = [
   'financials',
   'earnings',
   'holders',
-  'short',
   'risk',
-  'news',
-  'dividends',
   'shariah',
+  'short',
+  'dividends',
 ] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
-/** Tablet and desktop: one section at a time behind accessible tabs. */
+const RISK_MODES = ['yoy', 'qoq'] as const;
+
+/** Tablet and desktop: one section at a time behind accessible tabs, in the company details card. */
 function SectionTabs({
   value,
   onChange,
@@ -306,15 +202,17 @@ function SectionTabs({
   render: (k: SectionKey) => React.ReactNode;
 }) {
   return (
-    <Tabs
-      label={ui.sections}
-      idPrefix="study"
-      options={SECTIONS.map((k) => ({ key: k, label: ui.sectionNames[k] ?? k }))}
-      value={value}
-      onChange={onChange}
-    >
-      {render(value)}
-    </Tabs>
+    <section aria-label={ui.details} className={`${cardClass} gap-3.5`}>
+      <Tabs
+        label={ui.sections}
+        idPrefix="study"
+        options={SECTIONS.map((k) => ({ key: k, label: ui.sectionNames[k] ?? k }))}
+        value={value}
+        onChange={onChange}
+      >
+        {render(value)}
+      </Tabs>
+    </section>
   );
 }
 
@@ -322,7 +220,7 @@ function SectionTabs({
 function SectionAccordions({ render }: { render: (k: SectionKey) => React.ReactNode }) {
   const [open, setOpen] = useState<Record<string, boolean>>({ overview: true });
   return (
-    <div className="flex flex-col gap-3">
+    <section aria-label={ui.details} className="flex flex-col gap-3">
       {SECTIONS.map((k) => (
         <details
           key={k}
@@ -331,106 +229,20 @@ function SectionAccordions({ render }: { render: (k: SectionKey) => React.ReactN
             const isOpen = (e.currentTarget as HTMLDetailsElement).open;
             setOpen((o) => (o[k] === isOpen ? o : { ...o, [k]: isOpen }));
           }}
-          className="group rounded-2xl border border-line bg-surface"
+          className="group rounded-xl border border-line bg-surface"
         >
           <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-ink select-none">
             {ui.sectionNames[k]}
             <ChevronRight
               aria-hidden="true"
               size={18}
-              className="text-muted transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              className="text-ink3 transition-transform group-open:rotate-90 motion-reduce:transition-none rtl:rotate-180"
             />
           </summary>
-          {open[k] && <div className="flex flex-col gap-3 p-2 pt-0">{render(k)}</div>}
+          {open[k] && <div className="flex flex-col gap-3 p-3 pt-0">{render(k)}</div>}
         </details>
       ))}
-    </div>
-  );
-}
-
-function Materiality({ level, defaulted }: { level: Materiality | 'unknown'; defaulted: boolean }) {
-  return (
-    <span
-      className="whitespace-nowrap rounded-sm border border-line px-1.5 py-0.5 text-xs"
-      title={defaulted ? t.study.marsadDefault : undefined}
-    >
-      {t.study.materiality[level]}
-    </span>
-  );
-}
-
-function FilingWhat({ f }: { f: FilingRow }) {
-  if (f.form === '8-K' || f.form === '8-K/A') {
-    const d = describeEightK(f.items);
-    return (
-      <div className="flex flex-col gap-1">
-        <Materiality
-          level={d.materiality}
-          defaulted={d.items.some((i) => i.basis === 'marsad-default')}
-        />
-        <ul className="list-none">
-          {d.items.map((i) => (
-            <li key={i.item} title={i.officialTitle}>
-              Item {i.item}: {i.plain}
-            </li>
-          ))}
-          {d.unknown.map((n) => (
-            <li key={n}>Item {n}: not in the table</li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  return <span>{formLabel(f.form)}</span>;
-}
-
-function FilingsTable({ data }: { data: StudyData }) {
-  if (data.filings.length === 0) return <p className="text-muted">{t.study.noFilings}</p>;
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={th}>{t.study.colWhen}</th>
-            <th className={th}>{t.study.colForm}</th>
-            <th className={th}>{t.study.colWhat}</th>
-            <th className={th}>{t.study.colLag}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.filings.slice(0, 60).map((f) => {
-            const lag = disclosureLag(f.form);
-            const link = data.company ? secUrl(data.company.cik, f) : null;
-            const when = f.acceptedAt
-              ? `${etDate(new Date(f.acceptedAt))} ${dualClock(new Date(f.acceptedAt), DEFAULT_LOCAL_ZONE).label}`
-              : f.filingDate;
-            return (
-              <tr key={f.accession}>
-                <td className={td}>{when}</td>
-                <td className={td}>
-                  {link ? (
-                    <a
-                      className="inline-flex min-h-11 items-center underline underline-offset-4"
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {f.form} <span className="sr-only">{t.study.viewOnSec}</span>
-                    </a>
-                  ) : (
-                    f.form
-                  )}
-                </td>
-                <td className={td}>
-                  <FilingWhat f={f} />
-                </td>
-                <td className={`${td} text-muted`}>{lag?.label ?? ''}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    </section>
   );
 }
 
@@ -468,6 +280,211 @@ function useStoredToggles() {
   return [v, set] as const;
 }
 
+/** One marker in words: "2026-11-23: 8-K: Executive or director change (High)". */
+const markerText = (m: ChartMarker) =>
+  `${m.date}: ${m.label}${m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}`;
+
+/** The detail line for the picked session: each marker on it, with the next-session move for results. */
+function MarkerDetail({
+  markers,
+  date,
+  moves,
+}: {
+  markers: readonly ChartMarker[];
+  date: string | null;
+  moves: ReadonlyMap<string, EarningsMove>;
+}) {
+  const on = date ? markers.filter((m) => m.date === date) : [];
+  return (
+    <p aria-live="polite" className="text-xs text-ink2">
+      {on.length === 0
+        ? markers.length === 0
+          ? t.study.noMarkers
+          : ui.markerPrompt
+        : on.map((m, i) => {
+            const move = m.results ? moves.get(m.date) : undefined;
+            return (
+              <span key={`${m.label}-${i}`} className="block">
+                <span className="font-semibold text-ink">{markerLetter(m)}</span>
+                {' · '}
+                <Num>{dayMonthYear(m.date)}</Num>
+                {' · '}
+                {m.label}
+                {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
+                {move && (
+                  <>
+                    {' · '}
+                    <span className={move.pct > 0 ? 'text-up' : move.pct < 0 ? 'text-down' : ''}>
+                      <Num>{ui.nextSession(signedPct(move.pct, 1))}</Num>
+                    </span>
+                    {move.large ? ` (${ui.largeMove})` : ''}
+                  </>
+                )}
+              </span>
+            );
+          })}
+    </p>
+  );
+}
+
+function SnapTile({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode | undefined;
+  tone?: string | undefined;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-[10px] border border-line bg-elev p-3">
+      <span className="text-xs text-ink3">{label}</span>
+      <span className={`text-lg font-semibold whitespace-nowrap ${tone ?? 'text-ink'}`}>
+        {value}
+      </span>
+      {sub && <span className="text-xs text-ink2">{sub}</span>}
+    </div>
+  );
+}
+
+/** Snapshot (v2): market value, revenue over four quarters, net margin and the next earnings estimate. */
+function Snapshot({
+  ticker,
+  cik,
+  s,
+  earnings,
+}: {
+  ticker: string;
+  cik: string | undefined;
+  s: BarSummary;
+  earnings: EarningsEstimate | null | undefined;
+}) {
+  const x = ui.snapshot;
+  // Shares its cache with the Short data panel, so the tile and the table read the same stored rows.
+  const short = useQuery({ queryKey: ['short', ticker], queryFn: () => loadShortData(ticker) });
+  const si = short.data?.interest[0];
+  const facts = useQuery({
+    queryKey: ['facts', cik],
+    queryFn: () => loadFacts(cik as string),
+    enabled: cik !== undefined,
+  });
+  const today = etDate(new Date());
+  const snap = useMemo(
+    () => (facts.data ? companySnapshot(facts.data, today, s.lastClose) : null),
+    [facts.data, today, s.lastClose],
+  );
+  const pending = cik !== undefined && facts.isPending;
+  const missing = cik === undefined ? x.noFiler : x.notReported;
+  const fact = (v: string | null) =>
+    pending ? <span className="text-sm text-ink3">{t.loading}</span> : (v ?? missing);
+  const yoy = snap?.revenueTtmYoYPct ?? null;
+  return (
+    <section aria-label={x.title} className="flex flex-col gap-2">
+      {facts.isError && (
+        <p role="alert" className="text-sm text-crit">
+          {t.study.panelError(x.title, facts.error.message)}
+        </p>
+      )}
+      <AutoGrid min={150} gap="gap-2.5">
+        <SnapTile
+          label={x.marketValue}
+          value={fact(snap?.marketValue == null ? null : formatUsd(snap.marketValue))}
+          sub={
+            snap?.sharesOutstanding && snap.marketValue !== null ? (
+              <Num>
+                {x.mvSub(
+                  `${toFixedHalfUp(snap.sharesOutstanding.value / 1e9, 2)}B`,
+                  money(s.lastClose),
+                )}
+              </Num>
+            ) : undefined
+          }
+        />
+        <SnapTile
+          label={x.revenue}
+          value={fact(snap?.revenueTtm?.value == null ? null : formatUsd(snap.revenueTtm.value))}
+          tone={yoy === null ? undefined : yoy >= 0 ? 'text-up' : 'text-down'}
+          sub={
+            yoy !== null ? (
+              <Num>{x.revenueYoY(signedPct(yoy, 0))}</Num>
+            ) : snap?.revenueTtmEnd ? (
+              <Num>{x.revenueTo(snap.revenueTtmEnd)}</Num>
+            ) : undefined
+          }
+        />
+        <SnapTile
+          label={x.netMargin}
+          value={fact(
+            snap?.netMarginTtmPct == null ? null : `${toFixedHalfUp(snap.netMarginTtmPct, 1)}%`,
+          )}
+          sub={snap?.netMarginTtmPct == null ? undefined : x.netMarginSub}
+        />
+        <SnapTile
+          label={x.nextEarnings}
+          value={
+            earnings === undefined ? (
+              <span className="text-sm text-ink3">{t.loading}</span>
+            ) : earnings === null ? (
+              <span className="text-sm font-normal text-ink3">{ui.noEarnings}</span>
+            ) : (
+              <Num>{`~ ${weekdayDayMonth(earnings.date)}`}</Num>
+            )
+          }
+          sub={
+            earnings ? (
+              <>
+                {x.nextSub}
+                {earnings.overdue && <span className="block text-warn">{ui.earningsOverdue}</span>}
+              </>
+            ) : undefined
+          }
+        />
+        <SnapTile
+          label={x.shortInterest}
+          value={
+            short.isPending ? (
+              <span className="text-sm text-ink3">{t.loading}</span>
+            ) : !si ? (
+              <span className="text-sm font-normal text-ink3">
+                {short.isError
+                  ? t.study.panelError(x.shortInterest, short.error.message)
+                  : ui.noShort}
+              </span>
+            ) : (
+              <Num>{ui.shortShares(toFixedHalfUp(si.shortInterest / 1e6, 1))}</Num>
+            )
+          }
+          sub={
+            si ? (
+              <Num>
+                {ui.shortSub(
+                  si.daysToCover === null ? null : toFixedHalfUp(si.daysToCover, 1),
+                  si.date,
+                )}
+              </Num>
+            ) : undefined
+          }
+        />
+      </AutoGrid>
+      {snap && (
+        <p className="text-xs text-ink3">{x.provenance(snap.asOf, s.asOf, snap.formulaVersion)}</p>
+      )}
+    </section>
+  );
+}
+
+/** Dollars in the units a person reads: $7.23T, $304.2B, $812.4M. */
+function formatUsd(v: number): string {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '−' : '';
+  if (abs >= 1e12) return `${sign}$${toFixedHalfUp(abs / 1e12, 2)}T`;
+  if (abs >= 1e9) return `${sign}$${toFixedHalfUp(abs / 1e9, 1)}B`;
+  if (abs >= 1e6) return `${sign}$${toFixedHalfUp(abs / 1e6, 1)}M`;
+  return `${sign}$${money(abs)}`;
+}
+
 export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
@@ -478,6 +495,8 @@ export function StudyCompany() {
     SECTIONS,
     'overview',
   );
+  const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
+  const [picked, setPicked] = useState<string | null>(null);
   const wide = useWide();
   const q = useQuery({
     queryKey: ['study', ticker],
@@ -510,11 +529,6 @@ export function StudyCompany() {
     queryKey: ['insiders', cik],
     queryFn: () => loadInsiders(cik as string),
     enabled: cik !== undefined,
-  });
-  const shortQ = useQuery({
-    queryKey: ['short', ticker],
-    queryFn: () => loadShortData(ticker as string),
-    enabled: ticker !== null,
   });
   // Estimated from the stored results 8-Ks (item 2.02), like the Watch calendar; undefined while loading.
   const earningsEstimate = useMemo(
@@ -562,13 +576,26 @@ export function StudyCompany() {
         : [],
     [q.data, dividends.data, results.data, insiders.data, events.data],
   );
+  // The move after each results release, keyed by the session that could first trade on it (the E marker's bar).
+  const moves = useMemo(() => {
+    const out = new Map<string, EarningsMove>();
+    if (!q.data) return out;
+    for (const f of results.data ?? []) {
+      const r = earningsMove(f, q.data.bars, q.data.splits);
+      if ('move' in r) out.set(r.move.reactionDate, r.move);
+    }
+    return out;
+  }, [q.data, results.data]);
 
   if (ticker === null)
     return (
-      <p role="alert" className="text-down">
+      <p role="alert" className="text-crit">
         {t.study.badTicker(raw)}
       </p>
     );
+
+  // The picked session, or the newest marker until one is picked.
+  const shownDate = picked ?? markers.at(-1)?.date ?? null;
 
   const chip = (k: keyof ChartToggles, label: string) => (
     <button
@@ -576,8 +603,8 @@ export function StudyCompany() {
       type="button"
       aria-pressed={toggles[k]}
       onClick={() => setToggles({ ...toggles, [k]: !toggles[k] })}
-      className={`min-h-11 rounded-full border px-3 text-sm ${
-        toggles[k] ? 'border-up/60 bg-up/15 font-semibold text-ink' : 'border-line text-muted'
+      className={`min-h-9 rounded-lg border px-2.5 text-xs font-semibold whitespace-nowrap pointer-coarse:min-h-11 ${
+        toggles[k] ? 'border-line-strong bg-elev text-ink' : 'border-line text-ink3'
       }`}
     >
       {label}
@@ -591,9 +618,11 @@ export function StudyCompany() {
       case 'overview':
         return (
           <>
-            <ThesisCard ticker={q.data.ticker} />
-            {cikOf && <Business cik={cikOf} />}
-            <section aria-labelledby="more" className={`${cardClass} gap-3!`}>
+            <AutoGrid min={320} gap="gap-4">
+              <ThesisCard ticker={q.data.ticker} />
+              {cikOf && <Business cik={cikOf} />}
+            </AutoGrid>
+            <section aria-labelledby="more" className={tileClass}>
               <h2 id="more" className={panelTitle}>
                 {t.study.placeholdersTitle}
               </h2>
@@ -601,14 +630,14 @@ export function StudyCompany() {
                 {t.study.placeholders.map((p) => (
                   <li
                     key={p.name}
-                    className="flex gap-3 rounded-xl border border-dashed border-line p-3"
+                    className="flex gap-3 rounded-[10px] border border-dashed border-line-strong p-3"
                   >
-                    <Lock aria-hidden="true" size={18} className="mt-0.5 flex-none text-muted" />
+                    <Lock aria-hidden="true" size={18} className="mt-0.5 flex-none text-ink3" />
                     <span className="flex flex-col gap-0.5">
-                      <span className="font-medium text-ink">{p.name}</span>
-                      <span className="text-sm">
-                        <span className="font-medium">{p.state}.</span>{' '}
-                        <span className="text-muted">{p.why}</span>
+                      <span className="text-sm font-medium text-ink">{p.name}</span>
+                      <span className="text-[13px]">
+                        <span className="font-medium text-ink2">{p.state}.</span>{' '}
+                        <span className="text-ink3">{p.why}</span>
                       </span>
                     </span>
                   </li>
@@ -620,7 +649,35 @@ export function StudyCompany() {
       case 'financials':
         return <>{cikOf && <Financials cik={cikOf} bars={q.data.bars} />}</>;
       case 'earnings':
-        return <>{cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}</>;
+        return (
+          <>
+            <section aria-labelledby="next-results" className={tileClass}>
+              <h2 id="next-results" className={panelTitle}>
+                {ui.nextResults}
+              </h2>
+              {earningsEstimate === undefined ? (
+                <p className="text-sm text-ink3">{t.loading}</p>
+              ) : earningsEstimate === null ? (
+                <p className="text-sm text-ink3">{ui.noEarnings}</p>
+              ) : (
+                <>
+                  <span className="text-[22px] font-semibold text-ink">
+                    <Num>{`~ ${weekdayDayMonth(earningsEstimate.date)} ${earningsEstimate.date.slice(0, 4)}`}</Num>
+                  </span>
+                  <p className="text-xs text-ink3">{ui.nextResultsSub}</p>
+                  <p className="text-sm text-ink2">
+                    <Num>{ui.earningsRange(earningsEstimate.from, earningsEstimate.to)}</Num>
+                  </p>
+                  {earningsEstimate.overdue && (
+                    <p className="text-xs text-warn">{ui.earningsOverdue}</p>
+                  )}
+                </>
+              )}
+              <p className="text-[13px] text-ink2">{ui.impliedMissing}</p>
+            </section>
+            {cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}
+          </>
+        );
       case 'holders':
         return (
           <>
@@ -633,128 +690,176 @@ export function StudyCompany() {
       case 'risk':
         return (
           <>
-            <section aria-labelledby="filings" className={`${cardClass} gap-3!`}>
-              <h2 id="filings" className={panelTitle}>
-                {t.study.filings}
-              </h2>
-              <p className="text-sm text-muted">{t.study.filingsNote}</p>
-              <FilingsTable data={q.data} />
-            </section>
-            {cikOf && <RiskFactors cik={cikOf} />}
-            {cikOf && <QuarterlyRiskFactors cik={cikOf} />}
+            <Segmented
+              label={ui.riskToggle}
+              options={RISK_MODES.map((m) => ({ key: m, label: ui.riskModes[m] ?? m }))}
+              value={riskMode}
+              onChange={setRiskMode}
+            />
+            {cikOf &&
+              (riskMode === 'yoy' ? (
+                <RiskFactors cik={cikOf} />
+              ) : (
+                <QuarterlyRiskFactors cik={cikOf} />
+              ))}
+            {!cikOf && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
           </>
         );
       case 'dividends':
         return <Dividends rows={dividends.data ?? []} />;
       case 'shariah':
         return cikOf ? <ShariahAid cik={cikOf} bars={q.data.bars} /> : null;
-      case 'news':
-        return <NewsPanel ticker={q.data.ticker} />;
     }
   };
 
+  const staleLine =
+    q.data && summary
+      ? q.data.lastCompletedDay && summary.asOf < q.data.lastCompletedDay
+        ? t.study.stale(summary.asOf, q.data.lastCompletedDay)
+        : t.study.current
+      : null;
+
   return (
-    <div className="mx-auto flex max-w-[1248px] flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <Link
         to="/study"
-        className="inline-flex min-h-11 items-center self-start text-sm text-muted underline underline-offset-4"
+        className="-mb-3 inline-flex min-h-11 items-center self-start text-sm text-ink3 underline underline-offset-4"
       >
         {t.study.back}
       </Link>
 
-      {!q.data && <h1 className="text-[1.75rem] font-bold text-ink">{ticker}</h1>}
-      {q.isPending && <SkeletonCards heights={['6rem', '7rem', '22rem']} />}
+      {!q.data && (
+        <h1 className="text-2xl leading-tight font-semibold tracking-[-0.01em] text-ink">
+          {ticker}
+        </h1>
+      )}
+      {q.isPending && <SkeletonCards heights={['6rem', '22rem', '7rem']} />}
       {q.isError && (
-        <p role="alert" className="text-down">
+        <p role="alert" className="text-crit">
           {q.error.message}
         </p>
       )}
 
       {q.data && <Header ticker={ticker} data={q.data} s={summary} />}
-      {q.data && !q.data.company && <p className="text-sm text-muted">{t.study.noCompany}</p>}
-      {q.data && q.data.bars.length === 0 && <p className="text-muted">{t.study.noBars}</p>}
+      {q.data && !q.data.company && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
+      {q.data && q.data.bars.length === 0 && <p className="text-sm text-ink3">{t.study.noBars}</p>}
 
       {q.data && summary && (
         <>
-          {/* The design puts the chart first on a phone; the tiles follow it. */}
-          {wide && (
-            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
-          )}
-          <Card
-            id="chart"
-            title={t.study.chart}
-            aside={
+          <section aria-labelledby="chart-h" className={`${cardClass} gap-2.5`}>
+            <h2 id="chart-h" className="sr-only">
+              {t.study.chart}
+            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div role="group" aria-label={t.study.indicators} className="flex flex-wrap gap-1.5">
+                {chip('sma50', t.study.sma50)}
+                {chip('sma200', t.study.sma200)}
+                {chip('ema20', t.study.ema20)}
+                {chip(
+                  'rsi',
+                  ui.rsiChip(summary.rsi14 === null ? null : toFixedHalfUp(summary.rsi14, 1)),
+                )}
+                {chip('volume', t.study.volume)}
+              </div>
               <Segmented
                 label={ui.chartRange}
                 options={RANGES.map((k) => ({ key: k, label: ui.ranges[k] ?? k }))}
                 value={range}
                 onChange={setRange}
               />
-            }
-          >
-            <div role="group" aria-label={t.study.indicators} className="flex flex-wrap gap-2">
-              {chip('sma50', t.study.sma50)}
-              {chip('sma200', t.study.sma200)}
-              {chip('ema20', t.study.ema20)}
-              {chip('rsi', t.study.rsi)}
-              {chip('volume', t.study.volume)}
             </div>
             <div
               role="figure"
               aria-label={t.study.chartLabel(ticker, summary.asOf)}
-              className="overflow-hidden rounded-lg"
+              className="overflow-hidden rounded-[10px] bg-elev"
             >
-              <Suspense fallback={<SkeletonCards heights={[wide ? '360px' : '260px']} />}>
+              <Suspense fallback={<SkeletonCards heights={[wide ? '300px' : '240px']} />}>
                 <PriceChart
                   bars={q.data.bars}
                   markers={markers}
                   toggles={toggles}
-                  height={wide ? 360 : 260}
+                  height={wide ? 300 : 240}
                   visibleSessions={RANGE_SESSIONS[range]}
+                  onPick={setPicked}
                 />
               </Suspense>
             </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-[0.9375rem] font-semibold text-ink">{t.study.markers}</h3>
-              <Info>{t.study.markersNote}</Info>
-              {markers.length === 0 ? (
-                <p className="text-sm text-muted">{t.study.noMarkers}</p>
-              ) : (
-                <>
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+              <MarkerDetail markers={markers} date={shownDate} moves={moves} />
+              <span className="text-xs text-ink3">
+                <Num>
+                  {ui.legend(
+                    t.study.range(summary.rangeSessions),
+                    usd(summary.low52w),
+                    usd(summary.high52w),
+                  )}
+                </Num>
+              </span>
+            </div>
+            <p className="text-xs text-ink2">
+              {ui.trendLine(
+                t.study.trendLabels[summary.trend],
+                summary.sma50 === null ? t.study.unavailable : usd(summary.sma50),
+                summary.sma200 === null ? t.study.unavailable : usd(summary.sma200),
+              )}
+            </p>
+            {markers.length > 0 && (
+              <details className="rounded-lg border border-line">
+                <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium text-ink2 select-none">
+                  {ui.markersAll(markers.length)}
+                </summary>
+                <div className="flex flex-col gap-2 border-t border-line p-3">
+                  <Info>{t.study.markersNote}</Info>
                   <ul className="flex max-h-72 flex-col overflow-y-auto">
-                    {[...markers].reverse().map((m) => (
-                      <li
-                        key={`${m.date}-${m.label}`}
-                        className="flex min-h-11 items-center gap-3 border-b border-line/60 py-1.5 text-sm last:border-0"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`flex size-8 flex-none items-center justify-center rounded-full text-xs font-bold ${
-                            m.materiality === 'high'
-                              ? 'bg-warn/20 text-warn'
-                              : m.kind === 'halt'
-                                ? 'bg-down/20 text-down'
-                                : 'bg-up/15 text-up'
-                          }`}
+                    {[...markers].reverse().map((m, i) => (
+                      <li key={`${m.date}-${m.label}-${i}`}>
+                        <button
+                          type="button"
+                          aria-pressed={shownDate === m.date}
+                          onClick={() => setPicked(m.date)}
+                          className="flex min-h-11 w-full items-center gap-3 border-b border-line py-1.5 text-start text-sm text-ink2"
                         >
-                          {ui.markerLetters[m.kind] ?? '?'}
-                        </span>
-                        <span>
-                          {m.date}: {m.label}
-                          {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
-                        </span>
+                          <span
+                            aria-hidden="true"
+                            className={`flex size-7 flex-none items-center justify-center rounded-full border bg-surface text-[11px] font-bold ${
+                              m.results || m.kind === 'high-8k'
+                                ? 'border-warn text-warn'
+                                : m.kind === 'alert'
+                                  ? 'border-up text-up'
+                                  : m.kind === 'halt'
+                                    ? 'border-crit text-crit'
+                                    : 'border-line-strong text-ink3'
+                            }`}
+                          >
+                            {markerLetter(m)}
+                          </span>
+                          <span>{markerText(m)}</span>
+                        </button>
                       </li>
                     ))}
                   </ul>
-                  <p className="text-xs text-muted">{ui.markerLegend}</p>
-                </>
-              )}
-            </div>
-          </Card>
-          {!wide && (
-            <Summary data={q.data} s={summary} earnings={earningsEstimate} short={shortQ.data} />
-          )}
+                </div>
+              </details>
+            )}
+            <p
+              className={staleLine === t.study.current ? 'text-xs text-ink3' : 'text-sm text-warn'}
+              role="status"
+            >
+              {staleLine}
+            </p>
+            <p className="text-xs text-ink3">
+              {t.study.provenance(summary.asOf, summary.sessions, summary.formulaVersion)}
+            </p>
+          </section>
+          <Snapshot ticker={ticker} cik={cik} s={summary} earnings={earningsEstimate} />
         </>
+      )}
+
+      {q.data && (
+        <AutoGrid min={380} gap="gap-5" className="items-start">
+          <NewsPanel ticker={q.data.ticker} />
+          <FilingsCard data={q.data} />
+        </AutoGrid>
       )}
 
       {q.data &&

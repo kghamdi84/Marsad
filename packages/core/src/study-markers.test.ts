@@ -64,3 +64,39 @@ describe('buildEventMarkers: insider buys, halts and alerts', () => {
     expect(m).toEqual([]);
   });
 });
+
+describe('buildEventMarkers: results 8-Ks', () => {
+  const eightK = (acceptedAt: string, items: string[]) => ({
+    form: '8-K',
+    filingDate: acceptedAt.slice(0, 10),
+    acceptedAt,
+    items,
+  });
+  it('flags an 8-K carrying Item 2.02 as results, and no other', () => {
+    const m = buildEventMarkers(
+      [
+        // Wednesday 16:20 ET, after the close: the results react on Thursday.
+        eightK('2026-11-18T21:20:00Z', ['2.02', '9.01']),
+        // Monday 10:00 ET: a material agreement, an ordinary F marker.
+        eightK('2026-11-16T15:00:00Z', ['1.01']),
+      ],
+      [],
+      DATES,
+    );
+    expect(m).toEqual([
+      {
+        date: '2026-11-16',
+        kind: 'medium-8k',
+        label: '8-K: Signed a major agreement',
+        materiality: 'medium',
+      },
+      {
+        date: '2026-11-19',
+        kind: 'high-8k',
+        label: '8-K: Earnings results released',
+        materiality: 'high',
+        results: true,
+      },
+    ]);
+  });
+});
