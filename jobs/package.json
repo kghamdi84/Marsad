@@ -24,6 +24,7 @@
     "exports": "tsx src/exports-main.ts",
     "weekly-review": "tsx src/weekly-review-main.ts",
     "ai-summaries": "tsx src/ai-summaries-main.ts",
+    "ai-thesis": "tsx src/ai-thesis-main.ts",
     "catalyst": "tsx src/catalyst-main.ts",
     "push": "tsx src/push-main.ts",
     "digest": "tsx src/digest-main.ts",

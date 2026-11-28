@@ -1,6 +1,7 @@
 name: AI daily
 
-# Claude summaries of each holding's and watchlist company's newest stored filings (checklist 2.9, ADR 0007). Reads
+# Claude summaries of each holding's and watchlist company's newest stored filings (checklist 2.9, ADR 0007), then a
+# thesis card draft for each open holding without a saved thesis (checklist 2.10). Reads
 # only the database (filings, 10-K and 10-Q risk factor sections and XBRL facts the SEC and sections jobs stored);
 # writes public.ai_outputs and logs every call in public.ai_usage. Runs at 00:50 UTC Tuesday to Saturday, after the
 # SEC filings job's last weekday run (23:37 UTC) and its 10-Q step. A company is summarized again only when its
@@ -10,6 +11,11 @@ on:
   schedule:
     - cron: '50 0 * * 2-6'
   workflow_dispatch:
+    inputs:
+      thesis_for:
+        description: 'Draft a thesis card for these tickers too, comma separated (optional)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -36,3 +42,12 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Drafts are offered on the thesis card as a starting point; saving is always Khaled's own edit in the form.
+      - name: Draft thesis cards
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs ai-thesis
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_THESIS_TICKERS: ${{ inputs.thesis_for }}

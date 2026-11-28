@@ -4,7 +4,8 @@
  */
 import type { FinancialFact, JobRunRecord } from '@marsad/core';
 import type { AiLedger, AiUsageRow, Message, MessageParams, MessagesClient } from './anthropic.js';
-import type { AiOutputRow, AiStore, StoredOutputKey } from './ai-summaries-job.js';
+import type { AiOutputRow, StoredOutputKey } from './ai-summaries-job.js';
+import type { ThesisStore } from './ai-thesis-job.js';
 
 export interface FakeReply {
   /** The JSON text the model returns, or any string to test a bad reply. */
@@ -124,12 +125,13 @@ const FACTS: FinancialFact[] = [
 ];
 
 /** An in-memory AiStore with NVIDIA-shaped filings (NVDA held and watched; RKLB watched with no CIK stored). */
-export function fakeAiStore(spent = { dailyUsd: 0, monthlyUsd: 0 }) {
+export function fakeAiStore(spent = { dailyUsd: 0, monthlyUsd: 0 }, thesisTickers: string[] = []) {
   const outputs: AiOutputRow[] = [];
   const usage: AiUsageRow[] = [];
   const runs: JobRunRecord[] = [];
   const prior: StoredOutputKey[] = [];
-  const store: AiStore = {
+  const store: ThesisStore = {
+    getThesisTickers: () => Promise.resolve(thesisTickers),
     getWatchlistTickers: () => Promise.resolve(['NVDA', 'nvda', 'RKLB']),
     getHoldingTickers: () => Promise.resolve(['NVDA']),
     getCiks: (tickers) => Promise.resolve(new Map(tickers.includes('NVDA') ? [['NVDA', CIK]] : [])),

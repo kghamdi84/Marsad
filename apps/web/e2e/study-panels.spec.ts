@@ -1085,6 +1085,128 @@ test('thesis card: a new version needs a real bear case, is saved append-only an
   });
 });
 
+/** A stored AI output row (ai_outputs) as the job writes it; the text and figures are made up for the test. */
+function aiRow(kind: string, over: Json = {}): Json {
+  return {
+    id: 7,
+    kind,
+    ticker: 'NVDA',
+    for_date: null,
+    text: '',
+    citations: [],
+    verified: true,
+    source: 'model',
+    fallback_reason: null,
+    model: 'claude-sonnet-5-5',
+    served_model: 'claude-sonnet-5-5',
+    prompt_id: kind,
+    prompt_version: 1,
+    created_at: '2026-11-25T00:52:00Z',
+    ...over,
+  };
+}
+
+const XBRL_URL =
+  'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000101/0001045810-26-000101-index.htm';
+const TENQ_URL =
+  'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000101/nvda-20260726.htm';
+const CITES = [
+  {
+    id: 'F3',
+    kind: 'fact',
+    label: 'Revenue, quarter ended 2026-07-26',
+    url: XBRL_URL,
+    source: 'SEC XBRL company facts, accession 0001045810-26-000101',
+    asOf: '2026-08-27',
+  },
+  {
+    id: 'D1',
+    kind: 'document',
+    label: '10-Q risk factors (Part II, Item 1A)',
+    url: TENQ_URL,
+    source: 'SEC 10-Q 0001045810-26-000101, Part II Item 1A',
+    asOf: '2026-08-27',
+  },
+];
+
+test('thesis card: the AI draft is labelled, cited, and only fills the form; saving stays a human edit', async ({
+  page,
+}) => {
+  await setup(page);
+  const saved: unknown[] = [];
+  await page.route('**/rest/v1/theses**', (r) => {
+    if (r.request().method() === 'GET') return json(r, []);
+    saved.push(r.request().postDataJSON());
+    return r.fulfill({ status: 201, body: '' });
+  });
+  const draft =
+    'Bull case: revenue was $46.74B in the quarter ended 2026-07-26 [F3]. Bear case: the 10-Q repeats the annual risk factors, so concentration in a few large customers remains a real threat to growth [D1]. Key risks: customer concentration [D1]. What would change the view: a new 10-Q that reports material changes to the risk factors [D1].';
+  const asked: string[] = [];
+  await page.route('**/rest/v1/ai_outputs**', (r) => {
+    asked.push(r.request().url());
+    return json(
+      r,
+      r.request().url().includes('kind=eq.thesis-draft')
+        ? [aiRow('thesis-draft', { text: draft, citations: CITES })]
+        : [],
+    );
+  });
+  await page.goto('/study/NVDA');
+  const card = page.getByRole('region', { name: 'Thesis card' });
+  const ai = card.getByRole('region', { name: 'AI draft, check before saving' });
+  await expect(ai).toContainText('Bear case: the 10-Q repeats the annual risk factors');
+  await expect(ai).toContainText('As of 2026-11-25 · Claude Sonnet 5.5');
+  await expect(ai).toContainText('It is not your thesis until you edit it and save it yourself.');
+  await ai.getByText('Sources cited (2)').click();
+  await expect(ai.getByRole('link', { name: 'Filing on SEC' }).nth(1)).toHaveAttribute(
+    'href',
+    TENQ_URL,
+  );
+  // Nothing is saved by showing the draft.
+  expect(saved).toEqual([]);
+  await ai.getByRole('button', { name: 'Start from this draft' }).click();
+  const form = card.getByRole('form', { name: 'Write a new version' });
+  // Citations are removed in the form; the cited filings become the sources.
+  await expect(form.getByLabel('Bear case (required)')).toHaveValue(
+    'the 10-Q repeats the annual risk factors, so concentration in a few large customers remains a real threat to growth.',
+  );
+  await expect(form.getByLabel('Key risks (one a line)')).toHaveValue('customer concentration');
+  await expect(form.getByLabel('Sources (https links, one a line)')).toHaveValue(
+    `${XBRL_URL}\n${TENQ_URL}`,
+  );
+  expect(saved).toEqual([]);
+  await form
+    .getByLabel('What would change my view (required)')
+    .fill('A new 10-Q that reports material changes to the risk factors, or a revenue decline.');
+  await form.getByRole('button', { name: 'Save new version' }).click();
+  await expect.poll(() => saved.length).toBe(1);
+  expect(saved[0]).toMatchObject({ ticker: 'NVDA', risks: ['customer concentration'] });
+  expect(asked.some((u) => u.includes('ticker=eq.NVDA'))).toBe(true);
+});
+
+test('thesis card: a draft that fell back to the template is not offered, and says why', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/theses**', (r) => json(r, []));
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, [
+      aiRow('thesis-draft', {
+        source: 'template',
+        fallback_reason: 'cost-cap',
+        served_model: null,
+        text: 'Revenue, quarter ended 2026-07-26: $46.74B [F3].',
+      }),
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  const card = page.getByRole('region', { name: 'Thesis card' });
+  await expect(card).toContainText(
+    'No AI draft for the newest filings: the daily or monthly AI spending cap was reached.',
+  );
+  await expect(card.getByRole('button', { name: 'Start from this draft' })).toHaveCount(0);
+});
+
 test('Shariah screening aid: off by default; when on, ratios from the filings with every caveat', async ({
   page,
 }) => {
