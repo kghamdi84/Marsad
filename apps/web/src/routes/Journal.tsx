@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useSearch } from '@tanstack/react-router';
 import { Info } from '../components/Info';
 import { PageTitle } from '../components/ui/kit';
 import { Sizer } from '../components/journal/Sizer';
@@ -73,8 +74,18 @@ function SectionTabs({
   );
 }
 
+/** A ticker passed by a "Size a trade" link (`?ticker=`), when it looks like one. */
+function useTickerParam(): string {
+  const { ticker }: { ticker?: unknown } = useSearch({ strict: false });
+  return typeof ticker === 'string' && /^[A-Za-z][A-Za-z0-9.-]{0,9}$/.test(ticker)
+    ? ticker.toUpperCase()
+    : '';
+}
+
 function Section({ tab }: { tab: JournalTab }) {
-  if (tab === 'sizer') return <Sizer />;
+  const ticker = useTickerParam();
+  // A new ticker from a link starts a fresh sizer with it filled in.
+  if (tab === 'sizer') return <Sizer key={ticker} initialTicker={ticker} />;
   if (tab === 'review') return <WeeklyReview />;
   return <Trades />;
 }

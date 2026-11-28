@@ -45,8 +45,8 @@ function Input({
  * The position sizer, the five-item checklist and the manual Sahm ticket. The copy button stays disabled until all
  * five items are ticked and the ticket is complete (hard rule). Marsad never places the order.
  */
-export function Sizer() {
-  const [ticker, setTicker] = useState('');
+export function Sizer({ initialTicker = '' }: { initialTicker?: string }) {
+  const [ticker, setTicker] = useState(initialTicker);
   const [account, setAccount] = useState('50000');
   const [risk, setRisk] = useState('1');
   const [entry, setEntry] = useState('');

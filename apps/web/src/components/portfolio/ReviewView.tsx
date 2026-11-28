@@ -11,6 +11,7 @@ import { Card, Segmented, useRemembered } from '../Card';
 import { Info } from '../Info';
 import { TickerLink } from '../QuickLook';
 import { Pill } from '../ui/kit';
+import { SizeTradeLink } from '../journal/SizeTradeLink';
 import { loadHoldingAlerts, tauricDividends } from '../../lib/portfolio';
 import {
   LimitsList,
@@ -98,7 +99,10 @@ function ReviewItem({ row }: { row: ReviewRow }) {
           </div>
         ))}
       </dl>
-      <p className="text-xs text-ink2">{sizer}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-ink2">{sizer}</p>
+        <SizeTradeLink ticker={row.ticker} />
+      </div>
     </li>
   );
 }

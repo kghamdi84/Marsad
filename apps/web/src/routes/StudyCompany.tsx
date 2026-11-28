@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -62,6 +62,8 @@ import { Segmented, SkeletonCards, Tabs, cardClass, useRemembered } from '../com
 import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
 import { panelTitle, tileClass } from '../components/study/Panel';
 import { useView } from '../lib/view';
+import { rememberViewed } from '../lib/recent';
+import { SizeTradeLink } from '../components/journal/SizeTradeLink';
 import { t } from '../strings';
 
 const money = (n: number) =>
@@ -169,6 +171,7 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
             {ui.latestNotCovered(ticker)}
           </span>
         )}
+        <SizeTradeLink ticker={ticker} className="mt-1 self-start" />
       </div>
       <CompanySearch id="company-search" label={ui.searchLabel} className="w-full tablet:w-80" />
     </header>
@@ -372,6 +375,10 @@ export function StudyCompany() {
   const ticker = normalizeTicker(raw);
   const [section, setSection] = useView<SectionKey>('marsad.study.section', SECTIONS, 'overview');
   const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
+  // Recently viewed on Study's index (ADR 0048), kept on this device only.
+  useEffect(() => {
+    if (ticker !== null) rememberViewed(ticker);
+  }, [ticker]);
   // A brief block's link: choose that view and bring the area into view.
   const openSection = (k: BriefTarget) => {
     setSection(k);

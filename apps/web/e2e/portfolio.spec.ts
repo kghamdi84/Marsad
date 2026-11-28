@@ -225,6 +225,11 @@ test('portfolio review: open risk with risk unknown, the council limits, holding
     'The sizer allows 9 shares at today’s close and stop; you hold 100.',
   );
   await expect(rklb).toContainText('$700');
+  // "Size a trade" opens Journal's sizer with the ticker filled in (ADR 0048).
+  await expect(rklb.getByRole('link', { name: 'Size a trade in RKLB' })).toHaveAttribute(
+    'href',
+    '/journal?view=sizer&ticker=RKLB',
+  );
   // Weekly moves: RKLB 26.40 to 29.00 over five sessions.
   await card
     .getByRole('group', { name: 'Review section' })

@@ -16,6 +16,12 @@ export const study = {
   open: 'Open',
   badTicker: (t: string) => `"${t}" is not a valid ticker.`,
   back: 'All companies',
+  recent: {
+    title: 'Recently viewed',
+    note: 'The last 8 companies you opened, kept on this device only.',
+  },
+  sizeTrade: 'Size a trade',
+  sizeTradeAria: (ticker: string) => `Size a trade in ${ticker}`,
   noBars:
     'No daily bars stored for this ticker yet. The bars job runs each weekday after the close.',
   noCompany: 'No company record yet for this ticker (the SEC job covers the starting stocks).',
