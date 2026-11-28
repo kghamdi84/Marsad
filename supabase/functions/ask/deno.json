@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@1.8.0",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.119.2",
+    "@marsad/core": "../_shared/core/index.ts"
+  },
+  "lock": false
+}

@@ -26,6 +26,8 @@ export * from './ai/grounded.js';
 export * from './ai/untrusted.js';
 export * from './ai/cost.js';
 export * from './ai/template.js';
+export * from './ai/caps.js';
+export * from './ai/ask.js';
 export * from './adapters/index.js';
 export * from './riskfactors.js';
 export * from './regime.js';
