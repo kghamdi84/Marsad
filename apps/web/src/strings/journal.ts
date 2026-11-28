@@ -236,7 +236,7 @@ export const journal = {
     noShared: (funds: string) =>
       `None of the stocks you hold directly are matched inside ${funds}.`,
     footnote:
-      'Source: SEC EDGAR Form NPORT-P, formula etf-1. Public N-PORT reports are quarterly and published up to 60 days after the month they describe, so weights are as of the report date, not today. Overlap is the sum, over shared securities by CUSIP, of the smaller weight. IWM is not covered (its trust files for many funds).',
+      'Source: SEC EDGAR Form NPORT-P, formula etf-2 (tickers matched by CUSIP through OpenFIGI, by company name only where OpenFIGI has no single US ticker). Public N-PORT reports are quarterly and published up to 60 days after the month they describe, so weights are as of the report date, not today. Overlap is the sum, over shared securities by CUSIP, of the smaller weight. IWM is not covered (its trust files for many funds).',
   },
   review: {
     title: 'Weekly review',

@@ -117,6 +117,7 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 | `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Only when the first Edge Function is deployed (Phase 5). Not needed now. The database is deployed by the GitHub integration |
 | `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | Phase 2                                                                                                                     |
 | `TAURIC_API_KEY`        | tauric.ai, **Settings**, **API keys** (choose an expiry)         | Optional second quote source (ADR 0041). GitHub repository secret only; the Tauric workflows wait for it                    |
+| `OPENFIGI_API_KEY`      | openfigi.com, sign in, **API Key**                               | Optional. ETF holdings match tickers by CUSIP (ADR 0038 addendum); faster with it, works without it. GitHub secret only     |
 
 ## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
 

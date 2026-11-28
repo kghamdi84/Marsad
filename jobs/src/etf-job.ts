@@ -1,5 +1,6 @@
 import {
   ETF_VERSION,
+  OPENFIGI_VERSION,
   fetchCompanyTickers,
   fetchRecentFilings,
   matchTickers,
@@ -19,7 +20,8 @@ export const ETF_TRUSTS = [
 ] as const;
 
 export interface EtfStore {
-  getStoredAccessions(): Promise<Set<string>>;
+  /** Each stored report's accession with the formula version it was matched under. */
+  getStoredAccessions(): Promise<Map<string, string>>;
   saveEtfReport(
     etf: string,
     accession: string,
@@ -34,11 +36,14 @@ export interface EtfJobDeps {
   sec: SecConfig;
   store: EtfStore;
   now: () => Date;
+  /** CUSIP to ticker (OpenFIGI, openfigi-1). Absent or failing: names only, and the run says why. */
+  figi?: (cusips: readonly string[]) => Promise<Map<string, string>>;
 }
 
 /**
- * The newest public N-PORT holdings of SPY, QQQ and DIA (etf-1, ADR 0038), each report downloaded once. Holdings are
- * matched to tickers by company name against the SEC ticker list; names shared by share classes stay unmatched.
+ * The newest public N-PORT holdings of SPY, QQQ and DIA (ADR 0038), each report downloaded once per formula version.
+ * etf-2 matches holdings to tickers by CUSIP through OpenFIGI first and by company name against the SEC ticker list
+ * only where OpenFIGI has no single US ticker; names shared by share classes stay unmatched.
  */
 export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
   const { http, sec, store, now } = deps;
@@ -59,7 +64,7 @@ export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
           out[t.etf] = 'no NPORT-P in recent filings';
           continue;
         }
-        if (have.has(nport.accession)) {
+        if (have.get(nport.accession) === ETF_VERSION) {
           out[t.etf] = `already stored (${nport.accession})`;
           continue;
         }
@@ -68,17 +73,40 @@ export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
         const res = await http.get(url, { headers: { 'User-Agent': sec.userAgent } });
         if (!res.ok) throw new Error(`${t.etf} N-PORT download: ${res.kind}`);
         const report = parseNport(res.body);
-        const tickers = matchTickers(report.holdings, companies);
+        const equity = report.holdings.filter((h) => h.assetCat === 'EC');
+        let byCusip = new Map<string, string>();
+        let figiNote: string | null = deps.figi ? null : 'OpenFIGI not configured';
+        if (deps.figi)
+          try {
+            byCusip = await deps.figi(equity.flatMap((h) => (h.cusip ? [h.cusip] : [])));
+          } catch (e) {
+            figiNote = `OpenFIGI failed, names only: ${(e instanceof Error ? e.message : String(e)).slice(0, 160)}`;
+          }
+        const tickers = matchTickers(report.holdings, companies, byCusip);
         rows += await store.saveEtfReport(t.etf, nport.accession, report, tickers);
+        const viaCusip = report.holdings.filter(
+          (h, i) => tickers[i] !== null && h.cusip !== null && byCusip.has(h.cusip),
+        ).length;
+        const matched = tickers.filter((x) => x !== null).length;
         out[t.etf] = {
           reportDate: report.reportDate,
           holdings: report.holdings.length,
-          matched: tickers.filter((x) => x !== null).length,
+          equity: equity.length,
+          matched,
+          byCusip: viaCusip,
+          byName: matched - viaCusip,
+          unmatched: equity.length - matched,
+          ...(figiNote ? { figi: figiNote } : {}),
         };
       }
       return {
         rows,
-        details: { version: ETF_VERSION, funds: out, notCovered: ['IWM (multi-fund trust)'] },
+        details: {
+          version: ETF_VERSION,
+          figiVersion: OPENFIGI_VERSION,
+          funds: out,
+          notCovered: ['IWM (multi-fund trust)'],
+        },
       };
     },
     () => now().getTime(),

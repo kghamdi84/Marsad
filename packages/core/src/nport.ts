@@ -1,11 +1,12 @@
 /**
- * ETF holdings from SEC Form N-PORT (etf-1, ADR 0038), for look-through exposure and ETF overlap. Pure: the job
+ * ETF holdings from SEC Form N-PORT (etf-2, ADR 0038), for look-through exposure and ETF overlap. Pure: the job
  * downloads each fund's newest public NPORT-P document. Public N-PORT reports are quarterly and appear up to 60
  * days after the month they describe, so every figure carries its report date.
  */
 import { companyKey } from './holders.js';
 
-export const ETF_VERSION = 'etf-1';
+// etf-2: holdings are matched to tickers by CUSIP through OpenFIGI first, by company name only as a fallback.
+export const ETF_VERSION = 'etf-2';
 
 export interface NportHolding {
   name: string;

@@ -13,7 +13,7 @@ const x = t.journal.etf;
 const pct = (v: number) => `${toFixedHalfUp(v * 100, 1)}%`;
 
 /**
- * What you hold directly and through SPY, QQQ and DIA (SEC N-PORT, formula etf-1). Shared by the look-through card
+ * What you hold directly and through SPY, QQQ and DIA (SEC N-PORT, formula etf-2). Shared by the look-through card
  * and the position cards' rules line; undefined while loading.
  */
 export function useLookThrough(holdings: StoredHolding[], bars: BarsByTicker) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { etfOverlap, type JobRunRecord, type NportReport } from '@marsad/core';
+import { ETF_VERSION, etfOverlap, type JobRunRecord, type NportReport } from '@marsad/core';
 import { routedHttp } from './test-http.js';
 import { runEtfJob, type EtfStore } from './etf-job.js';
 
@@ -42,11 +42,11 @@ const submissions = (f: (typeof fixtures)[number]) => ({
   },
 });
 
-function memory(stored: string[] = []) {
+function memory(stored: string[] = [], version = ETF_VERSION) {
   const saved: { etf: string; report: NportReport; tickers: (string | null)[] }[] = [];
   const runs: JobRunRecord[] = [];
   const store: EtfStore = {
-    getStoredAccessions: () => Promise.resolve(new Set(stored)),
+    getStoredAccessions: () => Promise.resolve(new Map(stored.map((a) => [a, version]))),
     saveEtfReport: (etf, _acc, report, t) => {
       saved.push({ etf, report, tickers: [...t] });
       return Promise.resolve(report.holdings.length);
@@ -105,5 +105,58 @@ describe('runEtfJob on real N-PORT reports (SPY and QQQ for June 2026, DIA for J
     await runEtfJob({ http, sec, store: m.store, now: () => NOW });
     expect(urls.filter((u) => u.includes('/Archives/'))).toEqual([]);
     expect(m.saved).toEqual([]);
+  });
+
+  it('downloads a stored report again when it was matched under an older version', async () => {
+    const m = memory([fixtures[0]?.accession as string], 'etf-1');
+    const { http, urls } = routedHttp(NOW, routes());
+    await runEtfJob({ http, sec, store: m.store, now: () => NOW });
+    expect(urls.filter((u) => u.includes('/Archives/'))).toHaveLength(fixtures.length);
+  });
+
+  it('matches by CUSIP through OpenFIGI first, by name only where it has no answer', async () => {
+    const spy = fixtures.find((f) => f.etf === 'SPY');
+    const named = memory();
+    await runEtfJob({
+      http: routedHttp(NOW, routes()).http,
+      sec,
+      store: named.store,
+      now: () => NOW,
+    });
+    const byName = named.saved.find((x) => x.etf === 'SPY');
+    // A lookup that knows every SPY common-stock CUSIP: each one gets a ticker of its own.
+    const figi = (cusips: readonly string[]) =>
+      Promise.resolve(new Map(cusips.map((c, i) => [c, `T${String(i).padStart(4, '0')}`])));
+    const m = memory();
+    const run = await runEtfJob({
+      http: routedHttp(NOW, routes()).http,
+      sec,
+      store: m.store,
+      now: () => NOW,
+      figi,
+    });
+    const s = m.saved.find((x) => x.etf === 'SPY');
+    expect(spy && s && byName).toBeTruthy();
+    const equity = s?.report.holdings.filter((h) => h.assetCat === 'EC' && h.cusip) ?? [];
+    const matched = s?.tickers.filter((t) => t !== null).length ?? 0;
+    expect(matched).toBeGreaterThan(byName?.tickers.filter((t) => t !== null).length ?? 0);
+    expect(matched).toBe(equity.length);
+    const funds = run.details?.['funds'] as Record<string, { byCusip: number; unmatched: number }>;
+    expect(funds['SPY']?.byCusip).toBe(equity.length);
+  });
+
+  it('falls back to names and says why when OpenFIGI fails', async () => {
+    const m = memory();
+    const run = await runEtfJob({
+      http: routedHttp(NOW, routes()).http,
+      sec,
+      store: m.store,
+      now: () => NOW,
+      figi: () => Promise.reject(new Error('OpenFIGI answered 503')),
+    });
+    expect(run.status).toBe('ok');
+    const funds = run.details?.['funds'] as Record<string, { figi?: string; byName: number }>;
+    expect(funds['SPY']?.figi).toBe('OpenFIGI failed, names only: OpenFIGI answered 503');
+    expect(funds['SPY']?.byName).toBeGreaterThan(0);
   });
 });

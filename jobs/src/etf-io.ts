@@ -9,9 +9,9 @@ export function supabaseEtfStore(url: string, secretKey: string): EtfStore {
   });
   return {
     async getStoredAccessions() {
-      const { data, error } = await db.from('etf_reports').select('accession');
+      const { data, error } = await db.from('etf_reports').select('accession, version');
       if (error) throw new Error(`etf_reports read failed: ${error.message}`);
-      return new Set((data ?? []).map((r) => String(r['accession'])));
+      return new Map((data ?? []).map((r) => [String(r['accession']), String(r['version'])]));
     },
     async saveEtfReport(etf, accession, report, tickers) {
       if (!report.reportDate) throw new Error(`${etf} N-PORT has no report date`);
