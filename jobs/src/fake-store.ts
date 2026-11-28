@@ -16,7 +16,6 @@ import type {
   CompanyRef,
   EconEvent,
   FearGreedDay,
-  MarketMovers,
   StagedPlan,
   TopicDay,
   DividendRow,
@@ -48,6 +47,7 @@ import type {
   SentimentBreadthRow,
   SourceStatusUpdate,
   Store,
+  StoredMovers,
   UniverseRow,
 } from './store.js';
 
@@ -77,7 +77,7 @@ export interface FakeLog {
   plans: StagedPlan[][];
   topicDays: TopicDay[][];
   econCalendars: { from: string; to: string; events: EconEvent[] }[];
-  movers: MarketMovers[][];
+  movers: StoredMovers[][];
   strength: { date: string; rows: StrengthRank[] }[];
   briefs: { brief: Brief; inputs: unknown; delivery: Record<string, string> }[];
   ruleVersions: { id: string; version: number; hash: string; doc: RuleDoc }[];

@@ -33,3 +33,15 @@ Captured during work so they are not built early.
 
 - Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.
 - AI topic tagging for the geopolitical panel (topics-2) once the Anthropic key and caps exist; the keyword rules stay as the fallback.
+
+- Market-wide ex-dividend list: Massive `/stocks/v1/dividends` filtered by `ex_dividend_date` alone (no ticker) works on the current plan (checked 2026-11-28 through the Massive MCP: 5 rows for 2026-11-27 with a next-page cursor). Needs a job to store the 21-day window and closes for yields; no fixture recorded yet.
+- Portfolio owner check: the limits label tells owner from member by whether `briefs` (owner-only) returns a row. Replace with the stored per-user limits (ADR 0048 batch 5).
+
+## From the council verdict (ADR 0048, 2026-11-28)
+
+- Compare page (`/compare?t=SCHD,NVDA`): side-by-side fundamentals, dividend history, dilution and valuation bands.
+- Screener on `ticker_daily_summary` (needs batch 2 of ADR 0048), with movers rows linking into it.
+- Valuation against the company's own 5-year history (P/E, EV/FCF, FCF yield bands) from SEC facts and stored closes.
+- Time-weighted portfolio result from trades and cash flows (replaces "current holdings at today's weights").
+- Chart patterns, only with a reference implementation to test against.
+- Study research (ADR 0048): chart-pattern detection once a reference implementation exists to test against; beat or miss against past EPS estimates once estimate history is stored; `?view=` links for the ten Study views in the navigation batch.

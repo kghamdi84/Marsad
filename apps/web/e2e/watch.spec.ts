@@ -64,7 +64,7 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
     ),
   );
   await page.goto('/');
-  await show(page, 'News or calendar', 'Calendar');
+  await show(page, 'News, calendar or dividends', 'Calendar');
   const agenda = page.getByRole('region', { name: 'Economic and earnings calendar' });
   await expect(agenda.getByText('ET · Riyadh')).toBeVisible();
   await expect(agenda.getByRole('heading', { name: 'Today, Wed 25 Nov' })).toBeVisible();
@@ -101,7 +101,7 @@ test('watch: before the calendar job has run, the page says so', async ({ page }
     r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
   await page.goto('/');
-  await show(page, 'News or calendar', 'Calendar');
+  await show(page, 'News, calendar or dividends', 'Calendar');
   await expect(page.getByText(/No calendar yet/)).toBeVisible();
   await expect(page.getByText(/No estimates yet/)).toBeVisible();
 });

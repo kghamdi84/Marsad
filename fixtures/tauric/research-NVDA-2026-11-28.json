@@ -1,0 +1,488 @@
+{
+  "recordedAt": "2026-11-28",
+  "source": "tauric",
+  "ticker": "NVDA",
+  "via": "Tauric MCP connector (get_security_analyst, get_security_profile, get_security_thesis: the same operations and schemas as the REST routes, checked against https://api.tauric.ai/openapi.json on 2026-11-28)",
+  "note": "Recorded on 2026-11-28 (Saturday). Data credits went from 4 to 10 for the six successful analyst, profile and thesis reads of NVDA and AAPL (one data credit each, the thesis included), measured with get_account, which costs nothing. The calendar's earnings is null with field_states.earnings temporarily_unavailable on that day.",
+  "parts": {
+    "analyst": {
+      "endpoint": "GET /v1/securities/NVDA/analyst",
+      "status": 200,
+      "body": {
+        "field_states": {},
+        "price_basis": null,
+        "instrument": {
+          "key": "security:NVDA",
+          "name": "NVIDIA Corporation",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "dataset_status": {
+          "dataset": "analyst",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T01:46:14.960560Z",
+          "field_states": {}
+        },
+        "recommendation": "buy",
+        "target_mean_price": 242.4278,
+        "target_high_price": 425,
+        "target_low_price": 130,
+        "target_median_price": 240,
+        "number_of_analysts": 59,
+        "ratings_total": 63,
+        "strong_buy": 10,
+        "buy": 39,
+        "hold": 12,
+        "sell": 2,
+        "strong_sell": 0,
+        "trailing_eps": 9.31,
+        "forward_eps": 16.6053
+      }
+    },
+    "profile": {
+      "endpoint": "GET /v1/securities/NVDA/profile",
+      "status": 200,
+      "body": {
+        "field_states": {},
+        "price_basis": null,
+        "instrument": {
+          "key": "security:NVDA",
+          "name": "NVIDIA Corporation",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "dataset_status": {
+          "dataset": "profile",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T01:46:14.960560Z",
+          "field_states": {}
+        },
+        "sector": "Information Technology",
+        "sector_key": "information_technology",
+        "industry_group": "Semiconductors & Semiconductor Equipment",
+        "industry_group_key": "semiconductors_semiconductor_equipment",
+        "industry": "Semiconductors & Semiconductor Equipment",
+        "industry_key": "semiconductors_semiconductor_equipment",
+        "sub_industry": "Semiconductors",
+        "sub_industry_key": "semiconductors",
+        "country": "United States",
+        "financial_currency": "USD",
+        "market_cap": 3633882071040,
+        "market_cap_basis": "last_close_x_shares_outstanding",
+        "market_cap_price_date": "2026-11-27",
+        "enterprise_value": 3574299070464,
+        "pe_ratio": 16.1643,
+        "forward_pe": 9.0628,
+        "peg_ratio": 0.19,
+        "price_to_book": 13.6042,
+        "price_to_sales": 10.0437,
+        "profit_margin": 0.6253,
+        "operating_margin": 0.6608,
+        "return_on_assets": 0.5604,
+        "return_on_equity": 1.1736,
+        "revenue_growth": 1.032,
+        "earnings_growth": 1.077,
+        "total_cash": 97731002368,
+        "total_debt": 38148001792,
+        "debt_to_equity": 0.1431,
+        "current_ratio": 4.084,
+        "quick_ratio": 3.288,
+        "dividend_rate": 1,
+        "dividend_yield": 0.0067,
+        "payout_ratio": 0.0354,
+        "beta": 2.247,
+        "shares_outstanding": 24147000000,
+        "float_shares": 23138626220,
+        "employees": 42000,
+        "website": "https://www.nvidia.com",
+        "description": "NVIDIA Corporation operates as a data center scale AI infrastructure company in the United States, Taiwan, China, Hong Kong, Europe, and internationally. It operates through Compute & Networking, and Graphics segments. The Compute & Networking segment provides data center accelerated computing and networking platforms and artificial intelligence solutions and software, and automotive platforms and autonomous and electric vehicle solutions, including software. The Graphics segment offers GeForce GPUs for gaming and PCs; Quadro/NVIDIA RTX GPUs for enterprise workstation graphics. The company's products are used in gaming, professional visualization, data center, and automotive markets. It sells its products to original equipment manufacturers, original device manufacturers, system integrators and distributors, independent software vendors, cloud service providers, add-in board manufacturers, distributors, automotive manufacturers and tier-1 automotive suppliers, and other ecosystem participants. It has a collaboration with Cisco to develop Ultra-Dense Small Form Factor Pluggable (USFP), a high-density optical module pluggable transceiver. It has a collaboration with ChipAgents to develop Build-A-Chip-Bench, a benchmark for AI agents carrying chip design tasks and The Company has a strategic alliance with MediaTek to build the next generations of AI computing platforms. NVIDIA Corporation was incorporated in 1993 and is headquartered in Santa Clara, California.",
+        "shares_short": 305326286,
+        "days_to_cover": 1.58,
+        "short_interest_of_float": 0.0132,
+        "institutional_ownership": 0.7159,
+        "insider_ownership": 0.04036,
+        "fund_yield": null,
+        "nav_price": null,
+        "five_year_avg_return": null,
+        "beta_3y": null
+      }
+    },
+    "thesis": {
+      "endpoint": "GET /v1/securities/NVDA/thesis",
+      "status": 200,
+      "body": {
+        "instrument": {
+          "key": "security:NVDA",
+          "name": "NVIDIA Corporation",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "point_in_time": {
+          "known_at": null,
+          "basis": {
+            "content": "current"
+          }
+        },
+        "revision": "rv_d59c8222206343c2",
+        "authorship": "tauric_ai",
+        "content": {
+          "risks": [
+            {
+              "text": "S&P Global Ratings placed Nvidia on 'CreditWatch with negative implications,' warning that deficiencies in its management and governance framework could lead to a downgrade from its current AA rating to AA-minus within 90 days.",
+              "claim_id": "r1",
+              "article_ids": [
+                "art_2kaP"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_f6aa93302e824fbc",
+                  "item": 0
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Nvidia shares have dropped over 12% since Monday, following a 31.5% surge on the day of Jensen Huang's reinstatement, as investor concerns over governance issues and 'key man risk' persist.",
+              "claim_id": "r2",
+              "article_ids": [
+                "art_2kaP",
+                "art_2jxm"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_f6aa93302e824fbc",
+                  "item": 1
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "The U.S. Bureau of Industry and Security added Megaspeed International to its Entity List on November 23, requiring an export license for shipping advanced U.S. technology, including Nvidia's top-end AI GPUs, to the designated entity.",
+              "claim_id": "r3",
+              "article_ids": [
+                "art_2j7A"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_f6aa93302e824fbc",
+                  "item": 3
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "A CBS News investigation found that Nvidia is selling advanced AI chips to U.S.-based companies controlled by Chinese-owned firms, including a $120 million agreement to lease 300 Nvidia B300 servers to a company linked to a Shenzhen-based firm.",
+              "claim_id": "r4",
+              "article_ids": [
+                "art_2jOp"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_f6aa93302e824fbc",
+                  "item": 4
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Nvidia stated it has stopped shipping licensed Hopper-generation AI chips to China, with current guidance excluding any such products, raising doubts about the future of the special licensing agreement negotiated between Washington and Beijing.",
+              "claim_id": "r5",
+              "article_ids": [
+                "art_2b3X",
+                "art_29PT"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_37c7d34037d54989",
+                  "item": 2
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "The U.S. Securities and Exchange Commission is investigating Nvidia to determine if its disclosures misled investors, while Democratic lawmakers opened a separate probe into whether Commerce Secretary Howard Lutnick used his office to help Cantor Fitzgerald avoid losses linked to the Nvidia scandal.",
+              "claim_id": "r6",
+              "article_ids": [
+                "art_2b3X",
+                "art_29II"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_37c7d34037d54989",
+                  "item": 4
+                }
+              ],
+              "instruments": []
+            }
+          ],
+          "drivers": [
+            {
+              "text": "Nvidia reported third-quarter revenue of $115.84 billion, a 103% year-on-year increase, and projected fourth-quarter revenue of around $130 billion, exceeding analyst estimates.",
+              "claim_id": "d1",
+              "article_ids": [
+                "art_2b3X",
+                "art_2bcE",
+                "art_2ase"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_37c7d34037d54989",
+                  "item": 0
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "The company raised its fiscal 2028 growth outlook to about 75 percent, citing demand that continues to exceed supply, while expecting gross margin to bottom between 71% and 72% this quarter before recovering to 72-73% in fiscal 2028.",
+              "claim_id": "d2",
+              "article_ids": [
+                "art_2b3X"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_37c7d34037d54989",
+                  "item": 1
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Nvidia announced a $3 billion investment in Meta to deepen their AI partnership, with Meta planning to expand its use of Vera Rubin and Vera CPU hardware and deepen collaboration on its AI agent, Muse.",
+              "claim_id": "d3",
+              "article_ids": [
+                "art_1J5U",
+                "art_1J9Y",
+                "art_1Jpl",
+                "art_1JyJ"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_35267c63255840fe",
+                  "item": 0
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Oracle expanded its AI infrastructure partnership with Nvidia to multi-gigawatt scale, announcing the general availability of Vera Rubin NVL72 systems and Vera CPUs on Oracle Cloud Infrastructure, while targeting capital expenditure of $90 billion to $95 billion in fiscal 2027.",
+              "claim_id": "d4",
+              "article_ids": [
+                "art_1K3l"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_35267c63255840fe",
+                  "item": 1
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Anthropic's S-1 filing revealed plans to spend approximately $518 billion on computing infrastructure over the next decade, identifying Nvidia as a primary beneficiary of the AI infrastructure build-out.",
+              "claim_id": "d5",
+              "article_ids": [
+                "art_1Nba"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_7171eee7f1b7444d",
+                  "item": 4
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "NVIDIA-designed AI chips account for over 60% of total compute, with Morgan Stanley economists stating that computing demand still outweighs supply and that US AI capital expenditure should be higher in 2027 compared to 2026.",
+              "claim_id": "d6",
+              "article_ids": [
+                "art_1Nug"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_ff055b1c0bec42b3",
+                  "item": 5
+                }
+              ],
+              "instruments": []
+            }
+          ],
+          "catalysts": [
+            {
+              "date": "2026-12-01",
+              "text": "Jensen Huang is scheduled to appear before a closed-door congressional interview on December 1.",
+              "timing_stated": "December 1",
+              "timing_status": "upcoming"
+            },
+            {
+              "date": "2026-12-03",
+              "text": "Jensen Huang is scheduled to appear before a public Senate Banking Committee hearing on December 3.",
+              "timing_stated": "December 3",
+              "timing_status": "upcoming"
+            },
+            {
+              "date": null,
+              "text": "S&P Global Ratings may downgrade Nvidia's credit rating within the 90-day CreditWatch period.",
+              "timing_stated": "within 90 days",
+              "timing_status": "undated"
+            }
+          ],
+          "narrative": "Nvidia is navigating a severe leadership and governance crisis following the resignation and subsequent reinstatement of CEO Jensen Huang amid allegations of ties to a suspected Chinese intelligence asset. The company has reported record-breaking revenue and raised its fiscal 2028 growth outlook, yet faces a 40% drawdown from its October peak due to the scandal, new U.S. export restrictions, and a shift in political control that threatens AI infrastructure spending. Multiple federal and state investigations, including an SEC accounting probe and a California subpoena, are ongoing, while the board has placed the company on a credit watch for governance deficiencies.",
+          "open_questions": [
+            "Will the U.S. Justice Department's criminal investigation of Megaspeed or the intelligence investigation into Alice Huang result in further export control restrictions or legal liability for Nvidia?",
+            "How will the newly empowered Democratic Congress regulate AI data center construction and energy costs, and what impact will this have on Nvidia's long-term demand?",
+            "Will the SEC's accounting probe or the California Attorney General's subpoena lead to material restatements or regulatory penalties?"
+          ],
+          "instruments": []
+        },
+        "superseded": false,
+        "evidence": {
+          "digests": [
+            "dg_35267c63255840fe",
+            "dg_90c23f74e813499d",
+            "dg_ed73dc31c2ce48ab",
+            "dg_7171eee7f1b7444d",
+            "dg_ff055b1c0bec42b3",
+            "dg_199898892f1a4acd",
+            "dg_08b117bfd5614233",
+            "dg_7fc4695e714f4ef6",
+            "dg_e010e0bb421e4e50",
+            "dg_af5ee032d5ad4014",
+            "dg_2904426bce8e4726",
+            "dg_f4b210bf6e88478b",
+            "dg_37bb5aba29d448b2",
+            "dg_037f3ddbdf8a4cdd",
+            "dg_ac17939a1dc4419a",
+            "dg_71d53623ecec4688",
+            "dg_f1397d309bfd44db",
+            "dg_a1ab6c5d43c24a53",
+            "dg_94342345527941d7",
+            "dg_37c7d34037d54989",
+            "dg_da2c93070cfd4c28",
+            "dg_f4941ddbb7c9408f",
+            "dg_93cc398eb8834134",
+            "dg_1279ddc8bf694ec6",
+            "dg_f6aa93302e824fbc"
+          ],
+          "cutoff": "2026-11-27T08:34:25.012297Z"
+        },
+        "generated_at": "2026-11-27T08:34:51.081654Z",
+        "field_states": {}
+      }
+    },
+    "calendar": {
+      "endpoint": "GET /v1/securities/NVDA/calendar",
+      "status": 200,
+      "body": {
+        "instrument": {
+          "key": "security:NVDA",
+          "name": "NVIDIA Corporation",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "earnings": null,
+        "earnings_status": {
+          "dataset": "earnings",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T01:46:14.960560Z",
+          "field_states": {}
+        },
+        "dividends": [
+          {
+            "field_states": {},
+            "ex_date": "2026-12-02",
+            "amount": null,
+            "cash_basis": null
+          }
+        ],
+        "dividends_status": {
+          "dataset": "dividends",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T01:46:14.960560Z",
+          "field_states": {}
+        },
+        "field_states": {
+          "earnings": {
+            "reason": "temporarily_unavailable",
+            "retry": "later"
+          }
+        }
+      }
+    }
+  }
+}

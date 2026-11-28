@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-23",
+  "updated": "2026-11-28",
   "phases": [
     {
       "phase": 0,
@@ -318,6 +318,12 @@
           "title": "Versioned prompts with evaluation fixtures",
           "status": "done",
           "evidence": "Prompt registry in packages/core/src/prompts (ADR 0007): filing-summary, thesis-draft, weekly-review and topic-tag at version 1, each with exact model strings, static cached system prompts and evaluation cases graded offline by the production verifier plus prompt checks (sections, required bear case, no advice, allowed labels); a planted document instruction and a planted wrong figure are rejected. buildMessages puts wrapped documents first, facts, then the untrusted-text notice."
+        },
+        {
+          "id": "2.12",
+          "title": "Company research from Tauric: analyst consensus, profile, Tauric AI thesis, earnings calendar (data layer)",
+          "status": "done",
+          "evidence": "ADR 0047, tauric-research-1: routes GET /v1/securities/{symbol}/analyst, /profile, /thesis, /calendar confirmed in Tauric's public OpenAPI document and recorded for NVDA, AAPL and BBAI (fixtures/tauric/research-*-2026-11-28.json). Per-part validators in packages/core/src/company-research.ts with known-answer tests on the fixtures (targets ordered, counts add up, dates valid, malformed parts rejected with a reason). Table public.company_research (member read under private.is_member(), no client writes, RLS test). Job tauric-research (daily 09:35 UTC Tuesday to Saturday, holdings then watchlists, reads credit use first, spends at most 300 of 3,000, keeps 300 for quotes, warns at 80%, per-ticker outcomes in job_runs) with fake-store tests; workflow waits for TAURIC_API_KEY; Supabase Cron line gh-tauric-research checked by the scheduler test. Credits measured: 1 per 200 answer, 0 for error answers. The Study page sections are a separate item."
         }
       ]
     },

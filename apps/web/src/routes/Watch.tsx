@@ -8,7 +8,9 @@ import { Strip } from '../components/watch/Strip';
 import { WatchlistCard } from '../components/watch/WatchlistCard';
 import { NewsCard } from '../components/watch/NewsCard';
 import { CalendarCard } from '../components/watch/CalendarCard';
-import { GapsCard, MoversCard, SectorsCard } from '../components/watch/Market';
+import { DividendCalendar } from '../components/watch/DividendCalendar';
+import { GapsCard, SectorsCard } from '../components/watch/Market';
+import { MarketMovers } from '../components/watch/Movers';
 import { Failure, useNow, v } from '../components/watch/shared';
 import { loadHoldings } from '../lib/journal';
 import { weekdayDayMonth } from '../lib/dates';
@@ -18,7 +20,7 @@ import { useLiveNews } from '../lib/liveNews';
 /** Filings shown as news: the last 10 days. */
 const FILING_DAYS = 10;
 
-const FEED_TABS = ['news', 'calendar'] as const;
+const FEED_TABS = ['news', 'calendar', 'dividends'] as const;
 const MARKET_TABS = ['sectors', 'movers', 'gaps'] as const;
 
 /**
@@ -102,6 +104,13 @@ export function Watch() {
               live={live}
             />
           )
+        ) : feed === 'dividends' ? (
+          <DividendCalendar
+            tickers={companyTickers}
+            bars={{ ...(wq.data?.bars ?? {}), ...(hq.data?.bars ?? {}) }}
+            names={co.data?.names ?? {}}
+            now={now}
+          />
         ) : (
           <>
             {cal.isPending && <SkeletonCards heights={['14rem']} />}
@@ -119,7 +128,7 @@ export function Watch() {
             onChange={setMarket}
           />
           {market === 'sectors' && <SectorsCard data={wq.data} />}
-          {market === 'movers' && <MoversCard data={wq.data} />}
+          {market === 'movers' && <MarketMovers />}
           {market === 'gaps' && <GapsCard data={wq.data} />}
         </div>
       )}

@@ -20,6 +20,7 @@ import { evaluateFreshness, type Freshness } from '../provenance.js';
 import type { MarketCalendar } from '../calendar.js';
 import { normalizeTicker } from '../tickers.js';
 import { failure, type AdapterResult } from './result.js';
+import type { ResearchPart } from '../company-research.js';
 
 export interface TauricConfig {
   apiKey: string;
@@ -170,9 +171,17 @@ export function classifyTauricFailure(
   if (code === 'quota_exhausted')
     return { kind: 'client-error', message: `daily quota exhausted: ${message}` };
   if (status === 429 || code === 'rate_limit_exceeded') return { kind: 'rate-limited', message };
-  if (status === 404) return { kind: 'not-found', message };
-  if (status >= 500 || code === 'temporarily_unavailable') return { kind: 'server-error', message };
+  // The vendor code leads the message here, so a caller can tell "not carried" from "not published" (ADR 0047).
+  if (status === 404) return { kind: 'not-found', message: code ? `${code}: ${message}` : message };
+  if (status >= 500 || code === 'temporarily_unavailable')
+    return { kind: 'server-error', message: code ? `${code}: ${message}` : message };
   return { kind: 'client-error', message };
+}
+
+/** The vendor error code a classified message starts with (`not_registered: ...`), or null. */
+export function tauricErrorCode(message: string): string | null {
+  const m = /^([a-z_]{3,40}): /.exec(message);
+  return m ? (m[1] ?? null) : null;
 }
 
 /** Latest quotes for up to 50 US tickers in one request (one data credit). */
@@ -249,4 +258,100 @@ export function quoteFreshness(
   }
   const asOf = q.priceTime ? new Date(q.priceTime) : null;
   return evaluateFreshness({ asOf, now, planTier: 'unknown', calendar });
+}
+
+/** The four company research routes (ADR 0047), each one data credit when it answers 200. */
+export const TAURIC_RESEARCH_ENDPOINTS: Readonly<Record<ResearchPart, string>> = {
+  analyst: 'GET /v1/securities/{symbol}/analyst',
+  profile: 'GET /v1/securities/{symbol}/profile',
+  thesis: 'GET /v1/securities/{symbol}/thesis',
+  calendar: 'GET /v1/securities/{symbol}/calendar',
+};
+
+export type TauricPartResult =
+  | { ok: true; json: unknown; fetchedAt: string; latencyMs: number }
+  | {
+      ok: false;
+      kind: FailureKind | 'invalid-response';
+      /** The vendor's error code (`not_registered`, `temporarily_unavailable`, ...) when it sent one. */
+      code: string | null;
+      message: string;
+      display: string;
+    };
+
+const authHeaders = (cfg: TauricConfig) => ({
+  Authorization: `Bearer ${cfg.apiKey}`,
+  Accept: 'application/json',
+});
+
+/**
+ * One research part for one US ticker: `GET /v1/securities/{symbol}/{analyst|profile|thesis|calendar}`. Returns the
+ * parsed JSON unvalidated (core's `validateResearchPart` decides), or the failure with the vendor's code. A 200
+ * costs one data credit; an error answer costs none (measured 2026-11-28).
+ */
+export async function fetchTauricResearchPart(
+  http: HttpClient,
+  cfg: TauricConfig,
+  part: ResearchPart,
+  ticker: string,
+): Promise<TauricPartResult> {
+  const t = normalizeTicker(ticker);
+  if (t === null) {
+    const f = failure('Tauric', 'client-error', `not a ticker: ${ticker.slice(0, 20)}`);
+    return { ok: false, kind: f.kind, code: null, message: f.message, display: f.display };
+  }
+  const res = await http.get(
+    `${cfg.baseUrl ?? DEFAULT_BASE}/v1/securities/${encodeURIComponent(t)}/${part}`,
+    { headers: authHeaders(cfg) },
+  );
+  if (!res.ok) {
+    const f = failure('Tauric', res.kind, res.message);
+    return {
+      ok: false,
+      kind: f.kind,
+      code: tauricErrorCode(res.message),
+      message: f.message,
+      display: f.display,
+    };
+  }
+  try {
+    return {
+      ok: true,
+      json: JSON.parse(res.body) as unknown,
+      fetchedAt: cfg.now().toISOString(),
+      latencyMs: res.latencyMs,
+    };
+  } catch {
+    const f = failure('Tauric', 'invalid-response', 'response was not JSON');
+    return { ok: false, kind: f.kind, code: null, message: f.message, display: f.display };
+  }
+}
+
+/** Today's data-pool use, from `GET /v1/account` (quota-exempt: reading it costs no credit). */
+export interface TauricDataCredits {
+  used: number;
+  allowance: number;
+  resetsAt: string | null;
+}
+
+export async function fetchTauricDataCredits(
+  http: HttpClient,
+  cfg: TauricConfig,
+): Promise<TauricDataCredits | null> {
+  const res = await http.get(`${cfg.baseUrl ?? DEFAULT_BASE}/v1/account`, {
+    headers: authHeaders(cfg),
+  });
+  if (!res.ok) return null;
+  try {
+    const j = JSON.parse(res.body) as { pools?: unknown };
+    const pool = Array.isArray(j.pools)
+      ? (j.pools as Record<string, unknown>[]).find((p) => p?.['id'] === 'data')
+      : undefined;
+    const used = num(pool?.['used']);
+    const allowance = num(pool?.['allowance']);
+    if (used === null || allowance === null || used < 0 || allowance <= 0) return null;
+    return { used, allowance, resetsAt: isoOrNull(pool?.['resets_at']) };
+  } catch {
+    return null;
+  }
 }

@@ -220,6 +220,99 @@ export const t = {
       gainers: 'Biggest gainers',
       losers: 'Biggest losers',
       dollarVolume: (v: string) => `USD ${v} traded`,
+      marketTitle: 'Whole-market movers',
+      scopeLabel: 'Movers scope',
+      scope: { market: 'Whole market', universe: 'Marsad universe' },
+      viewLabel: 'Movers list',
+      views: {
+        gainers: 'Gainers',
+        losers: 'Losers',
+        active: 'Active',
+        unusual: 'Unusual volume',
+        highs: '52-week high',
+        lows: '52-week low',
+      },
+      header: (day: string, source: string) =>
+        `Last completed session (end of day): ${day}, from ${source}. Not live.`,
+      sourceMarket: 'Massive grouped daily',
+      sourceMine: 'Massive daily bars for your watchlist and holdings',
+      floorLabel: 'Minimum traded',
+      floor: (v: string) => `USD ${v}`,
+      mineLabel: 'On my list',
+      mineNote: (n: number) =>
+        `Your watchlist and holdings (${n.toLocaleString('en-US')} ${n === 1 ? 'ticker' : 'tickers'}), by the same rules, from their stored daily bars.`,
+      noBars: (list: string) => `No stored daily bars: ${list}.`,
+      afterHours: 'After hours: Not available: Marsad stores end-of-day prices only.',
+      unusualRule: (ratio: string, usd: string, sessions: number, long: number) =>
+        `Rule: volume at least ${ratio} its average of the previous ${sessions} sessions, and at least USD ${usd} traded. The ${long}-session ratio is shown beside it for context.`,
+      highLowRule: (n: number) =>
+        `By close: the session closed at or beyond the highest (or lowest) close of the last ${n} stored sessions, the session included.`,
+      count: (shown: number, of: number) =>
+        `Top ${shown.toLocaleString('en-US')} of ${of.toLocaleString('en-US')}.`,
+      empty: 'No ticker qualifies at this minimum.',
+      unavailable: (have: number, need: number) =>
+        `Unavailable: ${need.toLocaleString('en-US')} stored sessions are needed and ${have.toLocaleString('en-US')} are stored.`,
+      notComputed:
+        'Whole-market movers are not computed yet. They come from the breadth job (movers-1), on its next run after the close.',
+      ownerOnly:
+        'Whole market: Available to the owner only. Massive’s data plans are for individual use, so whole-market lists are not shared. Marsad universe movers stay available.',
+      cols: {
+        ticker: 'Ticker',
+        change: '1-session change',
+        close: 'Close',
+        volume: 'Volume',
+        ratio: 'Against 20-session average (50-session)',
+        prior: { highs: 'Prior 52-week high close', lows: 'Prior 52-week low close' },
+        traded: 'Traded',
+        catalyst: 'Latest stored headline, not a verified cause',
+      },
+      ratio: (r20: string, r50: string | null) => (r50 === null ? r20 : `${r20} (${r50})`),
+      times: (v: string) => `${v}\u00D7`,
+      volumeShort: (v: string) => `${v} shares`,
+      noCatalyst: 'No stored news or filing for this ticker',
+      catalystAt: (title: string, source: string, when: string) => `${title} (${source}, ${when})`,
+      filedOn: (day: string) => `filed ${day}`,
+      checks: (n: number) => `Check corporate action (${n.toLocaleString('en-US')})`,
+      checksIntro:
+        'Not ranked as plain movers: each needs a check against splits, ticker changes and other corporate actions first.',
+      checkPill: 'Check corporate action',
+      reasons: {
+        'move-over-25': 'Moved more than 25% in one session',
+        'split-on-session': 'A split takes effect on this session',
+        'split-in-volume-window':
+          'A split took effect inside the 20 sessions behind the volume average',
+        'ticker-change-on-session': 'A ticker change takes effect on this session',
+        'ticker-change-in-volume-window':
+          'A ticker change took effect inside the 20 sessions behind the volume average',
+      } as Record<string, string>,
+      /** Massive's split_from and split_to: 1 and 2 is a 2-for-1 split. */
+      split: (from: number, to: number, day: string) => `Split ${to}-for-${from} on ${day}`,
+      about: {
+        what: 'Gainers and losers by change from the previous session’s close; most active by dollar volume (close times volume); unusual volume, and new 52-week highs and lows by close. End-of-day data, never live.',
+        eligible: (asOf: string | null) =>
+          asOf
+            ? `Common stocks and ETFs only, from Marsad’s quarterly Massive ticker lists (latest as of ${asOf}); a ticker listed since then is left out until the next list.`
+            : 'Common stocks and ETFs only, from Marsad’s quarterly Massive ticker lists.',
+        liquidity: (price: string, usd: string) =>
+          `Liquidity floor: a close of at least USD ${price} and at least USD ${usd} traded. Marsad does not store market capitalisation for the whole market, so the filter is by dollar volume instead.`,
+        guard:
+          'Prices are put on the current share basis from the stored splits. A move over 25%, or a move or volume jump that lines up with a stored split or ticker change, is listed under Check corporate action, never ranked. Marsad stores no whole-market ticker-change feed, so a renamed ticker has no previous close under its new symbol and is left out.',
+        counts: (s: {
+          traded: number;
+          withChange: number;
+          zero: number;
+          noPrev: number;
+          price: number;
+          dv: number;
+        }) =>
+          `This session: ${s.traded.toLocaleString('en-US')} eligible tickers stored; ${s.withChange.toLocaleString('en-US')} ranked. Left out: ${s.zero.toLocaleString('en-US')} bad prints (zero price), ${s.noPrev.toLocaleString('en-US')} with no previous close stored, ${s.price.toLocaleString('en-US')} under the minimum price, ${s.dv.toLocaleString('en-US')} under the minimum dollar volume.`,
+        history: (vol: number, year: number) =>
+          `${vol.toLocaleString('en-US')} tickers have all 20 previous sessions stored (unusual volume) and ${year.toLocaleString('en-US')} have all 252 (52-week views). Sessions under USD 1 million traded are not stored, so a ticker with such a session is left out of those two views.`,
+        catalyst:
+          'Latest stored headline: the newest stored news article or SEC filing for the ticker since the start of the previous session, with its source and time, matched by code. It is not a verified cause, and Marsad never writes why a stock moved. Marsad stores news and filings mainly for the watchlist and holdings, so most tickers show none.',
+        noAlerts: 'Movers never send a push alert and never feed an alert rule.',
+        formula: (version: string, at: string) => `Formula ${version}, computed ${at}.`,
+      },
     },
     gaps: {
       title: 'Gap scanner',
@@ -244,8 +337,8 @@ export const t = {
     },
     v2: {
       switch: {
-        feedLabel: 'News or calendar',
-        feed: { news: 'Latest news', calendar: 'Calendar' },
+        feedLabel: 'News, calendar or dividends',
+        feed: { news: 'Latest news', calendar: 'Calendar', dividends: 'Dividends' },
         marketLabel: 'Sectors, movers or gaps',
         market: { sectors: 'US sectors', movers: 'Movers', gaps: 'Gaps' },
       },
@@ -472,6 +565,7 @@ export const t = {
       tabsLabel: 'Journal sections',
       tabs: {
         positions: 'Positions',
+        portfolio: 'Portfolio',
         sizer: 'Sizer and Sahm ticket',
         options: 'Options',
         exposure: 'Exposure and look-through',
@@ -748,6 +842,505 @@ export const t = {
         none: 'No rotation',
         insufficient: 'Insufficient history',
       } as Record<string, string>,
+    },
+  },
+  /** Portfolio views (ADR 0048): review, holdings, analysis, performance, income, news; and the Watch dividend calendar. */
+  portfolio: {
+    na: 'Data unavailable',
+    loading: 'Loading…',
+    notTracked: 'Not tracked',
+    noHoldings: 'No open holdings. Add them under Positions (Import Sahm CSV).',
+    unclassified: 'Unclassified',
+    above: 'Above your limit',
+    within: 'Within your limits',
+    limits: {
+      label: 'Your limits against the book',
+      name: {
+        largest: 'Largest position',
+        top5: 'Top 5 positions',
+        beta: 'Portfolio beta',
+        cash: 'Cash',
+        'open-risk': 'Total open risk',
+        sector: 'Largest sector',
+        volatility: 'Volatility',
+        drawdown: 'Largest fall',
+        'below-cost': 'Positions below cost',
+      },
+      unset: 'No limit set',
+      limit: (v: string, minimum: boolean) => `limit ${minimum ? 'at least ' : ''}${v}`,
+      breachesLabel: 'Breaches',
+      breach: (
+        name: string,
+        subject: string | null,
+        value: string,
+        limit: string,
+        minimum: boolean,
+        ofEquity: boolean,
+      ) =>
+        `${name}${subject ? ` (${subject})` : ''}: ${value}${ofEquity ? ' of equity' : ''}; your limit is ${minimum ? 'at least ' : ''}${limit}.`,
+      riskUnknown: (n: number, list: string) =>
+        `Open risk unknown for ${n} holding${n === 1 ? '' : 's'} without a stop (${list}): the figure is the known part only.`,
+      source: {
+        council: 'Set by the council at your request on 28 Nov 2026; change any time',
+        user: 'Your stored limits',
+        none: 'No limit set',
+      },
+    },
+    viewsLabel: 'Portfolio view',
+    views: {
+      review: 'Review',
+      holdings: 'Holdings',
+      analysis: 'Analysis',
+      performance: 'Performance',
+      income: 'Income',
+      news: 'News',
+    },
+    mix: {
+      title: 'Portfolio vs SPY',
+      label: 'Current holdings at today’s weights, not your actual result',
+      rangeLabel: 'Chart span',
+      ranges: { d60: '60D', m1: '1M', m3: '3M', m6: '6M', y1: '1Y' },
+      portfolio: 'Current holdings',
+      spy: 'SPY',
+      aria: (port: string, spy: string, from: string, to: string) =>
+        `Current holdings ${port}, SPY ${spy}, from ${from} to ${to}.`,
+      span: (n: number, from: string, to: string) =>
+        `${n} sessions, ${from} to ${to}. Today’s shares valued at each stored close; past buys and sales are not in it.`,
+      shorter: (n: number) => `Fewer than the ${n} sessions asked for are stored.`,
+      leftOut: (list: string) => `Left out (a close missing in the span): ${list}.`,
+      none: 'Not enough stored bars for SPY and the holdings to draw this.',
+    },
+    summary: {
+      label: 'Portfolio summary',
+      value: 'Total value',
+      asOf: (date: string) => `At the close of ${date}`,
+      unpriced: (list: string) => `No stored close, left out: ${list}`,
+      day: 'Day change',
+      open: 'Unrealized result',
+      onCost: (pct: string, cost: string) => `${pct} on cost ${cost}`,
+      cash: 'Cash',
+      cashSub: 'Marsad does not store a cash balance',
+      movers: 'Top movers today',
+      noMoves: 'No change stored',
+      dayOf: (prev: string, date: string) => `Close of ${date} against ${prev}`,
+    },
+    tableTitle: 'Holdings',
+    tableInfo:
+      'One row per ticker, lots combined (shares added, cost averaged by shares). Prices are stored end-of-day closes from Massive; each column set names its source and date.',
+    table: {
+      setLabel: 'Columns',
+      sets: {
+        holdings: 'Holdings',
+        performance: 'Performance',
+        dividends: 'Dividends',
+        earnings: 'Earnings',
+        technicals: 'Technicals',
+      },
+      aria: (set: string) => `Holdings table, ${set} columns`,
+      ticker: 'Ticker',
+      shares: 'Shares',
+      avgCost: 'Avg cost',
+      last: 'Last close',
+      dayUsd: 'Day $',
+      dayPct: 'Day %',
+      weight: '% of value',
+      value: 'Value',
+      gainUsd: 'Unrealized $',
+      gainPct: 'Unrealized %',
+      opened: 'Opened',
+      horizon: 'Horizon',
+      horizons: { long: 'Long term', swing: 'Swing' },
+      horizonNone: 'Not set',
+      periods: {
+        w1: '1W',
+        m1: '1M',
+        m3: '3M',
+        m6: '6M',
+        ytd: 'YTD',
+        y1: '1Y',
+      },
+      shortBars: 'Not enough stored bars',
+      ttm: 'Dividends, 12 months',
+      noDividends: 'None stored',
+      yield: 'Yield',
+      exDate: 'Ex-date',
+      next: 'Next',
+      latest: 'Latest',
+      income: 'Annual income',
+      nextEarnings: 'Next earnings',
+      noEarnings: 'No date stored',
+      estimated: '(estimated)',
+      days: 'Days',
+      eps: 'Consensus EPS',
+      source: 'Source',
+      src: {
+        massive: 'Massive',
+        tauric: 'Tauric calendar',
+        'tauric-calendar': 'Tauric calendar',
+        'marsad-estimate': 'Marsad estimate from SEC filings',
+      },
+      readings: 'Readings',
+      nOfM: (bull: number, n: number) => `${bull} of ${n} bullish`,
+      vs50: 'vs SMA 50',
+      vs200: 'vs SMA 200',
+      rsi: 'RSI 14',
+      sources: {
+        holdings:
+          'Shares, cost and dates from your Journal holdings; closes from stored Massive daily bars (end of day). Day change: the newest close against the one before.',
+        performance:
+          'Returns from stored daily bars (company-brief-1 periodReturn): 1W 5, 1M 21, 3M 63, 1Y 252 sessions; YTD from the last close of the previous year.',
+        dividends:
+          'Cash dividends with ex-dates in the 365 days to the last close, from Massive /stocks/v1/dividends and Tauric’s calendar (portfolio-check-1). Yield is that sum over the last close. Annual income is that sum times your shares.',
+        earnings:
+          'Tauric’s calendar (one consensus EPS) when it states a date; otherwise Marsad’s estimate from SEC results filings, never a confirmed date.',
+        technicals:
+          'From the one technical engine (technical-1) on stored daily bars: the count of bullish readings among its moving averages and indicators, the last close against its 50- and 200-session simple averages, and the 14-session RSI. A description of the chart, not advice.',
+      },
+    },
+    review: {
+      title: 'Review',
+      info: 'Each holding against its own exit plan, from stored closes and your Journal rules. Equity here is the priced holdings value, because Marsad does not track cash. Marsad states the facts and the rules; you decide.',
+      subLabel: 'Review section',
+      sub: { exits: 'Exit plan', coming: 'Coming up', moves: 'Weekly moves' },
+      openRisk: 'Total open risk to the stops',
+      openRiskSub: (risk: string, equity: string) =>
+        `${risk} lost if every stop fills exactly, of ${equity} equity`,
+      openRiskNoStop: (list: string) => `Risk unknown, not counted as zero (no stop): ${list}.`,
+      riskUnknown: (n: number) => `+ risk unknown on ${n}`,
+      rowsLabel: 'Holdings by exit plan',
+      missing: 'Exit rules missing',
+      met: (n: number) => `${n} exit condition${n === 1 ? '' : 's'} met`,
+      noneMet: 'No exit condition met',
+      lot: (shares: number, price: string, date: string) =>
+        `${shares} shares · close ${price}${date ? ` (${date})` : ''}`,
+      stopDistance: 'Distance to stop',
+      noStop: 'No stop',
+      toStop: (stop: string) => `to ${stop}`,
+      atrs: 'In ATRs (14)',
+      atrValue: (v: string) => `${v} ATR`,
+      atRisk: 'Dollars at risk',
+      unbounded: 'Not bounded: no stop',
+      vsCap: 'Size against the cap',
+      capValue: (v: string) => `${v} of cap`,
+      sessions: 'Sessions held',
+      earnings: 'Next earnings',
+      noEarnings: 'No date stored',
+      sizer: (allowed: number, held: number, capped: boolean) =>
+        `The sizer allows ${allowed} shares at today’s close and stop${capped ? ' (set by the position cap)' : ''}; you hold ${held}.`,
+      sizerError: (why: string) => `The sizer cannot size this at today’s close: ${why}`,
+      sizerNone: 'The sizer needs a stop and a stored close.',
+      source: (risk: string, cap: string) =>
+        `Sizer defaults: ${risk} risk per trade on the priced holdings value, position cap ${cap} (portfolio-1 positionSize). Exit conditions from portfolio-1 exitSignals; ATR 14 from indicators.ts; stop distance as close over stop minus 1 (gapToStop).`,
+      coming: {
+        none: 'No dated events stored for your holdings',
+        kind: {
+          earnings: 'Earnings',
+          'ex-dividend': 'Ex-dividend',
+          catalyst: 'Catalyst',
+        },
+        eps: (v: string) => `consensus EPS ${v}`,
+        noEps: 'no estimate stored',
+        amount: (v: string) => `${v} a share`,
+        source: {
+          'tauric-calendar': 'Tauric calendar',
+          'marsad-estimate': 'Marsad estimate from SEC results filings',
+          massive: 'Massive dividends',
+          'tauric-thesis': 'Tauric AI thesis (not Marsad’s view)',
+        },
+        estimated: 'estimated, not confirmed',
+        timing: (v: string) => `timing: ${v}`,
+        window: (from: string, to: string) => `From ${from} to ${to} (8 weeks).`,
+        undated: (n: number) => `${n} catalyst${n === 1 ? '' : 's'} without a date not shown.`,
+      },
+      moves: {
+        none: (limit: string) => `No holding moved more than ${limit} over the last five sessions.`,
+        span: (a: string, from: string, b: string, to: string) => `${a} (${from}) to ${b} (${to})`,
+        alertsTitle: 'Marsad alerts on holdings, last 7 days',
+        noAlerts: 'No alerts on your holdings in the last 7 days.',
+        source: (limit: string) =>
+          `Moves above ${limit} over five stored sessions (closes from Massive). Facts only; no alert is raised from this page.`,
+      },
+    },
+    analysis: {
+      title: 'Analysis',
+      info: 'portfolio-check-1: each measure from stored data beside your limit or Marsad\u2019s stated check rule. There is no single score, and nothing here says what to do.',
+      subLabel: 'Analysis section',
+      sub: {
+        check: 'Check',
+        attention: 'Needs attention',
+        groups: 'Groups',
+        distribution: 'Distribution',
+      },
+      check: {
+        rowsLabel: 'Marsad\u2019s check rules',
+        pastRule: 'Past the rule',
+        withinRule: 'Within the rule',
+        name: {
+          largest: 'Largest position',
+          cash: 'Cash',
+          'open-risk': 'Total open risk',
+          top5: 'Top 5 positions',
+          sector: 'Largest sector',
+          beta: 'Portfolio beta to SPY',
+          volatility: 'Volatility, 1 year',
+          drawdown: 'Largest fall, 1 year',
+          'below-cost': 'Positions below cost',
+        },
+        rule: (id: string, subject: string | null, limit: string) => {
+          const s = subject ? `${subject}. ` : '';
+          if (id === 'largest') return `${s}Share of priced value; Marsad flags above ${limit}.`;
+          if (id === 'sector') return `${s}Share of priced value; Marsad flags above ${limit}.`;
+          if (id === 'beta') return `Value-weighted; Marsad flags above ${limit}.`;
+          if (id === 'volatility')
+            return `Annualized, current mix; Marsad flags above ${limit}. Needs 60 daily returns.`;
+          if (id === 'drawdown')
+            return `Peak to trough of the current mix; Marsad flags a fall larger than ${limit}.`;
+          return `Share of positions priced under their cost; Marsad flags above ${limit}.`;
+        },
+        betaNote: (window: number, minObs: number, n: number, of: number) =>
+          `Beta to SPY: least-squares slope of daily returns over the last ${window} common sessions (exposure-1), at least ${minObs} needed. Coverage: ${n} of ${of} holdings.`,
+        betaAssumed: (list: string) => `Counted as 1 (too little history): ${list}.`,
+        sectors: 'Sector allocation',
+        sectorSource: (limit: string) =>
+          `Sector: the holding’s own sector fund, else Tauric’s GICS sector, else Unclassified. The tick marks Marsad’s ${limit} check rule.`,
+        performers: 'Performers since cost',
+        belowCost: (n: number, of: number) => `${n} of ${of} positions are below cost.`,
+        options: 'Options exposure',
+        noOptions: 'No open option positions in the Journal.',
+        optionLine: (premium: string, maxLoss: string, dte: number) =>
+          `premium at entry ${premium} · max loss ${maxLoss} · ${dte} days to expiry`,
+        optionsSource:
+          'From Journal option positions (options-pos-1). Current option values need the options data plan, so only entry premium and the defined maximum loss are shown.',
+        written: 'Written by Marsad from the numbers above',
+        source: (v: string) =>
+          `${v}; closes from stored Massive daily bars. Volatility and largest fall use today’s shares at past closes, not your account history.`,
+      },
+      attention: {
+        none: 'No rule fired.',
+        title: {
+          'down-from-cost': 'Down 40% or more from cost',
+          'loss-share': 'One position holds a large share of the loss',
+          'high-beta': 'High beta positions',
+          'book-loss': 'Whole book below cost',
+          'biggest-gainer': 'Biggest gainer',
+        },
+        positive: 'Positive',
+        note: 'Note',
+        fact: (id: string, value: string, weight: string) => {
+          if (id === 'down-from-cost')
+            return `Furthest below cost: ${value}. Combined weight ${weight}.`;
+          if (id === 'loss-share') return `Largest share of the total unrealized loss: ${value}.`;
+          if (id === 'high-beta') return `${value} position(s), combined weight ${weight}.`;
+          if (id === 'book-loss') return `Unrealized result of the whole book: ${value} on cost.`;
+          return `Unrealized result ${value} on cost.`;
+        },
+        rule: (id: string, limit: string) => {
+          if (id === 'down-from-cost') return `Rule: a position ${limit} or more below its cost.`;
+          if (id === 'loss-share')
+            return `Rule: one position holding more than ${limit} of the total unrealized loss.`;
+          if (id === 'high-beta') return `Rule: beta to SPY above ${limit}.`;
+          if (id === 'book-loss') return `Rule: the whole book more than ${limit} below cost.`;
+          return 'Rule: the largest unrealized gain in dollars.';
+        },
+        notMet: (title: string, rule: string) => `Not met: ${title}. ${rule}`,
+        noExit: 'Exit rules missing',
+        stopAt: (levels: string) => `Exit condition: stop ${levels}`,
+        otherRules: 'Exit condition: target, trend break or time stop (no stop)',
+      },
+      groups: {
+        name: 'Name',
+        tableAria: (g: string) => `${g} positions`,
+        source:
+          'Grouped by the holding’s own sector fund, else Tauric’s sub-industry, else Unclassified. No invented theme names.',
+      },
+      dist: {
+        assets: 'Asset split',
+        stocks: 'Stocks',
+        etfs: 'ETFs',
+        options: 'Options',
+        optionsValue: (v: string, n: number) => `${v} premium at entry (${n} open)`,
+        cash: 'Cash',
+        assetsSource:
+          'ETF: a sector or index fund Marsad knows, or one with a stored N-PORT report; every other ticker counts as a stock. Options at entry premium; current values need the options data plan.',
+        dimLabel: 'Distribution by',
+        dims: {
+          sector: 'Sector',
+          marketCap: 'Market cap',
+          dividend: 'Dividend',
+          beta: 'Beta',
+          pe: 'P/E',
+        },
+        listAria: (d: string) => `Holdings by ${d}`,
+        sliceLabel: (k: string, n: number) => `${k} (${n})`,
+        major: (k: string, list: string) => `Largest holdings in ${k}: ${list}.`,
+        bucket: {
+          micro: 'Micro (under $300M)',
+          small: 'Small ($300M to $2B)',
+          mid: 'Mid ($2B to $10B)',
+          large: 'Large ($10B to $200B)',
+          mega: 'Mega ($200B and over)',
+          low: 'Under 0.8',
+          market: '0.8 to 1.2',
+          high: '1.2 to 2',
+          'very-high': '2 and over',
+          'under-15': 'Under 15',
+          '15-25': '15 to 25',
+          '25-40': '25 to 40',
+          'over-40': '40 and over',
+          'not-meaningful': 'Not meaningful (zero, negative or missing)',
+          unavailable: 'Data unavailable',
+        } as Record<string, string>,
+        payer: 'Paid a dividend in 12 months',
+        nonPayer: 'No dividend in 12 months',
+        dimSource: {
+          sector: 'Sector as in the check.',
+          marketCap: 'Market cap from Tauric’s profile, with its price date there.',
+          dividend: 'Stored Massive dividends and Tauric’s calendar, 365 days to the last close.',
+          beta: 'Beta to SPY from stored bars (exposure-1).',
+          pe: 'P/E from Tauric’s profile (pe_ratio).',
+        },
+        betaTitle: 'Portfolio beta (highest five)',
+        peTitle: 'Portfolio P/E (highest five)',
+        peFormula: (n: number, of: number, coverage: string) =>
+          `Value-weighted harmonic mean of positive P/Es: total value over the sum of value / P/E (Tauric profile pe_ratio). Coverage: ${n} of ${of} holdings, ${coverage} of value.`,
+        peNotMeaningful: (list: string) =>
+          `Not meaningful (negative, zero or missing P/E): ${list}.`,
+        unavailable: [
+          'Crowd insights and comparison with other investors: not available, Marsad has no other-investor data.',
+          'Geographic allocation: not available, no source.',
+        ],
+      },
+    },
+    performance: {
+      title: 'Performance',
+      info: 'Closed trades from your Journal, in R (initial risk). Below 30 closed trades Marsad shows counts only, never a percentage or a mean.',
+      tradesTitle: 'Closed trades',
+      profitable: 'Profitable trades',
+      profitableCount: (k: number, n: number) => `${k} of ${n} closed trades were profitable`,
+      winLoss: 'Winners, losers, flat',
+      winLossCount: (w: number, l: number, f: number) => `${w} winners, ${l} losers, ${f} flat`,
+      withStop: 'With a stop (R known)',
+      withStopCount: (n: number, of: number) => `${n} of ${of}`,
+      adherenceSplit: 'Adherence 80+ against below 80',
+      adherenceCount: (hi: number, lo: number) => `${hi} trades against ${lo} trades`,
+      winRate: 'Win rate',
+      meanReturn: 'Average return per closed trade',
+      expectancy: 'Expectancy',
+      avgWinLoss: 'Average win against average loss',
+      daysHeld: 'Weekdays held, winners against losers',
+      insufficient: (n: number, min: number) =>
+        `Insufficient history (${n} of ${min} closed trades): counts only.`,
+      tradesSource:
+        'journal-1 rMultiple and adherence; portfolio-check-1 rPerformance. Weekdays held do not remove exchange holidays.',
+      holdingsTitle: 'Current holdings',
+      spyLine: (v: string) => `SPY ${v}`,
+      monthlyTitle: 'Monthly, current holdings against SPY',
+      partial: (from: string, to: string) => `${from} to ${to}`,
+      mine: 'Holdings',
+      monthlySource: (from: string, to: string) =>
+        `Each month’s last stored close against the previous month’s, ${from} to ${to}. Today’s shares at past closes, not your actual result.`,
+      activityTitle: 'Recent activity',
+      noActivity: 'No trades or holdings recorded yet.',
+      ret: 'Return',
+      transactions: 'Transactions',
+      lastAction: 'Last action',
+      notHeld: 'Not held',
+      actions: { opened: 'Opened', added: 'Added', closed: 'Closed' },
+      activitySource:
+        'From Journal trades (entries and exits) and open holdings lots. Return: unrealized on cost while held, else the last closed trade on entry.',
+    },
+    income: {
+      title: 'Income',
+      info: 'Forward 12-month dividends from stored payments, with no growth and no price change assumed. Net figures deduct the withholding default.',
+      summaryLabel: 'Income summary',
+      forwardGross: 'Forward 12 months, gross',
+      perYear: 'Stored payments, annualized',
+      forwardNet: (w: string) => `Net of ${w} withholding`,
+      withholdingShort: 'US withholding, the rate entered below',
+      withholdingLabel: (w: string) =>
+        `US withholding, ${w} (no US and Saudi treaty), editable; check your Sahm statement`,
+      withholdingUnit: 'Percent of each gross dividend.',
+      withholdingInvalid: 'Enter a percent from 0 to 100. Net figures are not shown until then.',
+      yieldOnCost: 'Yield on cost, net',
+      onCost: (gross: string, cost: string) => `Gross ${gross}, on ${cost} cost`,
+      yieldOnValue: 'Yield on value',
+      ttmLine: (v: string) => `Trailing 12 months: ${v}`,
+      noPayers: 'No stored dividends for your holdings.',
+      tableAria: 'Income by holding',
+      perShare: 'Per share, 12 months',
+      basis: 'Basis',
+      gross: 'Gross',
+      net: 'Net',
+      yoc: 'Yield on cost, net (gross)',
+      yocCell: (net: string, gross: string) => `${net} (${gross})`,
+      yop: 'Yield on price',
+      basisText: {
+        'stated-frequency': (amount: string, date: string) =>
+          `${amount} (ex ${date}) times stated payments a year`,
+        'trailing-12m': (amount: string, date: string) =>
+          `Trailing 12 months (latest ${amount}, ex ${date})`,
+        none: () => 'None stored',
+      },
+      basisNone: 'None stored',
+      nonPayers: (list: string) => `No stored dividends: ${list}.`,
+      upcomingTitle: 'Upcoming ex-dates, 8 weeks',
+      noUpcoming: 'No ex-dividend dates stored for your holdings in the next 8 weeks.',
+      amount: (v: string) => `${v} a share`,
+      exLine: (ex: string, pay: string | null, src: string) =>
+        `ex ${ex}${pay ? ` · paid ${pay}` : ''} · ${src}`,
+      withholding: (w: string) =>
+        `Withholding ${w}: the US rate for a nonresident with no treaty is 30% (IRS Publication 515); the US has no income tax treaty with Saudi Arabia. Not verified: how Sahm applies it.`,
+      source: (date: string) =>
+        `Sources: Massive /stocks/v1/dividends (newest fetch ${date}) and Tauric’s calendar; portfolio-check-1 forwardIncome.`,
+    },
+    news: {
+      title: 'Holdings news',
+      info: 'Stored articles that name one of your holdings, with the description the feed stores. No images and no full text; the link opens the publisher.',
+      filter: 'Ticker',
+      allTickers: 'All holdings',
+      search: 'Search titles and descriptions',
+      none: 'No stored articles match.',
+      listAria: 'Articles',
+      paneAria: 'Reading pane',
+      choose: 'Choose an article to read its stored description.',
+      noDescription: 'The feed stored no description for this article.',
+      readAt: (pub: string) => `Read at ${pub}`,
+      source: 'Source: Massive news (news_articles), newest 120 for your holdings. Times in UTC.',
+    },
+    divCal: {
+      title: 'Ex-dividend calendar',
+      info: 'Ex-dividend dates for your watchlist and holdings, 7 days back to 14 ahead, from stored Massive dividends and Tauric’s calendar.',
+      stripLabel: 'Choose a day',
+      dayAria: (today: boolean, n: number) =>
+        `${today ? ' (today)' : ''}, ${n} ex-dividend date${n === 1 ? '' : 's'}`,
+      today: 'Today',
+      none: 'No ex-dividend dates for your tickers on this day',
+      amount: (v: string) => `${v} a share`,
+      dates: (ex: string, pay: string | null) =>
+        `ex ${ex}${pay ? ` · paid ${pay}` : ' · pay date not stored'}`,
+      frequency: (n: number | null) =>
+        n === null
+          ? 'frequency not stated'
+          : n === 0
+            ? 'irregular'
+            : n === 12
+              ? 'monthly'
+              : n === 4
+                ? 'quarterly'
+                : n === 2
+                  ? 'semi-annual'
+                  : n === 1
+                    ? 'annual'
+                    : `${n} a year`,
+      noYield: 'yield unavailable (no stored close)',
+      yieldAt: (pct: string, date: string, annual: boolean) =>
+        `yield ${pct}% at the ${date} close (${annual ? 'this payment annualized' : 'trailing 12 months'})`,
+      source: {
+        massive: 'Massive /stocks/v1/dividends',
+        tauric: 'Tauric calendar',
+      },
+      scope:
+        'Your tickers only. Massive serves a market-wide list filtered by ex-date on the current plan; adding it is noted in docs/IDEAS.md.',
     },
   },
   alerts: {
@@ -1540,6 +2133,7 @@ export const t = {
     /** The company brief (company-brief-1): a summary computed by code from stored data, no AI. */
     brief: {
       title: 'Company brief',
+      analysts: 'Analysts',
       aside: 'By code from stored data, not advice',
       na: 'Not available',
       loading: 'Loading',
@@ -1829,16 +2423,16 @@ export const t = {
       ranges: { '3m': '3M', '6m': '6M', '1y': '1Y' } as Record<string, string>,
       sections: 'Company sections',
       sectionNames: {
-        overview: 'Overview and thesis',
-        news: 'News',
-        filings: 'Filings',
+        overview: 'Overview',
+        analysts: 'Analysts',
         financials: 'Financials',
         earnings: 'Earnings',
-        holders: 'Holders and insiders',
-        risk: 'Risk factor diff',
-        shariah: 'Shariah aid',
-        short: 'Short data',
+        technicals: 'Technicals',
         dividends: 'Dividends',
+        ownership: 'Ownership',
+        news: 'News',
+        filings: 'Filings',
+        shariah: 'Shariah aid',
       } as Record<string, string>,
       markerLetters: {
         results: 'E',
@@ -1919,6 +2513,691 @@ export const t = {
       history: (n: number) => `Earlier versions (${n})`,
       ai: 'An AI draft from cited filings and news arrives once an Anthropic key and cost caps are set.',
     },
+    research: {
+      na: 'Data unavailable',
+      loading: 'Loading',
+      source: 'Research',
+      viewsLabel: 'Research views',
+      views: {
+        overview: 'Overview',
+        analysts: 'Analysts',
+        ai: 'AI analysis',
+        news: 'News',
+        chart: 'Chart',
+        dividends: 'Dividends',
+        earnings: 'Earnings',
+        financials: 'Financials',
+        technicals: 'Technicals',
+        peers: 'Peers',
+      },
+      parts: {
+        analyst: 'Analyst data',
+        profile: 'Profile',
+        thesis: 'AI analysis',
+        calendar: 'Calendar',
+      },
+      noRow: (tk: string) =>
+        `No Tauric research stored for ${tk} yet. The research job runs each weekday after the close for watchlist and holdings tickers.`,
+      rowLine: (d: string) =>
+        `Tauric research fetched ${d}. Figures Marsad computes from its own stored data say so; the rest is the vendor's.`,
+      reasons: {
+        codes: {
+          not_stored: 'not stored yet',
+          not_registered: 'Tauric does not carry this ticker',
+          not_supported: 'Tauric does not offer this for the ticker',
+          not_published: 'Tauric has not published it',
+          delisted: 'the listing is delisted',
+          insufficient_history: 'Tauric has too little history',
+          not_found: 'Tauric found nothing',
+          temporarily_unavailable: 'Tauric could not serve it at the last run',
+          rate_limited: 'Tauric limited the request',
+          unauthorized: 'the Tauric key was refused',
+        } as Record<string, string>,
+        malformed: (why: string) => `failed Marsad's check: ${why}`,
+        other: (code: string) => `vendor code ${code}`,
+      },
+      stats: {
+        title: 'Key statistics',
+        aside: 'Tauric profile, vendor figures',
+        groups: {
+          valuation: 'Valuation',
+          profitability: 'Profitability and growth',
+          balance: 'Balance sheet',
+          dividends: 'Dividends',
+          shares: 'Shares, risk and ownership',
+          marsad: 'Marsad, from SEC filings',
+        },
+        marsadAsOf: (d: string, v: string) =>
+          `Computed by Marsad on ${d} from filings as filed (${v})`,
+        dilution: 'Dilution (diluted shares, year on year)',
+        dilutionNote: 'Newest quarter against the same quarter a year earlier.',
+        fcfMargin: 'Free cash flow margin',
+        fcfNote: 'Operating cash flow less capital spending, over revenue, last 4 quarters.',
+        netCash: 'Net cash',
+        netCashNote: (d: string) =>
+          `Cash and short-term investments less debt at ${d}; negative means net debt.`,
+        refreshed: (d: string) => `Tauric, refreshed ${d}`,
+        labels: {
+          market_cap: 'Market value',
+          enterprise_value: 'Enterprise value',
+          pe_ratio: 'P/E (trailing)',
+          forward_pe: 'P/E (forward)',
+          peg_ratio: 'PEG ratio',
+          price_to_book: 'Price to book',
+          price_to_sales: 'Price to sales',
+          profit_margin: 'Profit margin',
+          operating_margin: 'Operating margin',
+          return_on_assets: 'Return on assets',
+          return_on_equity: 'Return on equity',
+          revenue_growth: 'Revenue growth',
+          earnings_growth: 'Earnings growth',
+          total_cash: 'Total cash',
+          total_debt: 'Total debt',
+          debt_to_equity: 'Debt to equity',
+          current_ratio: 'Current ratio',
+          quick_ratio: 'Quick ratio',
+          dividend_rate: 'Dividend a year',
+          dividend_yield: 'Dividend yield',
+          payout_ratio: 'Payout ratio',
+          beta: 'Beta',
+          shares_outstanding: 'Shares outstanding',
+          float_shares: 'Float',
+          shares_short: 'Shares short',
+          short_interest_of_float: 'Short interest of float',
+          days_to_cover: 'Days to cover',
+          institutional_ownership: 'Institutional ownership',
+          insider_ownership: 'Insider ownership',
+          employees: 'Employees',
+        } as Record<string, string>,
+        days: (v: string) => `${v} days`,
+        mvMarsad: (v: string, close: string, shares: string, verdict: string) =>
+          `Marsad ${v}: the close of ${close} times the shares on the cover page dated ${shares}. ${verdict}`,
+        betaMarsad: (v: string, n: number, to: string, version: string, verdict: string) =>
+          `Marsad ${v}: ${n} daily returns against SPY to ${to} (${version}); vendors often use 5 years of monthly returns. ${verdict}`,
+        yieldMarsad: (v: string, n: number, to: string, version: string, verdict: string) =>
+          `Marsad ${v}: ${n} stored dividends in the 12 months to ${to} over that close (${version}). ${verdict}`,
+        differs: (tol: string) => `Differs from Tauric by more than ${tol}.`,
+        points: (v: string) => `${v} percentage points`,
+        agrees: 'Within the stated tolerance of Tauric.',
+        source: (asOf: string, mcDate: string) =>
+          `Source: Tauric profile, refreshed ${asOf}; Tauric's market value uses the close of ${mcDate}. Vendor fractions are shown as percentages.`,
+        ownership: 'Ownership',
+        ownershipAria: (ins: string, inst: string, other: string) =>
+          `Insiders ${ins}, institutions ${inst}, other holders ${other}`,
+        insiders: 'Insiders',
+        institutions: 'Institutions',
+        other: 'Other holders',
+        overlap: (ins: string, inst: string) =>
+          `Insiders ${ins}, institutions ${inst}. Vendor figures overlap (they add up to more than 100%), so no bar.`,
+      },
+      perf: {
+        title: (tk: string) => `${tk} against SPY`,
+        ranges: 'Performance range',
+        rangeNames: {
+          '3m': '3M',
+          '6m': '6M',
+          '1y': '1Y',
+          ytd: 'YTD',
+          '3y': '3Y',
+          '5y': '5Y',
+        } as Record<string, string>,
+        short: (needs: number, have: number) => `needs ${needs} sessions, ${have} stored`,
+        noSpy: 'SPY bars could not be loaded, so SPY is not drawn.',
+        aria: (tk: string, from: string, to: string) =>
+          `Percent change of ${tk} and SPY (dashed) from ${from} to ${to}`,
+        end: (tk: string, s: string, spy: string, from: string, to: string) =>
+          `${tk} ${s}, SPY ${spy}, from the close of ${from} to the close of ${to}.`,
+        source:
+          'Source: Massive daily bars (split-adjusted); both measured from the same start close (research-1).',
+      },
+      business: {
+        title: 'Business overview',
+        vendor: 'Company profile (Tauric, vendor text)',
+        vendorSource: (d: string) =>
+          `Tauric profile, refreshed ${d}. Vendor text, not Marsad's words.`,
+        filed: 'Form 10-K business section (as filed)',
+        filedSource: (period: string, filed: string) =>
+          `First paragraphs of the 10-K business section for the period to ${period}, filed ${filed}.`,
+        openFull: 'Read the full section in Overview and thesis',
+      },
+      analyst: {
+        title: 'Analyst forecast',
+        opinion: 'Analyst opinion, not advice',
+        words: {
+          strong_buy: 'Strong buy',
+          buy: 'Buy',
+          hold: 'Hold',
+          sell: 'Sell',
+          strong_sell: 'Strong sell',
+        },
+        meanLine: (
+          move: string,
+          low: string,
+          median: string,
+          high: string,
+          n: number | null,
+          refreshed: string,
+        ) =>
+          `Mean target vs last close: ${move} (low ${low}, median ${median}, high ${high}; ${n === null ? 'analyst count not given' : `${n} analysts`}; refreshed ${refreshed})`,
+        oneLineSource: (word: string, close: string) =>
+          `Tauric analyst consensus ${word}; Marsad's close of ${close}. Opinion, not advice.`,
+        estimateTitle: 'Next-quarter estimate',
+        epsEstimate: 'Consensus EPS',
+        revenueEstimate: 'Consensus revenue',
+        reportDate: 'Report date',
+        estimateNote:
+          "Tauric gives one estimate for the next quarter only. Estimate ranges (high and low), past estimates and surprises: not available from Marsad's sources.",
+        estimateSource: (d: string) => `Source: Tauric calendar, refreshed ${d}.`,
+        basis: (ratings: number | null, analysts: number | null) =>
+          `${ratings === null ? 'Ratings count not given' : `${ratings} ratings`}${analysts === null ? '' : ` from ${analysts} analysts`}`,
+        dist: {
+          strong_buy: 'Strong buy',
+          buy: 'Buy',
+          hold: 'Hold',
+          sell: 'Sell',
+          strong_sell: 'Strong sell',
+        },
+        distAria: (s: string) => `Rating distribution: ${s}`,
+        targets: { mean: 'Average', median: 'Median', high: 'High', low: 'Low' },
+        targetsCaption: '12-month price targets and the move each implies',
+        colTarget: '12-month target',
+        colPrice: 'Price',
+        colMove: (date: string, close: string) => `From the close of ${date} (${close})`,
+        colMoveNone: 'From the last close',
+        chartAria: (tk: string, from: string, to: string, targets: string) =>
+          `${tk} closes from ${from} to ${to}, then dashed lines to the 12-month targets: ${targets}`,
+        chartNote:
+          'The dashed lines join the last stored close to each target 12 months out. They show what analysts state, not a forecast by Marsad.',
+        perAnalyst:
+          "Per-analyst ratings, analyst track records and estimate ranges (high and low): not available from Marsad's sources. They need Massive's paid Benzinga add-on, which the current plan does not include.",
+        source: (asOf: string) =>
+          `Tauric analyst data, refreshed ${asOf}. Implied moves by Marsad (research-1).`,
+        trendTitle: 'Recommendation trend',
+        trendNone: 'No daily snapshots stored yet. Trend builds as daily snapshots accumulate.',
+        trendBuilds: 'Trend builds as daily snapshots accumulate.',
+        trendAria: (n: number) =>
+          `Rating counts at the end of each of the last ${n} months, with the average target as a dashed line`,
+        meanTarget: 'Average target',
+        colMonth: 'Snapshot',
+        trendStart: (d: string) => `History starts ${d}. The last stored snapshot of each month.`,
+      },
+      ai: {
+        title: 'AI analysis (Tauric AI)',
+        label: (gen: string, cutoff: string) =>
+          `Written by Tauric AI on ${gen}, evidence to ${cutoff}. Not Marsad's view, not advice.`,
+        positive: 'Bulls say (positive factors)',
+        negative: 'Bears say (negative factors)',
+        catalysts: 'Catalysts',
+        undated: 'Undated',
+        questions: 'Open questions',
+        none: 'None stated.',
+        source: (rev: string) => `Source: Tauric thesis, revision ${rev}. Shown as plain text.`,
+      },
+      news: {
+        title: 'News',
+        listTitle: 'Articles with sentiment',
+        vendorNote:
+          "Sentiment is the news vendor's (Massive) label for each article, not Marsad's view.",
+        buzz: 'Media buzz',
+        thisWeek: (d: string) => `Articles this week (from Mon ${d})`,
+        noAverage: 'No earlier stored weeks to compare with.',
+        average: (v: string, weeks: number) =>
+          `The tick marks the average of ${v} a week over ${weeks} stored ${weeks === 1 ? 'week' : 'weeks'}.`,
+        sentiment: 'News sentiment, this week',
+        counts: (p: number, n: number, neg: number, labelled: number, min: number) =>
+          `${p} positive, ${n} neutral, ${neg} negative of ${labelled} labelled (no percentage under ${min})`,
+        share: (pct: string, labelled: number) =>
+          `${pct} positive of ${labelled} labelled articles`,
+        othersLine: (tickers: number, text: string) =>
+          `Marsad's stored tickers (${tickers} others): ${text}`,
+        othersFailed: "Marsad's stored tickers could not be loaded.",
+        coverage: 'Media coverage, last 12 weeks',
+        coverageAria: (n: number) =>
+          `Weekly articles over ${n} weeks, stacked positive, neutral, negative and unlabelled, with the weekly close as a dashed line`,
+        labels: {
+          positive: 'Positive',
+          neutral: 'Neutral',
+          negative: 'Negative',
+          none: 'No label',
+        },
+        closeLine: 'Weekly close',
+        filter: 'Show articles',
+        filters: { all: 'All', positive: 'Positive', negative: 'Negative' },
+        publishers: (n: number, k: number) =>
+          `${n} ${n === 1 ? 'article' : 'articles'} from ${k} ${k === 1 ? 'publisher' : 'publishers'} in 12 weeks`,
+        none: 'No stored articles match.',
+        prev: 'Previous',
+        next: 'Next',
+        page: (a: number, b: number) => `Page ${a} of ${b}`,
+        source: (n: number, version: string, capped: boolean) =>
+          `Source: ${n} stored articles from the news job (Massive) over 12 weeks${capped ? ', capped at 1,000' : ''}; ${version}. Times in ET and local.`,
+      },
+      chart: {
+        title: (tk: string) => `${tk} advanced chart`,
+        noBars: 'No daily bars stored.',
+        range: 'Chart range',
+        ranges: {
+          '1m': '1M',
+          '3m': '3M',
+          '6m': '6M',
+          ytd: 'YTD',
+          '1y': '1Y',
+          '5y': '5Y',
+          all: 'All',
+        } as Record<string, string>,
+        short: (needs: number, have: number) => `needs ${needs + 1} sessions, ${have} stored`,
+        timeframe: 'Candle size',
+        timeframes: { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' } as Record<
+          string,
+          string
+        >,
+        intraday:
+          'Intraday ranges (1D, 5D, minutes, hours): Marsad stores daily bars only. Weekly and monthly candles are built from daily bars.',
+        indicators: 'Chart indicators',
+        indicatorNames: {
+          sma50: 'SMA 50',
+          sma200: 'SMA 200',
+          ema20: 'EMA 20',
+          rsi: 'RSI 14',
+          volume: 'Volume',
+          bollinger: 'Bollinger (20, 2)',
+        } as Record<string, string>,
+        overlays: 'Chart overlays',
+        overlayNames: {
+          results: 'Earnings',
+          filings: 'Other 8-Ks',
+          dividend: 'Dividends',
+          split: 'Splits',
+          insider: 'Insider buys',
+          halt: 'Halts',
+          alert: 'Marsad alerts',
+        } as Record<string, string>,
+        targets: 'Analyst targets',
+        targetHigh: 'Target high',
+        targetMean: 'Target average',
+        targetLow: 'Target low',
+        levels: 'Support and resistance',
+        support: 'Support',
+        resistance: 'Resistance',
+        aria: (tk: string, tf: string, d: string) =>
+          `${tf} candlestick chart for ${tk}, last bar ${d}`,
+        levelsTitle: 'Support and resistance levels',
+        levelShort: (kind: string, touches: number, price: string, dist: string) =>
+          `${kind} (${touches} touches) ${price}, ${dist} from close`,
+        noLevels: 'No level was touched twice in the stored bars.',
+        levelLine: (
+          kind: string,
+          touches: number,
+          price: string,
+          dist: string,
+          from: string,
+          to: string,
+        ) => `${kind} (${touches} touches) ${price}, ${dist} from close (${from} to ${to})`,
+        levelsNote: (d: string, version: string) =>
+          `Levels from past daily prices to ${d} (${version}: swing highs and lows 5 bars each side, grouped within 1.5%, at least 2 touches). They describe where price turned before; they do not predict where it will turn. Not advice.`,
+        source: (d: string, n: number) =>
+          `Source: Massive daily bars to ${d} (${n} sessions), split-adjusted. Bollinger bollinger@1.`,
+      },
+      dividends: {
+        title: 'Dividends',
+        consensus: (word: string) => `Analyst consensus (Tauric, opinion): ${word}`,
+        none: (tk: string) => `No dividends stored for ${tk}.`,
+        freq: {
+          '0': 'One-off',
+          '1': 'Annual',
+          '2': 'Semi-annual',
+          '4': 'Quarterly',
+          '12': 'Monthly',
+        } as Record<string, string>,
+        freqN: (n: number) => `${n} a year`,
+        next: 'Next ex-date',
+        noNext: 'None stored',
+        nextNote: (record: string, pay: string, amount: string) =>
+          `Record ${record}, pay ${pay}, ${amount} a share as declared`,
+        amount: 'Latest amount a share',
+        amountNote: (date: string, freq: string, src: string) =>
+          `Ex-date ${date}; ${freq} (${src})`,
+        inferred: 'inferred from ex-date gaps',
+        stated: 'as stated',
+        yield: 'Yield (12 months)',
+        yieldNote: (total: string, n: number, date: string) =>
+          `${total} over ${n} payments, over the close of ${date}`,
+        payout: 'Payout ratio (12 months)',
+        payoutNote: (eps: string, vendor: string) =>
+          `Over diluted EPS of the last 4 quarters (${eps}, SEC XBRL); Tauric shows ${vendor}`,
+        cuts: 'Cuts',
+        noCuts: 'None in stored history',
+        cutCount: (n: number) => `${n} ${n === 1 ? 'cut' : 'cuts'}`,
+        cutLine: (d: string, from: string, to: string, pct: string) =>
+          `${d}: ${from} to ${to} (${pct})`,
+        cutsRule: 'A cut is a regular payment below the one before it, split-adjusted.',
+        growth: 'Years of dividend growth',
+        atLeast: (n: number) => `At least ${n}`,
+        years: (n: number) => `${n}`,
+        growthNote: (from: string) =>
+          `Calendar-year totals; stored history reaches back to ${from}, so a longer streak cannot be seen.`,
+        chartAria: (n: number) => `Amount a share for the last ${n} payments, split-adjusted`,
+        perPayment: 'Amount a share (split-adjusted)',
+        history: (n: number) => `Dividend history (${n})`,
+        cols: {
+          ex: 'Ex-date',
+          record: 'Record',
+          pay: 'Pay',
+          declared: 'Declared',
+          freq: 'Frequency',
+          amount: 'As paid',
+          adjusted: 'Split-adjusted',
+        },
+        source: (version: string) =>
+          `Source: Massive dividends as stored; amounts on today's share basis where the vendor gives one (${version}).`,
+      },
+      calc: {
+        title: 'Dividend calculator',
+        price: 'Share price ($)',
+        shares: 'Shares',
+        amount: 'Investment ($)',
+        years: 'Holding period (years, 1 to 30)',
+        yield: 'Expected yield (%)',
+        freq: 'Payouts a year',
+        advanced: 'Advanced',
+        contrib: 'Yearly contribution ($)',
+        contribFreq: 'Contributions a year',
+        tax: 'US withholding, 30% (no US and Saudi treaty), editable; check your Sahm statement',
+        taxNote: 'Percent withheld from each dividend (IRS Publication 515).',
+        priceChange: (v: string, d: string) =>
+          `This ticker moved ${v} over the year to ${d} (252 sessions).`,
+        priceChangeNone: 'Trailing 1-year price change: not enough stored bars.',
+        divGrowth: 'Dividend growth (% a year)',
+        priceGrowth: 'Price growth (% a year)',
+        priceFrom: (d: string) => `Marsad's last stored close, ${d}`,
+        yieldMarsad: (n: number, d: string) =>
+          `Marsad: ${n} stored dividends in the 12 months to ${d} over that close`,
+        yieldTauric: (d: string) => `Tauric, refreshed ${d}`,
+        freqFrom: (n: number) => `${n} stored dividends in the last 12 months`,
+        needInputs: 'Enter the price, shares, years, yield and payouts a year to see a projection.',
+        invalid: (r: string) => `Cannot project: ${r}.`,
+        cash: 'Cash payout',
+        drip: 'DRIP (reinvested)',
+        monthly: 'Monthly average income',
+        finalYear: 'Final-year income (net)',
+        gross: (v: string) => `${v} before tax`,
+        value: 'Portfolio value',
+        deposits: (v: string) => `Deposits ${v}`,
+        totalDividends: 'Total dividends (net)',
+        reinvested: 'Dividends reinvested (net)',
+        taxLine: (gross: string, tax: string) => `${gross} gross, ${tax} tax`,
+        totalReturn: 'Total return',
+        annual: 'Average annual return',
+        monthlyNote: 'Monthly average income is the final year’s net income divided by 12.',
+        disclaimer:
+          'A projection from your inputs, not a forecast. Marsad does not predict dividend growth or prices; analyst ratings and targets are not used. Not advice.',
+        yearly: 'Year by year',
+        yearlyMode: 'Yearly table for',
+        csv: 'Export CSV',
+        cols: [
+          'Year',
+          'Shares owned',
+          'Dividend a share',
+          'Dividends (net)',
+          'Payouts',
+          'Contributions',
+          'Year-end shares',
+          'Year-end price',
+          'Year-end value',
+        ],
+        source: (version: string) =>
+          `Formula ${version}, computed in your browser from your inputs.`,
+      },
+      earnings: {
+        eventsTitle: 'Earnings and events',
+        noEvents: 'No dated events stored.',
+        undated: 'Undated',
+        kinds: {
+          catalyst: 'Catalyst (Tauric AI):',
+          earnings: 'Results (Marsad estimate):',
+          'tauric-earnings': 'Results (Tauric calendar):',
+          dividend: 'Ex-dividend:',
+        },
+        estimateEvent: 'Next results, estimated from past 8-K dates',
+        tauricEvent: 'Next results date in the Tauric calendar',
+        dividendEvent: (amount: string, pay: string) => `${amount} a share, paid ${pay}`,
+        eventsSource:
+          'Sources: Tauric thesis catalysts and calendar, Marsad results estimate (8-K item 2.02 dates), Massive dividends.',
+        nextTitle: 'Next report',
+        noEstimate: 'No results filings stored, so no estimate.',
+        estimateLine: (date: string, from: string, to: string) =>
+          `Around ${date} (estimated by Marsad, window ${from} to ${to})`,
+        overdue: 'Overdue: no newer results filing yet',
+        periodLine: (d: string) => `For the quarter after the one ended ${d}`,
+        periodNone: 'Period not known: no quarterly EPS stored.',
+        consensusLine: (eps: string, date: string, asOf: string) =>
+          `Consensus EPS ${eps} for the report of ${date} (Tauric calendar, refreshed ${asOf})`,
+        revenueLine: (v: string) => `Consensus revenue ${v} (Tauric calendar)`,
+        noConsensus: "Estimates not available from Marsad's sources",
+        beatMiss:
+          "Beat or miss against past estimates: not available from Marsad's sources (Tauric gives only the next quarter's estimate).",
+        transcripts:
+          "Earnings call summary and sentiment: transcripts not available from Marsad's sources.",
+        epsTitle: 'Reported diluted EPS by quarter',
+        noEps: 'No quarterly EPS stored.',
+        epsAria: (n: number) => `Reported diluted EPS for the last ${n} quarters`,
+        reported: 'Reported diluted EPS',
+        cols: {
+          quarter: 'Quarter ended',
+          eps: 'Diluted EPS',
+          lastYear: 'Year earlier',
+          changeUsd: 'Change ($)',
+          changePct: 'Change (%)',
+          released: 'Released',
+          before: 'Close before',
+          after: 'Close after',
+          move: 'Change',
+          release: 'Press release',
+        },
+        derived: 'derived',
+        derivedNote:
+          'A derived quarter is the year-to-date figure less the earlier quarters; EPS does not add up exactly across quarters, so treat it as close, not exact. No percentage from a loss.',
+        epsSource: (v: string) => `Source: SEC XBRL company facts as filed (${v}).`,
+        releasesTitle: 'Results press releases (8-K item 2.02)',
+        releasesSource: 'Source: SEC EDGAR filings with item 2.02, newest 8.',
+        movesTitle: 'Earnings-related price change',
+        noMoves: 'No results releases with stored closes around them.',
+        movesFold: (n: number) => `Price change around ${n} releases`,
+        pressRelease: '8-K on SEC',
+        openEarnings: 'Open the Earnings tab',
+        movesSource: (v: string) =>
+          `Close before against close after each release, split-checked (${v}).`,
+      },
+      fin: {
+        fTitle: 'Financial health: Piotroski F-score',
+        score: (n: number) => `${n} of 9 tests passed`,
+        partial: (p: number, a: number) =>
+          `${p} of 9 tests passed (${9 - a} not available, so no full count)`,
+        noYear: 'No fiscal year with net income stored.',
+        years: (t: string, p: string, filed: string) =>
+          `Fiscal year to ${t} against the year to ${p}; newest figure filed ${filed}.`,
+        group: (name: string, p: number, a: number, of: number) =>
+          `${name}: ${p} of ${a} passed (${of} tests)`,
+        groups: {
+          profitability: 'Profitability',
+          leverage: 'Leverage and liquidity',
+          efficiency: 'Efficiency',
+        },
+        na: 'Not available',
+        passed: 'Passed',
+        failed: 'Failed',
+        tests: {
+          'roa-positive': 'Return on assets above 0',
+          'cfo-positive': 'Operating cash flow above 0',
+          'roa-up': 'Return on assets higher than the year before',
+          accruals: 'Cash flow over assets above return on assets',
+          'leverage-down': 'Long-term debt to average assets lower (or zero both years)',
+          'current-ratio-up': 'Current ratio higher',
+          'no-dilution': 'Diluted shares no higher',
+          'gross-margin-up': 'Gross margin higher',
+          'asset-turnover-up': 'Asset turnover higher',
+        },
+        testValues: (c: string, p: string) => `${c} against ${p}`,
+        missing: (list: string) => `Not available: no ${list} stored`,
+        fSource: (v: string) =>
+          `Formula ${v} (Piotroski 2000) from SEC XBRL facts as filed; nothing filed after today is used.`,
+        oTitle: 'Financial statements overview',
+        modes: 'Statement period',
+        modeNames: { annual: 'Annual', ttm: 'TTM', quarterly: 'Quarterly' } as Record<
+          string,
+          string
+        >,
+        noColumns: 'No periods with revenue or net income stored.',
+        colLine: 'Line',
+        ttmHead: (d: string) => `4 quarters to ${d}`,
+        derivedMark: 'some derived',
+        lines: {
+          revenue: 'Total revenue',
+          grossProfit: 'Gross profit',
+          operatingIncome: 'Operating income',
+          ebitda: 'EBITDA',
+          netIncome: 'Net income',
+          cashAndSti: 'Cash and short-term investments',
+          totalAssets: 'Total assets',
+          totalDebt: 'Total debt',
+          netDebt: 'Net debt',
+          totalLiabilities: 'Total liabilities',
+          equity: "Stockholders' equity",
+          operatingCashFlow: 'Operating cash flow',
+          investingCashFlow: 'Investing cash flow',
+          financingCashFlow: 'Financing cash flow',
+          freeCashFlow: 'Free cash flow',
+        },
+        chart1Aria: (n: number) =>
+          `Revenue and net income in billions over ${n} fiscal years, with net margin as a dashed line`,
+        revenueB: 'Revenue ($B)',
+        netIncomeB: 'Net income ($B)',
+        margin: 'Net margin',
+        chart2Aria: (n: number) =>
+          `Total assets and liabilities in billions over ${n} fiscal years, with liabilities to assets as a dashed line`,
+        assetsB: 'Assets ($B)',
+        liabilitiesB: 'Liabilities ($B)',
+        liabToAssets: 'Liabilities to assets',
+        oNote:
+          'EBITDA is operating income plus depreciation and amortization, only where depreciation is tagged; net debt is debt less cash and short-term investments (negative means net cash). Lines Marsad has just started storing fill in at the next facts run.',
+        openStatements: 'Open the as-filed statements (Financials tab)',
+        oSource: (v: string, d: string) =>
+          `Source: SEC XBRL company facts as filed by ${d} (${v}).`,
+        noCompany: 'No SEC filer record for this ticker, so no statements.',
+      },
+      tech: {
+        readings: { bullish: 'Bullish', bearish: 'Bearish', neutral: 'Neutral' },
+        counts: (bear: number, neu: number, bull: number) =>
+          `${bear} bearish · ${neu} neutral · ${bull} bullish`,
+        summaryTitle: 'Technical summary',
+        nOfM: (p: number, m: number) => `${p} of ${m} readings bullish`,
+        split: (ma: number, maN: number, ind: number, indN: number, bear: number, neu: number) =>
+          `Moving averages ${ma} of ${maN} bullish, indicators ${ind} of ${indN} bullish; ${bear} bearish and ${neu} neutral in all.`,
+        ruleTrue: 'True',
+        ruleFalse: 'False',
+        rules: {
+          'above-sma20': 'Close above the 20-day average',
+          'above-sma50': 'Close above the 50-day average',
+          'above-sma200': 'Close above the 200-day average',
+          'sma50-above-sma200': '50-day average above the 200-day',
+          'rsi-50': 'RSI 14 at or above 50',
+          'macd-above-signal': 'MACD (12, 26) above its 9-day signal',
+          'upper-half-52w': 'Close in the upper half of the 52-week range',
+        },
+        needs: (n: number) => `Not available: needs ${n} sessions`,
+        rsiNote: (v: string, zone: string) => `RSI ${v}, zone ${zone}`,
+        zones: {
+          'under-30': 'under 30',
+          '30-50': '30 to 50',
+          '50-70': '50 to 70',
+          '70-plus': '70 and over',
+        },
+        rangeNote: (pos: string, lo: string, hi: string) =>
+          `At ${pos}% of the range ${lo} to ${hi}`,
+        macdNote: (l: string, s: string) => `Line ${l}, signal ${s}`,
+        vsNote: (c: string, ref: string) => `${c} against ${ref}`,
+        summarySource: (v: string, ind: string, d: string) =>
+          `Formula ${v} (${ind}) on daily bars to ${d}. Describes the chart; never a buy or sell call.`,
+        title: 'Technical analysis',
+        timeframe: 'Timeframe',
+        timeframes: { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' } as Record<
+          string,
+          string
+        >,
+        asOf: (tf: string, d: string, n: number) => `${tf}, data as of ${d} (${n} bars)`,
+        intraday:
+          'No intraday timeframes: Marsad stores daily bars only. Weekly and monthly bars are built from them; the newest may be partial.',
+        gauges: {
+          overall: 'Overall',
+          indicators: 'Indicators',
+          movingAverages: 'Moving averages',
+        },
+        maTitle: 'Moving averages against the last close',
+        indTitle: 'Indicators',
+        cols: {
+          period: 'Period',
+          simple: 'Simple',
+          exponential: 'Exponential',
+          name: 'Indicator',
+          value: 'Value',
+          reading: 'Reading',
+          method: 'Method',
+        },
+        ma: (n: number) => `MA ${n}`,
+        indicators: {
+          rsi14: 'RSI 14',
+          stoch: 'Stochastic (9, 6)',
+          stochrsi: 'StochRSI 14',
+          macd: 'MACD (12, 26)',
+          adx: 'ADX 14',
+          williams: 'Williams %R 14',
+          cci: 'CCI 14',
+          atr: 'ATR 14',
+          highslows: 'Highs/Lows 14',
+          uo: 'Ultimate Oscillator',
+          roc: 'ROC 12',
+          bbp: 'Bull/Bear Power 13',
+        },
+        indicatorRules: {
+          rsi14: 'Above 55 bullish, below 45 bearish',
+          stoch: 'Above 55 bullish, below 45 bearish',
+          stochrsi: 'Above 55 bullish, below 45 bearish',
+          macd: 'Above 0 bullish, below 0 bearish',
+          adx: 'Under 20 neutral; else +DI against -DI',
+          williams: 'Above -45 bullish, below -55 bearish',
+          cci: 'Above 50 bullish, below -50 bearish',
+          atr: 'Range, not direction',
+          highslows: 'Close against the 14-bar midpoint',
+          uo: 'Above 55 bullish, below 45 bearish',
+          roc: 'Above 0 bullish, below 0 bearish',
+          bbp: 'Above 0 bullish, below 0 bearish',
+        },
+        notCounted: 'Not counted',
+        pivotsTitle: (d: string) => `Pivot points from the session of ${d}`,
+        methods: { classic: 'Classic', fibonacci: 'Fibonacci' },
+        method:
+          'Moving averages: close above bullish, below bearish. The summary counts the bullish readings among those that could be computed; readings that need more bars are not counted. Bullish and bearish describe the chart, not advice.',
+        source: (v: string, d: string, ind: string) =>
+          `Formula ${v} on Massive daily bars to ${d}. Indicators: ${ind}.`,
+      },
+      peers: {
+        title: 'Peers among tickers Marsad tracks',
+        none: (g: string) =>
+          `No other ticker with Tauric research shares the group "${g}". Peers appear as the research job covers more of the watchlist.`,
+        basis: (g: string) =>
+          `Among tickers Marsad tracks (holdings and watchlist) with Tauric research in the group "${g}".`,
+        cols: {
+          ticker: 'Ticker',
+          cap: 'Market value',
+          pe: 'P/E',
+          growth: 'Revenue growth',
+          margin: 'Profit margin',
+          y1: '1Y return',
+        },
+        source:
+          'Market value, P/E, growth and margin: Tauric profiles. 1Y return: Marsad from stored closes (252 sessions).',
+      },
+    },
     placeholdersTitle: 'More on this company',
     placeholders: [
       {
@@ -1927,9 +3206,9 @@ export const t = {
         why: 'Estimates come from Benzinga data, which the free plan does not include. Reported results and the price move after each release are in Earnings history (Financials tab); the implied move needs options data.',
       },
       {
-        name: 'Analyst actions (opinion)',
+        name: 'Per-analyst ratings and track records (opinion)',
         state: 'Requires a higher Massive plan',
-        why: 'Ratings and price targets are partner data.',
+        why: "Massive's Benzinga add-on is not on the plan. The Tauric consensus, rating counts and price targets are in the Analysts view.",
       },
       {
         name: 'Valuation percentiles against the 5-year history',

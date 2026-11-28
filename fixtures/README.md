@@ -9,3 +9,7 @@ Recorded vendor responses (keys stripped) so tests run offline and repeatably.
 ## FRED graph downloads (recorded 2026-11-25)
 
 `fred/fredgraph-<SERIES>.json` hold, in `body`, the public CSV downloads from `https://fred.stlouisfed.org/graph/fredgraph.csv?id=<SERIES>` (no key), kept from 2014-01-01 (the Sahm rule in full). They are the same values the FRED API returns, in the graph download's two-column format (`observation_date`, value; a blank or "." is a day with no value). Used by the regime and recession-filter tests to check known historical facts.
+
+## Tauric company research (recorded 2026-11-28)
+
+`tauric/research-<TICKER>-2026-11-28.json` hold the analyst, profile, thesis and calendar answers for NVDA and AAPL, and the `not_registered` answers for BBAI, recorded through the Tauric MCP connector (the same operations and schemas as the REST routes in `https://api.tauric.ai/openapi.json`). Each file is `{ recordedAt, source, ticker, via, note, parts: { <part>: { endpoint, status, body } } }`. No keys or headers are recorded. Used by the core validator tests and the research job tests (ADR 0047). Re-record from the REST API once `TAURIC_API_KEY` is set.
