@@ -202,6 +202,8 @@ for (const pg of PAGES)
     page,
   }) => {
     await empty(page);
+    // Up to ten URLs and an accessibility scan in one test.
+    test.setTimeout(90_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     const urls = pg.views
