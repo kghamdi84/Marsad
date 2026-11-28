@@ -123,11 +123,13 @@ Not added: separate Dividends, Analyst, Compare and Screener pages. The data is 
    - the alert 5 sessions before earnings, through the alert pipeline with its snapshot.
 6. **Later:** dividend comparison (price plus dividends), time-weighted portfolio result, screener on the summary table, Compare page, lazy chunks with a bundle budget.
 
-## Open questions for Khaled
+## Decisions delegated by Khaled (council round 2, 2026-11-28)
 
-1. Checklist-2 (his choice, ADR 0046) dropped checklist-1's "size comes from the stop" and "profit plan" items. The Sahm ticket can now be copied without a sizing or target check. Restore those two items?
-2. Confirm the 30% dividend withholding default (his broker's W-8BEN treatment).
-3. His portfolio limits: largest position, top-5 share, minimum cash and maximum beta. Marsad shows "Set your limit" until he does.
+Khaled asked the council to decide these and to spend no money.
+
+1. **Checklist-3** (risk coach, auditor; trader agreed on the items). Checklist-2's five items plus checklist-1's `riskDefined` ("size comes from the stop") and `profitPlan`, worded as in checklist-1, for new trades only; old trades keep their stored version (ADR 0046). `CURRENT_CHECKLIST` becomes `checklist-3`. "Copy Sahm ticket" stays blocked until every item is ticked (today's `checklistComplete` rule), and `riskDefined` can be ticked only when a stop is entered and the ticket's shares are at or below the sizer's result for that stop. The trader's proposal to drop `manualInSahm` (always true) was not taken: it is Khaled's checklist-2 wording, and removing an item is his call.
+2. **Dividend withholding: 30% default, editable** (unanimous). The US has no income tax treaty with Saudi Arabia (absent from the IRS list, https://www.irs.gov/businesses/international-businesses/united-states-income-tax-treaties-a-to-z), so US-source dividends to a nonresident are taxed at 30% (IRS Publication 515, https://www.irs.gov/publications/p515). Label: "US withholding, 30% (no US and Saudi treaty), editable; check your Sahm statement". Not verified: how Sahm applies it and any Saudi tax.
+3. **Portfolio limits** (trader and risk coach for values, auditor for blanks; ruling: values, set as Khaled's own). Because Khaled delegated the choice, the limits are stored as his, set by the council on 2026-11-28, versioned and editable, and labelled "Set by the council at your request on 28 Nov 2026; change any time". They are never presented as Marsad defaults for anyone else; a member starts with "No limit set". Values: largest single position 20% of equity, top-5 share 60%, minimum cash 10%, maximum portfolio beta 1.5, maximum total open risk 6% of equity (sum of distance to stop times shares; a holding with no stop counts as "risk unknown", never zero). A breach shows as text with the figures, never as a block or as advice. On today's book this flags top-5 (88%), cash (0%) and beta (2.6).
 
 ## Consequences
 
