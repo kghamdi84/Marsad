@@ -42,6 +42,14 @@ export const STUDY_CONCEPTS: Readonly<Record<string, readonly string[]>> = Objec
     'AvailableForSaleSecuritiesDebtSecuritiesCurrent',
     'LongTermDebtNoncurrent',
     'LongTermDebtCurrent',
+    // piotroski-1 (research center): the current ratio test.
+    'AssetsCurrent',
+    'LiabilitiesCurrent',
+    // financials-overview-1: EBITDA and the investing and financing cash flow lines.
+    'DepreciationDepletionAndAmortization',
+    'DepreciationAndAmortization',
+    'NetCashProvidedByUsedInInvestingActivities',
+    'NetCashProvidedByUsedInFinancingActivities',
   ],
   dei: ['EntityCommonStockSharesOutstanding'],
 });
