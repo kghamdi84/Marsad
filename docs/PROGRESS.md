@@ -3,10 +3,11 @@
 ## Current state (2026-11-28): every item that can be built on the current free plans is built and live. What is open waits on Khaled.
 
 - **Setup done 2026-11-28 (verified live):** the scheduler (Supabase Cron started ticker-summary at 11:25 UTC, GitHub accepted; 1.15), Web Push (test sent to 2 of 2 devices; 5.6), Telegram (test delivered; 5.7), Khaled's look at Regime (3.9). Run by hand the same day after the missed schedules: breadth through 27 Nov, Tauric research (11 of 15 tickers; MARA, HIMS, RGTI, BBAI not covered by Tauric), the nightly summary, FRED, regime and calendars.
-- **Still open, free:** the first live email (Monday's pre-market brief, 5.8 and 3.13), a breadth spot check against an outside source (3.3), and Khaled's holdings: none are entered in Marsad yet, so Portfolio, the earnings guard and exit alerts have nothing to watch (Portfolio, Holdings, or the Sahm CSV import).
+- **Done later on 2026-11-28:** Khaled's holdings entered (9 positions); breadth checked like for like against published S&P 500 breadth (3.3: 53.37% against 53.47% on 24 Nov, 54.81% against 53.08% on 25 Nov) after ETF holdings were matched through OpenFIGI (etf-3: 496 of SPY's 503 common stocks, FIGIs stored); feed-down and halt alerts delivered by push and Telegram (5.11, 5.14). Fixes from the Gemini hand-off screenshots: beta limit by size, unscored alerts off the scorecard, a missing full stop.
+- **Email live 2026-11-28:** the weekly review went out by email (Resend), push (2 devices) and Telegram (5.8, 3.13). Still open, free: Khaled's stops and exit rules for his holdings (his decisions), and his choice on restoring the second sign-in factor (ADR 0039).
 - **Paid, declined for now:** Massive Stocks plan with Supabase Pro (5.1 to 5.3, then 5.4, 5.10, 5.13 live), Massive options (6.x, 7.1 marks), Anthropic key with cost caps (2.9, 2.10, 7.8, 8.1), real-time (9.1).
 
-Last updated 2026-11-28 (pages on the nightly summary, Screener, dividend comparison, actual portfolio result, lazy Study views and a bundle budget; before that the Markets and Portfolio pages and the earnings guard).
+Last updated 2026-11-28 (live setup checks, OpenFIGI matching, breadth checked; pages on the nightly summary, Screener, dividend comparison, actual portfolio result, lazy Study views and a bundle budget; before that the Markets and Portfolio pages and the earnings guard).
 
 ### Pages on the nightly summary, Screener, dividend comparison, actual result, bundle budget (2026-11-28, ADR 0048 batches 4 and 6, ADR 0053)
 
