@@ -502,8 +502,8 @@
         {
           "id": "5.1",
           "title": "Prerequisite: Khaled confirms Massive Stocks plan (and Indices if chosen) and upgrades Supabase to Pro",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Massive half done 2026-11-28: Khaled subscribed to Stocks Starter (USD 29 a month: unlimited calls, 5 years of history, 15-minute delayed data, snapshots, minute and second aggregates over WebSockets; no trades or quotes; real-time is Advanced only). The existing MASSIVE_API_KEY needs no change: a snapshot call answered and Massive daily bars run 46163647141 stored 17,604 rows for 36 tickers (latest session 2026-11-27). Feeds from this plan are labelled delayed, never live. Supabase Pro not upgraded (needs Khaled's approval); Indices not chosen."
         },
         {
           "id": "5.2",
@@ -514,8 +514,8 @@
         {
           "id": "5.2b",
           "title": "Confirm Supabase platform bundling of the first real Edge Function (ADR 0004): add SUPABASE_ACCESS_TOKEN, run deploy-functions.yml, call the function",
-          "status": "todo",
-          "evidence": ""
+          "status": "done",
+          "evidence": "2026-11-28: Khaled added SUPABASE_ACCESS_TOKEN (project-scoped, Edge Functions read-write). Deploy Edge Functions run 46163551675 type-checked the function under Deno, bundled it with the shared core and deployed `ask` with the Supabase CLI (two earlier runs failed on our own workflow bugs: the pnpm cache step, then the missing --yes). A call to https://<project>.supabase.co/functions/v1/ask without a login returned 401 UNAUTHORIZED_NO_AUTH_HEADER and an OPTIONS call returned 204, so the function is live and gated. A signed-in Ask answer is not yet tested (it spends Anthropic credit); see 8.1."
         },
         {
           "id": "5.3",
