@@ -1207,6 +1207,76 @@ test('thesis card: a draft that fell back to the template is not offered, and sa
   await expect(card.getByRole('button', { name: 'Start from this draft' })).toHaveCount(0);
 });
 
+test('filing summary: the verified AI summary with its label, model, date and linked sources (2.9)', async ({
+  page,
+}) => {
+  await setup(page);
+  const summary =
+    'Revenue was $46.74B in the quarter ended 2026-07-26 [F3]. The 10-Q reports no material change to the risk factors [D1].';
+  let rows: Json[] = [];
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, r.request().url().includes('kind=eq.filing-summary') ? rows : []),
+  );
+  await page.goto('/study/NVDA');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Filing summary' });
+  // Before the first run: unavailable, said plainly.
+  await expect(panel).toContainText(
+    'No filing summary yet. Summaries are written each weekday night once the Anthropic key is added.',
+  );
+  rows = [aiRow('filing-summary', { text: summary, citations: CITES })];
+  await page.reload();
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  await expect(panel).toContainText('AI summary (Claude), checked against the filing figures');
+  await expect(panel).toContainText(summary);
+  await expect(panel).toContainText(
+    'As of 2026-11-25 · Claude Sonnet 5.5 Newest filing cited: 2026-08-27.',
+  );
+  await panel.getByText('Sources cited (2)').click();
+  const sources = panel.getByRole('list', { name: 'Filing summary' });
+  await expect(sources).toContainText('[F3] Revenue, quarter ended 2026-07-26');
+  await expect(sources).toContainText(
+    'SEC 10-Q 0001045810-26-000101, Part II Item 1A, filed 2026-08-27',
+  );
+  await expect(sources.getByRole('link', { name: 'Filing on SEC' })).toHaveCount(2);
+  await expect(sources.getByRole('link', { name: 'Filing on SEC' }).first()).toHaveAttribute(
+    'href',
+    XBRL_URL,
+  );
+  await openInfo(panel);
+  await expect(panel.getByText(/Code checked every figure against those filings/)).toBeVisible();
+});
+
+test('filing summary: when the model could not be used, the figures themselves with the reason', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, [
+      aiRow('filing-summary', {
+        source: 'template',
+        fallback_reason: 'verification-failed',
+        served_model: null,
+        attempts: 2,
+        text: 'Revenue, quarter ended 2026-07-26: $46.74B [F3].\n10-Q (quarterly report) filed on: 2026-08-27 [D1].',
+        citations: CITES,
+      }),
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Figures from the filings' });
+  await expect(panel).toContainText(
+    'No AI summary for these filings: its figures did not match the filings, twice. The figures below come straight from the filings.',
+  );
+  await expect(panel.getByRole('listitem').first()).toHaveText(
+    'Revenue, quarter ended 2026-07-26: $46.74B [F3].',
+  );
+  await expect(
+    panel.getByText('AI summary (Claude), checked against the filing figures'),
+  ).toHaveCount(0);
+});
+
 test('Shariah screening aid: off by default; when on, ratios from the filings with every caveat', async ({
   page,
 }) => {

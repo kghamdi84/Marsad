@@ -381,60 +381,62 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
   await expect(form).toContainText('Limits must be above 0% and below 100%.');
 });
 
-test('costs: every plan at USD 0, AI off until caps are set, then spend against the caps with a warning', async ({
+test('costs: every plan at USD 0, AI spend against the approved caps, lowered by a saved cap, with a warning', async ({
   page,
 }) => {
   await seedSession(page, 'aal2');
+  // A fixed day, so "today" and "this month" (UTC) are known.
+  await page.clock.setFixedTime(new Date('2026-11-26T12:00:00Z'));
   const json = (body: unknown) => ({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(body),
   });
-  const month = new Date().toISOString().slice(0, 7);
   let caps: unknown[] = [];
   await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
   await page.route('**/rest/v1/user_settings**', (r) => r.fulfill(json(caps)));
+  // USD 0.42 today and USD 3.60 earlier this month: USD 4.02 this month.
   await page.route('**/rest/v1/ai_usage**', (r) =>
     r.fulfill(
       json([
-        { created_at: `${month}-01T08:00:00Z`, model: 'claude-sonnet-5-5', usd: 4.2 },
-        { created_at: `${month}-01T09:00:00Z`, model: 'claude-haiku-5-5', usd: 0.3 },
+        { created_at: '2026-11-26T08:00:00Z', model: 'claude-sonnet-5-5', usd: 0.42 },
+        { created_at: '2026-11-03T09:00:00Z', model: 'claude-opus-5-5', usd: 3.6 },
       ]),
     ),
   );
   await page.route('**/rest/v1/job_runs**', (r) =>
     r.fulfill(
       json([
-        { started_at: `${month}-01T10:00:00Z`, latency_ms: 90_000, job: 'x', status: 'ok' },
-        { started_at: `${month}-01T11:00:00Z`, latency_ms: 2_000, job: 'x', status: 'ok' },
+        { started_at: '2026-11-26T10:00:00Z', latency_ms: 90_000, job: 'x', status: 'ok' },
+        { started_at: '2026-11-26T11:00:00Z', latency_ms: 2_000, job: 'x', status: 'ok' },
       ]),
     ),
   );
   await page.goto('/status');
   const now = page.getByRole('region', { name: 'Now', exact: true });
-  await expect(now).toContainText('Plans $0.00 a month \u00B7 AI off (no caps set)');
+  // No cap saved: Khaled's approved caps (USD 1 a day, USD 10 a month, ADR 0007) are in force.
+  await expect(now).toContainText('Plans $0.00 a month · AI $4.02 so far');
   await page
     .getByRole('group', { name: 'Status details' })
     .getByRole('button', { name: 'Costs' })
     .click();
   await expect(page.getByRole('listitem').filter({ hasText: 'Supabase' })).toContainText('$0.00');
-  await expect(
-    page.getByText('AI is off: set daily and monthly caps in Settings to turn it on'),
-  ).toBeVisible();
+  await expect(page.getByText(/today \$0\.42 · month \$4\.02 · 2 calls/)).toBeVisible();
+  await expect(page.getByText('AI spend within caps (daily 42%, monthly 40.2%).')).toBeVisible();
   // 90 s rounds up to 2 minutes, 2 s to 1: at least 3 minutes over 2 runs.
   await expect(page.getByText('About 3 minutes', { exact: true })).toBeVisible();
   await expect(page.getByText(/^2 runs this month/)).toBeVisible();
 
-  caps = [{ ai_daily_cap_usd: 100, ai_monthly_cap_usd: 5, shariah_screen: false }];
+  // A lower daily cap saved in Settings lowers it; a higher monthly one is ignored (still USD 10).
+  caps = [{ ai_daily_cap_usd: 0.5, ai_monthly_cap_usd: 100, shariah_screen: false }];
   await page.reload();
-  // The switch is remembered: Costs again after the reload.
-  await expect(now).toContainText('AI $4.50 so far');
-  // USD 4.50 of a USD 5 monthly cap is 90%: a warning.
-  await expect(page.getByText(/month \$4\.50 \u00B7 2 calls/)).toBeVisible();
-  await expect(page.getByText('AI spend at 90% of a cap (daily')).toBeVisible();
-  // The monthly bar shows the same 90% against its 80% warning tick.
-  await expect(page.getByText('AI this month against the monthly cap')).toBeVisible();
-  await expect(page.getByText('90% of the cap')).toBeVisible();
+  // The switch is remembered: Costs again after the reload. USD 0.42 of USD 0.50 is 84%: a warning.
+  await expect(
+    page.getByText('AI spend at 84% of a cap (daily 84%, monthly 40.2%).'),
+  ).toBeVisible();
+  // The daily bar shows the same 84% against its 80% warning tick.
+  await expect(page.getByText('AI today against the daily cap')).toBeVisible();
+  await expect(page.getByText('84% of the cap')).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Main sections' })
     .getByRole('link', { name: 'Settings' })
@@ -443,6 +445,7 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
     .getByRole('group', { name: 'Settings sections' })
     .getByRole('button', { name: 'Limits, Shariah and AI caps' })
     .click();
+  await expect(page.getByText('In force: $0.50 a day, $10.00 a month')).toBeVisible();
   // A settings row without stored limits falls back to the defaults, never "NaN".
   const prefs = page.getByRole('form', { name: 'Shariah screening aid' });
   await expect(prefs.getByLabel('Debt limit (%)')).toHaveValue('33');

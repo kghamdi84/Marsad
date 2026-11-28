@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { aiSpend, toFixedHalfUp } from '@marsad/core';
+import { aiSpend, effectiveCaps, toFixedHalfUp } from '@marsad/core';
 import { downloadExport, listExports } from '../lib/exports';
 import { loadPreferences, savePreferences, type Preferences as Prefs } from '../lib/settings';
 import { loadQuoteView, saveQuoteSource, type QuoteSource } from '../lib/quotes';
@@ -293,14 +293,9 @@ function PreferenceForms({ initial }: { initial: Prefs }) {
   const pct = (v: number) => String(Math.round(v * 1000) / 10);
   const setS = (patch: Partial<Prefs['shariah']>) => setSh({ ...sh, ...patch });
   const cap = (v: string) => (v.trim() === '' ? null : Number(v));
-  const aiOff = saved.ai.dailyUsd === null || saved.ai.monthlyUsd === null;
-  const month = costs.data
-    ? aiSpend(
-        costs.data.usage,
-        new Date(),
-        aiOff ? null : { dailyUsd: saved.ai.dailyUsd ?? 0, monthlyUsd: saved.ai.monthlyUsd ?? 0 },
-      ).monthUsd
-    : null;
+  // The caps in force: Khaled's approved caps (ADR 0007), lowered by any saved here.
+  const inForce = effectiveCaps(saved.ai);
+  const month = costs.data ? aiSpend(costs.data.usage, new Date(), inForce).monthUsd : null;
   const submit =
     'min-h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-ink disabled:opacity-50';
   return (
@@ -427,7 +422,9 @@ function PreferenceForms({ initial }: { initial: Prefs }) {
           <h2 id="set-ai" className="text-base font-semibold text-ink">
             {s.ai.title}
           </h2>
-          <Pill tone={aiOff ? 'warn' : 'up'}>{aiOff ? s.shariah.off : s.shariah.on}</Pill>
+          <Pill tone="neutral">
+            {s.ai.inForce(toFixedHalfUp(inForce.dailyUsd, 2), toFixedHalfUp(inForce.monthlyUsd, 2))}
+          </Pill>
         </div>
         <div className="flex flex-col">
           {(

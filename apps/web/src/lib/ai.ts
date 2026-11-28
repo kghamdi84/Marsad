@@ -95,5 +95,5 @@ export async function loadWeeklyAiReview(forDate: string): Promise<AiOutput | nu
 }
 
 /** True when the text may be shown as AI text: written by the model and passed by the verifier. */
-export const isVerifiedModelText = (o: AiOutput | null | undefined): o is AiOutput =>
+export const isVerifiedModelText = (o: AiOutput | null | undefined): boolean =>
   !!o && o.source === 'model' && o.verified;

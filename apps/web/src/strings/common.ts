@@ -15,6 +15,7 @@ export const common = {
     filed: (date: string) => `filed ${date}`,
     openFiling: 'Filing on SEC',
     asOf: (date: string, model: string) => `As of ${date} · ${model}`,
+    newest: (date: string) => `Newest filing cited: ${date}.`,
     models: {
       'claude-sonnet-5-5': 'Claude Sonnet 5.5',
       'claude-opus-5-5': 'Claude Opus 5.5',

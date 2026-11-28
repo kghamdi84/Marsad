@@ -116,7 +116,7 @@ export function WeeklyReview() {
           ))}
         </div>
       ))}
-      {isVerifiedModelText(prose.data) && (
+      {prose.data && isVerifiedModelText(prose.data) && (
         <section aria-labelledby="weekly-review-ai" className="flex flex-col gap-1.5">
           <h3 id="weekly-review-ai" className="flex flex-wrap items-center gap-2 text-xs text-ink3">
             {x.aiTitle} <Pill tone="neutral">{x.aiLabel}</Pill>
