@@ -20,7 +20,12 @@ export function LineChart({
   format = (v: number) => toFixedHalfUp(v, 1),
 }: {
   label: string;
-  series: readonly { name: string; values: readonly (number | null)[]; className: string; dashed?: boolean }[];
+  series: readonly {
+    name: string;
+    values: readonly (number | null)[];
+    className: string;
+    dashed?: boolean;
+  }[];
   height?: number;
   zero?: boolean;
   format?: (v: number) => string;
@@ -40,7 +45,15 @@ export function LineChart({
   return (
     <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${height}`} className="h-auto w-full">
       {zero && (
-        <line x1={left} x2={right} y1={y(0)} y2={y(0)} className="text-line-strong" stroke="currentColor" strokeWidth={1} />
+        <line
+          x1={left}
+          x2={right}
+          y1={y(0)}
+          y2={y(0)}
+          className="text-line-strong"
+          stroke="currentColor"
+          strokeWidth={1}
+        />
       )}
       {series.map((s) => {
         let d = '';
@@ -100,7 +113,15 @@ export function TargetChart({
   const d = closes.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(c).toFixed(1)}`).join(' ');
   return (
     <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
-      <line x1={histEnd} x2={histEnd} y1={8} y2={H - 8} className="text-line" stroke="currentColor" strokeDasharray="2 4" />
+      <line
+        x1={histEnd}
+        x2={histEnd}
+        y1={8}
+        y2={H - 8}
+        className="text-line"
+        stroke="currentColor"
+        strokeDasharray="2 4"
+      />
       <path d={d} fill="none" stroke="currentColor" strokeWidth={2} className="text-ink2" />
       {targets.map((t) => (
         <g key={t.name} className={t.className}>
@@ -150,7 +171,9 @@ export function BarChart({
   format?: (v: number) => string;
 }) {
   if (groups.length === 0) return null;
-  const totals = groups.map((g) => (stacked ? [g.values.reduce<number>((s, v) => s + (v ?? 0), 0)] : g.values.map((v) => v ?? 0)));
+  const totals = groups.map((g) =>
+    stacked ? [g.values.reduce<number>((s, v) => s + (v ?? 0), 0)] : g.values.map((v) => v ?? 0),
+  );
   const flat = totals.flat();
   const lo = Math.min(0, ...flat);
   const hi = Math.max(0, ...flat);
@@ -167,7 +190,14 @@ export function BarChart({
   return (
     <figure className="flex flex-col gap-1">
       <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${height}`} className="h-auto w-full">
-        <line x1={left} x2={right} y1={y(0)} y2={y(0)} className="text-line-strong" stroke="currentColor" />
+        <line
+          x1={left}
+          x2={right}
+          y1={y(0)}
+          y2={y(0)}
+          className="text-line-strong"
+          stroke="currentColor"
+        />
         {groups.map((g, gi) => {
           const x0 = left + gi * slot + (slot - (stacked ? barW : barW * series.length)) / 2;
           let acc = 0;
@@ -195,7 +225,14 @@ export function BarChart({
                 );
               })}
               {gi % every === 0 && (
-                <text x={left + gi * slot + slot / 2} y={height - 6} fontSize={11} textAnchor="middle" className="text-ink3" fill="currentColor">
+                <text
+                  x={left + gi * slot + slot / 2}
+                  y={height - 6}
+                  fontSize={11}
+                  textAnchor="middle"
+                  className="text-ink3"
+                  fill="currentColor"
+                >
                   {g.label}
                 </text>
               )}
@@ -206,7 +243,11 @@ export function BarChart({
           <g className={line.className}>
             <path
               d={line.values
-                .map((v, i) => (v === null ? '' : `${i && line.values[i - 1] !== null ? 'L' : 'M'}${(left + i * slot + slot / 2).toFixed(1)} ${ly(v).toFixed(1)}`))
+                .map((v, i) =>
+                  v === null
+                    ? ''
+                    : `${i && line.values[i - 1] !== null ? 'L' : 'M'}${(left + i * slot + slot / 2).toFixed(1)} ${ly(v).toFixed(1)}`,
+                )
                 .join(' ')}
               fill="none"
               stroke="currentColor"
@@ -224,13 +265,19 @@ export function BarChart({
       <figcaption className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink3">
         {series.map((s) => (
           <span key={s.name} className="inline-flex items-center gap-1">
-            <span aria-hidden="true" className={`inline-block size-2.5 rounded-sm bg-current ${s.className}`} />
+            <span
+              aria-hidden="true"
+              className={`inline-block size-2.5 rounded-sm bg-current ${s.className}`}
+            />
             {s.name}
           </span>
         ))}
         {line && (
           <span className="inline-flex items-center gap-1">
-            <span aria-hidden="true" className={`inline-block h-0.5 w-3 bg-current ${line.className}`} />
+            <span
+              aria-hidden="true"
+              className={`inline-block h-0.5 w-3 bg-current ${line.className}`}
+            />
             {line.name}
           </span>
         )}

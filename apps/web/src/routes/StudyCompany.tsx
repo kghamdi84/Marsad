@@ -1,5 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
-import { Info } from '../components/Info';
+import { useMemo } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,16 +12,14 @@ import {
   summarizeBars,
   toFixedHalfUp,
   type BarSummary,
-  type ChartMarker,
   type EarningsEstimate,
   type EarningsMove,
 } from '@marsad/core';
-import type { ChartToggles } from '../components/PriceChart';
 import { useQuotePoll } from '../lib/refresh';
 import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { loadPreferences } from '../lib/settings';
 import { shariahAsOf } from '../lib/shariah';
-import { dayMonthYear, weekdayDayMonth } from '../lib/dates';
+import { weekdayDayMonth } from '../lib/dates';
 import { Dividends } from '../components/study/Dividends';
 import { Earnings } from '../components/study/Earnings';
 import { Financials } from '../components/study/Financials';
@@ -36,7 +33,6 @@ import { ShariahAid } from '../components/study/ShariahAid';
 import { ShortData } from '../components/study/ShortData';
 import { CompanySearch } from '../components/study/CompanySearch';
 import { FilingsCard } from '../components/study/FilingsCard';
-import { markerLetter } from '../components/study/markers';
 import { filingEvents, formatUsd, loadStudy, type StudyData } from '../lib/study';
 import { CompanyBrief, type BriefTarget } from '../components/study/CompanyBrief';
 import {
@@ -48,20 +44,30 @@ import {
   loadShortData,
 } from '../lib/studyPanels';
 import { ThesisCard } from '../components/study/ThesisCard';
-import { ChevronRight, Lock } from 'lucide-react';
+import {
+  AnalystsSection,
+  DividendsResearch,
+  EarningsResearch,
+  FinancialsResearch,
+  NewsResearch,
+  OverviewFacts,
+  OverviewOpinion,
+  OwnershipResearch,
+  TechnicalsSection,
+} from '../components/study/research/Research';
+import { StudyChart } from '../components/study/StudyChart';
+import { HeldPosition } from '../components/study/HeldPosition';
+import { Lock } from 'lucide-react';
 import {
   Segmented,
   SkeletonCards,
   Tabs,
   cardClass,
   useRemembered,
-  useWide,
 } from '../components/Card';
 import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
 import { panelTitle, tileClass } from '../components/study/Panel';
 import { t } from '../strings';
-
-const PriceChart = lazy(() => import('../components/PriceChart'));
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -174,27 +180,26 @@ function Header({ ticker, data, s }: { ticker: string; data: StudyData; s: BarSu
   );
 }
 
-const RANGES = ['3m', '6m', '1y'] as const;
-type Range = (typeof RANGES)[number];
-const RANGE_SESSIONS: Record<Range, number> = { '3m': 63, '6m': 126, '1y': 252 };
-
 const SECTIONS = [
   'overview',
-  'news',
-  'filings',
+  'analysts',
   'financials',
   'earnings',
-  'holders',
-  'risk',
-  'shariah',
-  'short',
+  'technicals',
   'dividends',
+  'ownership',
+  'news',
+  'filings',
+  'shariah',
 ] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
 const RISK_MODES = ['yoy', 'qoq'] as const;
 
-/** Tablet and desktop: one section at a time behind accessible tabs, in the company details card. */
+/**
+ * One view at a time behind accessible tabs (ADR 0048). The tab row wraps, so on phones it is a chip row like
+ * Journal's; the choice is remembered on the device.
+ */
 function SectionTabs({
   value,
   onChange,
@@ -216,125 +221,6 @@ function SectionTabs({
         {render(value)}
       </Tabs>
     </section>
-  );
-}
-
-/** Phones: every section as a collapsible block, the overview open first; closed ones load nothing. */
-function SectionAccordions({
-  render,
-  open,
-  setOpen,
-}: {
-  render: (k: SectionKey) => React.ReactNode;
-  /** Which blocks are open; the page owns it so a company brief link can open one. */
-  open: Record<string, boolean>;
-  setOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-}) {
-  return (
-    <section aria-label={ui.details} className="flex flex-col gap-3">
-      {SECTIONS.map((k) => (
-        <details
-          key={k}
-          open={!!open[k]}
-          onToggle={(e) => {
-            const isOpen = (e.currentTarget as HTMLDetailsElement).open;
-            setOpen((o) => (o[k] === isOpen ? o : { ...o, [k]: isOpen }));
-          }}
-          className="group rounded-xl border border-line bg-surface"
-        >
-          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-[0.9375rem] font-semibold text-ink select-none">
-            {ui.sectionNames[k]}
-            <ChevronRight
-              aria-hidden="true"
-              size={18}
-              className="text-ink3 transition-transform group-open:rotate-90 motion-reduce:transition-none rtl:rotate-180"
-            />
-          </summary>
-          {open[k] && <div className="flex flex-col gap-3 p-3 pt-0">{render(k)}</div>}
-        </details>
-      ))}
-    </section>
-  );
-}
-
-const defaultToggles: ChartToggles = {
-  sma50: true,
-  sma200: true,
-  ema20: false,
-  rsi: false,
-  volume: true,
-};
-
-/** The indicator toggles, remembered in this browser only (storage may be blocked, so every access is guarded). */
-function useStoredToggles() {
-  const key = 'marsad.study.toggles';
-  const [v, setV] = useState<ChartToggles>(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      const parsed = raw ? (JSON.parse(raw) as Partial<ChartToggles>) : {};
-      const out = { ...defaultToggles };
-      for (const k of Object.keys(out) as (keyof ChartToggles)[])
-        if (typeof parsed[k] === 'boolean') out[k] = parsed[k];
-      return out;
-    } catch {
-      return defaultToggles;
-    }
-  });
-  const set = (next: ChartToggles) => {
-    setV(next);
-    try {
-      localStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // Not remembered; the choice still applies to this visit.
-    }
-  };
-  return [v, set] as const;
-}
-
-/** One marker in words: "2026-11-23: 8-K: Executive or director change (High)". */
-const markerText = (m: ChartMarker) =>
-  `${m.date}: ${m.label}${m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}`;
-
-/** The detail line for the picked session: each marker on it, with the next-session move for results. */
-function MarkerDetail({
-  markers,
-  date,
-  moves,
-}: {
-  markers: readonly ChartMarker[];
-  date: string | null;
-  moves: ReadonlyMap<string, EarningsMove>;
-}) {
-  const on = date ? markers.filter((m) => m.date === date) : [];
-  return (
-    <p aria-live="polite" className="text-xs text-ink2">
-      {on.length === 0
-        ? markers.length === 0
-          ? t.study.noMarkers
-          : ui.markerPrompt
-        : on.map((m, i) => {
-            const move = m.results ? moves.get(m.date) : undefined;
-            return (
-              <span key={`${m.label}-${i}`} className="block">
-                <span className="font-semibold text-ink">{markerLetter(m)}</span>
-                {' · '}
-                <Num>{dayMonthYear(m.date)}</Num>
-                {' · '}
-                {m.label}
-                {m.materiality ? ` (${t.study.materiality[m.materiality]})` : ''}
-                {move && (
-                  <>
-                    {' · '}
-                    <span className={move.pct > 0 ? 'text-up' : move.pct < 0 ? 'text-down' : ''}>
-                      <Num>{ui.nextSession(signedPct(move.pct, 1))}</Num>
-                    </span>
-                    {move.large ? ` (${ui.largeMove})` : ''}
-                  </>
-                )}
-              </span>
-            );
-          })}
-    </p>
   );
 }
 
@@ -489,21 +375,15 @@ function Snapshot({
 export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
-  const [toggles, setToggles] = useStoredToggles();
-  const [range, setRange] = useRemembered<Range>('marsad.study.range', RANGES, '1y');
   const [section, setSection] = useRemembered<SectionKey>(
     'marsad.study.section',
     SECTIONS,
     'overview',
   );
   const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
-  const [picked, setPicked] = useState<string | null>(null);
-  const [phoneOpen, setPhoneOpen] = useState<Record<string, boolean>>({ overview: true });
-  const wide = useWide();
-  // A brief block's link: choose that section (open it on phones) and bring the area into view.
+  // A brief block's link: choose that view and bring the area into view.
   const openSection = (k: BriefTarget) => {
     setSection(k);
-    setPhoneOpen((o) => (o[k] ? o : { ...o, [k]: true }));
     requestAnimationFrame(() =>
       document.getElementById('study-area')?.scrollIntoView({ block: 'start' }),
     );
@@ -604,23 +484,6 @@ export function StudyCompany() {
       </p>
     );
 
-  // The picked session, or the newest marker until one is picked.
-  const shownDate = picked ?? markers.at(-1)?.date ?? null;
-
-  const chip = (k: keyof ChartToggles, label: string) => (
-    <button
-      key={k}
-      type="button"
-      aria-pressed={toggles[k]}
-      onClick={() => setToggles({ ...toggles, [k]: !toggles[k] })}
-      className={`min-h-9 rounded-lg border px-2.5 text-xs font-semibold whitespace-nowrap pointer-coarse:min-h-11 ${
-        toggles[k] ? 'border-line-strong bg-elev text-ink' : 'border-line text-ink3'
-      }`}
-    >
-      {label}
-    </button>
-  );
-
   const render = (k: SectionKey): React.ReactNode => {
     if (!q.data) return null;
     const cikOf = q.data.company?.cik;
@@ -628,10 +491,22 @@ export function StudyCompany() {
       case 'overview':
         return (
           <>
+            <CompanyBrief
+              data={q.data}
+              earnings={earningsEstimate}
+              results={results}
+              insiders={insiders}
+              events={events}
+              dividends={dividends}
+              onOpen={openSection}
+            />
+            <OverviewFacts data={q.data} />
+            {cikOf && <Business cik={cikOf} />}
             <AutoGrid min={320} gap="gap-4">
               <ThesisCard ticker={q.data.ticker} />
-              {cikOf && <Business cik={cikOf} />}
+              <HeldPosition ticker={q.data.ticker} />
             </AutoGrid>
+            <OverviewOpinion ticker={q.data.ticker} />
             <section aria-labelledby="more" className={tileClass}>
               <h2 id="more" className={panelTitle}>
                 {t.study.placeholdersTitle}
@@ -656,10 +531,34 @@ export function StudyCompany() {
             </section>
           </>
         );
+      case 'analysts':
+        return <AnalystsSection data={q.data} />;
       case 'news':
-        return <NewsPanel ticker={q.data.ticker} />;
+        return (
+          <>
+            <NewsPanel ticker={q.data.ticker} />
+            <NewsResearch data={q.data} />
+          </>
+        );
       case 'filings':
-        return <FilingsCard data={q.data} />;
+        return (
+          <>
+            <FilingsCard data={q.data} />
+            <Segmented
+              label={ui.riskToggle}
+              options={RISK_MODES.map((m) => ({ key: m, label: ui.riskModes[m] ?? m }))}
+              value={riskMode}
+              onChange={setRiskMode}
+            />
+            {cikOf &&
+              (riskMode === 'yoy' ? (
+                <RiskFactors cik={cikOf} />
+              ) : (
+                <QuarterlyRiskFactors cik={cikOf} />
+              ))}
+            {!cikOf && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
+          </>
+        );
       case 'financials':
         return (
           <>
@@ -667,6 +566,7 @@ export function StudyCompany() {
               <Snapshot ticker={ticker} cik={cikOf} s={summary} earnings={earningsEstimate} />
             )}
             {cikOf && <Financials cik={cikOf} bars={q.data.bars} />}
+            <FinancialsResearch data={q.data} />
           </>
         );
       case 'earnings':
@@ -697,48 +597,31 @@ export function StudyCompany() {
               <p className="text-[13px] text-ink2">{ui.impliedMissing}</p>
             </section>
             {cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}
+            <EarningsResearch data={q.data} estimate={earningsEstimate} />
           </>
         );
-      case 'holders':
+      case 'technicals':
+        return <TechnicalsSection data={q.data} />;
+      case 'ownership':
         return (
           <>
+            <OwnershipResearch ticker={q.data.ticker} />
             {cikOf && <Holders13F ticker={q.data.ticker} />}
             {cikOf && <Insiders cik={cikOf} />}
-          </>
-        );
-      case 'short':
-        return <ShortData ticker={q.data.ticker} />;
-      case 'risk':
-        return (
-          <>
-            <Segmented
-              label={ui.riskToggle}
-              options={RISK_MODES.map((m) => ({ key: m, label: ui.riskModes[m] ?? m }))}
-              value={riskMode}
-              onChange={setRiskMode}
-            />
-            {cikOf &&
-              (riskMode === 'yoy' ? (
-                <RiskFactors cik={cikOf} />
-              ) : (
-                <QuarterlyRiskFactors cik={cikOf} />
-              ))}
-            {!cikOf && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
+            <ShortData ticker={q.data.ticker} />
           </>
         );
       case 'dividends':
-        return <Dividends rows={dividends.data ?? []} />;
+        return (
+          <>
+            <Dividends rows={dividends.data ?? []} />
+            <DividendsResearch data={q.data} />
+          </>
+        );
       case 'shariah':
         return cikOf ? <ShariahAid cik={cikOf} bars={q.data.bars} /> : null;
     }
   };
-
-  const staleLine =
-    q.data && summary
-      ? q.data.lastCompletedDay && summary.asOf < q.data.lastCompletedDay
-        ? t.study.stale(summary.asOf, q.data.lastCompletedDay)
-        : t.study.current
-      : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -762,137 +645,16 @@ export function StudyCompany() {
       )}
 
       {q.data && <Header ticker={ticker} data={q.data} s={summary} />}
-      {q.data && (
-        <CompanyBrief
-          data={q.data}
-          earnings={earningsEstimate}
-          results={results}
-          insiders={insiders}
-          events={events}
-          dividends={dividends}
-          onOpen={openSection}
-        />
-      )}
       {q.data && !q.data.company && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
       {q.data && q.data.bars.length === 0 && <p className="text-sm text-ink3">{t.study.noBars}</p>}
 
       {q.data && summary && (
-        <>
-          <section aria-labelledby="chart-h" className={`${cardClass} gap-2.5`}>
-            <h2 id="chart-h" className="sr-only">
-              {t.study.chart}
-            </h2>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div role="group" aria-label={t.study.indicators} className="flex flex-wrap gap-1.5">
-                {chip('sma50', t.study.sma50)}
-                {chip('sma200', t.study.sma200)}
-                {chip('ema20', t.study.ema20)}
-                {chip(
-                  'rsi',
-                  ui.rsiChip(summary.rsi14 === null ? null : toFixedHalfUp(summary.rsi14, 1)),
-                )}
-                {chip('volume', t.study.volume)}
-              </div>
-              <Segmented
-                label={ui.chartRange}
-                options={RANGES.map((k) => ({ key: k, label: ui.ranges[k] ?? k }))}
-                value={range}
-                onChange={setRange}
-              />
-            </div>
-            <div
-              role="figure"
-              aria-label={t.study.chartLabel(ticker, summary.asOf)}
-              className="overflow-hidden rounded-[10px] bg-elev"
-            >
-              <Suspense fallback={<SkeletonCards heights={[wide ? '300px' : '240px']} />}>
-                <PriceChart
-                  bars={q.data.bars}
-                  markers={markers}
-                  toggles={toggles}
-                  height={wide ? 300 : 240}
-                  visibleSessions={RANGE_SESSIONS[range]}
-                  onPick={setPicked}
-                />
-              </Suspense>
-            </div>
-            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-              <MarkerDetail markers={markers} date={shownDate} moves={moves} />
-              <span className="text-xs text-ink3">
-                <Num>
-                  {ui.legend(
-                    t.study.range(summary.rangeSessions),
-                    usd(summary.low52w),
-                    usd(summary.high52w),
-                  )}
-                </Num>
-              </span>
-            </div>
-            <p className="text-xs text-ink2">
-              {ui.trendLine(
-                t.study.trendLabels[summary.trend],
-                summary.sma50 === null ? t.study.unavailable : usd(summary.sma50),
-                summary.sma200 === null ? t.study.unavailable : usd(summary.sma200),
-              )}
-            </p>
-            {markers.length > 0 && (
-              <details className="rounded-lg border border-line">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium text-ink2 select-none">
-                  {ui.markersAll(markers.length)}
-                </summary>
-                <div className="flex flex-col gap-2 border-t border-line p-3">
-                  <Info>{t.study.markersNote}</Info>
-                  <ul className="flex max-h-72 flex-col overflow-y-auto">
-                    {[...markers].reverse().map((m, i) => (
-                      <li key={`${m.date}-${m.label}-${i}`}>
-                        <button
-                          type="button"
-                          aria-pressed={shownDate === m.date}
-                          onClick={() => setPicked(m.date)}
-                          className="flex min-h-11 w-full items-center gap-3 border-b border-line py-1.5 text-start text-sm text-ink2"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`flex size-7 flex-none items-center justify-center rounded-full border bg-surface text-[11px] font-bold ${
-                              m.results || m.kind === 'high-8k'
-                                ? 'border-warn text-warn'
-                                : m.kind === 'alert'
-                                  ? 'border-up text-up'
-                                  : m.kind === 'halt'
-                                    ? 'border-crit text-crit'
-                                    : 'border-line-strong text-ink3'
-                            }`}
-                          >
-                            {markerLetter(m)}
-                          </span>
-                          <span>{markerText(m)}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </details>
-            )}
-            <p
-              className={staleLine === t.study.current ? 'text-xs text-ink3' : 'text-sm text-warn'}
-              role="status"
-            >
-              {staleLine}
-            </p>
-            <p className="text-xs text-ink3">
-              {t.study.provenance(summary.asOf, summary.sessions, summary.formulaVersion)}
-            </p>
-          </section>
-        </>
+        <StudyChart data={q.data} summary={summary} markers={markers} moves={moves} />
       )}
 
       {q.data && (
         <div id="study-area" className="scroll-mt-4">
-          {wide ? (
-            <SectionTabs value={section} onChange={setSection} render={render} />
-          ) : (
-            <SectionAccordions render={render} open={phoneOpen} setOpen={setPhoneOpen} />
-          )}
+          <SectionTabs value={section} onChange={setSection} render={render} />
         </div>
       )}
     </div>

@@ -14,8 +14,7 @@ export const money = (v: number, d = 2) =>
     maximumFractionDigits: d,
   })}`;
 /** "12.3%" with a minus sign for negatives. */
-export const pctText = (v: number, d = 1) =>
-  `${v < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(v), d)}%`;
+export const pctText = (v: number, d = 1) => `${v < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(v), d)}%`;
 /** "+12.3%", "−4.0%", "0.0%". */
 export const signedPctText = (v: number, d = 1) =>
   `${v > 0 ? '+' : v < 0 ? '−' : ''}${toFixedHalfUp(Math.abs(v), d)}%`;
@@ -42,7 +41,8 @@ export function Signed({ pct, d = 1 }: { pct: number; d?: number }) {
 
 /** Why a research part is missing, in words. */
 export function reasonText(reason: string): string {
-  if (reason.startsWith('malformed')) return R.reasons.malformed(reason.replace(/^malformed:?\s*/, ''));
+  if (reason.startsWith('malformed'))
+    return R.reasons.malformed(reason.replace(/^malformed:?\s*/, ''));
   return R.reasons.codes[reason] ?? R.reasons.other(reason);
 }
 

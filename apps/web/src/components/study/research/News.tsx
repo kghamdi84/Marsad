@@ -23,7 +23,7 @@ import { BarChart } from './charts';
 import { R, SourceLine, Tile, pctText } from './shared';
 
 const DAY = 86_400_000;
-const FILTERS = ['all', 'bullish', 'bearish'] as const;
+const FILTERS = ['all', 'positive', 'negative'] as const;
 type Filter = (typeof FILTERS)[number];
 const PAGE = 8;
 const TONE: Record<SentimentLabel, Tone> = { positive: 'up', neutral: 'neutral', negative: 'down' };
@@ -75,8 +75,7 @@ export function NewsView({ ticker, bars }: { ticker: string; bars: readonly Dail
   const rows = useMemo(() => {
     const all = mine.data?.rows ?? [];
     if (filter === 'all') return all;
-    const want = filter === 'bullish' ? 'positive' : 'negative';
-    return all.filter((a) => labelFor(a.sentiment, ticker) === want);
+    return all.filter((a) => labelFor(a.sentiment, ticker) === filter);
   }, [mine.data, filter, ticker]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
@@ -162,12 +161,24 @@ export function NewsView({ ticker, bars }: { ticker: string; bars: readonly Dail
               { name: x.labels.negative, className: 'text-down' },
               { name: x.labels.none, className: 'text-line-strong' },
             ]}
-            line={{ name: x.closeLine, values: s.coverage.map((w) => w.close), className: 'text-ink' }}
+            line={{
+              name: x.closeLine,
+              values: s.coverage.map((w) => w.close),
+              className: 'text-ink',
+            }}
             format={(v) => `$${toFixedHalfUp(v, 2)}`}
           />
         </Tile>
       )}
       <Tile id="rs-news" title={x.title}>
+        <p className="text-sm text-ink2">
+          <Num>
+            {x.publishers(
+              mine.data.rows.length,
+              new Set(mine.data.rows.map((a) => a.publisher)).size,
+            )}
+          </Num>
+        </p>
         <Segmented
           label={x.filter}
           options={FILTERS.map((f) => ({ key: f, label: x.filters[f] }))}
@@ -203,7 +214,9 @@ export function NewsView({ ticker, bars }: { ticker: string; bars: readonly Dail
                       {label ? x.labels[label] : x.labels.none}
                     </Pill>
                     <span title={TIER_LABELS[cls.tier]}>
-                      <Pill tone={cls.tier <= 2 ? 'neutral' : 'warn'}>{t.study.news.tier(cls.tier)}</Pill>
+                      <Pill tone={cls.tier <= 2 ? 'neutral' : 'warn'}>
+                        {t.study.news.tier(cls.tier)}
+                      </Pill>
                     </span>
                     <span>{cls.opinion ? t.study.news.opinion : t.study.news.reporting}</span>
                     <span>{a.publisher}</span>

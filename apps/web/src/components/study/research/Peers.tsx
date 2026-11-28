@@ -5,7 +5,19 @@ import { Num } from '../../ui/kit';
 import { formatUsd } from '../../../lib/study';
 import { loadPeers, type Part } from '../../../lib/research';
 import { t } from '../../../strings';
-import { R, Signed, SourceLine, Tile, Unavailable, pctText, plain, td, tdEnd, th, thEnd } from './shared';
+import {
+  R,
+  Signed,
+  SourceLine,
+  Tile,
+  Unavailable,
+  pctText,
+  plain,
+  td,
+  tdEnd,
+  th,
+  thEnd,
+} from './shared';
 
 function Row({
   ticker,
@@ -36,8 +48,12 @@ function Row({
       </th>
       <td className={tdEnd}>{p?.market_cap == null ? R.na : formatUsd(p.market_cap)}</td>
       <td className={tdEnd}>{p?.pe_ratio == null ? R.na : plain(p.pe_ratio, 1)}</td>
-      <td className={tdEnd}>{p?.revenue_growth == null ? R.na : pctText(p.revenue_growth * 100, 1)}</td>
-      <td className={tdEnd}>{p?.profit_margin == null ? R.na : pctText(p.profit_margin * 100, 1)}</td>
+      <td className={tdEnd}>
+        {p?.revenue_growth == null ? R.na : pctText(p.revenue_growth * 100, 1)}
+      </td>
+      <td className={tdEnd}>
+        {p?.profit_margin == null ? R.na : pctText(p.profit_margin * 100, 1)}
+      </td>
       <td className={tdEnd}>{y1 === null ? R.na : <Signed pct={y1} />}</td>
     </tr>
   );
@@ -78,7 +94,9 @@ export function PeersView({
       ) : (
         <>
           <p className="text-xs text-ink3">
-            {x.basis(q.data.basis === 'sub_industry' ? (p?.sub_industry ?? '') : (p?.industry ?? ''))}
+            {x.basis(
+              q.data.basis === 'sub_industry' ? (p?.sub_industry ?? '') : (p?.industry ?? ''),
+            )}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">

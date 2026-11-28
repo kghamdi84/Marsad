@@ -233,7 +233,10 @@ export async function loadNewsWindow(
 /** Every stored article since a time, for the comparison across Marsad's stored tickers (up to 1,000). */
 export async function loadAllNewsSince(
   sinceIso: string,
-): Promise<{ rows: { publishedAt: string; sentiment: { ticker: string; label: string }[] }[]; capped: boolean }> {
+): Promise<{
+  rows: { publishedAt: string; sentiment: { ticker: string; label: string }[] }[];
+  capped: boolean;
+}> {
   const LIMIT = 1000;
   const rows = check(
     await client()
@@ -251,4 +254,51 @@ export async function loadAllNewsSince(
       sentiment: sentimentOf(r['sentiment']),
     })),
   };
+}
+
+export interface AnalystDay {
+  asOf: string;
+  recommendation: string | null;
+  strongBuy: number | null;
+  buy: number | null;
+  hold: number | null;
+  sell: number | null;
+  strongSell: number | null;
+  analysts: number | null;
+  targetMean: number | null;
+}
+
+/** The stored daily analyst snapshots for a ticker (one a UTC day), oldest first. */
+export async function loadAnalystHistory(ticker: string): Promise<AnalystDay[]> {
+  const rows = check(
+    await client()
+      .from('analyst_history')
+      .select(
+        'as_of, recommendation, strong_buy, buy, hold, sell, strong_sell, number_of_analysts, target_mean',
+      )
+      .eq('ticker', ticker)
+      .order('as_of', { ascending: false })
+      .limit(400),
+    'analyst_history',
+  ) as Obj[];
+  return rows
+    .flatMap((r) => {
+      const asOf = str(r['as_of']);
+      if (!asOf) return [];
+      const mean = num(r['target_mean']);
+      return [
+        {
+          asOf,
+          recommendation: str(r['recommendation']),
+          strongBuy: count(r['strong_buy']),
+          buy: count(r['buy']),
+          hold: count(r['hold']),
+          sell: count(r['sell']),
+          strongSell: count(r['strong_sell']),
+          analysts: count(r['number_of_analysts']),
+          targetMean: mean !== null && mean > 0 ? mean : null,
+        },
+      ];
+    })
+    .reverse();
 }

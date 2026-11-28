@@ -2,18 +2,14 @@ import { useMemo } from 'react';
 import {
   EPS_HISTORY_VERSION,
   adjustedAmount,
-  buildEarningsHistory,
   epsYearOnYear,
   etDate,
   pointInTime,
   preferConcepts,
   quarterlyValues,
-  summarizeFinancials,
-  type DailyBar,
   type EarningsEstimate,
   type EarningsFiling,
   type FinancialFact,
-  type SplitEvent,
   type StoredDividend,
   type TauricCalendar,
   type TauricThesis,
@@ -22,19 +18,7 @@ import { Num } from '../../ui/kit';
 import { dayMonthYear } from '../../../lib/dates';
 import type { Part } from '../../../lib/research';
 import { BarChart } from './charts';
-import {
-  Fold,
-  R,
-  Signed,
-  SourceLine,
-  Tile,
-  money,
-  reasonText,
-  td,
-  tdEnd,
-  th,
-  thEnd,
-} from './shared';
+import { R, Signed, SourceLine, Tile, money, reasonText, td, tdEnd, th, thEnd } from './shared';
 
 interface Dated {
   date: string | null;
@@ -47,26 +31,20 @@ const secFolder = (cik: string, accession: string) =>
 
 export function EarningsView({
   cik,
-  bars,
-  splits,
   facts,
   filings,
   estimate,
   thesis,
   calendar,
   dividends,
-  onOpenEarnings,
 }: {
   cik: string | undefined;
-  bars: readonly DailyBar[];
-  splits: readonly SplitEvent[];
   facts: readonly FinancialFact[] | null;
   filings: readonly EarningsFiling[] | null;
   estimate: EarningsEstimate | null | undefined;
   thesis: Part<TauricThesis>;
   calendar: Part<TauricCalendar>;
   dividends: readonly StoredDividend[] | null;
-  onOpenEarnings: () => void;
 }) {
   const x = R.earnings;
   const today = etDate(new Date());
@@ -75,19 +53,13 @@ export function EarningsView({
     const q = quarterlyValues(
       preferConcepts(pointInTime(facts, today), ['EarningsPerShareDiluted'], 'USD/shares'),
     );
-    return epsYearOnYear(q.map((p) => ({ end: p.end, value: p.value, derived: p.derived, filed: p.filed })));
+    return epsYearOnYear(
+      q.map((p) => ({ end: p.end, value: p.value, derived: p.derived, filed: p.filed })),
+    );
   }, [facts, today]);
-  const history = useMemo(
-    () =>
-      facts && filings
-        ? buildEarningsHistory({
-            quarters: summarizeFinancials(facts, today).quarters,
-            filings,
-            bars,
-            splits,
-          })
-        : null,
-    [facts, filings, bars, splits, today],
+  const releases = useMemo(
+    () => [...(filings ?? [])].sort((a, b) => b.filingDate.localeCompare(a.filingDate)).slice(0, 8),
+    [filings],
   );
   const cal = calendar.ok ? calendar.value : null;
   const events: Dated[] = useMemo(() => {
@@ -98,19 +70,23 @@ export function EarningsView({
     if (estimate) out.push({ date: estimate.date, kind: 'earnings', text: x.estimateEvent });
     if (cal?.earnings?.earnings_date)
       out.push({ date: cal.earnings.earnings_date, kind: 'tauric-earnings', text: x.tauricEvent });
-    const from = new Date(Date.parse(`${today}T00:00:00Z`) - 365 * 86_400_000).toISOString().slice(0, 10);
+    const from = new Date(Date.parse(`${today}T00:00:00Z`) - 365 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
     for (const d of dividends ?? [])
       if (d.exDividendDate >= from)
         out.push({
           date: d.exDividendDate,
           kind: 'dividend',
-          text: x.dividendEvent(money(adjustedAmount(d), 4), d.payDate ? dayMonthYear(d.payDate) : R.na),
+          text: x.dividendEvent(
+            money(adjustedAmount(d), 4),
+            d.payDate ? dayMonthYear(d.payDate) : R.na,
+          ),
         });
     return out.sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
   }, [thesis, estimate, cal, dividends, today, x]);
   const latestQ = eps?.at(-1);
   const rows = eps ? [...eps].slice(-8).reverse() : [];
-  const moves = history ? [...history.rows].reverse().filter((r) => r.release) : [];
   const estimateReason = !calendar.ok
     ? reasonText(calendar.reason)
     : cal?.earnings === null
@@ -126,7 +102,9 @@ export function EarningsView({
           <ul className="flex flex-col gap-1.5 text-sm text-ink2">
             {events.map((e, i) => (
               <li key={i} className="flex gap-3">
-                <Num className={`w-24 flex-none ${e.date && e.date >= today ? 'font-semibold text-ink' : 'text-ink3'}`}>
+                <Num
+                  className={`w-24 flex-none ${e.date && e.date >= today ? 'font-semibold text-ink' : 'text-ink3'}`}
+                >
                   {e.date ? dayMonthYear(e.date) : x.undated}
                 </Num>
                 <span>
@@ -188,7 +166,9 @@ export function EarningsView({
           <>
             <BarChart
               label={x.epsAria(rows.length)}
-              groups={[...rows].reverse().map((r) => ({ label: r.end.slice(2, 7), values: [r.value] }))}
+              groups={[...rows]
+                .reverse()
+                .map((r) => ({ label: r.end.slice(2, 7), values: [r.value] }))}
               series={[{ name: x.reported, className: 'text-link' }]}
               format={(v) => money(v)}
             />
@@ -214,9 +194,13 @@ export function EarningsView({
                         {r.value === null ? R.na : money(r.value)}
                         {r.derived && <span className="ms-1 text-xs text-ink3">{x.derived}</span>}
                       </td>
-                      <td className={tdEnd}>{r.prior?.value != null ? money(r.prior.value) : R.na}</td>
+                      <td className={tdEnd}>
+                        {r.prior?.value != null ? money(r.prior.value) : R.na}
+                      </td>
                       <td className={tdEnd}>{r.changeUsd === null ? R.na : money(r.changeUsd)}</td>
-                      <td className={tdEnd}>{r.changePct === null ? R.na : <Signed pct={r.changePct} />}</td>
+                      <td className={tdEnd}>
+                        {r.changePct === null ? R.na : <Signed pct={r.changePct} />}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -228,75 +212,32 @@ export function EarningsView({
         <SourceLine>{x.epsSource(EPS_HISTORY_VERSION)}</SourceLine>
       </Tile>
 
-      <Tile id="rs-moves" title={x.movesTitle}>
-        {!history ? (
+      <Tile id="rs-releases" title={x.releasesTitle}>
+        {!filings ? (
           <p className="text-sm text-ink3">{R.loading}</p>
-        ) : moves.length === 0 ? (
+        ) : releases.length === 0 || !cik ? (
           <p className="text-sm text-ink3">{x.noMoves}</p>
         ) : (
-          <Fold label={x.movesFold(moves.length)}>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <caption className="sr-only">{x.movesTitle}</caption>
-                <thead>
-                  <tr>
-                    <th className={th}>{x.cols.released}</th>
-                    <th className={thEnd}>{x.cols.before}</th>
-                    <th className={thEnd}>{x.cols.after}</th>
-                    <th className={thEnd}>{x.cols.move}</th>
-                    <th className={th}>{x.cols.release}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {moves.map((r) => (
-                    <tr key={r.release?.accession}>
-                      <td className={td}>
-                        <Num>{r.release ? dayMonthYear(r.release.date) : ''}</Num>
-                      </td>
-                      <td className={tdEnd}>
-                        {r.move ? (
-                          <Num>{`${money(r.move.baseClose)} (${dayMonthYear(r.move.baseDate)})`}</Num>
-                        ) : (
-                          R.na
-                        )}
-                      </td>
-                      <td className={tdEnd}>
-                        {r.move ? (
-                          <Num>{`${money(r.move.reactionClose)} (${dayMonthYear(r.move.reactionDate)})`}</Num>
-                        ) : (
-                          R.na
-                        )}
-                      </td>
-                      <td className={tdEnd}>{r.move ? <Signed pct={r.move.pct} /> : R.na}</td>
-                      <td className={td}>
-                        {cik && r.release ? (
-                          <a
-                            href={secFolder(cik, r.release.accession)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex min-h-11 items-center text-link underline underline-offset-4"
-                          >
-                            {x.pressRelease}
-                          </a>
-                        ) : (
-                          R.na
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Fold>
+          <ul className="flex flex-col text-sm">
+            {releases.map((f) => (
+              <li
+                key={f.accession}
+                className="flex items-center justify-between gap-3 border-b border-line last:border-b-0"
+              >
+                <Num className="text-ink2">{dayMonthYear(f.filingDate)}</Num>
+                <a
+                  href={secFolder(cik, f.accession)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center text-link underline underline-offset-4"
+                >
+                  {x.pressRelease}
+                </a>
+              </li>
+            ))}
+          </ul>
         )}
-        <button
-          type="button"
-          onClick={onOpenEarnings}
-          className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-link underline-offset-4 hover:underline"
-        >
-          {x.openEarnings}
-        </button>
-        <SourceLine>{x.movesSource(history?.formulaVersion ?? R.na)}</SourceLine>
+        <SourceLine>{x.releasesSource}</SourceLine>
       </Tile>
     </>
   );

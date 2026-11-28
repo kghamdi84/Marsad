@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { AnalystLine } from '../study/research/AnalystLine';
 import {
   describeEightK,
   exitSignals,
@@ -451,6 +452,9 @@ export function BriefSection({
               <span className="text-xs text-ink3">{x.brief.sentimentNote}</span>
             </span>
           )}
+        </Row>
+        <Row k={b.analysts}>
+          <AnalystLine ticker={brief.ticker} close={brief.performance.close} />
         </Row>
         <Row k={x.brief.latest}>
           {busy(q.reports) ? (

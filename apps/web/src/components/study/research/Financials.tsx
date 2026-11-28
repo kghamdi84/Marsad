@@ -72,7 +72,12 @@ function FScore({ facts }: { facts: readonly FinancialFact[] }) {
               items={r.tests
                 .filter((t) => t.group === g)
                 .map((t) => ({
-                  state: t.passed === null ? ('open' as const) : t.passed ? ('ok' as const) : ('no' as const),
+                  state:
+                    t.passed === null
+                      ? ('open' as const)
+                      : t.passed
+                        ? ('ok' as const)
+                        : ('no' as const),
                   label: (
                     <span>
                       <span className="sr-only">
@@ -82,9 +87,7 @@ function FScore({ facts }: { facts: readonly FinancialFact[] }) {
                     </span>
                   ),
                   note: (
-                    <Num>
-                      {t.passed === null ? x.missing(t.missing.join(', ')) : testValue(t)}
-                    </Num>
+                    <Num>{t.passed === null ? x.missing(t.missing.join(', ')) : testValue(t)}</Num>
                   ),
                 }))}
             />
@@ -96,7 +99,13 @@ function FScore({ facts }: { facts: readonly FinancialFact[] }) {
   );
 }
 
-function Overview({ facts, onOpen }: { facts: readonly FinancialFact[]; onOpen: () => void }) {
+function Overview({
+  facts,
+  onOpen,
+}: {
+  facts: readonly FinancialFact[];
+  onOpen?: (() => void) | undefined;
+}) {
   const x = R.fin;
   const [mode, setMode] = useState<OverviewMode>('annual');
   const today = etDate(new Date());
@@ -138,7 +147,11 @@ function Overview({ facts, onOpen }: { facts: readonly FinancialFact[]; onOpen: 
                   </th>
                   {cols.map((c) => (
                     <td key={c.end} className={tdEnd}>
-                      {c.values[k] === null ? <span className="text-ink3">{R.na}</span> : formatUsd(c.values[k])}
+                      {c.values[k] === null ? (
+                        <span className="text-ink3">{R.na}</span>
+                      ) : (
+                        formatUsd(c.values[k])
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -153,7 +166,10 @@ function Overview({ facts, onOpen }: { facts: readonly FinancialFact[]; onOpen: 
             label={x.chart1Aria(annual.columns.length)}
             groups={annual.columns.map((c) => ({
               label: c.end.slice(0, 4),
-              values: [c.values.revenue === null ? null : c.values.revenue / 1e9, c.values.netIncome === null ? null : c.values.netIncome / 1e9],
+              values: [
+                c.values.revenue === null ? null : c.values.revenue / 1e9,
+                c.values.netIncome === null ? null : c.values.netIncome / 1e9,
+              ],
             }))}
             series={[
               { name: x.revenueB, className: 'text-link' },
@@ -170,7 +186,10 @@ function Overview({ facts, onOpen }: { facts: readonly FinancialFact[]; onOpen: 
             label={x.chart2Aria(annual.columns.length)}
             groups={annual.columns.map((c) => ({
               label: c.end.slice(0, 4),
-              values: [c.values.totalAssets === null ? null : c.values.totalAssets / 1e9, c.values.totalLiabilities === null ? null : c.values.totalLiabilities / 1e9],
+              values: [
+                c.values.totalAssets === null ? null : c.values.totalAssets / 1e9,
+                c.values.totalLiabilities === null ? null : c.values.totalLiabilities / 1e9,
+              ],
             }))}
             series={[
               { name: x.assetsB, className: 'text-link' },
@@ -186,13 +205,15 @@ function Overview({ facts, onOpen }: { facts: readonly FinancialFact[]; onOpen: 
         </div>
       )}
       <p className="text-xs text-ink3">{x.oNote}</p>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-link underline-offset-4 hover:underline"
-      >
-        {x.openStatements}
-      </button>
+      {onOpen && (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-link underline-offset-4 hover:underline"
+        >
+          {x.openStatements}
+        </button>
+      )}
       <SourceLine>{x.oSource(o.formulaVersion, dayMonthYear(today))}</SourceLine>
     </Tile>
   );
@@ -207,10 +228,15 @@ export function FinancialsView({
   facts: readonly FinancialFact[] | null;
   factsError: string | null;
   hasCompany: boolean;
-  onOpenStatements: () => void;
+  onOpenStatements?: (() => void) | undefined;
 }) {
   if (!hasCompany) return <p className="text-sm text-ink3">{R.fin.noCompany}</p>;
-  if (factsError) return <p role="alert" className="text-sm text-crit">{factsError}</p>;
+  if (factsError)
+    return (
+      <p role="alert" className="text-sm text-crit">
+        {factsError}
+      </p>
+    );
   if (!facts) return <p className="text-sm text-ink3">{R.loading}</p>;
   return (
     <>

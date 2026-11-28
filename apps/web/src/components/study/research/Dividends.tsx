@@ -11,6 +11,7 @@ import {
   pointInTime,
   preferConcepts,
   quarterlyValues,
+  sessionReturn,
   trailingFourQuarters,
   type DailyBar,
   type DividendCalcPlan,
@@ -34,13 +35,15 @@ import {
   pctText,
   plain,
   saveText,
+  signedPctText,
   td,
   tdEnd,
   th,
   thEnd,
 } from './shared';
 
-const freqName = (n: number | null) => (n === null ? R.na : (R.dividends.freq[String(n)] ?? R.dividends.freqN(n)));
+const freqName = (n: number | null) =>
+  n === null ? R.na : (R.dividends.freq[String(n)] ?? R.dividends.freqN(n));
 
 export function DividendsView({
   ticker,
@@ -82,10 +85,17 @@ export function DividendsView({
         : null,
     [dividends, last, today, epsTtm],
   );
-  const word = analyst.ok && analyst.value.recommendation ? R.analyst.words[analyst.value.recommendation] : null;
+  const word =
+    analyst.ok && analyst.value.recommendation
+      ? R.analyst.words[analyst.value.recommendation]
+      : null;
   const vendorPayout = profile.ok ? profile.value.payout_ratio : null;
   if (dividendsError)
-    return <p role="alert" className="text-sm text-crit">{dividendsError}</p>;
+    return (
+      <p role="alert" className="text-sm text-crit">
+        {dividendsError}
+      </p>
+    );
   if (!s) return <p className="text-sm text-ink3">{R.loading}</p>;
   const n = s.next;
   const recent = s.annual.length ? [...(dividends ?? [])].slice(-20) : [];
@@ -94,13 +104,7 @@ export function DividendsView({
       <Tile
         id="rs-div"
         title={x.title}
-        aside={
-          word ? (
-            <span className="text-xs text-ink3">
-              {x.consensus(word)}
-            </span>
-          ) : undefined
-        }
+        aside={word ? <span className="text-xs text-ink3">{x.consensus(word)}</span> : undefined}
       >
         {(dividends ?? []).length === 0 ? (
           <p className="text-sm text-ink3">{x.none(ticker)}</p>
@@ -138,7 +142,11 @@ export function DividendsView({
                 v: s.yield ? <Num>{pctText(s.yield.pct, 2)}</Num> : R.na,
                 note: s.yield ? (
                   <Num>
-                    {x.yieldNote(money(s.yield.total, 4), s.yield.count, dayMonthYear(s.yield.closeDate))}
+                    {x.yieldNote(
+                      money(s.yield.total, 4),
+                      s.yield.count,
+                      dayMonthYear(s.yield.closeDate),
+                    )}
                   </Num>
                 ) : undefined,
               },
@@ -155,8 +163,34 @@ export function DividendsView({
                 ),
               },
               {
+                k: x.cuts,
+                v: <Num>{s.cuts.length === 0 ? x.noCuts : x.cutCount(s.cuts.length)}</Num>,
+                note:
+                  s.cuts.length > 0 ? (
+                    <Num>
+                      {s.cuts
+                        .slice(-3)
+                        .map((k) =>
+                          x.cutLine(
+                            dayMonthYear(k.exDividendDate),
+                            money(k.previous, 4),
+                            money(k.amount, 4),
+                            signedPctText(k.changePct, 1),
+                          ),
+                        )
+                        .join(' · ')}
+                    </Num>
+                  ) : (
+                    x.cutsRule
+                  ),
+              },
+              {
                 k: x.growth,
-                v: <Num>{s.growth.atLeast ? x.atLeast(s.growth.years) : x.years(s.growth.years)}</Num>,
+                v: (
+                  <Num>
+                    {s.growth.atLeast ? x.atLeast(s.growth.years) : x.years(s.growth.years)}
+                  </Num>
+                ),
                 note: <Num>{x.growthNote(s.historyFrom ? dayMonthYear(s.historyFrom) : R.na)}</Num>,
               },
             ]}
@@ -165,7 +199,10 @@ export function DividendsView({
         {recent.length > 0 && (
           <BarChart
             label={x.chartAria(recent.length)}
-            groups={recent.map((d) => ({ label: d.exDividendDate.slice(2, 7), values: [adjustedAmount(d)] }))}
+            groups={recent.map((d) => ({
+              label: d.exDividendDate.slice(2, 7),
+              values: [adjustedAmount(d)],
+            }))}
             series={[{ name: x.perPayment, className: 'text-link' }]}
             format={(v) => money(v, 4)}
           />
@@ -189,13 +226,27 @@ export function DividendsView({
                 <tbody>
                   {[...(dividends ?? [])].reverse().map((d) => (
                     <tr key={d.exDividendDate}>
-                      <td className={td}><Num>{dayMonthYear(d.exDividendDate)}</Num></td>
-                      <td className={td}><Num>{d.recordDate ? dayMonthYear(d.recordDate) : R.na}</Num></td>
-                      <td className={td}><Num>{d.payDate ? dayMonthYear(d.payDate) : R.na}</Num></td>
-                      <td className={td}><Num>{d.declarationDate ? dayMonthYear(d.declarationDate) : R.na}</Num></td>
+                      <td className={td}>
+                        <Num>{dayMonthYear(d.exDividendDate)}</Num>
+                      </td>
+                      <td className={td}>
+                        <Num>{d.recordDate ? dayMonthYear(d.recordDate) : R.na}</Num>
+                      </td>
+                      <td className={td}>
+                        <Num>{d.payDate ? dayMonthYear(d.payDate) : R.na}</Num>
+                      </td>
+                      <td className={td}>
+                        <Num>{d.declarationDate ? dayMonthYear(d.declarationDate) : R.na}</Num>
+                      </td>
                       <td className={td}>{freqName(d.frequency)}</td>
-                      <td className={tdEnd}>{d.currency === 'USD' ? money(d.cashAmount, 4) : `${d.currency} ${plain(d.cashAmount, 4)}`}</td>
-                      <td className={tdEnd}>{d.splitAdjustedAmount === null ? R.na : money(d.splitAdjustedAmount, 4)}</td>
+                      <td className={tdEnd}>
+                        {d.currency === 'USD'
+                          ? money(d.cashAmount, 4)
+                          : `${d.currency} ${plain(d.cashAmount, 4)}`}
+                      </td>
+                      <td className={tdEnd}>
+                        {d.splitAdjustedAmount === null ? R.na : money(d.splitAdjustedAmount, 4)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -216,7 +267,10 @@ const num = (s: string): number | null => {
   return Number.isFinite(v) ? v : null;
 };
 const nearestFreq = (n: number) =>
-  PAYOUT_FREQUENCIES.reduce((best, f) => (Math.abs(f - n) < Math.abs(best - n) ? f : best), 4 as number);
+  PAYOUT_FREQUENCIES.reduce(
+    (best, f) => (Math.abs(f - n) < Math.abs(best - n) ? f : best),
+    4 as number,
+  );
 
 function Field({
   id,
@@ -289,10 +343,23 @@ function Select({
   );
 }
 
-function PlanCard({ id, title, p, drip }: { id: string; title: string; p: DividendCalcPlan; drip: boolean }) {
+function PlanCard({
+  id,
+  title,
+  p,
+  drip,
+}: {
+  id: string;
+  title: string;
+  p: DividendCalcPlan;
+  drip: boolean;
+}) {
   const c = R.calc;
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2 rounded-[10px] border border-line bg-surface p-3">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-2 rounded-[10px] border border-line bg-surface p-3"
+    >
       <h3 id={id} className="text-sm font-semibold text-ink">
         {title}
       </h3>
@@ -304,7 +371,11 @@ function PlanCard({ id, title, p, drip }: { id: string; title: string; p: Divide
             v: <Num>{money(p.finalYearNet)}</Num>,
             note: <Num>{c.gross(money(p.finalYearGross))}</Num>,
           },
-          { k: c.value, v: <Num>{money(p.endValue)}</Num>, note: <Num>{c.deposits(money(p.deposits))}</Num> },
+          {
+            k: c.value,
+            v: <Num>{money(p.endValue)}</Num>,
+            note: <Num>{c.deposits(money(p.deposits))}</Num>,
+          },
           {
             k: drip ? c.reinvested : c.totalDividends,
             v: <Num>{money(p.dividendsNet)}</Num>,
@@ -334,7 +405,13 @@ function Calculator({
   const last = bars.at(-1) ?? null;
   const pre = useMemo(() => {
     const s = last
-      ? dividendSummary({ dividends, close: last.close, closeDate: last.date, today: last.date, epsTtm: null })
+      ? dividendSummary({
+          dividends,
+          close: last.close,
+          closeDate: last.date,
+          today: last.date,
+          epsTtm: null,
+        })
       : null;
     const marsadYield = s?.yield && s.yield.count > 0 ? s.yield : null;
     const vendorYield = profile.ok ? profile.value.dividend_yield : null;
@@ -366,10 +443,11 @@ function Calculator({
   const [freq, setFreq] = useState(pre.freq);
   const [contrib, setContrib] = useState('0');
   const [contribFreq, setContribFreq] = useState('12');
-  const [tax, setTax] = useState('0');
+  const [tax, setTax] = useState('30');
   const [divGrowth, setDivGrowth] = useState('0');
   const [priceGrowth, setPriceGrowth] = useState('0');
   const [mode, setMode] = useState<'cash' | 'drip'>('cash');
+  const y1 = useMemo(() => sessionReturn(bars, 252), [bars]);
 
   const onShares = (v: string) => {
     setShares(v);
@@ -411,20 +489,58 @@ function Calculator({
     <Tile id="rs-calc" title={c.title}>
       <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
         <AutoGrid min={170} gap="gap-3">
-          <Field id="calc-price" label={c.price} value={price} onChange={onPrice} source={pre.priceSource} />
+          <Field
+            id="calc-price"
+            label={c.price}
+            value={price}
+            onChange={onPrice}
+            source={pre.priceSource}
+          />
           <Field id="calc-shares" label={c.shares} value={shares} onChange={onShares} />
           <Field id="calc-amount" label={c.amount} value={amount} onChange={onAmount} />
           <Field id="calc-years" label={c.years} value={years} onChange={setYears} step="1" />
-          <Field id="calc-yield" label={c.yield} value={yieldPct} onChange={setYieldPct} source={pre.yieldSource} />
-          <Select id="calc-freq" label={c.freq} value={freq} onChange={setFreq} source={pre.freqSource} />
+          <Field
+            id="calc-yield"
+            label={c.yield}
+            value={yieldPct}
+            onChange={setYieldPct}
+            source={pre.yieldSource}
+          />
+          <Select
+            id="calc-freq"
+            label={c.freq}
+            value={freq}
+            onChange={setFreq}
+            source={pre.freqSource}
+          />
         </AutoGrid>
         <Fold label={c.advanced}>
           <AutoGrid min={170} gap="gap-3">
             <Field id="calc-contrib" label={c.contrib} value={contrib} onChange={setContrib} />
-            <Select id="calc-contrib-freq" label={c.contribFreq} value={contribFreq} onChange={setContribFreq} />
-            <Field id="calc-tax" label={c.tax} value={tax} onChange={setTax} />
-            <Field id="calc-div-growth" label={c.divGrowth} value={divGrowth} onChange={setDivGrowth} />
-            <Field id="calc-price-growth" label={c.priceGrowth} value={priceGrowth} onChange={setPriceGrowth} />
+            <Select
+              id="calc-contrib-freq"
+              label={c.contribFreq}
+              value={contribFreq}
+              onChange={setContribFreq}
+            />
+            <Field id="calc-tax" label={c.tax} value={tax} onChange={setTax} source={c.taxNote} />
+            <Field
+              id="calc-div-growth"
+              label={c.divGrowth}
+              value={divGrowth}
+              onChange={setDivGrowth}
+            />
+            <Field
+              id="calc-price-growth"
+              label={c.priceGrowth}
+              value={priceGrowth}
+              onChange={setPriceGrowth}
+              source={
+                y1 === null
+                  ? c.priceChangeNone
+                  : c.priceChange(signedPctText(y1, 1), last ? dayMonthYear(last.date) : R.na)
+              }
+            />
           </AutoGrid>
         </Fold>
       </form>
@@ -455,7 +571,9 @@ function Calculator({
               />
               <button
                 type="button"
-                onClick={() => plan && saveText(`marsad-${ticker}-dividend-${mode}.csv`, dividendCalcCsv(plan))}
+                onClick={() =>
+                  plan && saveText(`marsad-${ticker}-dividend-${mode}.csv`, dividendCalcCsv(plan))
+                }
                 className="min-h-11 rounded-lg border border-line-strong px-3 text-sm font-semibold text-ink"
               >
                 {c.csv}
@@ -499,4 +617,3 @@ function Calculator({
     </Tile>
   );
 }
-

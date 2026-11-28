@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   PERFORMANCE_RANGES,
   RESEARCH_TOLERANCES,
   adjustedAmount,
   companySnapshot,
+  investorView,
+  INVESTOR_VERSION,
   dailyBeta,
   differsBeyond,
   etDate,
@@ -21,11 +22,20 @@ import {
 } from '@marsad/core';
 import { RowList, Num, AutoGrid, type Row } from '../../ui/kit';
 import { formatUsd } from '../../../lib/study';
-import { loadBusinessSection } from '../../../lib/studyPanels';
 import { dayMonthYear } from '../../../lib/dates';
 import type { Part } from '../../../lib/research';
 import { LineChart } from './charts';
-import { Choice, Fold, R, SourceLine, Tile, Unavailable, etDay, pctText, plain, signedPctText } from './shared';
+import {
+  Choice,
+  R,
+  SourceLine,
+  Tile,
+  Unavailable,
+  etDay,
+  pctText,
+  plain,
+  signedPctText,
+} from './shared';
 
 type Fmt = 'usd' | 'ratio' | 'frac' | 'count' | 'days' | 'price';
 const fmt = (v: number | null, f: Fmt): string => {
@@ -38,7 +48,11 @@ const fmt = (v: number | null, f: Fmt): string => {
     case 'frac':
       return pctText(v * 100, 2);
     case 'count':
-      return v >= 1e9 ? `${toFixedHalfUp(v / 1e9, 2)}B` : v >= 1e6 ? `${toFixedHalfUp(v / 1e6, 1)}M` : plain(v, 0);
+      return v >= 1e9
+        ? `${toFixedHalfUp(v / 1e9, 2)}B`
+        : v >= 1e6
+          ? `${toFixedHalfUp(v / 1e6, 1)}M`
+          : plain(v, 0);
     case 'days':
       return R.stats.days(toFixedHalfUp(v, 2));
     case 'price':
@@ -105,7 +119,7 @@ const GROUPS: { key: keyof typeof R.stats.groups; rows: [keyof TauricProfile, Fm
 ];
 
 /** Key statistics from the Tauric profile; market value, beta and dividend yield also computed by Marsad. */
-function KeyStats({
+export function KeyStats({
   profile,
   bars,
   spy,
@@ -126,6 +140,10 @@ function KeyStats({
     [facts, last, today],
   );
   const beta = useMemo(() => (spy ? dailyBeta(bars, spy) : null), [bars, spy]);
+  const inv = useMemo(
+    () => (facts && last ? investorView(facts, today, last.close) : null),
+    [facts, last, today],
+  );
   const dy = useMemo(
     () =>
       dividends && last
@@ -157,7 +175,9 @@ function KeyStats({
           formatUsd(snap.marketValue),
           dayMonthYear(last.date),
           dayMonthYear(snap.sharesOutstanding.end),
-          d?.differs ? x.differs(pctText(RESEARCH_TOLERANCES.marketValue.value * 100, 0)) : x.agrees,
+          d?.differs
+            ? x.differs(pctText(RESEARCH_TOLERANCES.marketValue.value * 100, 0))
+            : x.agrees,
         ),
       };
     }
@@ -188,12 +208,18 @@ function KeyStats({
         dy.count,
         dayMonthYear(last.date),
         DIVIDEND_YIELD_VERSION,
-        d?.differs ? x.differs(x.points(plain(RESEARCH_TOLERANCES.dividendYield.value, 1))) : x.agrees,
+        d?.differs
+          ? x.differs(x.points(plain(RESEARCH_TOLERANCES.dividendYield.value, 1)))
+          : x.agrees,
       ),
     };
   };
   return (
-    <Tile id="rs-stats" title={x.title} aside={<span className="text-xs text-ink3">{x.aside}</span>}>
+    <Tile
+      id="rs-stats"
+      title={x.title}
+      aside={<span className="text-xs text-ink3">{x.aside}</span>}
+    >
       <AutoGrid min={260} gap="gap-x-6 gap-y-3">
         {GROUPS.map((g) => (
           <div key={g.key} className="flex flex-col gap-1">
@@ -214,6 +240,39 @@ function KeyStats({
             />
           </div>
         ))}
+        <div className="flex flex-col gap-1">
+          <h3 className="text-xs font-semibold text-ink2">{x.groups.marsad}</h3>
+          <p className="text-xs text-ink3">
+            <Num>{x.marsadAsOf(dayMonthYear(today), INVESTOR_VERSION)}</Num>
+          </p>
+          <RowList
+            rows={[
+              {
+                k: x.dilution,
+                v: (
+                  <Num>
+                    {inv?.dilutionYoYPct == null ? R.na : signedPctText(inv.dilutionYoYPct, 1)}
+                  </Num>
+                ),
+                note: x.dilutionNote,
+              },
+              {
+                k: x.fcfMargin,
+                v: <Num>{inv?.fcfMarginPct == null ? R.na : pctText(inv.fcfMarginPct, 1)}</Num>,
+                note: x.fcfNote,
+              },
+              {
+                k: x.netCash,
+                v: (
+                  <Num>{inv?.balance?.netCash == null ? R.na : formatUsd(inv.balance.netCash)}</Num>
+                ),
+                note: inv?.balance ? (
+                  <Num>{x.netCashNote(dayMonthYear(inv.balance.end))}</Num>
+                ) : undefined,
+              },
+            ]}
+          />
+        </div>
       </AutoGrid>
       <SourceLine>
         {x.source(asOf, p.market_cap_price_date ? dayMonthYear(p.market_cap_price_date) : R.na)}
@@ -223,7 +282,7 @@ function KeyStats({
 }
 
 /** The stock and SPY as percent change from the same start, over the ranges stored bars cover. */
-function VsSpy({
+export function VsSpy({
   ticker,
   bars,
   spy,
@@ -267,7 +326,12 @@ function VsSpy({
             format={(v) => signedPctText(v, 1)}
             series={[
               { name: ticker, values: cur.points.map((p) => p.stock), className: 'text-link' },
-              { name: 'SPY', values: cur.points.map((p) => p.spy), className: 'text-ink3', dashed: true },
+              {
+                name: 'SPY',
+                values: cur.points.map((p) => p.spy),
+                className: 'text-ink3',
+                dashed: true,
+              },
             ]}
           />
           <p className="text-sm text-ink">
@@ -290,39 +354,14 @@ function VsSpy({
   );
 }
 
-/** The vendor's profile description and the first paragraphs of the 10-K business section, as filed. */
-function Business({
-  profile,
-  cik,
-  onOpen,
-}: {
-  profile: Part<TauricProfile>;
-  cik: string | undefined;
-  onOpen: () => void;
-}) {
+/** The vendor's profile description, labelled as vendor text; the 10-K business section sits beside it as filed. */
+export function VendorBusiness({ profile }: { profile: Part<TauricProfile> }) {
   const x = R.business;
-  const q = useQuery({
-    queryKey: ['business', cik],
-    queryFn: () => loadBusinessSection(cik as string),
-    enabled: cik !== undefined,
-  });
-  const paras = useMemo(
-    () =>
-      q.data
-        ? q.data.text
-            .split(/\n+/)
-            .map((s) => s.trim())
-            .filter((s) => s.length > 120)
-            .slice(0, 3)
-        : [],
-    [q.data],
-  );
   return (
-    <Tile id="rs-business" title={x.title}>
-      <h3 className="text-xs font-semibold text-ink2">{x.vendor}</h3>
+    <Tile id="rs-business" title={x.vendor}>
       {profile.ok && profile.value.description ? (
         <>
-          <p className="text-sm text-ink2 whitespace-pre-line">{profile.value.description}</p>
+          <p className="text-sm whitespace-pre-line text-ink2">{profile.value.description}</p>
           <SourceLine>
             {x.vendorSource(profile.asOf ? etDay(profile.asOf) : R.na)}
             {profile.value.website ? ` · ${profile.value.website}` : ''}
@@ -331,59 +370,67 @@ function Business({
       ) : (
         <Unavailable reason={profile.ok ? null : profile.reason} />
       )}
-      <h3 className="text-xs font-semibold text-ink2">{x.filed}</h3>
-      {cik === undefined ? (
-        <Unavailable />
-      ) : q.isPending ? (
-        <p className="text-sm text-ink3">{R.loading}</p>
-      ) : q.isError ? (
-        <p role="alert" className="text-sm text-crit">{q.error.message}</p>
-      ) : !q.data ? (
-        <Unavailable />
-      ) : (
-        <>
-          {paras.map((p, i) => (
-            <p key={i} className="text-sm text-ink2">
-              {p}
-            </p>
-          ))}
-          <SourceLine>{x.filedSource(dayMonthYear(q.data.periodEnd), dayMonthYear(q.data.filingDate))}</SourceLine>
-          <button
-            type="button"
-            onClick={onOpen}
-            className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-link underline-offset-4 hover:underline"
-          >
-            {x.openFull}
-          </button>
-        </>
-      )}
     </Tile>
   );
 }
 
-export function OverviewView(props: {
-  ticker: string;
-  bars: readonly DailyBar[];
-  spy: readonly DailyBar[] | null;
-  facts: readonly FinancialFact[] | null;
-  dividends: readonly StoredDividend[] | null;
-  profile: Part<TauricProfile>;
-  cik: string | undefined;
-  onOpenBusiness: () => void;
-}) {
+/** Insider, institutional and other holders from the Tauric profile, or the raw figures when they overlap. */
+export function OwnershipBar({ profile }: { profile: Part<TauricProfile> }) {
+  const x = R.stats;
+  if (!profile.ok)
+    return (
+      <Tile id="rs-own" title={x.ownership}>
+        <Unavailable reason={profile.reason} />
+      </Tile>
+    );
+  const ins = profile.value.insider_ownership;
+  const inst = profile.value.institutional_ownership;
+  const asOf = profile.asOf ? etDay(profile.asOf) : R.na;
+  if (ins === null || inst === null)
+    return (
+      <Tile id="rs-own" title={x.ownership}>
+        <Unavailable />
+      </Tile>
+    );
+  const pc = (v: number) => pctText(v * 100, 1);
+  const over = ins + inst > 1;
+  const other = Math.max(0, 1 - ins - inst);
   return (
-    <>
-      <VsSpy ticker={props.ticker} bars={props.bars} spy={props.spy} />
-      <KeyStats
-        profile={props.profile}
-        bars={props.bars}
-        spy={props.spy}
-        facts={props.facts}
-        dividends={props.dividends}
-      />
-      <Fold label={R.business.title}>
-        <Business profile={props.profile} cik={props.cik} onOpen={props.onOpenBusiness} />
-      </Fold>
-    </>
+    <Tile id="rs-own" title={x.ownership}>
+      {over ? (
+        <p className="text-sm text-ink2">
+          <Num>{x.overlap(pc(ins), pc(inst))}</Num>
+        </p>
+      ) : (
+        <>
+          <div
+            role="img"
+            aria-label={x.ownershipAria(pc(ins), pc(inst), pc(other))}
+            className="flex h-3 overflow-hidden rounded-full bg-sub"
+          >
+            <span className="bg-warn" style={{ width: `${ins * 100}%` }} />
+            <span className="bg-link" style={{ width: `${inst * 100}%` }} />
+          </div>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink2">
+            <li className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="inline-block size-2.5 rounded-sm bg-warn" />
+              {x.insiders} <Num className="font-semibold text-ink">{pc(ins)}</Num>
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="inline-block size-2.5 rounded-sm bg-link" />
+              {x.institutions} <Num className="font-semibold text-ink">{pc(inst)}</Num>
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="inline-block size-2.5 rounded-sm bg-sub ring-1 ring-line-strong"
+              />
+              {x.other} <Num className="font-semibold text-ink">{pc(other)}</Num>
+            </li>
+          </ul>
+        </>
+      )}
+      <SourceLine>{x.refreshed(asOf)}</SourceLine>
+    </Tile>
   );
 }
