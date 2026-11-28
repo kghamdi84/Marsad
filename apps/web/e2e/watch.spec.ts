@@ -79,7 +79,9 @@ test('watch: the economic calendar with ET and local times, a countdown, and est
     agenda.getByRole('listitem').filter({ hasText: 'FOMC statement and projections' }),
   ).toContainText('14:00 ET · 22:00 Riyadh');
   // Only the next 14 days: CPI on 2026-12-10 is beyond them.
-  await expect(agenda.getByRole('listitem').filter({ hasText: /^CPI/ })).toHaveCount(0);
+  await expect(
+    agenda.getByRole('listitem').filter({ has: page.getByText('CPI', { exact: true }) }),
+  ).toHaveCount(0);
   await expect(agenda.getByText(/FRED release calendar/)).toBeVisible();
   // Estimated earnings sit on their estimated day, with the window and how it was estimated.
   await expect(agenda.getByRole('heading', { name: 'Wed 24 Feb' })).toBeVisible();
@@ -493,7 +495,7 @@ for (const theme of ['dark', 'light'] as const)
     await expect(page.getByText('Massive · end of day · close of Mon 16 Nov')).toBeVisible();
     const cockpit = page.getByRole('region', { name: 'Morning decision cockpit' });
     const regime = cockpit.getByRole('link', { name: /^Regime/ });
-    await expect(regime).toHaveAttribute('href', '/regime');
+    await expect(regime).toHaveAttribute('href', '/markets?view=regime');
     await expect(regime).toContainText('Bull calm');
     await expect(regime).toContainText('2 sessions · regime-1 · 26 Nov');
     await expect(regime).toContainText('VIX 14.82 · breadth 58% above 50-day');
@@ -509,7 +511,8 @@ for (const theme of ['dark', 'light'] as const)
     const exits = cockpit.getByRole('link', { name: /^Exit rules/ });
     await expect(exits).toContainText('TSLA closed under its stop');
     await expect(exits).toContainText('1 other holding inside plan');
-    await expect(exits).toHaveAttribute('href', '/journal');
+    // Exit rules are about what is held, so the row opens Portfolio (ADR 0048).
+    await expect(exits).toHaveAttribute('href', '/portfolio');
 
     const list = page.getByRole('region', { name: 'Watchlist', exact: true });
     const nvda = list.getByRole('row', { name: /^NVDA/ });

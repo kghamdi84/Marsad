@@ -1126,7 +1126,10 @@ test('Shariah screening aid: off by default; when on, ratios from the filings wi
     ),
   );
   await page.goto('/study');
-  const nvda = page.getByRole('link', { name: /^NVDA/ });
+  // The starting-stocks list (the recently viewed card above it links NVDA too, without the aid).
+  const nvda = page
+    .getByRole('region', { name: 'Starting stocks' })
+    .getByRole('link', { name: /^NVDA/ });
   await expect(nvda).toContainText('Within limits');
   await expect(nvda).toContainText('Shariah screening aid, not a ruling:');
 });

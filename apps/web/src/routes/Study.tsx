@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Info } from '../components/Info';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -19,6 +19,7 @@ import { shariahAsOf } from '../lib/shariah';
 import { loadFacts } from '../lib/studyPanels';
 import { supabase } from '../lib/supabase';
 import { loadCalendar, loadRecentBars } from '../lib/watch';
+import { readRecent } from '../lib/recent';
 import { t } from '../strings';
 
 const s = t.study;
@@ -114,6 +115,29 @@ function Row({
   );
 }
 
+/** The last 8 companies opened on this device, newest first; nothing shows until one has been opened. */
+function RecentlyViewed() {
+  const [recent] = useState(readRecent);
+  if (recent.length === 0) return null;
+  return (
+    <Card id="recent-h" title={s.recent.title} aside={<Info>{s.recent.note}</Info>}>
+      <ul className="flex flex-wrap gap-2">
+        {recent.map((tk) => (
+          <li key={tk}>
+            <Link
+              to="/study/$ticker"
+              params={{ ticker: tk }}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-elev px-3 text-[15px] font-semibold text-ink hover:border-line-strong"
+            >
+              {tk}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export function Study() {
   const bars = useQuery({ queryKey: ['study-list-bars'], queryFn: () => loadRecentBars(ALL) });
   const cal = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar });
@@ -156,6 +180,7 @@ export function Study() {
   return (
     <div className="flex flex-col gap-5">
       <PageTitle page="study" />
+      <RecentlyViewed />
       <AutoGrid min={320} gap="gap-3" className="items-start">
         <CompanySearch id="ticker" label={s.openLabel} showLabel button />
         <Info>{s.intro}</Info>

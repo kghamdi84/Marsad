@@ -1,4 +1,10 @@
-import { DEFAULT_SHARIAH, type ShariahSettings } from '@marsad/core';
+import {
+  DEFAULT_SHARIAH,
+  etDate,
+  type PortfolioLimits,
+  type ShariahSettings,
+  type StoredLimits,
+} from '@marsad/core';
 import { supabase } from './supabase';
 
 function client() {
@@ -96,4 +102,46 @@ export async function saveAlertPreferences(p: Omit<AlertPreferences, 'saved'>): 
     { onConflict: 'owner_id' },
   );
   if (r.error) throw new Error(`alert_preferences: ${r.error.message}`);
+}
+
+const LIMIT_COLUMNS = {
+  largestPosition: 'largest_position',
+  top5: 'top5',
+  minCash: 'min_cash',
+  portfolioBeta: 'portfolio_beta',
+  openRisk: 'open_risk',
+} as const satisfies Record<keyof PortfolioLimits, string>;
+
+const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+/**
+ * This person's stored portfolio limits (ADR 0048), or null when they have no row (a member who never saved any;
+ * the owner's row is seeded with the council's values). Numeric columns arrive as numbers or strings.
+ */
+export async function loadPortfolioLimits(): Promise<StoredLimits | null> {
+  const r = await client()
+    .from('portfolio_limits')
+    .select('largest_position, top5, min_cash, portfolio_beta, open_risk, set_by, set_on, version')
+    .maybeSingle();
+  if (r.error) throw new Error(`portfolio_limits: ${r.error.message}`);
+  const x = (r.data ?? null) as Record<string, unknown> | null;
+  if (!x) return null;
+  const limits = Object.fromEntries(
+    Object.entries(LIMIT_COLUMNS).map(([k, col]) => [k, num(x[col])]),
+  ) as PortfolioLimits;
+  return {
+    limits,
+    setBy: x['set_by'] === 'council' ? 'council' : 'user',
+    setOn: String(x['set_on']),
+    version: Number(x['version']),
+  };
+}
+
+/** Saves all five limits as this person's own (null clears one); the database bumps the version. */
+export async function savePortfolioLimits(limits: PortfolioLimits): Promise<void> {
+  const row: Record<string, unknown> = { set_by: 'user', set_on: etDate(new Date()) };
+  for (const [k, col] of Object.entries(LIMIT_COLUMNS))
+    row[col] = limits[k as keyof PortfolioLimits];
+  const r = await client().from('portfolio_limits').upsert(row, { onConflict: 'owner_id' });
+  if (r.error) throw new Error(`portfolio_limits: ${r.error.message}`);
 }

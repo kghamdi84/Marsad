@@ -116,6 +116,29 @@ describe('adherence with checklist-2 (hand-checked)', () => {
   });
 });
 
+describe('adherence with checklist-3 (hand-checked)', () => {
+  it('scores seven items: checklist-2 plus risk defined and the profit plan, in checklist-1 words', () => {
+    const v3 = {
+      regimeFit: true,
+      structuralStop: true,
+      bearCaseEarnings: true,
+      shariahChecked: true,
+      manualInSahm: true,
+      riskDefined: true,
+      profitPlan: false,
+    };
+    // 7 checklist-3 items (6 ticked) + 3 followed + a named setup = 11 applicable, 10 honored: 1,000 / 11.
+    const a = adherence(t({ checklist: v3, checklistVersion: 'checklist-3' }));
+    expect(a.applicable).toBe(11);
+    expect(a.honored).toBe(10);
+    expect(a.score).toBeCloseTo(1000 / 11, 12);
+    expect(a.broken).toEqual(['There is a profit plan: targets and when to take them.']);
+    const p = Object.fromEntries(a.principles.map((x) => [x.key, [x.honored, x.applicable]]));
+    // Risk: risk defined, stop placed, sized by the sizer, structural stop.
+    expect(p['risk']).toEqual([4, 4]);
+  });
+});
+
 describe('rMultiple and pnl (hand-checked)', () => {
   it('long: (27 - 24) / (24 - 22) = 1.5R; USD 300 on 100 shares', () => {
     const c = t({ exitDate: '2026-11-10', exitPrice: 27 });

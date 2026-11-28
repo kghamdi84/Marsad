@@ -38,6 +38,7 @@ export interface Loaded<T> {
 function Tile({
   to,
   params,
+  search,
   label,
   value,
   valueClass = 'text-ink',
@@ -46,8 +47,10 @@ function Tile({
   sub2Class = 'text-ink3',
 }: {
   /** Where the tile leads; without it the tile is plain text (nothing to open yet). */
-  to?: '/regime' | '/study/$ticker' | '/alerts' | '/journal';
+  to?: '/markets' | '/study/$ticker' | '/alerts' | '/journal' | '/portfolio';
   params?: { ticker: string };
+  /** The Markets view a tile opens (ADR 0048). */
+  search?: { view: string };
   label: string;
   value: ReactNode;
   valueClass?: string;
@@ -75,7 +78,12 @@ function Tile({
     'grid min-h-11 min-w-0 grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-3 rounded-lg px-2 py-2 text-start text-ink';
   if (!to) return <div className={cls}>{body}</div>;
   return (
-    <Link to={to} {...(params ? { params } : {})} className={`${cls} hover:bg-elev`}>
+    <Link
+      to={to}
+      {...(params ? { params } : {})}
+      {...(search ? { search } : {})}
+      className={`${cls} hover:bg-elev`}
+    >
       {body}
     </Link>
   );
@@ -91,7 +99,8 @@ function RegimeTile({ q }: { q: Loaded<CockpitData> }) {
   if (!q.data || !run || !last)
     return (
       <Tile
-        to="/regime"
+        to="/markets"
+        search={{ view: 'regime' }}
         label={k.regime}
         value={q.error || q.data ? k.notYet : v.news.loading}
         valueClass="text-ink3"
@@ -101,7 +110,8 @@ function RegimeTile({ q }: { q: Loaded<CockpitData> }) {
   const b = q.data.breadth;
   return (
     <Tile
-      to="/regime"
+      to="/markets"
+      search={{ view: 'regime' }}
       label={k.regime}
       value={k.labels[run.label] ?? run.label}
       sub={k.run(
@@ -251,7 +261,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (!q.data)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={q.error ? k.holdingsUnavailable : v.news.loading}
         valueClass="text-ink3"
@@ -262,7 +272,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (holdings.length === 0)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={k.exitsNone}
         valueClass="text-ink3"
@@ -285,7 +295,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (!first)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={k.allInside}
         valueClass="text-up"
@@ -296,7 +306,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   const second = flagged[1];
   return (
     <Tile
-      to="/journal"
+      to="/portfolio"
       label={k.exits}
       value={signalText(first.h, top)}
       valueClass={

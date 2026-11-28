@@ -2,7 +2,21 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (earnings guard; portfolio views and dividend calendar; Study research views, nightly ticker summary).
+Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs, checklist-3, portfolio limits in Settings; earnings guard).
+
+### Markets and Portfolio pages, navigation and view URLs (2026-11-28, ADR 0048 batches 1 and 3, ADR 0051)
+
+- **Strings split** (ADR 0051): `apps/web/src/strings.ts` gathers per-area modules under `apps/web/src/strings/`; `t` is unchanged (checked value by value against the old file).
+- **View URLs**: every switchable area reads `?view=` (the URL wins, the device's remembered choice is the fallback, switching replaces the history entry). Study's ten views, Journal, Portfolio, Markets, Settings and Status. Watch keeps its remembered switches.
+- **Portfolio** (`/portfolio?view=review|holdings|analysis|performance|income|news`), moved out of Journal: summary tiles first, then one view, opening on Review. Holdings also carries the position cards (exit rules, edits, Sahm CSV import) and options positions; Analysis carries exposure and the ETF look-through. Old Journal tabs (`?view=positions|portfolio|options|exposure`) redirect to the view that holds them.
+- **Journal** (`/journal?view=trades|sizer|review`): what Khaled did.
+- **Markets** (`/markets?view=regime|movers|sectors|calendar`) replaces Regime; `/regime` redirects to `?view=regime` and keeps the hash. A "Markets today" card first (regime run, leading and lagging sector fund, the Marsad universe's top gainer and loser, the next high-impact release and the count of estimated earnings), each row from the same stored rows as its view. Movers: the whole-market list. Calendar: 30 days of macro releases and estimated earnings plus ex-dividend dates by day. Watch keeps the universe movers card; its calendar, dividends, sectors and movers cards end in a "See all" link into Markets. Watch's calendar stays at 14 days (the ADR's site map says 7; left unchanged so the existing view keeps its content).
+- **Navigation**: desktop and iPad Watch, Markets, Study, Portfolio, Journal, Alerts, Lab, Status, Settings gear; number keys 1 to 9 in that order, S still opens Status. Phone: Watch, Study, Portfolio, Markets, Alerts, More (Journal, Lab, Status, Settings, Sign out). Arabic: Markets "الأسواق", Portfolio "المحفظة".
+- **Study**: "Recently viewed" (last 8 tickers, this device only, storage guarded) above the search; "Size a trade" on Study's header and each Portfolio review row opens `/journal?view=sizer&ticker=XYZ` with the ticker filled in.
+- **checklist-3** (ADR 0048 round 2): checklist-2's five checks plus checklist-1's "Risk is defined" and "There is a profit plan", for new trades; old trades keep their version. "Risk defined" can be ticked only with a stop and the ticket's shares (new optional field) at or below the sizer's result; it says why when locked and clears when the sizing changes. Migration `20270108000000` widens the version check (the column default stays `checklist-1`).
+- **Portfolio limits in Settings** (Settings, "Limits, Shariah and AI caps"): table `portfolio_limits` (`20270108000100`, personal, MFA rule, no anon, no delete, versioned) seeded for the app owner with the council's values (`20270108000200`: 20%, 60%, 10%, beta 1.5, 6%, "Set by the council at your request on 28 Nov 2026"); members start with "No limit set". Portfolio reads the stored row and says who set it, with a link to change it.
+- Bundle: main `index` chunk 349.6 KB before, 329.1 KB after (98.4 KB gzip; the whole-market movers moved into the Markets chunk). Portfolio (79.6 KB) and Markets (51.7 KB) are lazy chunks; Journal fell from 99.3 KB to 20.3 KB.
+- Checks: tsc (web, core, jobs), ESLint, Prettier, 1,360 unit tests, 61 database tests, Playwright 297 passed and 15 skipped (desktop and iPad). Not run live: needs the three migrations (`20270108000000` to `20270108000200`) applied.
 
 ### Earnings guard, job side (2026-11-28, ADR 0052, batch 5 of ADR 0048)
 

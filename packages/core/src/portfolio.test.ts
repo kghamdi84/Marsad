@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   CHECKLIST,
   CHECKLIST_V2,
+  CHECKLIST_V3,
+  CURRENT_CHECKLIST,
+  checklistItems,
+  checklistVersionOf,
+  riskDefinedBlock,
   checklistComplete,
   exitSignals,
   parseHoldingsCsv,
@@ -92,13 +97,70 @@ describe('checklist', () => {
     expect(checklistComplete({ ...all, bearCaseRead: false }, 'checklist-1')).toBe(false);
     expect(checklistComplete({}, 'checklist-1')).toBe(false);
   });
-  it('checklist-2 is the default; checklist-1 ticks do not complete it', () => {
+  // Until ADR 0048 round 2 this was the default; checklist-3 is now (below), so the version is passed explicitly.
+  it('checklist-2: its five ticks complete it; checklist-1 ticks do not', () => {
     const v1 = Object.fromEntries(CHECKLIST.map((c) => [c.key, true]));
     const v2 = Object.fromEntries(CHECKLIST_V2.map((c) => [c.key, true]));
-    expect(checklistComplete(v2)).toBe(true);
+    expect(checklistComplete(v2, 'checklist-2')).toBe(true);
+    expect(checklistComplete(v1, 'checklist-2')).toBe(false);
     expect(checklistComplete(v1)).toBe(false);
     expect(checklistComplete(v1, 'checklist-1')).toBe(true);
-    expect(checklistComplete({ ...v2, manualInSahm: false })).toBe(false);
+    expect(checklistComplete({ ...v2, manualInSahm: false }, 'checklist-2')).toBe(false);
+  });
+  it('checklist-1 and checklist-2 are unchanged (stored trades keep their wording)', () => {
+    expect(checklistItems('checklist-1').map((c) => [c.key, c.label])).toEqual([
+      ['cleanSetup', 'The setup is clean: it matches a written rule, not a feeling.'],
+      ['notExtended', 'Price is not extended: within the chase limit of the signal.'],
+      ['riskDefined', 'Risk is defined: the stop is set and the size comes from it.'],
+      ['profitPlan', 'There is a profit plan: targets and when to take them.'],
+      ['bearCaseRead', 'I read the bear case and the exit conditions.'],
+    ]);
+    expect(checklistItems(undefined)).toBe(CHECKLIST);
+    expect(checklistItems('checklist-2').map((c) => [c.key, c.label])).toEqual([
+      ['regimeFit', 'Fits the current regime'],
+      ['structuralStop', 'Stop set from structure, not hope'],
+      ['bearCaseEarnings', 'Bear case and earnings date read'],
+      ['shariahChecked', 'Shariah aid checked'],
+      ['manualInSahm', 'Order will be entered by hand in Sahm'],
+    ]);
+  });
+  it('checklist-3 is current: checklist-2 plus riskDefined and profitPlan, worded as in checklist-1', () => {
+    expect(CURRENT_CHECKLIST).toBe('checklist-3');
+    expect(checklistItems('checklist-3').map((c) => [c.key, c.label])).toEqual([
+      ['regimeFit', 'Fits the current regime'],
+      ['structuralStop', 'Stop set from structure, not hope'],
+      ['bearCaseEarnings', 'Bear case and earnings date read'],
+      ['shariahChecked', 'Shariah aid checked'],
+      ['manualInSahm', 'Order will be entered by hand in Sahm'],
+      ['riskDefined', 'Risk is defined: the stop is set and the size comes from it.'],
+      ['profitPlan', 'There is a profit plan: targets and when to take them.'],
+    ]);
+    const v2 = Object.fromEntries(CHECKLIST_V2.map((c) => [c.key, true]));
+    const v3 = Object.fromEntries(CHECKLIST_V3.map((c) => [c.key, true]));
+    // The default is checklist-3: checklist-2's five ticks are not enough.
+    expect(checklistComplete(v2)).toBe(false);
+    expect(checklistComplete(v3)).toBe(true);
+    expect(checklistComplete({ ...v3, profitPlan: false })).toBe(false);
+  });
+  it('reads a stored version; anything else answered checklist-1', () => {
+    expect(checklistVersionOf('checklist-3')).toBe('checklist-3');
+    expect(checklistVersionOf('checklist-2')).toBe('checklist-2');
+    expect(checklistVersionOf('checklist-1')).toBe('checklist-1');
+    expect(checklistVersionOf(null)).toBe('checklist-1');
+    expect(checklistVersionOf('checklist-9')).toBe('checklist-1');
+  });
+  it('risk defined: a stop, and the ticket at or below the sizer for that stop (hand-checked)', () => {
+    expect(riskDefinedBlock({ stop: null, sizerShares: 125, ticketShares: 125 })).toBe('no-stop');
+    expect(riskDefinedBlock({ stop: 0, sizerShares: 125, ticketShares: 125 })).toBe('no-stop');
+    expect(riskDefinedBlock({ stop: 22.15, sizerShares: null, ticketShares: null })).toBe(
+      'no-size',
+    );
+    expect(riskDefinedBlock({ stop: 22.15, sizerShares: 125, ticketShares: 0 })).toBe('no-size');
+    expect(riskDefinedBlock({ stop: 22.15, sizerShares: 125, ticketShares: 125 })).toBeNull();
+    expect(riskDefinedBlock({ stop: 22.15, sizerShares: 125, ticketShares: 100 })).toBeNull();
+    expect(riskDefinedBlock({ stop: 22.15, sizerShares: 125, ticketShares: 126 })).toBe(
+      'over-size',
+    );
   });
 });
 

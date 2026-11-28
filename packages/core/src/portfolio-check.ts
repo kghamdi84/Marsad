@@ -13,6 +13,7 @@ import { atr } from './indicators.js';
 import { adherenceVsResult, pnl, rMultiple, statsBySetup, type JournalTrade } from './journal.js';
 import {
   exitSignals,
+  fallToStop,
   gapToStop,
   hasExitRules,
   positionSize,
@@ -53,13 +54,32 @@ export type LimitKey = keyof typeof PORTFOLIO_LIMITS;
 export type PortfolioLimits = Record<LimitKey, number | null>;
 
 /**
- * The limits that apply to the signed-in person: their stored limits when given (a later batch stores and edits
- * them), else for the owner the council's values, else none ("No limit set"). A stored null clears one limit.
+ * A person's limits as stored in `portfolio_limits` (Settings): each limit or null ("No limit set"), who set them
+ * and on which day, and the row's version (it goes up by one on every save).
+ */
+export interface StoredLimits {
+  limits: PortfolioLimits;
+  setBy: 'council' | 'user';
+  /** YYYY-MM-DD. */
+  setOn: string;
+  version: number;
+}
+
+/**
+ * The limits that apply to the signed-in person, in this order: their stored row (`stored`, Settings), else
+ * `user` over the base, else for the owner the council's values (the same values the owner's row is seeded with),
+ * else none ("No limit set"). A stored null clears one limit. A member never gets the council's values.
  */
 export function resolveLimits(x: {
   role: 'owner' | 'member';
   user?: Partial<PortfolioLimits> | null;
-}): { limits: PortfolioLimits; source: 'user' | 'council' | 'none' } {
+  stored?: StoredLimits | null;
+}): {
+  limits: PortfolioLimits;
+  source: 'user' | 'council' | 'none';
+  /** The day the limits were set, when known. */
+  setOn: string | null;
+} {
   const none: PortfolioLimits = {
     largestPosition: null,
     top5: null,
@@ -67,9 +87,48 @@ export function resolveLimits(x: {
     portfolioBeta: null,
     openRisk: null,
   };
+  if (x.stored)
+    return {
+      limits: { ...none, ...x.stored.limits },
+      source: x.stored.setBy,
+      setOn: x.stored.setOn,
+    };
   const base: PortfolioLimits = x.role === 'owner' ? { ...PORTFOLIO_LIMITS } : none;
-  if (x.user) return { limits: { ...base, ...x.user }, source: 'user' };
-  return { limits: base, source: x.role === 'owner' ? 'council' : 'none' };
+  if (x.user) return { limits: { ...base, ...x.user }, source: 'user', setOn: null };
+  return x.role === 'owner'
+    ? { limits: base, source: 'council', setOn: LIMITS_SET_ON }
+    : { limits: base, source: 'none', setOn: null };
+}
+
+/** The range each limit must fall in to be saved (Settings; the table's checks say the same). */
+export const LIMIT_RANGES: Record<LimitKey, { min: number; max: number; minInclusive: boolean }> =
+  Object.freeze({
+    largestPosition: { min: 0, max: 1, minInclusive: false },
+    top5: { min: 0, max: 1, minInclusive: false },
+    minCash: { min: 0, max: 1, minInclusive: true },
+    portfolioBeta: { min: 0, max: 10, minInclusive: false },
+    openRisk: { min: 0, max: 1, minInclusive: false },
+  });
+
+/**
+ * One limit as typed in Settings: a percent (20 for 20%) or, for beta, a plain number; blank clears it. Returns the
+ * stored value (a fraction for percents) or an error key. Minimum cash may be 0; the others must be above 0. A
+ * percent is at most 100 (minimum cash below 100), beta at most 10.
+ */
+export function parseLimitInput(
+  key: LimitKey,
+  text: string,
+): { value: number | null } | { error: 'number' | 'range' } {
+  const t = text.trim().replace(/%$/, '').trim();
+  if (t === '') return { value: null };
+  if (!/^\d+(\.\d+)?$/.test(t)) return { error: 'number' };
+  const n = Number(t);
+  const v = key === 'portfolioBeta' ? n : n / 100;
+  const r = LIMIT_RANGES[key];
+  const aboveMin = r.minInclusive ? v >= r.min : v > r.min;
+  const belowMax = key === 'minCash' ? v < r.max : v <= r.max;
+  if (!aboveMin || !belowMax) return { error: 'range' };
+  return { value: v };
 }
 
 /**
@@ -1310,6 +1369,11 @@ export interface ReviewRow {
   stop: number | null;
   /** `gapToStop`: price / stop - 1; negative once the close is under the stop. */
   stopGap: number | null;
+  /**
+   * `fallToStop`: (price - stop) / price, how far the close must fall to reach the stop; negative once under it.
+   * The Review shows this one, the same figure the earnings-guard alert states (ADR 0052).
+   */
+  stopFall: number | null;
   atr: number | null;
   /** (price - stop) / ATR 14. */
   stopAtrs: number | null;
@@ -1376,6 +1440,7 @@ export function exitReview(x: {
       signals: exitSignals(h, b),
       stop,
       stopGap: price !== null && stop !== null ? gapToStop(price, stop) : null,
+      stopFall: price !== null && stop !== null ? fallToStop(price, stop) : null,
       atr: a,
       stopAtrs: price !== null && stop !== null && a !== null && a > 0 ? (price - stop) / a : null,
       riskUsd: price !== null && stop !== null ? Math.max(0, price - stop) * h.shares : null,

@@ -1,4 +1,5 @@
 import {
+  checklistVersionOf,
   SCREENSHOTS_PER_TRADE,
   SCREENSHOT_MAX_BYTES,
   SCREENSHOT_TYPES,
@@ -204,7 +205,7 @@ function toTrade(x: Record<string, unknown>): JournalTrade {
     exitDate: x['exit_date'] === null ? null : String(x['exit_date']),
     exitPrice: n(x['exit_price']),
     checklist: (x['checklist'] ?? {}) as JournalTrade['checklist'],
-    checklistVersion: x['checklist_version'] === 'checklist-2' ? 'checklist-2' : 'checklist-1',
+    checklistVersion: checklistVersionOf(x['checklist_version']),
     followed: (x['followed'] ?? {}) as JournalTrade['followed'],
     notes: String(x['notes'] ?? ''),
     screenshots: (x['screenshots'] ?? []) as string[],
