@@ -431,6 +431,19 @@ describe('portfolioCheck', () => {
     expect(one.rows.find((r) => r.id === 'below-cost')?.state).toBe('within');
     expect(one.rows.find((r) => r.id === 'largest')?.state).toBe('above');
     expect(one.rows.find((r) => r.id === 'open-risk')?.state).toBe('unavailable');
+    // A negative beta is held to the limit by its size: -2 is above a 1.5 limit, -1 is within, and the value keeps
+    // its sign. One holding at beta -2 makes the portfolio beta -2.
+    const short = (b: number) =>
+      portfolioCheck({
+        lots: [lot({ ticker: 'H', price: 10, costBasis: 10, beta: b })],
+        mix: null,
+        cash: null,
+        limits: council.limits,
+      }).rows.find((r) => r.id === 'beta');
+    expect(short(-2)?.value).toBeCloseTo(-2, 9);
+    expect(short(-2)?.state).toBe('above');
+    expect(short(-1)?.state).toBe('within');
+    expect(short(1.5)?.state).toBe('within');
   });
 
   it('measures shares of equity with tracked cash, and cash as a minimum', () => {

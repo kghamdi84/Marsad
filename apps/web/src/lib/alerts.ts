@@ -101,7 +101,7 @@ export async function loadScorecard(): Promise<{ alerts: ScoredAlert[]; outcomes
         createdAt: String(r['created_at']),
         kind: String(r['kind']),
         ticker: r['ticker'] === null ? null : String(r['ticker']),
-        ruleId: String(r['rule_id']),
+        ruleId: typeof r['rule_id'] === 'string' ? r['rule_id'] : '',
         ruleStatus: r['rule_status'] === 'shadow' ? 'shadow' : 'live',
         ...(typeof input.qualityScore === 'number' ? { qualityScore: input.qualityScore } : {}),
       };
