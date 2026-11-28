@@ -421,6 +421,61 @@ describe('system tables', () => {
     await db.query(`delete from public.company_research where ticker = 'AMD'`);
   });
 
+  it("ticker summary (ADR 0050): members read 'tracked' rows, only the owner reads 'market' rows, nobody signed in writes", async () => {
+    await db.exec(`
+      insert into public.ticker_daily_summary (version, date, ticker, coverage, close, close_date, range_position_52w, formula_versions)
+        values ('ticker-summary-1', date '2026-11-27', 'NVDA', 'tracked', 177.0, date '2026-11-27', 0.8, '{"summary": "ticker-summary-1"}'::jsonb),
+               ('ticker-summary-1', date '2026-11-27', 'AAPL', 'market', 278.0, date '2026-11-27', 0.9, '{"summary": "ticker-summary-1"}'::jsonb);
+    `);
+    const tickers = async (tx: Transaction) =>
+      (
+        await tx.query<{ ticker: string }>(
+          'select ticker from public.ticker_daily_summary order by ticker',
+        )
+      ).rows.map((r) => r.ticker);
+    try {
+      await as(owner2, async (tx) => expect(await tickers(tx)).toEqual(['AAPL', 'NVDA']));
+      await as(other2, async (tx) => expect(await tickers(tx)).toEqual(['NVDA']));
+      await as(owner1, async (tx) => expect(await tickers(tx)).toEqual([]));
+      await expect(as(anon, (tx) => tickers(tx))).rejects.toThrow(/permission denied/);
+      for (const sql of [
+        `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'tracked', '{}'::jsonb)`,
+        `update public.ticker_daily_summary set close = 1 where ticker = 'NVDA'`,
+        `delete from public.ticker_daily_summary`,
+      ]) {
+        await expect(as(owner2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+        await expect(as(other2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+      }
+      const row = (cols: string, vals: string) =>
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions${cols}) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'tracked', '{}'::jsonb${vals})`,
+        );
+      for (const [cols, vals] of [
+        [', range_position_52w', ', 1.5'],
+        [', next_earnings_date', ", date '2027-01-28'"],
+        [', next_earnings_source', ", 'tauric'"],
+        [', analyst_recommendation', ", 'outperform'"],
+        [', sector_etf', ", 'SPY'"],
+        [', close_date', ", date '2026-11-30'"],
+        [', low_52w, high_52w', ', 200, 100'],
+        [', unavailable', ", '[]'::jsonb"],
+      ] as const)
+        await expect(row(cols, vals), cols).rejects.toThrow(/check constraint/);
+      await expect(
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'amd', 'tracked', '{}'::jsonb)`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+      await expect(
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'friends', '{}'::jsonb)`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+    } finally {
+      await db.query(`delete from public.ticker_daily_summary`);
+    }
+  });
+
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {
     const ownerOnly = new Set(['briefs', 'alerts', 'alert_outcomes', 'ai_usage']);
     for (const table of [

@@ -2,7 +2,16 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (company research data layer).
+Last updated 2026-11-28 (nightly ticker summary).
+
+### Nightly ticker summary (2026-11-28, ADR 0050, batch 2 of ADR 0048)
+
+- New table `ticker_daily_summary` (additive migration `20270106000000`): one row per ticker per session with close, returns (1W, 1M, 3M, YTD, 1Y), the 52-week closing range, SMA 20/50/200, RSI, ATR %, stretch, volume and dollar-volume averages, strength against SPY, trailing dividends and yield, next results date with its source, analyst count, mean target and recommendation, P/E, beta and sector fund. Each null figure states its reason; each row names its sources and formula versions.
+- RLS: members read 'tracked' rows; 'market' rows are owner-only (from `market_snapshots`). Nobody signed in writes.
+- Core `ticker-summary-1` reuses `tickerSummary`, `periodReturn`, `traderMetrics`, `sma` and `rsi`; known-answer tests on hand-built bars.
+- Job `ticker-summary` at 11:25 UTC Tuesday to Saturday (workflow plus Supabase Cron), stored data only. It writes tracked rows only: whole-market rows would fill the 500 MB free database in about a year (decision for Khaled in ADR 0050).
+- Parity test against Watch and the quick look; the differences (ATR seed window, intraday vs closing 52-week range, daily vs average dollar volume, earnings source, sector fund source) are listed in ADR 0050. No page reads the table yet (batch 4).
+- Verified: core, jobs and Supabase tests, typecheck, ESLint and Prettier (counts in the commit's report). Not run live: needs the migrations applied and a workflow run.
 
 ### Council verdict on the TipRanks features (2026-11-28, ADR 0048)
 
