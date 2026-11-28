@@ -592,6 +592,81 @@ test('journal: the latest weekly review, or when the first one is due', async ({
   await expect(review.getByText('Portfolio', { exact: true }).locator('..')).toContainText(
     '▲ +2.0%1 held all week; 1 bought or sold inside it, left out',
   );
+  // No AI prose stored for the week: only the template.
+  await expect(review.getByText('AI-written from the figures above')).toHaveCount(0);
+});
+
+test('journal: the weekly review prose, labelled and checked, below the template figures (7.8)', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.route('**/rest/v1/briefs**', (r) =>
+    r.fulfill(
+      json([
+        {
+          title: 'Weekly review, week ending 2026-11-29',
+          for_date: '2026-11-29',
+          sections: [
+            { heading: 'Results', lines: ['1 trade closed, 1 winning: USD 400.00 realized.'] },
+          ],
+          inputs: null,
+        },
+      ]),
+    ),
+  );
+  const asked: string[] = [];
+  await page.route('**/rest/v1/ai_outputs**', (r) => {
+    asked.push(r.request().url());
+    return r.fulfill(
+      json([
+        {
+          id: 3,
+          kind: 'weekly-review',
+          ticker: null,
+          for_date: '2026-11-29',
+          text: 'You closed 1 trade this week and it made money [F1, F3]. The realized result was $400.00 [F4].',
+          citations: [
+            {
+              id: 'F1',
+              kind: 'fact',
+              label: 'Week ending 2026-11-29: trades closed',
+              url: null,
+              source: 'Marsad journal, alerts and scorecard',
+              asOf: '2026-11-29',
+            },
+            {
+              id: 'F4',
+              kind: 'fact',
+              label: 'Realized result of the closed trades',
+              url: null,
+              source: 'Marsad journal, alerts and scorecard',
+              asOf: '2026-11-29',
+            },
+          ],
+          verified: true,
+          source: 'model',
+          fallback_reason: null,
+          model: 'claude-opus-5-5',
+          served_model: 'claude-opus-5-5',
+          prompt_id: 'weekly-review',
+          prompt_version: 1,
+          created_at: '2026-11-29T07:31:00Z',
+        },
+      ]),
+    );
+  });
+  await page.goto('/journal');
+  await openTab(page, 'Weekly review');
+  const review = page.getByRole('region', { name: 'Weekly review, week ending 2026-11-29' });
+  await expect(review).toContainText('1 trade closed, 1 winning: USD 400.00 realized.');
+  const words = review.getByRole('region', { name: /The week in words/ });
+  await expect(words).toContainText('AI-written from the figures above');
+  await expect(words).toContainText('The realized result was $400.00 [F4].');
+  await expect(words).toContainText('As of 2026-11-29 · Claude Opus 5.5');
+  expect(
+    asked.some((u) => u.includes('kind=eq.weekly-review') && u.includes('for_date=eq.2026-11-29')),
+  ).toBe(true);
 });
 
 test('options positions: the stored spread with its risk, exit rules and bear case; a naked call is refused', async ({

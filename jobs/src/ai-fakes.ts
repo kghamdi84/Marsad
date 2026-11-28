@@ -61,14 +61,28 @@ export function json(text: string): string {
   return JSON.stringify({ text });
 }
 
-/** Replays replies in order and keeps every request it was sent. */
-export function fakeClient(replies: FakeReply[]): MessagesClient & { requests: MessageParams[] } {
+/** The id of the fact whose label starts with `label`, read from the request's Facts block. */
+export function factId(params: MessageParams, label: string): string {
+  const user = String(params.messages[0]?.content ?? '');
+  const line = user
+    .split('\n')
+    .find((l) => /^\[F\d+\] /.test(l) && l.slice(l.indexOf(' ') + 1).startsWith(label));
+  const id = /^\[(F\d+)\]/.exec(line ?? '')?.[1];
+  if (!id) throw new Error(`fake: no fact labelled ${label}`);
+  return id;
+}
+
+/** Replays replies in order (a function reply sees the request) and keeps every request it was sent. */
+export function fakeClient(
+  replies: (FakeReply | ((params: MessageParams) => FakeReply))[],
+): MessagesClient & { requests: MessageParams[] } {
   const requests: MessageParams[] = [];
   return {
     requests,
     create(params) {
       requests.push(params);
-      const r = replies.shift();
+      const next = replies.shift();
+      const r = typeof next === 'function' ? next(params) : next;
       if (!r) return Promise.reject(new Error('fake client: no reply left'));
       if (r.error) return Promise.reject(r.error);
       return Promise.resolve(recordedMessage(params.model, r));

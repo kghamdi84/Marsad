@@ -3,6 +3,9 @@ import { heldWeekReturn, toFixedHalfUp, weekReturn } from '@marsad/core';
 import { ErrorText } from '../ui';
 import { cardClass } from '../Card';
 import { loadHoldings, loadHoldingsSpan, loadWeeklyReview } from '../../lib/journal';
+import { isVerifiedModelText, loadWeeklyAiReview } from '../../lib/ai';
+import { AiSources, modelName } from '../AiSources';
+import { Pill } from '../ui/kit';
 import { dayMonth, weekdayDayMonth } from '../../lib/dates';
 import { StatTile, signedPct1 } from './shared';
 import { t } from '../../strings';
@@ -17,6 +20,11 @@ const x = t.journal.review;
  */
 export function WeeklyReview() {
   const q = useQuery({ queryKey: ['weekly-review'], queryFn: loadWeeklyReview });
+  const prose = useQuery({
+    queryKey: ['weekly-review-ai', q.data?.forDate],
+    queryFn: () => loadWeeklyAiReview(q.data?.forDate ?? ''),
+    enabled: !!q.data,
+  });
   const h = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const spy = q.data && h.data ? weekReturn(h.data.bars['SPY'] ?? [], q.data.forDate) : null;
   const span = useQuery({
@@ -108,6 +116,24 @@ export function WeeklyReview() {
           ))}
         </div>
       ))}
+      {isVerifiedModelText(prose.data) && (
+        <section aria-labelledby="weekly-review-ai" className="flex flex-col gap-1.5">
+          <h3 id="weekly-review-ai" className="flex flex-wrap items-center gap-2 text-xs text-ink3">
+            {x.aiTitle} <Pill tone="neutral">{x.aiLabel}</Pill>
+          </h3>
+          <p className="text-[13px] leading-[1.55] whitespace-pre-wrap text-ink2">
+            {prose.data.text}
+          </p>
+          <p className="text-xs text-ink3">
+            {x.aiNote}{' '}
+            {t.common.ai.asOf(
+              prose.data.createdAt.slice(0, 10),
+              modelName(prose.data.servedModel ?? prose.data.model),
+            )}
+          </p>
+          <AiSources citations={prose.data.citations} label={x.aiTitle} />
+        </section>
+      )}
     </section>
   );
 }

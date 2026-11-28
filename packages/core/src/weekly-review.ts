@@ -212,7 +212,7 @@ export function weeklyReview(x: WeeklyInputs): Brief {
     {
       heading: 'About this review',
       lines: [
-        'Written from templates; every number comes from your journal, alerts and scorecard. An AI review arrives once an Anthropic key and caps are set.',
+        'Written from templates; every number comes from your journal, alerts and scorecard. When the Anthropic key is set, Claude adds a short review in words from the same figures, checked against them.',
       ],
     },
   ];
