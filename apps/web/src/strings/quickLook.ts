@@ -1,0 +1,77 @@
+/**
+ * Quick look strings.
+ * Import `t` from `strings.ts`, not this module (ADR 0051).
+ */
+
+export const quickLook = {
+  open: (ticker: string) => `${ticker}, quick look`,
+  title: (ticker: string) => ticker,
+  close: 'Close the quick look',
+  endOfDay: (day: string) => `End of day · ${day}`,
+  stale: (day: string) => `Stale · ${day}`,
+  tauric: (price: string, label: string) => `Tauric $${price} · ${label}`,
+  chartKey: 'Three months. Blue: close; grey: 50-day; yellow: 200-day.',
+  trend: 'Trend',
+  rsi: 'RSI 14',
+  volume: 'Volume vs 20-day',
+  times: (v: string) => `${v}\u00D7`,
+  dollarVolume: 'Dollar volume',
+  overdue: 'Overdue (estimated)',
+  noEstimate: 'No estimate stored',
+  whyTitle: 'Why it is here',
+  holding: (shares: number, stop: string, targets: string) =>
+    `You hold ${shares} shares; stop ${stop}, targets ${targets}.`,
+  none: 'none',
+  alert: (day: string, headline: string) => `Latest alert ${day}: ${headline}`,
+  traderTitle: 'Trader facts',
+  filingsTitle: 'Newest filings',
+  tier1: 'Tier 1',
+  items: (list: string) => `items ${list}`,
+  openStudy: 'Open full study',
+  button: (ticker: string) => `Quick look at ${ticker}`,
+  position: {
+    title: 'Your position',
+    lot: (date: string) => `Lot opened ${date}`,
+    shares: 'Shares and cost',
+    sharesLine: (n: number, cost: string) => `${n} at ${cost}`,
+    value: 'Value',
+    valueLine: (v: string, day: string) => `${v} at the close of ${day}`,
+    gain: 'Unrealized',
+    weight: 'Weight',
+    weightLine: (pct: string) => `${pct} of the portfolio`,
+    weightPartial: (pct: string, n: number) =>
+      `${pct} of priced holdings (${n} without a stored close)`,
+    noPrice: 'No stored close, so value, gain and weight are not available.',
+    thesis: 'Thesis',
+    exits: 'Exit rules',
+    exitsNone: (day: string) => `None triggered at the close of ${day}`,
+    horizon: 'Horizon',
+  },
+  perf: {
+    title: 'Performance',
+    naShort: 'n/a',
+    range52: '52-week position',
+    rangeLine: (fromHigh: string, lo: string, hi: string) =>
+      `${fromHigh} from the high, range ${lo} to ${hi}`,
+    rangeShort: (n: number) => `${n}-session position`,
+    revenue: 'Revenue, 4 quarters',
+    revenueLine: (v: string, yoy: string | null, end: string) =>
+      `${v}${yoy === null ? '' : `, ${yoy} y/y`} (to ${end})`,
+    netMargin: 'Net margin',
+    netMarginLine: (v: string, end: string) => `${v} (4 quarters to ${end})`,
+    source: (to: string) => `Massive end-of-day closes to ${to}; SEC facts as filed.`,
+  },
+  brief: {
+    title: 'Company brief',
+    whatItDoes: 'What it does',
+    whatSource: (filed: string) => `First sentence of the 10-K business section, filed ${filed}.`,
+    more: (n: number) => `${n} more in the full study`,
+    sentiment: 'News, 30 days',
+    sentimentNote: "The news vendor's labels, an opinion.",
+    latest: 'Latest filing',
+    latestLine: (what: string, date: string) => `${what}, filed ${date}`,
+    earnings: 'Next earnings',
+    earningsLine: (date: string, when: string) => `~ ${date}, estimated (${when})`,
+    formula: (version: string) => `Formula ${version}, by code from stored data.`,
+  },
+} as const;
