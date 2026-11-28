@@ -108,7 +108,7 @@ describe('runCriticalEmailJob', () => {
   it('records not configured without the email secrets, and expired after 24 hours', async () => {
     const f = fakeStore([critical('new'), critical('old', '2026-11-24T14:59:59Z')]);
     const run = await runCriticalEmailJob({ store: f.store, send: undefined, now: () => NOW });
-    expect(run.status).toBe('ok');
+    expect(run.status).toBe('skipped');
     expect(f.logs.get('alerts:new')?.['email']).toBe(
       'not-configured (RESEND_API_KEY or BRIEF_EMAIL_TO missing)',
     );

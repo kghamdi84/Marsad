@@ -58,7 +58,10 @@ export async function runCriticalEmailJob(deps: EmailJobDeps): Promise<JobRunRec
     async () => {
       const at = now();
       const pending = await store.getPendingEmail();
-      if (pending.length === 0) return { rows: 0, details: { pending: 0 } };
+      if (pending.length === 0)
+        return send === undefined
+          ? { rows: 0, skipped: NOT_CONFIGURED, details: { pending: 0, configured: false } }
+          : { rows: 0, details: { pending: 0 } };
       const settle = (p: PendingEmail, from: string, email: string) =>
         store.setDelivery(p.table, p.alert.id, 'email', from, {
           ...p.delivery,
@@ -102,6 +105,7 @@ export async function runCriticalEmailJob(deps: EmailJobDeps): Promise<JobRunRec
         throw new Error(`No email copy delivered: ${failures.slice(0, 3).join(' | ')}`);
       return {
         rows: sent,
+        ...(send === undefined ? { skipped: NOT_CONFIGURED } : {}),
         details: {
           pending: pending.length,
           sent,
@@ -151,7 +155,14 @@ export async function runDigestJob(deps: EmailJobDeps): Promise<JobRunRecord> {
         )
           expired += 1;
       }
-      if (fresh.length === 0) return { rows: 0, details: { pending: pending.length, expired } };
+      if (fresh.length === 0)
+        return send === undefined
+          ? {
+              rows: 0,
+              skipped: NOT_CONFIGURED,
+              details: { pending: pending.length, expired, configured: false },
+            }
+          : { rows: 0, details: { pending: pending.length, expired } };
       if (send === undefined) {
         for (const p of fresh)
           await store.setDelivery(
@@ -161,7 +172,11 @@ export async function runDigestJob(deps: EmailJobDeps): Promise<JobRunRecord> {
             'pending',
             stamp(p.delivery, NOT_CONFIGURED),
           );
-        return { rows: 0, details: { pending: pending.length, expired, configured: false } };
+        return {
+          rows: 0,
+          skipped: NOT_CONFIGURED,
+          details: { pending: pending.length, expired, configured: false },
+        };
       }
       const claimed: typeof pending = [];
       for (const p of fresh)

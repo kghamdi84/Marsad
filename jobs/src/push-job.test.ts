@@ -159,7 +159,7 @@ describe('runPushJob', () => {
       secretPublicKey: null,
       now: () => NOW,
     });
-    expect(run.status).toBe('ok');
+    expect(run.status).toBe('skipped');
     expect(f.deliveries.get('alerts:a1')?.['push']).toBe(
       'not-configured (VAPID_PRIVATE_KEY secret missing)',
     );
