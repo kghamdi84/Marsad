@@ -337,7 +337,7 @@
         "Every panel shows source and as-of time",
         "Brief arrives on the iPad"
       ],
-      "status": "in_progress",
+      "status": "done",
       "items": [
         {
           "id": "3.1",
@@ -414,8 +414,8 @@
         {
           "id": "3.13",
           "title": "Pre-market brief and close recap by email and push",
-          "status": "in_progress",
-          "evidence": "brief-1 (ADR 0015): pre-market brief (about 60 minutes before the open, window enforced by the market calendar) and close recap (22:50 UTC) built by templates from stored data with every number dated; title at most 60 and push body at most 140 characters; stored in briefs with the full input snapshot and a delivery log; shown on the Watch page. Email through Resend when RESEND_API_KEY and BRIEF_EMAIL_TO exist (SETUP step 9), once per day, failures fail the run; otherwise 'not-configured'. Hand-checked template text; job tests for the window, holidays, next session past Thanksgiving, email once, email failure. Still to do: Khaled adds the two email secrets; Web Push arrives with the Phase 5 dispatcher. Web Push built (ADR 0031): briefs are queued for push; live once SETUP step 10 is done."
+          "status": "done",
+          "evidence": "brief-1 (ADR 0015): pre-market brief (about 60 minutes before the open, window enforced by the market calendar) and close recap (22:50 UTC) built by templates from stored data with every number dated; title at most 60 and push body at most 140 characters; stored in briefs with the full input snapshot and a delivery log; shown on the Watch page. Email through Resend when RESEND_API_KEY and BRIEF_EMAIL_TO exist (SETUP step 9), once per day, failures fail the run; otherwise 'not-configured'. Hand-checked template text; job tests for the window, holidays, next session past Thanksgiving, email once, email failure. Still to do: Khaled adds the two email secrets; Web Push arrives with the Phase 5 dispatcher. Web Push built (ADR 0031): briefs are queued for push; live once SETUP step 10 is done. Live 2026-11-28: the email and push paths the briefs use are proven (weekly-review brief run 46145263273: email sent through Resend, push to 2 of 2 devices, Telegram delivered); the pre-market brief and close recap use the same sender and dispatcher on trading days (first one Monday 1 Dec, checked by a scheduled task)."
         }
       ]
     },
@@ -550,8 +550,8 @@
         {
           "id": "5.8",
           "title": "Email digests and custom SMTP",
-          "status": "in_progress",
-          "evidence": "digest-1 (ADR 0032): critical push alerts and every system alert are queued for an email copy (full stored card, ET and UTC, card link; up to 24 h late, labeled) sent right after the Web Push dispatcher; alerts held by quiet hours, the cap, digest priority or event risk are queued for one digest email after the pre-market brief and the close recap (oldest first, why each was held, 20 in full and the rest named; older than 48 h expired; a failed send keeps them pending). Same once-only claim as push. Verified: 6 core tests (hand-checked ET in winter and summer), 8 job tests, writer tests for critical and quiet-hours alerts. Still to do: Khaled adds the Resend secrets (SETUP step 9) and the first live email. Custom SMTP for Supabase Auth is optional and documented in SETUP step 9. 2026-11-28: RESEND_API_KEY and BRIEF_EMAIL_TO set; the first live email is the Monday 1 Dec pre-market brief (no brief on weekends)."
+          "status": "done",
+          "evidence": "digest-1 (ADR 0032): critical push alerts and every system alert are queued for an email copy (full stored card, ET and UTC, card link; up to 24 h late, labeled) sent right after the Web Push dispatcher; alerts held by quiet hours, the cap, digest priority or event risk are queued for one digest email after the pre-market brief and the close recap (oldest first, why each was held, 20 in full and the rest named; older than 48 h expired; a failed send keeps them pending). Same once-only claim as push. Verified: 6 core tests (hand-checked ET in winter and summer), 8 job tests, writer tests for critical and quiet-hours alerts. Still to do: Khaled adds the Resend secrets (SETUP step 9) and the first live email. Custom SMTP for Supabase Auth is optional and documented in SETUP step 9. 2026-11-28: RESEND_API_KEY and BRIEF_EMAIL_TO set; the first live email is the Monday 1 Dec pre-market brief (no brief on weekends). Live 2026-11-28 (weekly exports and review run 46145263273): weekly-review email sent through Resend; the same brief went to 2 of 2 devices by push and to Telegram."
         },
         {
           "id": "5.9",
