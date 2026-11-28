@@ -33,6 +33,7 @@ import {
   type InsiderData,
 } from '../../lib/studyPanels';
 import { dayMonthYear, weekdayDayMonth } from '../../lib/dates';
+import { AnalystLine } from './research/AnalystLine';
 import { t } from '../../strings';
 
 const b = t.study.brief;
@@ -718,6 +719,9 @@ export function CompanyBrief({
               ) : (
                 <NA />
               )}
+            </Line>
+            <Line label={b.analysts}>
+              <AnalystLine ticker={ticker} close={p.close} />
             </Line>
           </dl>
           <p className="text-xs text-ink3">{b.noForecast}</p>

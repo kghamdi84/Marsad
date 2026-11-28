@@ -9,7 +9,8 @@ import { WatchlistCard } from '../components/watch/WatchlistCard';
 import { NewsCard } from '../components/watch/NewsCard';
 import { CalendarCard } from '../components/watch/CalendarCard';
 import { DividendCalendar } from '../components/watch/DividendCalendar';
-import { GapsCard, MoversCard, SectorsCard } from '../components/watch/Market';
+import { GapsCard, SectorsCard } from '../components/watch/Market';
+import { MarketMovers } from '../components/watch/Movers';
 import { Failure, useNow, v } from '../components/watch/shared';
 import { loadHoldings } from '../lib/journal';
 import { weekdayDayMonth } from '../lib/dates';
@@ -127,7 +128,7 @@ export function Watch() {
             onChange={setMarket}
           />
           {market === 'sectors' && <SectorsCard data={wq.data} />}
-          {market === 'movers' && <MoversCard data={wq.data} />}
+          {market === 'movers' && <MarketMovers />}
           {market === 'gaps' && <GapsCard data={wq.data} />}
         </div>
       )}

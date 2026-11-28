@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (portfolio views and dividend calendar).
+Last updated 2026-11-28 (portfolio views and dividend calendar; Study research views, nightly ticker summary).
 
 ### Portfolio views and the ex-dividend calendar (2026-11-28, ADR 0048)
 
@@ -18,6 +18,31 @@ Last updated 2026-11-28 (portfolio views and dividend calendar).
 - Not available, said on screen: cash (not stored), crowd insights (no other-investor data), geographic allocation (no source), current option values (options plan).
 - Deferred by ADR 0048: the dividend returns comparison.
 
+### Nightly ticker summary (2026-11-28, ADR 0050, batch 2 of ADR 0048)
+
+- New table `ticker_daily_summary` (additive migration `20270106000000`): one row per ticker per session with close, returns (1W, 1M, 3M, YTD, 1Y), the 52-week closing range, SMA 20/50/200, RSI, ATR %, stretch, volume and dollar-volume averages, strength against SPY, trailing dividends and yield, next results date with its source, analyst count, mean target and recommendation, P/E, beta and sector fund. Each null figure states its reason; each row names its sources and formula versions.
+- RLS: members read 'tracked' rows; 'market' rows are owner-only (from `market_snapshots`). Nobody signed in writes.
+- Core `ticker-summary-1` reuses `tickerSummary`, `periodReturn`, `traderMetrics`, `sma` and `rsi`; known-answer tests on hand-built bars.
+- Job `ticker-summary` at 11:25 UTC Tuesday to Saturday (workflow plus Supabase Cron), stored data only. It writes tracked rows only: whole-market rows would fill the 500 MB free database in about a year (decision for Khaled in ADR 0050).
+- Parity test against Watch and the quick look; the differences (ATR seed window, intraday vs closing 52-week range, daily vs average dollar volume, earnings source, sector fund source) are listed in ADR 0050. No page reads the table yet (batch 4).
+- Verified: core, jobs and Supabase tests, typecheck, ESLint and Prettier (counts in the commit's report). Not run live: needs the migrations applied and a workflow run.
+
+### Council verdict on the TipRanks features (2026-11-28, ADR 0048)
+
+- Six-member council (trader, investor, information architect, integrity and cost auditor, architect, risk coach). Khaled adopted the verdict as the plan.
+- New pages: Portfolio (`/portfolio`, opens on a Review of exits, stops and open risk) and Markets (`/markets`, replaces Regime and adds whole-market movers and the calendar). Study regroups into ten views. Every view gets a `?view=` URL.
+- Cut: health score, crowd insights, buy/sell gauges, headline upside, analyst column on holdings, FAQ, call summaries, after-hours. Paid add-ons: none.
+- Build order: in-flight work into PR #83, strings split, `ticker_daily_summary`, navigation, consumers, portfolio limits and earnings guard, then later items in IDEAS.md.
+
+### Study company page in ten views (2026-11-28, ADR 0048)
+
+- The chart stays on top; below it one view at a time: Overview, Analysts, Financials, Earnings, Technicals, Dividends, Ownership, News, Filings, Shariah aid. The tab row wraps into a chip row on phones (the accordions are gone). Each research section is its own component with its own data hooks (`components/study/research/`), so it can move pages.
+- Overview: the company brief, Tauric's profile text, key statistics with their refreshed date (market value, beta and dividend yield also computed by Marsad and flagged when they differ beyond a stated tolerance; dilution, free cash flow margin and net cash from `investor-1`), the stock against SPY from 3M to 5Y (longer ranges disabled with the sessions they need), peers among tickers Marsad tracks, the thesis card and any held position with its exit rules, then the Tauric AI thesis, labelled.
+- Analysts: consensus and counts, "Mean target vs last close" with low, median, high and the analyst count (no upside headline anywhere), the target chart, the recommendation trend from `analyst_history`, Tauric's single next-quarter estimate. Per-analyst rows: not available (Benzinga add-on).
+- Financials: Piotroski as "n of 9 tests passed" with every test (`piotroski-1`), and a 5-year, TTM and quarterly overview (`financials-overview-1`) with two charts. Earnings: dated events, the reported diluted EPS table and chart with year-earlier change (`eps-yoy-1`), 8-K item 2.02 links; estimates and transcripts not available. Technicals: one engine `technical-1` (n of m readings, indicator table, pivots, `levels-1` support and resistance), no gauge. Dividends: summary, cuts, history and the calculator (`dividend-calc-1`, 30% withholding by default). Ownership: Tauric ownership bar plus 13F, insiders and short data. News: the vendor's labels, counts under 30, coverage by week (`news-sentiment-1`).
+- The chart gained 1M to All ranges, weekly and monthly candles, Bollinger Bands, overlay toggles, analyst targets and levels as lines.
+- New SEC concepts for the facts job (current assets and liabilities, depreciation, investing and financing cash flow) fill in at its next run; until then those lines read "Data unavailable".
+
 ### Company research data from Tauric (2026-11-28, ADR 0047)
 
 - New table `company_research`: per ticker, Tauric's analyst consensus (rating counts, 12-month targets, EPS), company profile (classification, valuation, margins, ownership, description), the Tauric AI thesis (narrative, drivers, risks, catalysts, open questions) and the earnings and dividend calendar (next earnings date with one EPS and revenue estimate, latest ex-date). Members read it; nobody writes it from the app.
@@ -25,6 +50,7 @@ Last updated 2026-11-28 (portfolio views and dividend calendar).
 - Job `tauric-research` runs daily at 09:35 UTC (Tuesday to Saturday) for holdings and watchlists. It reads the day's credit use first (free), spends at most 300 of the 3,000 daily credits, keeps 300 for quotes, warns at 80%, and logs every ticker's outcome in the job log. A ticker Tauric does not carry (BBAI, for example) costs nothing and reads "not covered".
 - Waits for the `TAURIC_API_KEY` secret like the quotes job. Recorded fixtures for NVDA, AAPL and BBAI.
 - Not available from Tauric: per-analyst ratings, earnings-call transcripts, segment revenue, reported EPS and surprises.
+- New table `analyst_history`: a trigger keeps one row per ticker per day of the analyst counts and targets, so the recommendation trend builds from today. Per-analyst rows and track records need Massive's paid Benzinga add-on (not on the current plan, checked 2026-11-28).
 
 ### Quick look shows position, performance and a short company brief (2026-11-27)
 
@@ -748,3 +774,10 @@ Matched since the last note: Alerts (header tabs, list cards, numbered detail se
 ### Design match, second pass
 
 Merged in #68. This pass: Regime hero shows the four design tiles. Known limits: the Regime event study has no 90% interval bars because the stored statistics do not hold them (needs a job and migration change), watchlist and Study cards have no company names, and the Shariah tab lacks the filing reference. Still to compare: Journal ticket and tabs, and 390 px views for every page.
+
+### Whole-market movers (movers-1, ADR 0049)
+
+- Core `moversSession` (`packages/core/src/movers.ts`, 12 known-answer tests): gainers, losers, most active, unusual volume (3x the 20-session average and USD 5 million, 50-session ratio shown), new 52-week highs and lows by close (252 sessions), liquidity floor (USD 1 close, USD 2 million traded), bad prints and the 25% and split corporate-action checks.
+- The breadth job stores it per session in the new owner-only `market_movers_market` (migration `20270105120000`); `market_snapshots` and `ticker_type_snapshots` go back to owner-only (ADR 0048).
+- Watch: Movers is now a self-contained view (`components/watch/Movers.tsx`, `lib/movers.ts`) with Whole market and Marsad universe, six lists, a minimum dollar-volume filter, "On my list", and the latest stored headline per row. Ready to move to Markets.
+- Shows after the next breadth job run once the migration is applied.

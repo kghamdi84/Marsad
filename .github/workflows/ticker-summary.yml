@@ -1,0 +1,36 @@
+name: Ticker summary
+
+# The nightly per-ticker summary (ADR 0050, formula ticker-summary-1): one row per holding, watchlist ticker, SPY and
+# sector fund in public.ticker_daily_summary, computed from stored data only (no vendor calls). Runs at 11:25 UTC
+# Tuesday to Saturday: after the bars job (22:30 UTC the evening before), the company research job (09:35 UTC) and
+# the breadth job (10:40 UTC), and before the 13:30 UTC open. GitHub's scheduler can run late; Supabase Cron starts it
+# on time (ADR 0008). Idempotent: a second run the same day rewrites the same rows.
+on:
+  schedule:
+    - cron: '25 11 * * 2-6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ticker-summary
+  cancel-in-progress: false
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the job
+        run: pnpm --filter @marsad/jobs ticker-summary
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

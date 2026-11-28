@@ -306,6 +306,7 @@ describe('system tables', () => {
       ['daily_bars', 1],
       ['price_quotes', 1],
       ['company_research', 1],
+      ['analyst_history', 1],
     ] as const) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) =>
@@ -381,8 +382,110 @@ describe('system tables', () => {
       await expect(db.query(sql)).rejects.toThrow(/check constraint/);
   });
 
+  it('analyst history (ADR 0047): each analyst write keeps one row per ticker per day, read-only for everyone signed in', async () => {
+    const rows = async () =>
+      (
+        await db.query<{ as_of: string; buy: number | null; target_mean: string | null }>(
+          `select as_of::text, buy, target_mean::text from public.analyst_history where ticker = 'AMD' order by as_of`,
+        )
+      ).rows;
+    await db.query(
+      `insert into public.company_research (ticker, analyst, analyst_refreshed_at) values ('AMD', '{"buy": 30, "target_mean_price": 250.5}'::jsonb, '2026-11-27T22:00:00Z')`,
+    );
+    // A second write the same UTC day replaces that day's row; a write on a new day adds one.
+    await db.query(
+      `update public.company_research set analyst = '{"buy": 31, "target_mean_price": 251}'::jsonb where ticker = 'AMD'`,
+    );
+    expect(await rows()).toEqual([{ as_of: '2026-11-27', buy: 31, target_mean: '251' }]);
+    await db.query(
+      `update public.company_research set analyst = '{"buy": "x"}'::jsonb, analyst_refreshed_at = '2026-11-28T22:00:00Z' where ticker = 'AMD'`,
+    );
+    expect(await rows()).toEqual([
+      { as_of: '2026-11-27', buy: 31, target_mean: '251' },
+      { as_of: '2026-11-28', buy: null, target_mean: null },
+    ]);
+    // Clearing the analyst part (Tauric dropped coverage) keeps the history.
+    await db.query(`update public.company_research set analyst = null where ticker = 'AMD'`);
+    expect(await rows()).toHaveLength(2);
+    await expect(
+      as(owner2, (tx) => tx.query(`delete from public.analyst_history`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(other2, (tx) =>
+        tx.query(
+          `insert into public.analyst_history (ticker, as_of) values ('AMD', date '2026-11-29')`,
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/);
+    await db.query(`delete from public.analyst_history where ticker = 'AMD'`);
+    await db.query(`delete from public.company_research where ticker = 'AMD'`);
+  });
+
+  it("ticker summary (ADR 0050): members read 'tracked' rows, only the owner reads 'market' rows, nobody signed in writes", async () => {
+    await db.exec(`
+      insert into public.ticker_daily_summary (version, date, ticker, coverage, close, close_date, range_position_52w, formula_versions)
+        values ('ticker-summary-1', date '2026-11-27', 'NVDA', 'tracked', 177.0, date '2026-11-27', 0.8, '{"summary": "ticker-summary-1"}'::jsonb),
+               ('ticker-summary-1', date '2026-11-27', 'AAPL', 'market', 278.0, date '2026-11-27', 0.9, '{"summary": "ticker-summary-1"}'::jsonb);
+    `);
+    const tickers = async (tx: Transaction) =>
+      (
+        await tx.query<{ ticker: string }>(
+          'select ticker from public.ticker_daily_summary order by ticker',
+        )
+      ).rows.map((r) => r.ticker);
+    try {
+      await as(owner2, async (tx) => expect(await tickers(tx)).toEqual(['AAPL', 'NVDA']));
+      await as(other2, async (tx) => expect(await tickers(tx)).toEqual(['NVDA']));
+      await as(owner1, async (tx) => expect(await tickers(tx)).toEqual([]));
+      await expect(as(anon, (tx) => tickers(tx))).rejects.toThrow(/permission denied/);
+      for (const sql of [
+        `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'tracked', '{}'::jsonb)`,
+        `update public.ticker_daily_summary set close = 1 where ticker = 'NVDA'`,
+        `delete from public.ticker_daily_summary`,
+      ]) {
+        await expect(as(owner2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+        await expect(as(other2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+      }
+      const row = (cols: string, vals: string) =>
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions${cols}) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'tracked', '{}'::jsonb${vals})`,
+        );
+      for (const [cols, vals] of [
+        [', range_position_52w', ', 1.5'],
+        [', next_earnings_date', ", date '2027-01-28'"],
+        [', next_earnings_source', ", 'tauric'"],
+        [', analyst_recommendation', ", 'outperform'"],
+        [', sector_etf', ", 'SPY'"],
+        [', close_date', ", date '2026-11-30'"],
+        [', low_52w, high_52w', ', 200, 100'],
+        [', unavailable', ", '[]'::jsonb"],
+      ] as const)
+        await expect(row(cols, vals), cols).rejects.toThrow(/check constraint/);
+      await expect(
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'amd', 'tracked', '{}'::jsonb)`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+      await expect(
+        db.query(
+          `insert into public.ticker_daily_summary (version, date, ticker, coverage, formula_versions) values ('ticker-summary-1', date '2026-11-27', 'AMD', 'friends', '{}'::jsonb)`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+    } finally {
+      await db.query(`delete from public.ticker_daily_summary`);
+    }
+  });
+
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {
-    const ownerOnly = new Set(['briefs', 'alerts', 'alert_outcomes', 'ai_usage']);
+    const ownerOnly = new Set([
+      'briefs',
+      'alerts',
+      'alert_outcomes',
+      'ai_usage',
+      // Whole-market data is owner-only (ADR 0048): Massive's plans are for individual use.
+      'market_snapshots',
+      'ticker_type_snapshots',
+    ]);
     for (const table of [
       'financial_facts',
       'insider_filings',
@@ -457,6 +560,39 @@ describe('system tables', () => {
         `insert into public.universe_members (version, month_start, ticker, rank, dollar_volume) values ('universe-1', date '2026-11-02', 'bad ticker', 2, 1)`,
       ),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it('whole-market movers (movers-1, ADR 0048) are owner-only; members read only the version marker', async () => {
+    await db.query(
+      `insert into public.market_movers_market (date, version, session) values (date '2026-11-24', 'movers-1', '{}'::jsonb)`,
+    );
+    await db.query(
+      `update public.market_movers_daily set market_version = 'movers-1' where date = date '2026-11-24'`,
+    );
+    try {
+      await as(owner2, async (tx) =>
+        expect(await count(tx, 'public.market_movers_market')).toBe(1),
+      );
+      await as(other2, async (tx) => {
+        expect(await count(tx, 'public.market_movers_market')).toBe(0);
+        const r = await tx.query<{ market_version: string }>(
+          `select market_version from public.market_movers_daily where date = date '2026-11-24'`,
+        );
+        expect(r.rows).toEqual([{ market_version: 'movers-1' }]);
+      });
+      await as(owner1, async (tx) =>
+        expect(await count(tx, 'public.market_movers_market')).toBe(0),
+      );
+      await expect(as(anon, (tx) => count(tx, 'public.market_movers_market'))).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(
+        as(owner2, (tx) => tx.query(`delete from public.market_movers_market`)),
+      ).rejects.toThrow(/permission denied/);
+    } finally {
+      await db.query(`delete from public.market_movers_market`);
+      await db.query(`update public.market_movers_daily set market_version = null`);
+    }
   });
 
   it('the composite and capitulation tables reject out-of-range values and unknown states', async () => {
