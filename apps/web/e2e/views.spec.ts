@@ -96,3 +96,132 @@ test('journal: ?view= picks trades, sizer or review; the tabs that moved open th
     ).toHaveAttribute('aria-pressed', 'true');
   }
 });
+
+/**
+ * Every page and every `?view=` URL, with the control that shows the chosen view: a Segmented group (pressed
+ * button) or a tab row (selected tab). Each URL must render its page title, select that view and throw nothing.
+ */
+const PAGES: {
+  path: string;
+  title: string;
+  views?: { group?: string; tabs?: true; list: [string, string][] };
+}[] = [
+  { path: '/', title: 'Watch' },
+  {
+    path: '/markets',
+    title: 'Markets',
+    views: {
+      group: 'Markets view',
+      list: [
+        ['regime', 'Regime'],
+        ['movers', 'Movers'],
+        ['sectors', 'Sectors'],
+        ['calendar', 'Calendar'],
+      ],
+    },
+  },
+  { path: '/study', title: 'Study' },
+  {
+    path: '/study/NVDA',
+    title: 'NVDA',
+    views: {
+      tabs: true,
+      list: [
+        ['overview', 'Overview'],
+        ['analysts', 'Analysts'],
+        ['financials', 'Financials'],
+        ['earnings', 'Earnings'],
+        ['technicals', 'Technicals'],
+        ['dividends', 'Dividends'],
+        ['ownership', 'Ownership'],
+        ['news', 'News'],
+        ['filings', 'Filings'],
+        ['shariah', 'Shariah aid'],
+      ],
+    },
+  },
+  {
+    path: '/portfolio',
+    title: 'Portfolio',
+    views: {
+      group: 'Portfolio view',
+      list: [
+        ['review', 'Review'],
+        ['holdings', 'Holdings'],
+        ['analysis', 'Analysis'],
+        ['performance', 'Performance'],
+        ['income', 'Income'],
+        ['news', 'News'],
+      ],
+    },
+  },
+  {
+    path: '/journal',
+    title: 'Journal',
+    views: {
+      tabs: true,
+      list: [
+        ['trades', 'Trades'],
+        ['sizer', 'Sizer and Sahm ticket'],
+        ['review', 'Weekly review'],
+      ],
+    },
+  },
+  { path: '/alerts', title: 'Alerts' },
+  { path: '/lab', title: 'Lab' },
+  {
+    path: '/status',
+    title: 'Status',
+    views: {
+      group: 'Status details',
+      list: [
+        ['jobs', 'Jobs'],
+        ['costs', 'Costs'],
+        ['alerts', 'System alerts'],
+        ['latency', 'Latency'],
+      ],
+    },
+  },
+  {
+    path: '/settings',
+    title: 'Settings',
+    views: {
+      group: 'Settings sections',
+      list: [
+        ['display', 'Display and security'],
+        ['notifications', 'Notifications'],
+        ['prefs', 'Shariah and AI caps'],
+        ['data', 'Quote source and exports'],
+      ],
+    },
+  },
+];
+
+for (const pg of PAGES)
+  test(`every view loads: ${pg.path}${pg.views ? ` (${pg.views.list.length} views)` : ''}`, async ({
+    page,
+  }) => {
+    await empty(page);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const urls = pg.views
+      ? pg.views.list.map(([key, label]) => ({ url: `${pg.path}?view=${key}`, label }))
+      : [{ url: pg.path, label: null }];
+    for (const { url, label } of urls) {
+      await page.goto(url);
+      await expect(page.getByRole('heading', { level: 1, name: pg.title })).toBeVisible();
+      if (label && pg.views?.tabs)
+        await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute(
+          'aria-selected',
+          'true',
+        );
+      else if (label && pg.views?.group)
+        await expect(
+          page
+            .getByRole('group', { name: pg.views.group })
+            .getByRole('button', { name: label, exact: true }),
+        ).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByText('Something went wrong.')).toHaveCount(0);
+    }
+    expect(errors).toEqual([]);
+  });

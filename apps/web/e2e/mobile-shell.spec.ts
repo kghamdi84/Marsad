@@ -56,10 +56,10 @@ test('phone: bottom tab bar, page title and the More sheet', async ({ page }) =>
   await mock(page, '2026-11-24T15:00:00Z');
   await page.goto('/');
   const bar = page.getByRole('navigation', { name: 'Main sections' });
-  for (const name of ['Watch', 'Study', 'Markets', 'Alerts', 'Journal'])
+  for (const name of ['Watch', 'Study', 'Portfolio', 'Markets', 'Alerts'])
     await expect(bar.getByRole('link', { name })).toBeVisible();
   await expect(bar.getByRole('link', { name: 'Watch' })).toHaveAttribute('aria-current', 'page');
-  // Lab and Status live under More on a phone.
+  // Journal, Lab, Status and Settings live under More on a phone (ADR 0048).
   await expect(page.getByRole('link', { name: 'Lab', exact: true })).toHaveCount(0);
 
   await bar.getByRole('link', { name: 'Markets' }).click();
