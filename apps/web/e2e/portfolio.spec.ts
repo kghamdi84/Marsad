@@ -225,6 +225,11 @@ test('portfolio review: open risk with risk unknown, the council limits, holding
     'The sizer allows 9 shares at today’s close and stop; you hold 100.',
   );
   await expect(rklb).toContainText('$700');
+  // Fall to stop, (close - stop) / close as the earnings-guard alert states it: (29 - 22) / 29 = 24.1%.
+  await expect(rklb.getByText('Fall to stop', { exact: true }).locator('..')).toContainText(
+    '24.1% to 22.00',
+  );
+  await expect(card).toContainText('Fall to stop: How far the close must fall to reach the stop.');
   // "Size a trade" opens Journal's sizer with the ticker filled in (ADR 0048).
   await expect(rklb.getByRole('link', { name: 'Size a trade in RKLB' })).toHaveAttribute(
     'href',

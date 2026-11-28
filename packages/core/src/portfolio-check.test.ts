@@ -863,6 +863,8 @@ describe('exitReview', () => {
     // Equity 200 + 200 + 200 = 600 (cash not tracked).
     expect(r.equity).toBe(600);
     expect(a.stopGap).toBeCloseTo(20 / 18 - 1, 9);
+    // Fall to stop: (20 - 18) / 20 = 10.0%, the figure the Review shows.
+    expect(a.stopFall).toBeCloseTo(0.1, 9);
     expect(a.atr).toBeCloseTo(2, 9);
     expect(a.stopAtrs).toBeCloseTo(1, 9);
     expect(a.riskUsd).toBe(20);
@@ -877,6 +879,8 @@ describe('exitReview', () => {
     // Closed under the stop: nothing left to lose to it, and the sizer cannot size a stop above the close.
     expect(c.riskUsd).toBe(0);
     expect(c.stopGap).toBeCloseTo(20 / 25 - 1, 9);
+    // Under the stop: (20 - 25) / 20 = -25.0%.
+    expect(c.stopFall).toBeCloseTo(-0.25, 9);
     expect(c.sizer).toEqual({ error: 'For a long trade the stop must be below the entry.' });
     expect(r.rows.find((x) => x.ticker === 'B')?.riskUsd).toBeNull();
   });

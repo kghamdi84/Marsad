@@ -13,6 +13,7 @@ import { atr } from './indicators.js';
 import { adherenceVsResult, pnl, rMultiple, statsBySetup, type JournalTrade } from './journal.js';
 import {
   exitSignals,
+  fallToStop,
   gapToStop,
   hasExitRules,
   positionSize,
@@ -1368,6 +1369,11 @@ export interface ReviewRow {
   stop: number | null;
   /** `gapToStop`: price / stop - 1; negative once the close is under the stop. */
   stopGap: number | null;
+  /**
+   * `fallToStop`: (price - stop) / price, how far the close must fall to reach the stop; negative once under it.
+   * The Review shows this one, the same figure the earnings-guard alert states (ADR 0052).
+   */
+  stopFall: number | null;
   atr: number | null;
   /** (price - stop) / ATR 14. */
   stopAtrs: number | null;
@@ -1434,6 +1440,7 @@ export function exitReview(x: {
       signals: exitSignals(h, b),
       stop,
       stopGap: price !== null && stop !== null ? gapToStop(price, stop) : null,
+      stopFall: price !== null && stop !== null ? fallToStop(price, stop) : null,
       atr: a,
       stopAtrs: price !== null && stop !== null && a !== null && a > 0 ? (price - stop) / a : null,
       riskUsd: price !== null && stop !== null ? Math.max(0, price - stop) * h.shares : null,

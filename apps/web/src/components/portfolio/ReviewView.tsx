@@ -77,9 +77,9 @@ function ReviewItem({ row }: { row: ReviewRow }) {
               r.stopDistance,
               row.stop === null
                 ? r.noStop
-                : row.stopGap === null
+                : row.stopFall === null
                   ? p.na
-                  : `${pct1(row.stopGap)} ${r.toStop(price2(row.stop))}`,
+                  : `${pct1(row.stopFall)} ${r.toStop(price2(row.stop))}`,
             ],
             [r.atrs, row.stopAtrs === null ? p.na : r.atrValue(toFixedHalfUp(row.stopAtrs, 1))],
             [r.atRisk, row.riskUsd === null ? r.unbounded : usd(row.riskUsd)],
@@ -129,6 +129,7 @@ function Exits({ x }: { x: Portfolio }) {
         </span>
       </div>
       <LimitsList check={check} limits={limits} />
+      <p className="text-xs text-ink3">{`${r.stopDistance}: ${r.stopDistanceNote}.`}</p>
       <ul className="flex flex-col gap-2.5" aria-label={r.rowsLabel}>
         {rev.rows.map((row) => (
           <ReviewItem key={row.id} row={row} />

@@ -25,6 +25,7 @@ export const alerts = {
     exit: 'Exit rule',
     rotation: 'Rotation',
     halt: 'Trading halt',
+    earnings: 'Earnings guard',
     system: 'System',
   } as Record<string, string>,
   listLabel: 'Alerts in this list',

@@ -198,7 +198,8 @@ export const portfolio = {
     noneMet: 'No exit condition met',
     lot: (shares: number, price: string, date: string) =>
       `${shares} shares · close ${price}${date ? ` (${date})` : ''}`,
-    stopDistance: 'Distance to stop',
+    stopDistance: 'Fall to stop',
+    stopDistanceNote: 'How far the close must fall to reach the stop',
     noStop: 'No stop',
     toStop: (stop: string) => `to ${stop}`,
     atrs: 'In ATRs (14)',
@@ -215,7 +216,7 @@ export const portfolio = {
     sizerError: (why: string) => `The sizer cannot size this at today’s close: ${why}`,
     sizerNone: 'The sizer needs a stop and a stored close.',
     source: (risk: string, cap: string) =>
-      `Sizer defaults: ${risk} risk per trade on the priced holdings value, position cap ${cap} (portfolio-1 positionSize). Exit conditions from portfolio-1 exitSignals; ATR 14 from indicators.ts; stop distance as close over stop minus 1 (gapToStop).`,
+      `Sizer defaults: ${risk} risk per trade on the priced holdings value, position cap ${cap} (portfolio-1 positionSize). Exit conditions from portfolio-1 exitSignals; ATR 14 from indicators.ts; fall to stop as (close minus stop) over close (fallToStop), the figure the earnings-guard alert uses.`,
     coming: {
       none: 'No dated events stored for your holdings',
       kind: {
