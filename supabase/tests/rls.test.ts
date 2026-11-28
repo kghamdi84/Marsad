@@ -306,6 +306,7 @@ describe('system tables', () => {
       ['daily_bars', 1],
       ['price_quotes', 1],
       ['company_research', 1],
+      ['analyst_history', 1],
     ] as const) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) =>
@@ -379,6 +380,45 @@ describe('system tables', () => {
       `insert into public.company_research (ticker) values ('aapl')`,
     ])
       await expect(db.query(sql)).rejects.toThrow(/check constraint/);
+  });
+
+  it('analyst history (ADR 0047): each analyst write keeps one row per ticker per day, read-only for everyone signed in', async () => {
+    const rows = async () =>
+      (
+        await db.query<{ as_of: string; buy: number | null; target_mean: string | null }>(
+          `select as_of::text, buy, target_mean::text from public.analyst_history where ticker = 'AMD' order by as_of`,
+        )
+      ).rows;
+    await db.query(
+      `insert into public.company_research (ticker, analyst, analyst_refreshed_at) values ('AMD', '{"buy": 30, "target_mean_price": 250.5}'::jsonb, '2026-11-27T22:00:00Z')`,
+    );
+    // A second write the same UTC day replaces that day's row; a write on a new day adds one.
+    await db.query(
+      `update public.company_research set analyst = '{"buy": 31, "target_mean_price": 251}'::jsonb where ticker = 'AMD'`,
+    );
+    expect(await rows()).toEqual([{ as_of: '2026-11-27', buy: 31, target_mean: '251' }]);
+    await db.query(
+      `update public.company_research set analyst = '{"buy": "x"}'::jsonb, analyst_refreshed_at = '2026-11-28T22:00:00Z' where ticker = 'AMD'`,
+    );
+    expect(await rows()).toEqual([
+      { as_of: '2026-11-27', buy: 31, target_mean: '251' },
+      { as_of: '2026-11-28', buy: null, target_mean: null },
+    ]);
+    // Clearing the analyst part (Tauric dropped coverage) keeps the history.
+    await db.query(`update public.company_research set analyst = null where ticker = 'AMD'`);
+    expect(await rows()).toHaveLength(2);
+    await expect(
+      as(owner2, (tx) => tx.query(`delete from public.analyst_history`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(other2, (tx) =>
+        tx.query(
+          `insert into public.analyst_history (ticker, as_of) values ('AMD', date '2026-11-29')`,
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/);
+    await db.query(`delete from public.analyst_history where ticker = 'AMD'`);
+    await db.query(`delete from public.company_research where ticker = 'AMD'`);
   });
 
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {

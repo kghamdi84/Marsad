@@ -11,6 +11,7 @@ Last updated 2026-11-28 (company research data layer).
 - Job `tauric-research` runs daily at 09:35 UTC (Tuesday to Saturday) for holdings and watchlists. It reads the day's credit use first (free), spends at most 300 of the 3,000 daily credits, keeps 300 for quotes, warns at 80%, and logs every ticker's outcome in the job log. A ticker Tauric does not carry (BBAI, for example) costs nothing and reads "not covered".
 - Waits for the `TAURIC_API_KEY` secret like the quotes job. Recorded fixtures for NVDA, AAPL and BBAI.
 - Not available from Tauric: per-analyst ratings, earnings-call transcripts, segment revenue, reported EPS and surprises.
+- New table `analyst_history`: a trigger keeps one row per ticker per day of the analyst counts and targets, so the recommendation trend builds from today. Per-analyst rows and track records need Massive's paid Benzinga add-on (not on the current plan, checked 2026-11-28).
 
 ### Quick look shows position, performance and a short company brief (2026-11-27)
 

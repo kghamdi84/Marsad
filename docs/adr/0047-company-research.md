@@ -35,6 +35,9 @@ What was confirmed on 2026-11-28 (a Saturday) from the public `https://api.tauri
 5. **Members read it** (friends, ADR 0040), with the same `private.is_member()` policy (MFA rule included) as `price_quotes`. Showing a friend Tauric's data inside Marsad is the display the terms allow; no one pays, no key is shared, nothing is resold or exported in bulk. If Marsad ever charges anyone, or the terms change, this becomes owner-only. No client writes; no grants to `anon`.
 6. **Labels.** The thesis is Tauric AI's text: "Written by Tauric AI on <date>, evidence to <cutoff>. Not Marsad's view, not advice." The profile description is labelled as Tauric's. The consensus word is the vendor's word for the analysts' view, shown with its counts and date. All vendor text is plain text; it is never markup, never a prompt instruction, and never run.
 
+7. **Analyst history, `public.analyst_history`** (migration `20270105000200`). Tauric serves only today's consensus, so a trigger on `company_research` copies each analyst write into one row per ticker per UTC day (rating counts, analyst count, mean, median, high and low targets, refreshed time); a second write the same day replaces that day's row, and clearing the part keeps the history. The recommendation trend on the Study page reads it and says when the history starts. Same member-read policy; nobody signed in writes.
+8. **Not on Khaled's plan (checked 2026-11-28 with the Massive MCP, `NOT_ENTITLED`).** Per-analyst ratings, firms, track records and estimate ranges (Benzinga `/benzinga/v1/ratings`, `/analysts`, `/earnings`, `/consensus-ratings`) are a paid partner add-on. Marsad shows "Not available from Marsad's sources" for them; adding the add-on is a cost decision for Khaled.
+
 ## Consequences
 
 - A run spends at most 4 credits per covered ticker (48 for a dozen); the cap keeps the worst case at 300 of 3,000, and the quotes job keeps its reserve.
