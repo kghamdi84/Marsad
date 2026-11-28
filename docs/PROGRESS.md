@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (nightly ticker summary).
+Last updated 2026-11-28 (Study research views, nightly ticker summary).
 
 ### Nightly ticker summary (2026-11-28, ADR 0050, batch 2 of ADR 0048)
 
@@ -19,6 +19,15 @@ Last updated 2026-11-28 (nightly ticker summary).
 - New pages: Portfolio (`/portfolio`, opens on a Review of exits, stops and open risk) and Markets (`/markets`, replaces Regime and adds whole-market movers and the calendar). Study regroups into ten views. Every view gets a `?view=` URL.
 - Cut: health score, crowd insights, buy/sell gauges, headline upside, analyst column on holdings, FAQ, call summaries, after-hours. Paid add-ons: none.
 - Build order: in-flight work into PR #83, strings split, `ticker_daily_summary`, navigation, consumers, portfolio limits and earnings guard, then later items in IDEAS.md.
+
+### Study company page in ten views (2026-11-28, ADR 0048)
+
+- The chart stays on top; below it one view at a time: Overview, Analysts, Financials, Earnings, Technicals, Dividends, Ownership, News, Filings, Shariah aid. The tab row wraps into a chip row on phones (the accordions are gone). Each research section is its own component with its own data hooks (`components/study/research/`), so it can move pages.
+- Overview: the company brief, Tauric's profile text, key statistics with their refreshed date (market value, beta and dividend yield also computed by Marsad and flagged when they differ beyond a stated tolerance; dilution, free cash flow margin and net cash from `investor-1`), the stock against SPY from 3M to 5Y (longer ranges disabled with the sessions they need), peers among tickers Marsad tracks, the thesis card and any held position with its exit rules, then the Tauric AI thesis, labelled.
+- Analysts: consensus and counts, "Mean target vs last close" with low, median, high and the analyst count (no upside headline anywhere), the target chart, the recommendation trend from `analyst_history`, Tauric's single next-quarter estimate. Per-analyst rows: not available (Benzinga add-on).
+- Financials: Piotroski as "n of 9 tests passed" with every test (`piotroski-1`), and a 5-year, TTM and quarterly overview (`financials-overview-1`) with two charts. Earnings: dated events, the reported diluted EPS table and chart with year-earlier change (`eps-yoy-1`), 8-K item 2.02 links; estimates and transcripts not available. Technicals: one engine `technical-1` (n of m readings, indicator table, pivots, `levels-1` support and resistance), no gauge. Dividends: summary, cuts, history and the calculator (`dividend-calc-1`, 30% withholding by default). Ownership: Tauric ownership bar plus 13F, insiders and short data. News: the vendor's labels, counts under 30, coverage by week (`news-sentiment-1`).
+- The chart gained 1M to All ranges, weekly and monthly candles, Bollinger Bands, overlay toggles, analyst targets and levels as lines.
+- New SEC concepts for the facts job (current assets and liabilities, depreciation, investing and financing cash flow) fill in at its next run; until then those lines read "Data unavailable".
 
 ### Company research data from Tauric (2026-11-28, ADR 0047)
 

@@ -194,7 +194,7 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
   await expect(page.getByRole('heading', { name: 'Filings and announcements' })).toBeVisible();
 
   // Anything the free plan cannot give says so, and says what it would take (Overview, open first).
-  await openSection(page, 'Overview and thesis');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
   await expect(page.getByText('Requires a higher Massive plan.').first()).toBeVisible();
   await expect(
     page.getByText('Earnings against estimates, surprise and implied move'),
@@ -218,12 +218,12 @@ test('the company page shows the summary, a drawn chart, labelled filings and ho
     'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm',
   );
   // Quarterly risk factors are built now (ADR 0036): the other half of the risk factor diff toggle.
-  await openSection(page, 'Risk factor diff');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
   await expect(
     page.getByRole('heading', { name: 'Risk factors, quarter over quarter (10-Q)' }),
   ).toBeVisible();
-  await openSection(page, 'Holders and insiders');
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
   if (process.env.SHOT_DIR)
     await page.screenshot({ path: `${process.env.SHOT_DIR}/study.png`, fullPage: true });
@@ -333,7 +333,9 @@ test('the chart draws under the production Content Security Policy, with no viol
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test('study: sections are accordions, the overview open first', async ({ page }, info) => {
+  test('study: one view at a time behind a chip row, the overview first', async ({
+    page,
+  }, info) => {
     test.skip(
       info.project.name !== 'desktop',
       'One phone run is enough; the viewport is set here.',
@@ -343,7 +345,7 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Thesis card' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toHaveCount(0);
-    await page.locator('summary', { hasText: 'Holders and insiders' }).click();
+    await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Institutional holders (13F)' })).toBeVisible();
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(

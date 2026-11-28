@@ -41,3 +41,4 @@ Captured during work so they are not built early.
 - Valuation against the company's own 5-year history (P/E, EV/FCF, FCF yield bands) from SEC facts and stored closes.
 - Time-weighted portfolio result from trades and cash flows (replaces "current holdings at today's weights").
 - Chart patterns, only with a reference implementation to test against.
+- Study research (ADR 0048): chart-pattern detection once a reference implementation exists to test against; beat or miss against past EPS estimates once estimate history is stored; `?view=` links for the ten Study views in the navigation batch.

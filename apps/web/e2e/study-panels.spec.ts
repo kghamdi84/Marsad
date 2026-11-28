@@ -493,10 +493,13 @@ test('company brief: the recorded facts, news labels, insiders and short interes
     'true',
   );
   await expect(page.getByRole('region', { name: 'Snapshot' })).toContainText('$7.23T');
+  // The brief lives in the overview (ADR 0048).
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
   await brief.getByRole('button', { name: 'Open News' }).click();
   await expect(page.getByRole('heading', { name: 'Latest company news' })).toBeVisible();
   if (process.env.SHOT_DIR) {
     await page.reload();
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
     await expect(brief).toContainText('$7.23T');
     await page.screenshot({ path: `${process.env.SHOT_DIR}/brief-dark.png`, fullPage: true });
     await page.evaluate(() =>
@@ -650,7 +653,7 @@ test('13F holders: the period, the lag, the top filers and the CUSIPs counted', 
     ]),
   );
   await page.goto('/study/NVDA');
-  await openSection(page, 'Holders and insiders');
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Institutional holders (13F)' });
   await panel.getByText('Show the holders').click();
   await expect(
@@ -709,13 +712,14 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
     return json(r, rows);
   });
   await page.goto('/study/NVDA');
-  await openSection(page, 'Risk factor diff');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   // Year on year shows first; quarter on quarter is the other half of the toggle (v2).
   await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
   const panel = page.getByRole('region', { name: 'Risk factors, quarter over quarter (10-Q)' });
   expect(asked).toBe(0);
   expect(flagReads).toBe(1);
-  // The brief flags the newest 10-Q's risk factor changes, with its date.
+  // The brief (overview) flags the newest 10-Q's risk factor changes, with its date.
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
   await expect(
     page
       .getByRole('region', { name: 'Company brief' })
@@ -723,6 +727,7 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
         'The newest 10-Q (filed 09 Nov 2026) lists risk factors added or changed since the annual report.',
       ),
   ).toBeVisible();
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   await panel.getByText('Show the quarterly updates').click();
   await expect(panel.getByText('Newest 10-Q, filed 2026-11-09.')).toBeVisible();
   await expect(panel.getByText(/This quarter lists risk factors added or changed/)).toBeVisible();
@@ -794,7 +799,7 @@ test('risk factors: nothing is fetched until opened, then two real 10-Ks are com
     return json(r, sectionRows());
   });
   await page.goto('/study/NVDA');
-  await openSection(page, 'Risk factor diff');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
   await openInfo(page.getByRole('region', { name: 'Risk factors, year over year (10-K)' }));
   await expect(panel.getByText(/by computer rules and not by a model/)).toBeVisible();
@@ -851,7 +856,7 @@ test('risk factors: says why there is nothing to compare', async ({ page }) => {
     await page.unroute('**/rest/v1/annual_sections**');
     await page.route('**/rest/v1/annual_sections**', (r) => json(r, rows));
     await page.goto('/study/NVDA');
-    await openSection(page, 'Risk factor diff');
+    await page.getByRole('tab', { name: 'Filings', exact: true }).click();
     const panel = page.getByRole('region', { name: 'Risk factors, year over year (10-K)' });
     await panel.getByText('Show the comparison').click();
     await expect(panel.getByText(expected)).toBeVisible();
@@ -871,7 +876,7 @@ test('insiders: codes explained, the 10b5-1 box shown, totals computed, unreadab
 }) => {
   await setup(page);
   await page.goto('/study/NVDA');
-  await openSection(page, 'Holders and insiders');
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Insider filings (Forms 3, 4 and 5)' });
   await expect(panel.getByText('Teter Timothy S.').first()).toBeVisible();
   await expect(panel.getByText('Officer, EVP, General Counsel and Sec').first()).toBeVisible();
@@ -892,7 +897,7 @@ test('insiders: Forms 3 and 5 with their lags, an owns-nothing statement, a join
   await setup(page);
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto('/study/NVDA');
-  await openSection(page, 'Holders and insiders');
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Insider filings (Forms 3, 4 and 5)' });
   // All three lags are stated, and the difference between trade date and filed date is explained.
   await expect(
@@ -952,9 +957,9 @@ test('insiders: Forms 3 and 5 with their lags, an owns-nothing statement, a join
 test('short data: both definitions, the lag, and the real rows', async ({ page }) => {
   await setup(page);
   await page.goto('/study/NVDA');
-  await openSection(page, 'Short data');
-  // The company brief's short interest line reads the same stored rows as the panel.
+  // The company brief's short interest line (overview) reads the same stored rows as the panel.
   await expect(page.getByText(/M shares$/).first()).toBeVisible();
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Short interest and short volume' });
   await expect(
     panel.getByText(/Short interest: shares sold short and not yet covered/),
@@ -1010,7 +1015,7 @@ test('one failing panel shows its own error and leaves the rest of the page work
     r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"boom"}' }),
   );
   await page.goto('/study/NVDA');
-  await openSection(page, 'Short data');
+  await page.getByRole('tab', { name: 'Ownership', exact: true }).click();
   await expect(
     page
       .getByRole('alert')
