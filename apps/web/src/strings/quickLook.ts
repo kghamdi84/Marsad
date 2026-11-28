@@ -15,7 +15,8 @@ export const quickLook = {
   rsi: 'RSI 14',
   volume: 'Volume vs 20-day',
   times: (v: string) => `${v}\u00D7`,
-  dollarVolume: 'Dollar volume',
+  dollarVolume: 'Dollar volume, 1 day',
+  dollarVolume20: 'Dollar volume, 20-day average',
   overdue: 'Overdue (estimated)',
   noEstimate: 'No estimate stored',
   whyTitle: 'Why it is here',
@@ -54,6 +55,11 @@ export const quickLook = {
     rangeLine: (fromHigh: string, lo: string, hi: string) =>
       `${fromHigh} from the high, range ${lo} to ${hi}`,
     rangeShort: (n: number) => `${n}-session position`,
+    range52Close: '52-week range, by close',
+    rangeShortClose: 'Fewer than 252 sessions of closes stored',
+    fromSummary: (date: string, at: string) =>
+      `From the nightly summary, ${date} (written ${at} UTC).`,
+    fromBars: 'Computed from bars: no current nightly summary row.',
     revenue: 'Revenue, 4 quarters',
     revenueLine: (v: string, yoy: string | null, end: string) =>
       `${v}${yoy === null ? '' : `, ${yoy} y/y`} (to ${end})`,
@@ -72,6 +78,11 @@ export const quickLook = {
     latestLine: (what: string, date: string) => `${what}, filed ${date}`,
     earnings: 'Next earnings',
     earningsLine: (date: string, when: string) => `~ ${date}, estimated (${when})`,
+    earningsStated: (date: string, when: string) => `${date} (${when})`,
+    earningsSource: {
+      tauric: 'Tauric date, from the nightly summary',
+      'marsad-estimate': 'Marsad estimate from SEC results filings, from the nightly summary',
+    } as Record<string, string>,
     formula: (version: string) => `Formula ${version}, by code from stored data.`,
   },
 } as const;

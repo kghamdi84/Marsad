@@ -1,8 +1,25 @@
 # Progress
 
-## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
+## Current state (2026-11-28): every item that can be built on the current free plans is built and live. What is open waits on Khaled.
 
-Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs, checklist-3, portfolio limits in Settings; earnings guard).
+- **Free setup steps (SETUP.md):** step 7 Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`), step 9 email (`RESEND_API_KEY`, `BRIEF_EMAIL_TO`), step 10 Web Push (VAPID keys), step 11 scheduler (pg_cron, pg_net and the dispatch token; item 1.15), the `TAURIC_API_KEY` GitHub secret, a look at the signed-in Markets regime view (3.9), a breadth spot check against an outside source (3.3).
+- **Paid, declined for now:** Massive Stocks plan with Supabase Pro (5.1 to 5.3, then 5.4, 5.10, 5.13 live), Massive options (6.x, 7.1 marks), Anthropic key with cost caps (2.9, 2.10, 7.8, 8.1), real-time (9.1).
+
+Last updated 2026-11-28 (pages on the nightly summary, Screener, dividend comparison, actual portfolio result, lazy Study views and a bundle budget; before that the Markets and Portfolio pages and the earnings guard).
+
+### Pages on the nightly summary, Screener, dividend comparison, actual result, bundle budget (2026-11-28, ADR 0048 batches 4 and 6, ADR 0053)
+
+- **Summary consumers** (`lib/summary.ts`): one read of the newest `ticker-summary-1` row per ticker. A page uses the row when its close date is not older than its newest bar, else computes the same row from bars with core's `tickerDailySummary`, and says which ("from the nightly summary, <date>" or "computed from bars").
+  - Watch: rows read range, 1W, 1M, volume, ATR, stretch, strength against SPY and the results date from the row; bars come in batched reads of 70 sessions (sparkline, 1-day change, strength against the sector fund). New Earnings column: days to the next results date with its source (Tauric date or Marsad estimate). The viewer's own sector fund wins over the row's GICS fund, and the cell says which.
+  - Quick look: 52-week range by close (labelled), RSI, ATR, stretch, strength and volume from the row, dollar volume for 1 day and the 20-session average, the next results date from the row with its source.
+  - Portfolio: Performance, Earnings and Technicals columns from the row (the readings count stays on bars); Marsad's estimates are read only when a holding lacks a current row.
+  - REST requests (eight watchlist names, three holdings; `e2e/requests.spec.ts`): Watch 40 before (19 bar reads), 28 after (6); Portfolio 15 before, 14 after.
+- **Screener** (`/screener`, lazy): presets, filters on every summary figure, sort, reasons per match, counts (matched, failed, left out for missing data, by figure). Filters in the address (`?f=`, `?s=`), checked by core; a bad part is dropped and named. "Tracked tickers only" unless market rows exist. Reached from the phone's More sheet and a link in the Markets header on desktop and iPad (desktop tabs unchanged).
+- **Compare dividend returns** (Portfolio, Income): core `dividend-compare-1` over the holdings and watchlist payers (add or remove tickers), amount, years, DRIP, withholding (30% default, editable). Each row shows the projection with the 1-year price change beside it and the historical 1-year and 3-year total returns (or core's reason). Method line verbatim from core. Export CSV in the browser.
+- **Your actual result** (Portfolio, Performance): core `portfolio-return-1` from Journal trades and stored closes: time- and money-weighted return, SPY with the same cash flows, the period, trade and missing-close counts, what is not counted, the method (dividends not included, fees as stored: none yet). The holdings chart keeps "Current holdings at today's weights, not your actual result".
+- **Lazy Study views and bundle budget**: each Study view is its own chunk (`components/study/views/`). StudyCompany 67.0 KB to 23.0 KB, the quick look's shared chunk 108.1 KB to 19.1 KB. Main entry chunk (built with the Supabase variables set): 332.0 KB at the start of this work (329.1 KB at the previous entry), 332.7 KB after (100.6 KB gzip); 329.0 KB in CI's build. Budget 361,904 bytes (the 329,004 bytes of CI's build, without the `VITE_` variables, plus 10%) in `apps/web/bundle-budget.mjs`; CI runs `apps/web/scripts/check-bundle.mjs` after the build (checked failing with a lower budget).
+- Checks: tsc (web, core, jobs), ESLint (root and web), Prettier, 1,408 unit tests, 61 database tests, Playwright 317 passed and 15 skipped (desktop and iPad, PW_PORT=4226), bundle budget. New specs: summary, requests, screener, dividend-compare, actual-result. Screenshots of Watch, Screener, the comparison and the actual result checked in both themes at 1280 by 900, then deleted.
+- Shows live after the ticker-summary job has written rows (migration `20270106000000` applied); until then every page says "computed from bars" and the screener says no rows yet.
 
 ### Markets and Portfolio pages, navigation and view URLs (2026-11-28, ADR 0048 batches 1 and 3, ADR 0051)
 

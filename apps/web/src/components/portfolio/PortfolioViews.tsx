@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { OptionPositions } from '../journal/OptionPositions';
 import { Positions } from '../journal/Positions';
 import { AnalysisView } from './AnalysisView';
+import { DividendCompare } from './DividendCompare';
 import { HoldingsTable } from './HoldingsTable';
 import { IncomeView } from './IncomeView';
 import { NewsView } from './NewsView';
@@ -44,6 +45,12 @@ export function PortfolioView({ view }: { view: PortfolioViewKey }) {
       </div>
     );
   if (view === 'performance') return <PerformanceView />;
-  if (view === 'income') return <IncomeView />;
+  if (view === 'income')
+    return (
+      <div className="flex flex-col gap-5">
+        <IncomeView />
+        <DividendCompare />
+      </div>
+    );
   return <NewsView />;
 }

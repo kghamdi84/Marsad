@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { Suspense, lazy, useEffect, useMemo } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -20,19 +20,7 @@ import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { loadPreferences } from '../lib/settings';
 import { shariahAsOf } from '../lib/shariah';
 import { weekdayDayMonth } from '../lib/dates';
-import { Dividends } from '../components/study/Dividends';
-import { Earnings } from '../components/study/Earnings';
-import { Financials } from '../components/study/Financials';
-import { Insiders } from '../components/study/Insiders';
-import { NewsPanel } from '../components/study/NewsPanel';
-import { Business } from '../components/study/Business';
-import { Holders13F } from '../components/study/Holders13F';
-import { QuarterlyRiskFactors } from '../components/study/QuarterlyRiskFactors';
-import { RiskFactors } from '../components/study/RiskFactors';
-import { ShariahAid } from '../components/study/ShariahAid';
-import { ShortData } from '../components/study/ShortData';
 import { CompanySearch } from '../components/study/CompanySearch';
-import { FilingsCard } from '../components/study/FilingsCard';
 import { filingEvents, formatUsd, loadStudy, type StudyData } from '../lib/study';
 import { CompanyBrief, type BriefTarget } from '../components/study/CompanyBrief';
 import {
@@ -43,22 +31,8 @@ import {
   loadInsiders,
   loadShortData,
 } from '../lib/studyPanels';
-import { ThesisCard } from '../components/study/ThesisCard';
-import {
-  AnalystsSection,
-  DividendsResearch,
-  EarningsResearch,
-  FinancialsResearch,
-  NewsResearch,
-  OverviewFacts,
-  OverviewOpinion,
-  OwnershipResearch,
-  TechnicalsSection,
-} from '../components/study/research/Research';
 import { StudyChart } from '../components/study/StudyChart';
-import { HeldPosition } from '../components/study/HeldPosition';
-import { Lock } from 'lucide-react';
-import { Segmented, SkeletonCards, Tabs, cardClass, useRemembered } from '../components/Card';
+import { SkeletonCards, Tabs, cardClass } from '../components/Card';
 import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
 import { panelTitle, tileClass } from '../components/study/Panel';
 import { useView } from '../lib/view';
@@ -71,6 +45,41 @@ const money = (n: number) =>
 const usd = (n: number) => `$${money(n)}`;
 
 const ui = t.study.ui;
+
+/**
+ * Each Study view is its own chunk, loaded the first time its tab opens (ADR 0048: lazy chunks per Study view and
+ * a bundle budget); the chart, header and tabs stay in this page's chunk.
+ */
+const StudyOverview = lazy(async () => ({
+  default: (await import('../components/study/views/Overview')).StudyOverview,
+}));
+const StudyAnalysts = lazy(async () => ({
+  default: (await import('../components/study/views/Analysts')).StudyAnalysts,
+}));
+const StudyNews = lazy(async () => ({
+  default: (await import('../components/study/views/News')).StudyNews,
+}));
+const StudyFilings = lazy(async () => ({
+  default: (await import('../components/study/views/Filings')).StudyFilings,
+}));
+const StudyFinancials = lazy(async () => ({
+  default: (await import('../components/study/views/Financials')).StudyFinancials,
+}));
+const StudyEarnings = lazy(async () => ({
+  default: (await import('../components/study/views/Earnings')).StudyEarnings,
+}));
+const StudyTechnicals = lazy(async () => ({
+  default: (await import('../components/study/views/Technicals')).StudyTechnicals,
+}));
+const StudyOwnership = lazy(async () => ({
+  default: (await import('../components/study/views/Ownership')).StudyOwnership,
+}));
+const StudyDividends = lazy(async () => ({
+  default: (await import('../components/study/views/Dividends')).StudyDividends,
+}));
+const StudyShariah = lazy(async () => ({
+  default: (await import('../components/study/views/Shariah')).StudyShariah,
+}));
 
 /** The day's change as a soft pill with sign and arrow; no arrow and a neutral tone when unchanged. */
 function ChangePill({ pct }: { pct: number | null }) {
@@ -191,8 +200,6 @@ const SECTIONS = [
   'shariah',
 ] as const;
 type SectionKey = (typeof SECTIONS)[number];
-
-const RISK_MODES = ['yoy', 'qoq'] as const;
 
 /**
  * One view at a time behind accessible tabs (ADR 0048). The tab row wraps, so on phones it is a chip row like
@@ -374,7 +381,6 @@ export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
   const [section, setSection] = useView<SectionKey>('marsad.study.section', SECTIONS, 'overview');
-  const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
   // Recently viewed on Study's index (ADR 0048), kept on this device only.
   useEffect(() => {
     if (ticker !== null) rememberViewed(ticker);
@@ -488,136 +494,79 @@ export function StudyCompany() {
     switch (k) {
       case 'overview':
         return (
-          <>
-            <CompanyBrief
-              data={q.data}
-              earnings={earningsEstimate}
-              results={results}
-              insiders={insiders}
-              events={events}
-              dividends={dividends}
-              onOpen={openSection}
-            />
-            <OverviewFacts data={q.data} />
-            {cikOf && <Business cik={cikOf} />}
-            <AutoGrid min={320} gap="gap-4">
-              <ThesisCard ticker={q.data.ticker} />
-              <HeldPosition ticker={q.data.ticker} />
-            </AutoGrid>
-            <OverviewOpinion ticker={q.data.ticker} />
-            <section aria-labelledby="more" className={tileClass}>
-              <h2 id="more" className={panelTitle}>
-                {t.study.placeholdersTitle}
-              </h2>
-              <ul className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
-                {t.study.placeholders.map((p) => (
-                  <li
-                    key={p.name}
-                    className="flex gap-3 rounded-[10px] border border-dashed border-line-strong p-3"
-                  >
-                    <Lock aria-hidden="true" size={18} className="mt-0.5 flex-none text-ink3" />
-                    <span className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-ink">{p.name}</span>
-                      <span className="text-[13px]">
-                        <span className="font-medium text-ink2">{p.state}.</span>{' '}
-                        <span className="text-ink3">{p.why}</span>
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </>
+          <StudyOverview
+            data={q.data}
+            brief={
+              <CompanyBrief
+                data={q.data}
+                earnings={earningsEstimate}
+                results={results}
+                insiders={insiders}
+                events={events}
+                dividends={dividends}
+                onOpen={openSection}
+              />
+            }
+          />
         );
       case 'analysts':
-        return <AnalystsSection data={q.data} />;
+        return <StudyAnalysts data={q.data} />;
       case 'news':
-        return (
-          <>
-            <NewsPanel ticker={q.data.ticker} />
-            <NewsResearch data={q.data} />
-          </>
-        );
+        return <StudyNews data={q.data} />;
       case 'filings':
-        return (
-          <>
-            <FilingsCard data={q.data} />
-            <Segmented
-              label={ui.riskToggle}
-              options={RISK_MODES.map((m) => ({ key: m, label: ui.riskModes[m] ?? m }))}
-              value={riskMode}
-              onChange={setRiskMode}
-            />
-            {cikOf &&
-              (riskMode === 'yoy' ? (
-                <RiskFactors cik={cikOf} />
-              ) : (
-                <QuarterlyRiskFactors cik={cikOf} />
-              ))}
-            {!cikOf && <p className="text-sm text-ink3">{t.study.noCompany}</p>}
-          </>
-        );
+        return <StudyFilings data={q.data} />;
       case 'financials':
         return (
-          <>
-            {summary && (
-              <Snapshot ticker={ticker} cik={cikOf} s={summary} earnings={earningsEstimate} />
-            )}
-            {cikOf && <Financials cik={cikOf} bars={q.data.bars} />}
-            <FinancialsResearch data={q.data} />
-          </>
+          <StudyFinancials
+            data={q.data}
+            lead={
+              summary && (
+                <Snapshot ticker={ticker} cik={cikOf} s={summary} earnings={earningsEstimate} />
+              )
+            }
+          />
         );
       case 'earnings':
         return (
-          <>
-            <section aria-labelledby="next-results" className={tileClass}>
-              <h2 id="next-results" className={panelTitle}>
-                {ui.nextResults}
-              </h2>
-              {earningsEstimate === undefined ? (
-                <p className="text-sm text-ink3">{t.loading}</p>
-              ) : earningsEstimate === null ? (
-                <p className="text-sm text-ink3">{ui.noEarnings}</p>
-              ) : (
-                <>
-                  <span className="text-[22px] font-semibold text-ink">
-                    <Num>{`~ ${weekdayDayMonth(earningsEstimate.date)} ${earningsEstimate.date.slice(0, 4)}`}</Num>
-                  </span>
-                  <p className="text-xs text-ink3">{ui.nextResultsSub}</p>
-                  <p className="text-sm text-ink2">
-                    <Num>{ui.earningsRange(earningsEstimate.from, earningsEstimate.to)}</Num>
-                  </p>
-                  {earningsEstimate.overdue && (
-                    <p className="text-xs text-warn">{ui.earningsOverdue}</p>
-                  )}
-                </>
-              )}
-              <p className="text-[13px] text-ink2">{ui.impliedMissing}</p>
-            </section>
-            {cikOf && <Earnings cik={cikOf} bars={q.data.bars} splits={q.data.splits} />}
-            <EarningsResearch data={q.data} estimate={earningsEstimate} />
-          </>
+          <StudyEarnings
+            data={q.data}
+            estimate={earningsEstimate}
+            lead={
+              <section aria-labelledby="next-results" className={tileClass}>
+                <h2 id="next-results" className={panelTitle}>
+                  {ui.nextResults}
+                </h2>
+                {earningsEstimate === undefined ? (
+                  <p className="text-sm text-ink3">{t.loading}</p>
+                ) : earningsEstimate === null ? (
+                  <p className="text-sm text-ink3">{ui.noEarnings}</p>
+                ) : (
+                  <>
+                    <span className="text-[22px] font-semibold text-ink">
+                      <Num>{`~ ${weekdayDayMonth(earningsEstimate.date)} ${earningsEstimate.date.slice(0, 4)}`}</Num>
+                    </span>
+                    <p className="text-xs text-ink3">{ui.nextResultsSub}</p>
+                    <p className="text-sm text-ink2">
+                      <Num>{ui.earningsRange(earningsEstimate.from, earningsEstimate.to)}</Num>
+                    </p>
+                    {earningsEstimate.overdue && (
+                      <p className="text-xs text-warn">{ui.earningsOverdue}</p>
+                    )}
+                  </>
+                )}
+                <p className="text-[13px] text-ink2">{ui.impliedMissing}</p>
+              </section>
+            }
+          />
         );
       case 'technicals':
-        return <TechnicalsSection data={q.data} />;
+        return <StudyTechnicals data={q.data} />;
       case 'ownership':
-        return (
-          <>
-            <OwnershipResearch ticker={q.data.ticker} />
-            {cikOf && <Holders13F ticker={q.data.ticker} />}
-            {cikOf && <Insiders cik={cikOf} />}
-            <ShortData ticker={q.data.ticker} />
-          </>
-        );
+        return <StudyOwnership data={q.data} />;
       case 'dividends':
-        return (
-          <>
-            <Dividends rows={dividends.data ?? []} />
-            <DividendsResearch data={q.data} />
-          </>
-        );
+        return <StudyDividends data={q.data} rows={dividends.data ?? []} />;
       case 'shariah':
-        return cikOf ? <ShariahAid cik={cikOf} bars={q.data.bars} /> : null;
+        return <StudyShariah data={q.data} />;
     }
   };
 
@@ -652,7 +601,13 @@ export function StudyCompany() {
 
       {q.data && (
         <div id="study-area" className="scroll-mt-4">
-          <SectionTabs value={section} onChange={setSection} render={render} />
+          <SectionTabs
+            value={section}
+            onChange={setSection}
+            render={(k) => (
+              <Suspense fallback={<SkeletonCards heights={['14rem']} />}>{render(k)}</Suspense>
+            )}
+          />
         </div>
       )}
     </div>

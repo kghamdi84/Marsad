@@ -100,8 +100,14 @@ test.describe('on a phone', () => {
 
       await bar.getByRole('button', { name: 'More' }).click();
       const more = page.getByRole('dialog', { name: 'More' });
-      await expect(more.getByRole('link')).toHaveCount(4);
-      expect(await names(more.getByRole('link'))).toEqual(['Journal', 'Lab', 'Status', 'Settings']);
+      await expect(more.getByRole('link')).toHaveCount(5);
+      expect(await names(more.getByRole('link'))).toEqual([
+        'Screener',
+        'Journal',
+        'Lab',
+        'Status',
+        'Settings',
+      ]);
       await expect(more.getByRole('button', { name: 'Sign out' })).toBeVisible();
       await more.getByRole('link', { name: 'Journal' }).click();
       await expect(page).toHaveURL(/\/journal$/);

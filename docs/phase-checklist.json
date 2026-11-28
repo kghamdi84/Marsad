@@ -83,7 +83,7 @@
           "id": "0.12",
           "title": "Authenticated app shell with bottom tab bar, ET and local clock, keyboard shortcuts",
           "status": "done",
-          "evidence": "apps/web/src/components/Shell.tsx; e2e signed-in.spec.ts. ADR 0048 navigation (2026-11-28): desktop and iPad Watch, Markets, Study, Portfolio, Journal, Alerts, Lab, Status with a Settings gear, number keys 1 to 9 in that order (S still opens Status); phone bar Watch, Study, Portfolio, Markets, Alerts with Journal, Lab, Status, Settings and Sign out under More; every switchable view has a ?view= URL. e2e nav.spec.ts (order, shortcuts, 390 and 320 points, 44-point targets, Arabic labels) and views.spec.ts (every page and view URL on desktop and iPad)."
+          "evidence": "apps/web/src/components/Shell.tsx; e2e signed-in.spec.ts. ADR 0048 navigation (2026-11-28): desktop and iPad Watch, Markets, Study, Portfolio, Journal, Alerts, Lab, Status with a Settings gear, number keys 1 to 9 in that order (S still opens Status); phone bar Watch, Study, Portfolio, Markets, Alerts with Journal, Lab, Status, Settings and Sign out under More; every switchable view has a ?view= URL. e2e nav.spec.ts (order, shortcuts, 390 and 320 points, 44-point targets, Arabic labels) and views.spec.ts (every page and view URL on desktop and iPad). Screener (ADR 0053, 2026-11-28): first in the phone's More sheet and a link in the Markets header on desktop and iPad, desktop tabs unchanged; e2e nav.spec.ts and screener.spec.ts."
         },
         {
           "id": "0.13",
@@ -251,7 +251,7 @@
         "NVDA page works on the free plan with clear \"requires plan\" placeholders",
         "A planted wrong number is rejected by the verifier and the template is used"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "2.1",
@@ -337,7 +337,7 @@
         "Every panel shows source and as-of time",
         "Brief arrives on the iPad"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "3.1",
@@ -429,7 +429,7 @@
         "Changing future data never changes past signals",
         "Same seed gives identical output"
       ],
-      "status": "not_started",
+      "status": "done",
       "items": [
         {
           "id": "4.1",
@@ -497,7 +497,7 @@
         "End-to-end latency on the status page",
         "Test push reaches the iPad Home Screen app"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "5.1",
@@ -600,7 +600,7 @@
         "Computed greeks and IV match vendor values within tolerance",
         "Expected-move and payoff functions pass known-answer tests"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "6.1",
@@ -667,7 +667,7 @@
         "Every scorecard figure recomputes from raw alert outcomes in a test",
         "CSV import round-trips"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "7.1",
@@ -728,7 +728,7 @@
         "Supabase security advisors report no open issues",
         "Export restores into a fresh project"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "8.1",

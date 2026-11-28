@@ -27,6 +27,8 @@ import {
   arrowPct,
   arrowUsd,
   bookOf,
+  figuresFor,
+  figuresSources,
   nextEarnings,
   newestDate,
   p,
@@ -116,6 +118,17 @@ interface RowCtx {
 }
 
 const PERIODS: readonly PeriodKey[] = ['w1', 'm1', 'm3', 'ytd', 'y1'];
+/** Each period's column in the nightly summary row. */
+const PERIOD_FIELD = {
+  w1: 'return_1w',
+  m1: 'return_1m',
+  m3: 'return_3m',
+  m6: null,
+  ytd: 'return_ytd',
+  y1: 'return_1y',
+} as const;
+/** The column sets whose figures come from the summary row (the rest read holdings, dividends or bars). */
+const FROM_SUMMARY: ReadonlySet<ColumnSet> = new Set(['performance', 'earnings', 'technicals']);
 
 /** The columns of each set: header and cell. Every cell either has a number or says why it has none. */
 function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode }[] {
@@ -179,8 +192,18 @@ function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode
     return PERIODS.map((k) => ({
       head: h.periods[k],
       cell: (c: RowCtx) => {
-        const r = periodReturns(c.x.bars[c.pos.ticker] ?? [], c.x.bars['SPY'] ?? null)[k];
-        return <Chg v={r?.stock ?? null} why={h.shortBars} />;
+        const field = PERIOD_FIELD[k];
+        if (field === null) {
+          const r = periodReturns(c.x.bars[c.pos.ticker] ?? [], c.x.bars['SPY'] ?? null)[k];
+          return <Chg v={r?.stock ?? null} why={h.shortBars} />;
+        }
+        const row = figuresFor(c.x, c.pos.ticker).row;
+        return (
+          <Chg
+            v={row[field]}
+            why={row.unavailable[field]?.startsWith('fewer') ? h.shortBars : p.na}
+          />
+        );
       },
     }));
   if (set === 'dividends') {
@@ -276,6 +299,9 @@ function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode
   }
   {
     const t = (c: RowCtx) => technicalsOf(c.x.bars[c.pos.ticker] ?? []);
+    const row = (c: RowCtx) => figuresFor(c.x, c.pos.ticker).row;
+    const vs = (close: number | null, avg: number | null) =>
+      close !== null && avg !== null && avg > 0 ? close / avg - 1 : null;
     return [
       {
         head: h.readings,
@@ -285,12 +311,18 @@ function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode
           return n === 0 ? <span className="text-ink3">{h.shortBars}</span> : h.nOfM(o.bullish, n);
         },
       },
-      { head: h.vs50, cell: (c) => <Chg v={t(c).vs50} why={h.shortBars} /> },
-      { head: h.vs200, cell: (c) => <Chg v={t(c).vs200} why={h.shortBars} /> },
+      {
+        head: h.vs50,
+        cell: (c) => <Chg v={vs(row(c).close, row(c).sma_50)} why={h.shortBars} />,
+      },
+      {
+        head: h.vs200,
+        cell: (c) => <Chg v={vs(row(c).close, row(c).sma_200)} why={h.shortBars} />,
+      },
       {
         head: h.rsi,
         cell: (c) => {
-          const r = t(c).rsi14;
+          const r = row(c).rsi_14;
           return r === null ? (
             <span className="text-ink3">{h.shortBars}</span>
           ) : (
@@ -330,6 +362,10 @@ export function HoldingsTable() {
   const [set, setSet] = useRemembered<ColumnSet>('marsad.portfolio.columns', SETS, 'holdings');
   const book = bookOf(x);
   const cols = columns(set);
+  const from = figuresSources(
+    x,
+    book.positions.map((y) => y.ticker),
+  );
   return (
     <div className="flex flex-col gap-4">
       <ViewState x={x}>
@@ -359,6 +395,17 @@ export function HoldingsTable() {
             <Source>{p.summary.unpriced(book.unpriced.join(', '))}</Source>
           )}
           <Source>{SOURCES[set]}</Source>
+          {FROM_SUMMARY.has(set) && from.summaryDate && (
+            <Source>
+              {h.fromSummary(
+                shortDate(from.summaryDate),
+                set === 'technicals' ? h.readingsBars : '',
+              )}
+            </Source>
+          )}
+          {FROM_SUMMARY.has(set) && from.fromBars.length > 0 && (
+            <Source>{h.fromBars(from.fromBars.join(', '))}</Source>
+          )}
         </Card>
       </ViewState>
     </div>

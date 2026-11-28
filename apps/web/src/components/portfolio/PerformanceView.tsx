@@ -14,6 +14,7 @@ import { Card } from '../Card';
 import { Info } from '../Info';
 import { TickerLink } from '../QuickLook';
 import { loadTrades } from '../../lib/journal';
+import { ActualResult } from './ActualResult';
 import { monthYear } from '../../lib/dates';
 import {
   Chg,
@@ -126,6 +127,7 @@ export function PerformanceView() {
   const span = Math.max(0.0001, ...months.flatMap((m) => [Math.abs(m.portfolio), Math.abs(m.spy)]));
   return (
     <Card id="portfolio-performance-h" title={f.title} aside={<Info>{f.info}</Info>}>
+      <ActualResult />
       <ViewState x={x}>
         <Trades />
         <div className="flex flex-col gap-1.5">
