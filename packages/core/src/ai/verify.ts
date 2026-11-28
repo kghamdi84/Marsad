@@ -7,6 +7,7 @@
  * 1. at least one citation, and every citation names a payload id (`[F1]`, `[F1, D2]`);
  * 2. every figure matches a numeric fact within the precision it was written with (4.2B matches 4.18e9);
  * 3. that fact is one of the facts cited in the same sentence, so a true number cannot sit under a wrong source;
+ *    a plain number that is part of a cited fact's label ("1-year" for "return over 1 year") is accepted;
  * 4. percent figures match only percent facts, dollar figures only dollar facts, multiples only ratio facts;
  * 5. a stated direction (rose, fell, a minus sign) agrees with the sign of the fact;
  * 6. no em dash, and no derived-comparison words (doubled, halved) that need arithmetic the payload lacks;
@@ -219,11 +220,21 @@ export function verifyText(
     for (const token of extractNumbers(stripNonFigures(bare))) {
       numbersChecked += 1;
       const rawDigits = token.digits;
+      // "the 1-year return [F7]" where F7 is "return over 1 year": a plain number written in the label of a fact
+      // this sentence cites is part of that fact's name, even when another fact happens to equal it.
+      const inCitedLabel =
+        !token.pct &&
+        !token.usd &&
+        !token.multiple &&
+        token.magnitude === 1 &&
+        !token.negative &&
+        labelNumerals(payload.facts.filter((f) => cited.includes(f.id))).has(rawDigits);
       const candidates = payload.facts.filter(
         (f) => valueMatches(token, f) && unitAllows(token, f),
       );
       if (candidates.length === 0) {
         const wrongUnit = payload.facts.find((f) => valueMatches(token, f));
+        if (inCitedLabel) continue;
         if (
           !wrongUnit &&
           numerals.has(rawDigits) &&
@@ -244,6 +255,7 @@ export function verifyText(
       }
       const citedMatch = candidates.filter((f) => cited.includes(f.id));
       if (citedMatch.length === 0) {
+        if (inCitedLabel) continue;
         issues.push({
           kind: 'number-not-cited',
           sentence,

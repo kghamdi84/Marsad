@@ -6,8 +6,13 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
+  "dependencies": {
+    "@marsad/core": "workspace:*"
+  },
   "devDependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
     "@electric-sql/pglite": "^0.6.0",
+    "@supabase/supabase-js": "^2.119.2",
     "@types/node": "^22.20.5"
   }
 }

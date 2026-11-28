@@ -733,8 +733,8 @@
         {
           "id": "8.1",
           "title": "Ask (read-only tools with citations)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Built, waiting for the two secrets and the first deploy (ADR 0054). Edge Function supabase/functions/ask: caller JWT, owner only (public.ask_is_owner), 503 'not configured' without ANTHROPIC_API_KEY, caps from ai_usage before every call (AI_CAPS USD 1 a day, USD 10 a month), manual tool loop on claude-sonnet-5-5 (fallbacks default, effort medium, cached system prompt and tools) over 7 read-only strict tools querying Supabase as the caller; figure verifier plus advice check, one regeneration, then facts only; ai_usage and ask_log written. Page /ask with numbered citations into Study, Markets, Portfolio, Alerts and SEC.gov, spend left, history. Migration 20270111000000_ask_log.sql. Tests offline: 21 core (ask-1), 24 handler with a fake model and store, 5 RLS, 12 Playwright (function stubbed); deno check of the function passes. Live check pending: Khaled adds ANTHROPIC_API_KEY (Supabase Edge Function secret) and SUPABASE_ACCESS_TOKEN (GitHub secret), then runs Deploy Edge Functions (also 5.2b)."
         },
         {
           "id": "8.2",

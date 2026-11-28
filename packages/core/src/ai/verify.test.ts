@@ -168,3 +168,23 @@ describe('ISO dates are checked as dates, not as three figures', () => {
     expect(k('Earnings were $1.08 a share on 2026-11-19 [F2].')).toEqual(['number-not-cited']);
   });
 });
+describe('numbers that name a cited fact', () => {
+  const p: Payload = {
+    facts: [
+      ...payload.facts,
+      { id: 'F10', label: 'Days of cash on hand', value: 30.2, unit: 'count' },
+    ],
+    documents: [],
+  };
+  it('accepts "30 days" from the cited label even though another fact rounds to 30', () => {
+    expect(verifyText('There were 7 filings in the last 30 days [F9].', p).issues).toEqual([]);
+  });
+  it('does not excuse the number without that citation, or a percent', () => {
+    expect(kindsIn('There were 30 days of filings [F5].', p)).toEqual(['number-not-cited']);
+    expect(verifyText('Filings rose 30% in the last 30 days [F9].', p).ok).toBe(false);
+  });
+});
+
+function kindsIn(text: string, p: Payload) {
+  return verifyText(text, p).issues.map((i) => i.kind);
+}

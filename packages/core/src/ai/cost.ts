@@ -6,7 +6,13 @@
  * of input, not published in the table used), a 5-minute cache write costs 1.25 times input.
  */
 
-export type ModelId = 'claude-haiku-5-5' | 'claude-sonnet-5-5' | 'claude-opus-5-5';
+/**
+ * `claude-sonnet-5` is here only because Claude Sonnet 5.5's server-side fallback can answer a declined request on
+ * it (Ask, ADR 0054); Marsad never asks for it directly. Same input and output price; cache reads cost twice
+ * Sonnet 5.5's rate.
+ */
+export type ModelId =
+  'claude-haiku-5-5' | 'claude-sonnet-5-5' | 'claude-sonnet-5' | 'claude-opus-5-5';
 
 export interface ModelPrice {
   inputPerMTok: number;
@@ -31,6 +37,7 @@ export const MODEL_PRICES: Readonly<Record<ModelId, ModelPrice>> = Object.freeze
     longOutputPerMTok: 2.5,
   },
   'claude-sonnet-5-5': { inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.1 },
+  'claude-sonnet-5': { inputPerMTok: 2, outputPerMTok: 10, cacheReadPerMTok: 0.2 },
   'claude-opus-5-5': { inputPerMTok: 4, outputPerMTok: 20, cacheReadPerMTok: 0.2 },
 });
 

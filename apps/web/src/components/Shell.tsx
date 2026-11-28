@@ -15,6 +15,7 @@ import {
   Gauge,
   ListFilter,
   LogOut,
+  MessageCircleQuestionMark,
   RefreshCw,
   Settings as SettingsIcon,
   type LucideIcon,
@@ -46,6 +47,7 @@ type NavKey =
   | 'journal'
   | 'lab'
   | 'status'
+  | 'ask'
   | 'settings';
 
 interface Tab {
@@ -59,6 +61,7 @@ interface Tab {
     | '/journal'
     | '/lab'
     | '/status'
+    | '/ask'
     | '/settings';
   nav: NavKey;
   icon: LucideIcon;
@@ -76,20 +79,23 @@ const TAB: Record<NavKey, Tab> = {
   alerts: { to: '/alerts', nav: 'alerts', icon: Bell, key: '6' },
   lab: { to: '/lab', nav: 'lab', icon: FlaskConical, key: '7' },
   status: { to: '/status', nav: 'status', icon: Activity, key: '8' },
+  // No number key: Ask sits after Status on desktop and iPad and in the phone's More sheet (ADR 0054).
+  ask: { to: '/ask', nav: 'ask', icon: MessageCircleQuestionMark, key: '' },
   settings: { to: '/settings', nav: 'settings', icon: SettingsIcon, key: '9' },
 };
 
 /**
  * ADR 0048 navigation. Desktop and iPad: every page in this order, with Settings as a gear at the end; the number
- * keys follow it (1 Watch to 9 Settings, and S still opens Status). Phone: five tabs, with the rest under More.
+ * keys follow it (1 Watch to 9 Settings, and S still opens Status; Ask, after Status, has no number key). Phone: five
+ * tabs, with the rest under More.
  */
 const topTabs: Tab[] = (
-  ['watch', 'markets', 'study', 'portfolio', 'journal', 'alerts', 'lab', 'status'] as const
+  ['watch', 'markets', 'study', 'portfolio', 'journal', 'alerts', 'lab', 'status', 'ask'] as const
 ).map((k) => TAB[k]);
 const tabs: Tab[] = (['watch', 'study', 'portfolio', 'markets', 'alerts'] as const).map(
   (k) => TAB[k],
 );
-const moreTabs: Tab[] = (['screener', 'journal', 'lab', 'status', 'settings'] as const).map(
+const moreTabs: Tab[] = (['screener', 'journal', 'lab', 'status', 'ask', 'settings'] as const).map(
   (k) => TAB[k],
 );
 const allTabs = Object.values(TAB);
@@ -535,7 +541,7 @@ export function Shell() {
         </span>
       </footer>
 
-      {/* Phone: the bottom tab bar, with Journal, Lab, Status, Settings and Sign out under More. */}
+      {/* Phone: the bottom tab bar, with Screener, Journal, Lab, Status, Ask, Settings and Sign out under More. */}
       <nav
         aria-label={text.nav.primary}
         className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 border-t border-faint/30 bg-surface pb-[env(safe-area-inset-bottom)] tablet:hidden"
