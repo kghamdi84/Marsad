@@ -8,10 +8,11 @@ import { loadCosts } from '../lib/status';
 import { supabase } from '../lib/supabase';
 import { ZONES, useDisplay, type Lang, type Theme } from '../lib/display';
 import { NotificationsCard, PushSetup } from '../components/status/Notifications';
-import { Card, Segmented, useRemembered } from '../components/Card';
+import { Card, Segmented } from '../components/Card';
 import { PageTitle, Pill } from '../components/ui/kit';
 import { zoneName } from '../components/Clock';
 import { Info } from '../components/Info';
+import { useView } from '../lib/view';
 import { t } from '../strings';
 
 const s = t.settings;
@@ -27,11 +28,7 @@ const pair = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] item
  * this device; everything else is saved to Supabase as before, with the same columns and values.
  */
 export function Settings() {
-  const [section, setSection] = useRemembered<Section>(
-    'marsad.settings.section',
-    SECTIONS,
-    'display',
-  );
+  const [section, setSection] = useView<Section>('marsad.settings.section', SECTIONS, 'display');
   return (
     <div className="flex flex-col gap-5">
       <PageTitle page="settings" />

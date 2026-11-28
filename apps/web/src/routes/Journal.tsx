@@ -4,7 +4,7 @@ import { exitSignals, exposureReport, portfolioTotals, toFixedHalfUp } from '@ma
 import { Info } from '../components/Info';
 import { ErrorText } from '../components/ui';
 import { PageTitle } from '../components/ui/kit';
-import { SkeletonCards, useRemembered } from '../components/Card';
+import { SkeletonCards } from '../components/Card';
 import { EtfLookThrough } from '../components/journal/EtfLookThrough';
 import { Exposure } from '../components/journal/Exposure';
 import { OptionPositions } from '../components/journal/OptionPositions';
@@ -23,6 +23,7 @@ import {
 } from '../components/journal/shared';
 import { loadHoldings } from '../lib/journal';
 import { dayMonth } from '../lib/dates';
+import { useView } from '../lib/view';
 import { t } from '../strings';
 
 const j = t.journal;
@@ -176,7 +177,7 @@ function Section({ tab, onTrade }: { tab: JournalTab; onTrade: () => void }) {
 }
 
 export function Journal() {
-  const [tab, setTab] = useRemembered<JournalTab>('marsad.journal.tab', TABS, 'positions');
+  const [tab, setTab] = useView<JournalTab>('marsad.journal.tab', TABS, 'positions');
   return (
     <div className="flex flex-col gap-5">
       <PageTitle page="journal" aside={<Info>{j.intro}</Info>} />

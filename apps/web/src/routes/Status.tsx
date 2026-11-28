@@ -19,9 +19,10 @@ import {
   type SystemAlertRow,
 } from '../lib/status';
 import { useDisplay } from '../lib/display';
-import { Card, ScrollX, Segmented, useRemembered } from '../components/Card';
+import { Card, ScrollX, Segmented } from '../components/Card';
 import { Num, PageTitle, Pill, type Tone } from '../components/ui/kit';
 import { zoneName } from '../components/Clock';
+import { useView } from '../lib/view';
 import { t } from '../strings';
 
 const s = t.status;
@@ -636,7 +637,7 @@ type DetailKey = (typeof DETAIL_TABS)[number];
  */
 export function Status() {
   const q = useQuery({ queryKey: ['status'], queryFn: loadStatus, refetchInterval: 30_000 });
-  const [tab, setTab] = useRemembered('marsad.status.detail', DETAIL_TABS, 'jobs');
+  const [tab, setTab] = useView('marsad.status.detail', DETAIL_TABS, 'jobs');
   const x = s.squeeze;
   const go = (target: 'sources' | DetailKey) => {
     if (target !== 'sources') setTab(target);

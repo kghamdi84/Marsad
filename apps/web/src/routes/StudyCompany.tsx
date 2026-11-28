@@ -61,6 +61,7 @@ import { Lock } from 'lucide-react';
 import { Segmented, SkeletonCards, Tabs, cardClass, useRemembered } from '../components/Card';
 import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
 import { panelTitle, tileClass } from '../components/study/Panel';
+import { useView } from '../lib/view';
 import { t } from '../strings';
 
 const money = (n: number) =>
@@ -369,11 +370,7 @@ function Snapshot({
 export function StudyCompany() {
   const { ticker: raw } = useParams({ from: '/study/$ticker' });
   const ticker = normalizeTicker(raw);
-  const [section, setSection] = useRemembered<SectionKey>(
-    'marsad.study.section',
-    SECTIONS,
-    'overview',
-  );
+  const [section, setSection] = useView<SectionKey>('marsad.study.section', SECTIONS, 'overview');
   const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
   // A brief block's link: choose that view and bring the area into view.
   const openSection = (k: BriefTarget) => {

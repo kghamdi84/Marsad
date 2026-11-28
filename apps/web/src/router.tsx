@@ -6,6 +6,10 @@ import {
 } from '@tanstack/react-router';
 import { Shell } from './components/Shell';
 import { Watch } from './routes/Watch';
+import { stringSearch } from './lib/view';
+
+/** `?view=` on pages with switchable areas (ADR 0048); the page checks the value against its own views. */
+const viewSearch = stringSearch('view');
 
 const root = createRootRoute({ component: Shell });
 
@@ -21,6 +25,7 @@ const routeTree = root.addChildren([
   createRoute({
     getParentRoute: () => root,
     path: '/study/$ticker',
+    validateSearch: viewSearch,
     component: lazyRouteComponent(() => import('./routes/StudyCompany'), 'StudyCompany'),
   }),
   createRoute({
@@ -36,11 +41,13 @@ const routeTree = root.addChildren([
   createRoute({
     getParentRoute: () => root,
     path: '/journal',
+    validateSearch: stringSearch('view', 'ticker'),
     component: lazyRouteComponent(() => import('./routes/Journal'), 'Journal'),
   }),
   createRoute({
     getParentRoute: () => root,
     path: '/status',
+    validateSearch: viewSearch,
     component: lazyRouteComponent(() => import('./routes/Status'), 'Status'),
   }),
   createRoute({
@@ -51,6 +58,7 @@ const routeTree = root.addChildren([
   createRoute({
     getParentRoute: () => root,
     path: '/settings',
+    validateSearch: viewSearch,
     component: lazyRouteComponent(() => import('./routes/Settings'), 'Settings'),
   }),
 ]);
