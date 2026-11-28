@@ -33,6 +33,7 @@
     "etf": "tsx src/etf-main.ts",
     "ticker-summary": "tsx src/ticker-summary-main.ts",
     "breadth-check": "tsx src/breadth-check-main.ts",
+    "ai-diagnose": "tsx src/ai-diagnose-main.ts",
     "set-password": "tsx src/set-password-main.ts"
   },
   "dependencies": {
