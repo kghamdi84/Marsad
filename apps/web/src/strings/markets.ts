@@ -8,6 +8,7 @@ export const markets = {
   intro:
     'The market as a whole, end of day: the regime label and why, the movers of the last completed session, the sector funds, and the calendar of earnings, ex-dividend dates and macro releases. Marsad explains; you decide.',
   viewsLabel: 'Markets view',
+  screenerLink: 'Open the screener',
   views: {
     regime: 'Regime',
     movers: 'Movers',

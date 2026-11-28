@@ -13,6 +13,7 @@ import {
   Eye,
   FlaskConical,
   Gauge,
+  ListFilter,
   LogOut,
   RefreshCw,
   Settings as SettingsIcon,
@@ -39,6 +40,7 @@ type NavKey =
   | 'watch'
   | 'study'
   | 'markets'
+  | 'screener'
   | 'portfolio'
   | 'alerts'
   | 'journal'
@@ -51,6 +53,7 @@ interface Tab {
     | '/'
     | '/study'
     | '/markets'
+    | '/screener'
     | '/portfolio'
     | '/alerts'
     | '/journal'
@@ -65,6 +68,8 @@ interface Tab {
 const TAB: Record<NavKey, Tab> = {
   watch: { to: '/', nav: 'watch', icon: Eye, key: '1' },
   markets: { to: '/markets', nav: 'markets', icon: Gauge, key: '2' },
+  // No number key and no desktop tab: the phone's More sheet and a link in Markets' header (ADR 0048).
+  screener: { to: '/screener', nav: 'screener', icon: ListFilter, key: '' },
   study: { to: '/study', nav: 'study', icon: ChartCandlestick, key: '3' },
   portfolio: { to: '/portfolio', nav: 'portfolio', icon: BriefcaseBusiness, key: '4' },
   journal: { to: '/journal', nav: 'journal', icon: BookOpen, key: '5' },
@@ -84,7 +89,9 @@ const topTabs: Tab[] = (
 const tabs: Tab[] = (['watch', 'study', 'portfolio', 'markets', 'alerts'] as const).map(
   (k) => TAB[k],
 );
-const moreTabs: Tab[] = (['journal', 'lab', 'status', 'settings'] as const).map((k) => TAB[k]);
+const moreTabs: Tab[] = (['screener', 'journal', 'lab', 'status', 'settings'] as const).map(
+  (k) => TAB[k],
+);
 const allTabs = Object.values(TAB);
 /** Letter shortcuts kept from before the reorder. */
 const ALIASES: Record<string, Tab['to']> = { s: '/status' };
@@ -97,7 +104,7 @@ function useNumberShortcuts() {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)))
         return;
-      const to = allTabs.find((x) => x.key === e.key)?.to ?? ALIASES[e.key];
+      const to = allTabs.find((x) => x.key !== '' && x.key === e.key)?.to ?? ALIASES[e.key];
       if (to) void navigate({ to });
     }
     window.addEventListener('keydown', onKey);

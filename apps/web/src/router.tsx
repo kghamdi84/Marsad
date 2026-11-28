@@ -46,6 +46,13 @@ const routeTree = root.addChildren([
     validateSearch: viewSearch,
     component: lazyRouteComponent(() => import('./routes/Markets'), 'Markets'),
   }),
+  createRoute({
+    getParentRoute: () => root,
+    path: '/screener',
+    // `?f=` holds the filters and `?s=` the sort, so a screen can be linked (lib/screener.ts).
+    validateSearch: stringSearch('f', 's'),
+    component: lazyRouteComponent(() => import('./routes/Screener'), 'Screener'),
+  }),
   // The Regime page became the Markets regime view (ADR 0048); old links keep their hash (a card's anchor).
   createRoute({
     getParentRoute: () => root,
