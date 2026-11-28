@@ -18,6 +18,12 @@ Last updated 2026-11-28 (portfolio views and dividend calendar; Study research v
 - Not available, said on screen: cash (not stored), crowd insights (no other-investor data), geographic allocation (no source), current option values (options plan).
 - Deferred by ADR 0048: the dividend returns comparison.
 
+### Portfolio views in Journal, ready to move to /portfolio (2026-11-28, ADR 0048)
+
+- Self-contained views: Review (first: exit condition met or "Exit rules missing", distance to stop in % and ATRs, dollars at risk, size against cap, sessions held, next earnings, the sizer's shares against yours; total open risk with a "risk unknown" count), Holdings (column sets: holdings, performance, dividends, earnings, technicals on `technical-1`; no analyst columns), Analysis (portfolio check `portfolio-check-1`, attention cards as facts plus rule plus exit condition, allocation, portfolio P/E and beta with coverage), Performance (in R; counts only below 30 closed trades), Income (forward 12-month income, yield on cost, net of an editable 30% withholding), News (holdings news with a reading pane). Ex-dividend view in Watch's calendar.
+- Limits set by the council at Khaled's request (largest position 20%, top 5 60%, cash 10%, beta 1.5, open risk 6%); members see "No limit set"; a failed role check also shows "No limit set" instead of waiting.
+- Checks: tsc, ESLint, Prettier, 1,319 unit tests, 58 database tests, Playwright 242 passed and 12 skipped.
+
 ### Nightly ticker summary (2026-11-28, ADR 0050, batch 2 of ADR 0048)
 
 - New table `ticker_daily_summary` (additive migration `20270106000000`): one row per ticker per session with close, returns (1W, 1M, 3M, YTD, 1Y), the 52-week closing range, SMA 20/50/200, RSI, ATR %, stretch, volume and dollar-volume averages, strength against SPY, trailing dividends and yield, next results date with its source, analyst count, mean target and recommendation, P/E, beta and sector fund. Each null figure states its reason; each row names its sources and formula versions.

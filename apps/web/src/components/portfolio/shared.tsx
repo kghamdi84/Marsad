@@ -97,10 +97,16 @@ export function lotsOf(
 
 export const bookOf = (x: Portfolio) => bookPositions(lotsOf(x.holdings, x.bars, x.data));
 
-/** The limits that apply to the signed-in person (council values for the owner, none for a member). */
+/**
+ * The limits that apply to the signed-in person (council values for the owner, none for a member). When the role
+ * check fails, it falls back to "No limit set" rather than waiting forever: the facts still show, and no limit is
+ * assumed.
+ */
 export function useLimits() {
   const q = useQuery({ queryKey: ['limits-role'], queryFn: loadLimitsRole });
-  return q.data ? resolveLimits({ role: q.data }) : null;
+  if (q.data) return resolveLimits({ role: q.data });
+  if (q.isError) return resolveLimits({ role: 'member' });
+  return null;
 }
 export type Limits = NonNullable<ReturnType<typeof useLimits>>;
 
