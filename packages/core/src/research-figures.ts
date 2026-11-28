@@ -261,3 +261,11 @@ export function epsYearOnYear(quarters: readonly EpsQuarter[]): EpsYoYRow[] {
     return { ...q, prior, changeUsd, changePct };
   });
 }
+
+/** The last row of each calendar month (by `asOf`, YYYY-MM-DD), oldest first, at most the newest `months`. */
+export function lastPerMonth<T extends { asOf: string }>(rows: readonly T[], months = 12): T[] {
+  const byMonth = new Map<string, T>();
+  for (const r of [...rows].sort((a, b) => a.asOf.localeCompare(b.asOf)))
+    byMonth.set(r.asOf.slice(0, 7), r);
+  return [...byMonth.values()].slice(-months);
+}

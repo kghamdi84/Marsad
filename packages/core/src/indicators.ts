@@ -28,6 +28,16 @@ export const FORMULA_VERSIONS = {
   macd: 'macd@1',
   vwap: 'vwap-typical@1',
   rvol: 'rvol-prior-mean@1',
+  stochastic: 'stoch-slow@1',
+  stochRsi: 'stochrsi@1',
+  adx: 'adx-wilder@1',
+  williamsR: 'williams-r@1',
+  cci: 'cci@1',
+  ultimate: 'ultimate-7-14-28@1',
+  roc: 'roc@1',
+  bollinger: 'bollinger-population@1',
+  bullBearPower: 'elder-power@1',
+  highsLows: 'highs-lows-midpoint@1',
 } as const;
 
 function checkPeriod(period: number): void {
@@ -228,4 +238,249 @@ export function volumeWeightedPrice(
     vol += v;
   });
   return vol === 0 ? null : pv / vol;
+}
+
+function windowMax(a: readonly number[], from: number, to: number): number {
+  let m = -Infinity;
+  for (let j = from; j <= to; j += 1) m = Math.max(m, at(a, j));
+  return m;
+}
+function windowMin(a: readonly number[], from: number, to: number): number {
+  let m = Infinity;
+  for (let j = from; j <= to; j += 1) m = Math.min(m, at(a, j));
+  return m;
+}
+const nulls = (n: number): Series => new Array<number | null>(n).fill(null);
+
+/**
+ * Slow stochastic %K: raw %K = (close - lowest low) / (highest high - lowest low) x 100 over `k` bars, averaged
+ * over `smooth` bars. Null where the range is flat or the window is short.
+ */
+export function stochastic(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  k = 9,
+  smoothing = 6,
+): Series {
+  checkPeriod(k);
+  checkPeriod(smoothing);
+  checkSameLength(high, low, close);
+  const raw: Series = close.map((c, i) => {
+    if (i < k - 1) return null;
+    const hh = windowMax(high, i - k + 1, i);
+    const ll = windowMin(low, i - k + 1, i);
+    return hh === ll ? null : ((c - ll) / (hh - ll)) * 100;
+  });
+  return raw.map((_, i) => {
+    if (i < k - 1 + smoothing - 1) return null;
+    let s = 0;
+    for (let j = i - smoothing + 1; j <= i; j += 1) {
+      const v = raw[j];
+      if (v === null || v === undefined) return null;
+      s += v;
+    }
+    return s / smoothing;
+  });
+}
+
+/** StochRSI: where RSI sits in the range of its last `period` values, 0 to 100. Null when that range is flat. */
+export function stochRsi(close: readonly number[], period = 14): Series {
+  const r = rsi(close, period);
+  return r.map((v, i) => {
+    if (v === null || i < 2 * period - 1) return null;
+    const w = r.slice(i - period + 1, i + 1) as number[];
+    const hi = Math.max(...w);
+    const lo = Math.min(...w);
+    return hi === lo ? null : ((v - lo) / (hi - lo)) * 100;
+  });
+}
+
+/**
+ * ADX with +DI and -DI, Wilder smoothing. DI from index `period`, ADX from index 2 x period - 1 (the mean of the
+ * first `period` DX values, then Wilder smoothing).
+ */
+export function adx(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  period = 14,
+): { adx: Series; plusDi: Series; minusDi: Series } {
+  checkPeriod(period);
+  checkSameLength(high, low, close);
+  const n = close.length;
+  const out = { adx: nulls(n), plusDi: nulls(n), minusDi: nulls(n) };
+  let sTr = 0;
+  let sP = 0;
+  let sM = 0;
+  const dx: number[] = [];
+  let a = 0;
+  for (let i = 1; i < n; i += 1) {
+    const up = at(high, i) - at(high, i - 1);
+    const down = at(low, i - 1) - at(low, i);
+    const p = up > down && up > 0 ? up : 0;
+    const m = down > up && down > 0 ? down : 0;
+    const tr = Math.max(
+      at(high, i) - at(low, i),
+      Math.abs(at(high, i) - at(close, i - 1)),
+      Math.abs(at(low, i) - at(close, i - 1)),
+    );
+    if (i <= period) {
+      sTr += tr;
+      sP += p;
+      sM += m;
+    } else {
+      sTr = sTr - sTr / period + tr;
+      sP = sP - sP / period + p;
+      sM = sM - sM / period + m;
+    }
+    if (i < period) continue;
+    const pdi = sTr === 0 ? 0 : (100 * sP) / sTr;
+    const mdi = sTr === 0 ? 0 : (100 * sM) / sTr;
+    out.plusDi[i] = pdi;
+    out.minusDi[i] = mdi;
+    const sum = pdi + mdi;
+    dx.push(sum === 0 ? 0 : (100 * Math.abs(pdi - mdi)) / sum);
+    if (dx.length === period) {
+      a = dx.reduce((s, v) => s + v, 0) / period;
+      out.adx[i] = a;
+    } else if (dx.length > period) {
+      a = (a * (period - 1) + (dx.at(-1) as number)) / period;
+      out.adx[i] = a;
+    }
+  }
+  return out;
+}
+
+/** Williams %R: (highest high - close) / (highest high - lowest low) x -100 over `period` bars. */
+export function williamsR(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  period = 14,
+): Series {
+  checkPeriod(period);
+  checkSameLength(high, low, close);
+  return close.map((c, i) => {
+    if (i < period - 1) return null;
+    const hh = windowMax(high, i - period + 1, i);
+    const ll = windowMin(low, i - period + 1, i);
+    return hh === ll ? null : ((hh - c) / (hh - ll)) * -100;
+  });
+}
+
+/** Commodity Channel Index: (typical price - its mean) / (0.015 x mean absolute deviation), over `period` bars. */
+export function cci(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  period = 14,
+): Series {
+  checkPeriod(period);
+  checkSameLength(high, low, close);
+  const tp = close.map((c, i) => (at(high, i) + at(low, i) + c) / 3);
+  return tp.map((v, i) => {
+    if (i < period - 1) return null;
+    const m = mean(tp, i - period + 1, i + 1);
+    let md = 0;
+    for (let j = i - period + 1; j <= i; j += 1) md += Math.abs(at(tp, j) - m);
+    md /= period;
+    return md === 0 ? null : (v - m) / (0.015 * md);
+  });
+}
+
+/**
+ * Ultimate Oscillator (Williams): buying pressure (close - min(low, previous close)) over true range, averaged
+ * over 7, 14 and 28 bars and weighted 4, 2, 1. First value at index 28.
+ */
+export function ultimateOscillator(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  a = 7,
+  b = 14,
+  c = 28,
+): Series {
+  checkSameLength(high, low, close);
+  const bp: number[] = [0];
+  const tr: number[] = [0];
+  for (let i = 1; i < close.length; i += 1) {
+    const pc = at(close, i - 1);
+    bp.push(at(close, i) - Math.min(at(low, i), pc));
+    tr.push(Math.max(at(high, i), pc) - Math.min(at(low, i), pc));
+  }
+  const avg = (i: number, n: number) => {
+    let sb = 0;
+    let st = 0;
+    for (let j = i - n + 1; j <= i; j += 1) {
+      sb += at(bp, j);
+      st += at(tr, j);
+    }
+    return st === 0 ? null : sb / st;
+  };
+  return close.map((_, i) => {
+    if (i < c) return null;
+    const x = avg(i, a);
+    const y = avg(i, b);
+    const z = avg(i, c);
+    return x === null || y === null || z === null ? null : (100 * (4 * x + 2 * y + z)) / 7;
+  });
+}
+
+/** Rate of change in percent over `period` bars. */
+export function roc(close: readonly number[], period = 12): Series {
+  checkPeriod(period);
+  return close.map((v, i) => {
+    if (i < period) return null;
+    const base = at(close, i - period);
+    return base > 0 ? (v / base - 1) * 100 : null;
+  });
+}
+
+/** Bollinger Bands: the `period` SMA and that SMA plus and minus `k` population standard deviations. */
+export function bollinger(
+  close: readonly number[],
+  period = 20,
+  k = 2,
+): { middle: Series; upper: Series; lower: Series } {
+  const middle = sma(close, period);
+  const upper = nulls(close.length);
+  const lower = nulls(close.length);
+  middle.forEach((m, i) => {
+    if (m === null) return;
+    let ss = 0;
+    for (let j = i - period + 1; j <= i; j += 1) ss += (at(close, j) - m) ** 2;
+    const sd = Math.sqrt(ss / period);
+    upper[i] = m + k * sd;
+    lower[i] = m - k * sd;
+  });
+  return { middle, upper, lower };
+}
+
+/** Elder's bull power plus bear power: (high - EMA) + (low - EMA). */
+export function bullBearPower(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  period = 13,
+): Series {
+  checkSameLength(high, low, close);
+  const e = ema(close, period);
+  return e.map((v, i) => (v === null ? null : at(high, i) - v + (at(low, i) - v)));
+}
+
+/** The close against the midpoint of the `period`-bar highest high and lowest low. */
+export function highsLows(
+  high: readonly number[],
+  low: readonly number[],
+  close: readonly number[],
+  period = 14,
+): Series {
+  checkPeriod(period);
+  checkSameLength(high, low, close);
+  return close.map((c, i) =>
+    i < period - 1
+      ? null
+      : c - (windowMax(high, i - period + 1, i) + windowMin(low, i - period + 1, i)) / 2,
+  );
 }

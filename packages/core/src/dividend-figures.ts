@@ -8,6 +8,7 @@
  *   annual).
  * - Yield: trailing 12-month dividends over the last stored close (dividend-yield-ttm-1).
  * - Payout ratio: trailing 12-month dividends over trailing four-quarter diluted EPS; null unless EPS is positive.
+ * - Cut flags: a regular payment below the regular payment before it (split-adjusted).
  * - Consecutive years of growth: calendar-year totals, counted back from the newest complete year while each year
  *   is above the one before. The oldest stored year counts only when it has as many payments as the frequency,
  *   since stored history may start mid-year; when the count stops at the start of stored history it is a minimum.
@@ -49,6 +50,8 @@ export interface DividendSummary {
   annual: { year: number; total: number; count: number }[];
   /** The oldest stored ex-date. */
   historyFrom: string | null;
+  /** Regular payments (not one-offs) smaller than the regular payment before them, split-adjusted, oldest first. */
+  cuts: { exDividendDate: string; amount: number; previous: number; changePct: number }[];
 }
 
 const DAY = 86_400_000;
@@ -67,6 +70,24 @@ export function inferFrequency(exDates: readonly string[]): number | null {
       ? (gaps[(gaps.length - 1) / 2] as number)
       : ((gaps[gaps.length / 2 - 1] as number) + (gaps[gaps.length / 2] as number)) / 2;
   return mid < 45 ? 12 : mid < 120 ? 4 : mid < 240 ? 2 : 1;
+}
+
+/** Payments cut against the payment before (split-adjusted, US dollars, one-offs left out). */
+function cutsOf(rows: readonly StoredDividend[]): DividendSummary['cuts'] {
+  const regular = rows.filter((d) => d.currency === 'USD' && d.frequency !== 0);
+  const out: DividendSummary['cuts'] = [];
+  for (let i = 1; i < regular.length; i += 1) {
+    const prev = adjustedAmount(regular[i - 1] as StoredDividend);
+    const cur = adjustedAmount(regular[i] as StoredDividend);
+    if (prev > 0 && cur < prev - 1e-9)
+      out.push({
+        exDividendDate: (regular[i] as StoredDividend).exDividendDate,
+        amount: cur,
+        previous: prev,
+        changePct: (cur / prev - 1) * 100,
+      });
+  }
+  return out;
 }
 
 export function dividendSummary(input: {
@@ -146,5 +167,6 @@ export function dividendSummary(input: {
     },
     annual,
     historyFrom: rows[0]?.exDividendDate ?? null,
+    cuts: cutsOf(rows),
   };
 }

@@ -33,6 +33,35 @@ const ROWS: StoredDividend[] = [
 ];
 
 describe('dividends-1', () => {
+  it('flags a cut against the payment before, split-adjusted, and ignores one-offs', () => {
+    const rows = [
+      d('2025-03-10', 0.4, { splitAdjustedAmount: 0.04 }),
+      d('2025-06-10', 0.04),
+      d('2025-07-01', 1.0, { frequency: 0 }),
+      d('2025-09-10', 0.03),
+      d('2025-12-10', 0.03),
+    ];
+    const s = dividendSummary({
+      dividends: rows,
+      close: 10,
+      closeDate: '2026-01-02',
+      today: '2026-01-02',
+      epsTtm: null,
+    });
+    expect(s.cuts).toHaveLength(1);
+    expect(s.cuts[0]).toMatchObject({ exDividendDate: '2025-09-10', amount: 0.03, previous: 0.04 });
+    expect(s.cuts[0]?.changePct).toBeCloseTo(-25, 10);
+    expect(
+      dividendSummary({
+        dividends: ROWS,
+        close: 100,
+        closeDate: '2026-11-27',
+        today: '2026-11-28',
+        epsTtm: null,
+      }).cuts,
+    ).toEqual([]);
+  });
+
   it('finds the next ex-date, yield, payout ratio and years of growth by hand', () => {
     const s = dividendSummary({
       dividends: ROWS,

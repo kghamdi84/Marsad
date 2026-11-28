@@ -5,6 +5,7 @@ import {
   differsBeyond,
   epsYearOnYear,
   impliedMove,
+  lastPerMonth,
   relativePerformance,
   sessionReturn,
   trailingDividendYield,
@@ -181,6 +182,22 @@ describe('epsYearOnYear', () => {
     expect(rows[3]?.changePct).toBeNull();
     expect(rows[0]?.prior).toBeNull();
     expect(rows[0]?.changeUsd).toBeNull();
+  });
+});
+
+describe('lastPerMonth', () => {
+  it('keeps the newest row of each month, at most 12, oldest first', () => {
+    const rows = [
+      { asOf: '2026-11-28', n: 3 },
+      { asOf: '2026-10-02', n: 1 },
+      { asOf: '2026-10-31', n: 2 },
+    ];
+    expect(lastPerMonth(rows).map((r) => r.n)).toEqual([2, 3]);
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      asOf: `${2025 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, '0')}-15`,
+    }));
+    expect(lastPerMonth(many)).toHaveLength(12);
+    expect(lastPerMonth(many)[0]?.asOf).toBe('2025-03-15');
   });
 });
 

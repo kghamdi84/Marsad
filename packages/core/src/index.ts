@@ -73,7 +73,6 @@ export * from './strength.js';
 export * from './company-brief.js';
 export * from './options-analytics.js';
 export * from './piotroski.js';
-export * from './technical.js';
 export * from './research-figures.js';
 export * from './technical-analysis.js';
 export * from './dividend-figures.js';
