@@ -69,6 +69,17 @@ export function gapToStop(price: number, stop: number): number | null {
   return price / stop - 1;
 }
 
+/**
+ * How far the price must fall to reach the stop, as a fraction of the price: (price - stop) / price. This is the
+ * loss per share at the stop relative to today's value, so it is the figure for "x% below the close". Positive when
+ * the stop is below the price, negative when the price is already through it. `gapToStop` is the same gap measured
+ * from the stop (price / stop - 1) and reads higher; label each for what it measures.
+ */
+export function fallToStop(price: number, stop: number): number | null {
+  if (!(price > 0) || !(stop > 0) || !Number.isFinite(price) || !Number.isFinite(stop)) return null;
+  return (price - stop) / price;
+}
+
 export interface TicketInput {
   side: 'BUY' | 'SELL';
   shares: number;

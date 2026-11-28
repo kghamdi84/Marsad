@@ -12,7 +12,7 @@ import type { AlertInput, Reading } from './alerts.js';
 import { toFixedHalfUp } from './ai/template.js';
 import { tradingSessionsBetween, type MarketCalendar } from './calendar.js';
 import type { HoldingRef } from './exit-alerts.js';
-import { hasExitRules } from './portfolio.js';
+import { fallToStop, hasExitRules } from './portfolio.js';
 import { formatClock, US_EASTERN } from './time.js';
 import { nextResultsDate, type ResultsDateSource } from './ticker-summary.js';
 
@@ -235,7 +235,7 @@ export function earningsGuardCandidate(s: EarningsGuardSnapshot): EarningsGuardC
     shares: s.holding.shares,
     stop,
     close,
-    stopDistance: close !== null && close > 0 && stop !== null ? (close - stop) / close : null,
+    stopDistance: close !== null && stop !== null ? fallToStop(close, stop) : null,
     hasExitRules: s.holding.hasExitRules,
     previous: s.previous,
   };

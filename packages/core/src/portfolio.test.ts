@@ -237,3 +237,15 @@ describe('sessionsHeld and markDuplicateHoldings (hand-checked)', () => {
     expect(markDuplicateHoldings([a], [a, b, b, c])).toEqual([true, false, true, false]);
   });
 });
+
+describe('fallToStop (hand-checked)', () => {
+  it('is the fall from the price to the stop as a fraction of the price', async () => {
+    const { fallToStop, gapToStop } = await import('./portfolio.js');
+    // Close 174.10, stop 160: (174.10 - 160) / 174.10 = 0.080988...; measured from the stop it is 0.088125.
+    expect(fallToStop(174.1, 160)).toBeCloseTo(0.0809879, 6);
+    expect(gapToStop(174.1, 160)).toBeCloseTo(0.088125, 6);
+    expect(fallToStop(150, 160)).toBeCloseTo(-0.0666667, 6);
+    expect(fallToStop(0, 160)).toBeNull();
+    expect(fallToStop(100, Number.NaN)).toBeNull();
+  });
+});
