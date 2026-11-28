@@ -237,7 +237,21 @@ export const watch = {
       fullBrief: 'Read the full brief',
     },
     list: {
-      hint: 'Tap a row to open Study \u00B7 volume against the 20-day average \u00B7 earnings dates are estimated',
+      hint: 'Tap a row to open Study \u00B7 volume against the 20-day average \u00B7 each earnings date names its source',
+      colEarnings: 'Earnings',
+      earningsIn: (n: number) => (n <= 0 ? 'Due' : n === 1 ? 'In 1 day' : `In ${n} days`),
+      earningsSource: {
+        tauric: 'Tauric date',
+        'marsad-estimate': 'Marsad estimate',
+      } as Record<string, string>,
+      earningsNone: 'No date',
+      sectorGics: (etf: string) => `${etf}, GICS`,
+      sectorMine: (etf: string) => `${etf}, your choice`,
+      fromSummary: (date: string, at: string) =>
+        `Range, volume, trader columns and earnings: from the nightly summary, ${date} (written ${at} UTC).`,
+      fromBars: (tks: string) => `Computed from bars, no current nightly summary row: ${tks}.`,
+      rowSummary: (date: string) => `From the nightly summary, ${date}`,
+      rowBars: 'Computed from bars',
       colCompany: 'Company',
       colRange: '52-week position',
       colVolume: 'Volume',

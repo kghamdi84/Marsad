@@ -2,10 +2,11 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
-import { sma, summarizeBars, toFixedHalfUp, traderMetrics } from '@marsad/core';
+import { etDate, sma, summarizeBars, toFixedHalfUp, traderMetrics } from '@marsad/core';
 import { Sheet } from './Sheet';
 import { useWide } from './Card';
 import { loadStudy } from '../lib/study';
+import { figuresOf, loadSummaries } from '../lib/summary';
 import { loadHoldings } from '../lib/journal';
 import { loadAlerts } from '../lib/alerts';
 import { loadWatchlist, saveWatchlist, withTicker } from '../lib/watchlist';
@@ -13,7 +14,12 @@ import { loadQuoteView, quoteStatus } from '../lib/quotes';
 import { useQuotePoll } from '../lib/refresh';
 import { dayMonth } from '../lib/dates';
 import { useQuickBrief } from './quicklook/useQuickBrief';
-import { BriefSection, PerformanceSection, PositionSection } from './quicklook/Sections';
+import {
+  BriefSection,
+  FiguresSource,
+  PerformanceSection,
+  PositionSection,
+} from './quicklook/Sections';
 import { t } from '../strings';
 
 const x = t.quickLook;
@@ -122,6 +128,10 @@ function QuickLookBody({ ticker }: { ticker: string }) {
   const holdings = useQuery({ queryKey: ['holdings'], queryFn: loadHoldings });
   const alerts = useQuery({ queryKey: ['alerts', true], queryFn: () => loadAlerts(true) });
   const extra = useQuickBrief(ticker, study.data);
+  const summary = useQuery({
+    queryKey: ['summary', [ticker]],
+    queryFn: () => loadSummaries([ticker]),
+  });
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['watchlist'], queryFn: loadWatchlist });
   const add = useMutation({
@@ -150,6 +160,16 @@ function QuickLookBody({ ticker }: { ticker: string }) {
   const latest = tq && qv.data ? quoteStatus(tq, qv.data, new Date()) : null;
   const filings = d.filings.slice(0, 2);
   const m = traderMetrics(d.bars, extra.spyBars ?? []);
+  // The nightly summary row when it is current; until it has loaded (or when it is missing or behind the bars)
+  // the same row from the bars, labelled as such.
+  const fig = figuresOf(
+    ticker,
+    summary.data?.[ticker],
+    d.bars,
+    extra.spyBars,
+    extra.earnings ? { date: extra.earnings.date } : null,
+  );
+  const r = fig.row;
   const onList = list.data?.tickers.includes(ticker) ?? false;
   const tr = t.trader;
   const signed1 = (v: number) =>
@@ -197,15 +217,17 @@ function QuickLookBody({ ticker }: { ticker: string }) {
         />
       )}
       {s && extra.brief && (
-        <PerformanceSection
-          ticker={ticker}
+        <PerformanceSection ticker={ticker} brief={extra.brief} fig={fig} q={extra.q} />
+      )}
+      {extra.brief && (
+        <BriefSection
           brief={extra.brief}
-          summary={s}
-          trader={m}
+          cik={extra.cik}
+          fig={fig}
+          today={etDate(new Date())}
           q={extra.q}
         />
       )}
-      {extra.brief && <BriefSection brief={extra.brief} cik={extra.cik} q={extra.q} />}
       {(holding || alert) && (
         <section
           aria-label={x.whyTitle}
@@ -236,10 +258,10 @@ function QuickLookBody({ ticker }: { ticker: string }) {
           <h3 className="text-xs text-muted">{x.traderTitle}</h3>
           <dl className="grid grid-cols-2 gap-1.5">
             <Fact k={x.trend} v={t.study.trendLabels[s.trend] ?? s.trend} />
-            <Fact k={x.rsi} v={s.rsi14 === null ? t.regime.noData : toFixedHalfUp(s.rsi14, 1)} />
+            <Fact k={x.rsi} v={r.rsi_14 === null ? t.regime.noData : toFixedHalfUp(r.rsi_14, 1)} />
             <Fact
               k={tr.stretch50}
-              v={m?.stretch50 == null ? t.regime.noData : tr.atrs(signed1(m.stretch50))}
+              v={r.stretch_50_atr === null ? t.regime.noData : tr.atrs(signed1(r.stretch_50_atr))}
             />
             <Fact
               k={tr.stretch20}
@@ -247,11 +269,18 @@ function QuickLookBody({ ticker }: { ticker: string }) {
             />
             <Fact
               k={tr.rsSpy}
-              v={m?.rsSpy == null ? t.regime.noData : signed(m.rsSpy, 1)}
-              tone={m?.rsSpy == null ? 'text-ink' : m.rsSpy >= 0 ? 'text-up' : 'text-down'}
+              v={r.rs_spy_63 === null ? t.regime.noData : signed(r.rs_spy_63, 1)}
+              tone={r.rs_spy_63 === null ? 'text-ink' : r.rs_spy_63 >= 0 ? 'text-up' : 'text-down'}
             />
             <Fact k={x.dollarVolume} v={compact(last.close * last.volume)} />
+            <Fact
+              k={x.dollarVolume20}
+              v={
+                r.avg_dollar_volume_20 === null ? t.regime.noData : compact(r.avg_dollar_volume_20)
+              }
+            />
           </dl>
+          <FiguresSource fig={fig} />
         </section>
       )}
       {filings.length > 0 && (

@@ -7,6 +7,7 @@ export const nav = {
   watch: 'Watch',
   study: 'Study',
   markets: 'Markets',
+  screener: 'Screener',
   portfolio: 'Portfolio',
   alerts: 'Alerts',
   journal: 'Journal',
@@ -33,6 +34,11 @@ export const pages = {
     title: 'Markets',
     subtitle:
       'The regime label and why, the movers of the last completed session, the sector funds, and the earnings, ex-dividend and macro calendar.',
+  },
+  screener: {
+    title: 'Screener',
+    subtitle:
+      'Filter the tracked tickers by the nightly summary: returns, the 52-week range, averages, volume, dividends and earnings dates.',
   },
   alerts: {
     title: 'Alerts',
@@ -128,6 +134,7 @@ export const ar: {
     watch: 'المراقبة',
     study: 'الدراسة',
     markets: 'الأسواق',
+    screener: 'الفرز',
     portfolio: 'المحفظة',
     alerts: 'التنبيهات',
     journal: 'السجل',
@@ -152,6 +159,11 @@ export const ar: {
       title: 'الأسواق',
       subtitle:
         'تسمية النظام السوقي وسببها، وأكبر المتحركين في آخر جلسة مكتملة، وصناديق القطاعات، وتقويم الأرباح والتوزيعات والاقتصاد الكلي.',
+    },
+    screener: {
+      title: 'الفرز',
+      subtitle:
+        'تصفية الأسهم المتابَعة حسب الملخص الليلي: العوائد ونطاق 52 أسبوعًا والمتوسطات والحجم والتوزيعات ومواعيد الأرباح.',
     },
     alerts: {
       title: 'التنبيهات',

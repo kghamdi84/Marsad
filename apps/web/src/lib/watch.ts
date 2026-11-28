@@ -13,6 +13,7 @@ import {
 } from '@marsad/core';
 import { supabase } from './supabase';
 import type { FilingRow } from './study';
+import { isCurrent, loadBarsBatch, loadSummaries, type StoredSummary } from './summary';
 
 function client() {
   if (!supabase) throw new Error('not configured');
@@ -82,7 +83,15 @@ export interface WatchData {
   sectorOf: Record<string, string | null>;
   /** The newest universe strength rank (strength-1) of each ticker in the universe. */
   strength: Record<string, StrengthView>;
+  /** The newest nightly summary row of each watchlist ticker (ADR 0050); absent before the job's first run. */
+  summary: Record<string, StoredSummary>;
 }
+
+/**
+ * Sessions of bars Watch reads per ticker when the nightly summary covers it: the 30-session sparkline, the
+ * 1-day and 1-month change, the volume base and the 63-session strength against the chosen sector fund.
+ */
+export const WATCH_SESSIONS = 70;
 
 export interface StrengthView {
   date: string;
@@ -199,11 +208,8 @@ export async function loadWatch(): Promise<WatchData> {
     sectorOf[x.ticker] = x.sector_etf ?? null;
   const saved = [...new Set(((items.data ?? []) as { ticker: string }[]).map((x) => x.ticker))];
   const tickers = saved.length > 0 ? saved : [...STARTING_TICKERS];
-  const sectorFunds = Object.values(sectorOf).filter((s): s is string => s !== null);
-  const barTickers = [...new Set([...tickers, ...STRIP_BARS, ...sectorFunds])];
   const strengthP = loadStrength(tickers);
-  const [barLists, seriesLists, moversR, newsR] = await Promise.all([
-    Promise.all(barTickers.map((t) => barsOf(t))),
+  const restP = Promise.all([
     Promise.all(STRIP_SERIES.map((id) => seriesOf(id))),
     client().from('market_movers_daily').select('*').order('date', { ascending: false }).limit(1),
     client()
@@ -213,10 +219,27 @@ export async function loadWatch(): Promise<WatchData> {
       .order('published_at', { ascending: false })
       .limit(80),
   ]);
+  // The summary first: it names the GICS sector fund of tickers with no fund chosen, whose bars the strength
+  // column needs. The viewer's own choice wins over the mapping.
+  const summary = await loadSummaries(tickers);
+  const sectorFunds = tickers
+    .map((tk) => sectorOf[tk] ?? summary[tk]?.sector_etf ?? null)
+    .filter((s): s is string => s !== null);
+  const barTickers = [...new Set([...tickers, ...STRIP_BARS, ...sectorFunds])];
+  const bars = await loadBarsBatch(barTickers, WATCH_SESSIONS);
+  // A watchlist ticker without a current summary row is computed from its bars, which needs the full year; a
+  // ticker the batch returned nothing for is read alone.
+  const full = barTickers.filter(
+    (tk) =>
+      (bars[tk] ?? []).length === 0 ||
+      (tickers.includes(tk) && !isCurrent(summary[tk], bars[tk] ?? [])),
+  );
+  const fullLists = await Promise.all(full.map((t) => barsOf(t)));
+  full.forEach((t, i) => (bars[t] = fullLists[i] ?? []));
+  for (const t of barTickers) bars[t] ??= [];
+  const [seriesLists, moversR, newsR] = await restP;
   if (moversR.error) throw new Error(`market_movers_daily: ${moversR.error.message}`);
   if (newsR.error) throw new Error(`news_articles: ${newsR.error.message}`);
-  const bars: Record<string, DailyBar[]> = {};
-  barTickers.forEach((t, i) => (bars[t] = barLists[i] ?? []));
   const series: Record<string, Obs[]> = {};
   STRIP_SERIES.forEach((id, i) => (series[id] = seriesLists[i] ?? []));
   const m = (moversR.data ?? [])[0] as Record<string, unknown> | undefined;
@@ -225,6 +248,7 @@ export async function loadWatch(): Promise<WatchData> {
     defaultList: saved.length === 0,
     sectorOf,
     strength: await strengthP,
+    summary,
     bars,
     series,
     movers: m

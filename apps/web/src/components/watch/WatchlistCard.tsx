@@ -7,7 +7,7 @@ import {
   tickerSummary,
   toFixedHalfUp,
   traderMetrics,
-  type TickerSummary,
+  type TickerSummaryRow,
 } from '@marsad/core';
 import { Card, Segmented, Sparkline, useRemembered } from '../Card';
 import { Spark } from '../ui/kit';
@@ -15,6 +15,8 @@ import { num, th, thNum } from '../study/Panel';
 import { WatchlistEditor } from '../WatchlistEditor';
 import { useQuickLook } from '../QuickLook';
 import { loadCalendar, type WatchData } from '../../lib/watch';
+import { figuresOf, type FiguresFrom } from '../../lib/summary';
+import { dayMonth } from '../../lib/dates';
 import { useQuotePoll } from '../../lib/refresh';
 import { loadQuoteView, quoteStatus, type QuoteView } from '../../lib/quotes';
 import { t } from '../../strings';
@@ -32,22 +34,46 @@ const fmtPct = (x: number, d = 1) => `${x > 0 ? '+' : ''}${toFixedHalfUp(x * 100
 
 export const PERIODS = ['1d', '5d', '1m'] as const;
 type Period = (typeof PERIODS)[number];
-const changeOf = (s: TickerSummary | null, p: Period) =>
-  !s ? null : p === '1d' ? s.change1d : p === '5d' ? s.change5d : s.change21d;
+
+/**
+ * One watchlist row's figures. The 1-day change and the sparkline come from the bars (the summary has no 1-day
+ * return); the rest from the nightly summary row when it is current, else the same row computed from the bars.
+ */
+interface RowFigures {
+  date: string;
+  close: number;
+  change1d: number | null;
+  row: TickerSummaryRow;
+  from: FiguresFrom;
+}
+
+const changeOf = (s: RowFigures | null, p: Period) =>
+  !s ? null : p === '1d' ? s.change1d : p === '5d' ? s.row.return_1w : s.row.return_1m;
+
+/** Close against the 52-week closing high (0 at a new high); null without the range. */
+const fromHighOf = (r: TickerSummaryRow) =>
+  r.close !== null && r.high_52w !== null && r.high_52w > 0 ? r.close / r.high_52w - 1 : null;
 
 /** Where the last close sits in the 52-week closing range: a track with a mark and the percent. */
-function RangePosition({ s }: { s: TickerSummary }) {
-  const r = s.range252;
-  if (!r || s.fromHigh252 === null) return <span className="text-xs text-ink3">{u.rangeNone}</span>;
-  const pos = toFixedHalfUp(r.position * 100, 0);
+function RangePosition({ s }: { s: RowFigures }) {
+  const r = s.row;
+  const fromHigh = fromHighOf(r);
+  if (
+    r.low_52w === null ||
+    r.high_52w === null ||
+    r.range_position_52w === null ||
+    fromHigh === null
+  )
+    return <span className="text-xs text-ink3">{u.rangeNone}</span>;
+  const pos = toFixedHalfUp(r.range_position_52w * 100, 0);
   return (
     <div
       role="img"
       aria-label={u.rangeAria(
-        toFixedHalfUp(r.low, 2),
-        toFixedHalfUp(r.high, 2),
+        toFixedHalfUp(r.low_52w, 2),
+        toFixedHalfUp(r.high_52w, 2),
         pos,
-        fmtPct(s.fromHigh252),
+        fmtPct(fromHigh),
       )}
       className="flex items-center gap-2"
     >
@@ -68,6 +94,22 @@ function VolumeRatio({ ratio }: { ratio: number | null }) {
   return (
     <span className={`text-[13px] font-semibold tabular-nums ${hot ? 'text-warn' : 'text-ink2'}`}>
       {l.times(toFixedHalfUp(ratio, 1))}
+    </span>
+  );
+}
+
+/** Days to the next results date, with its source (Tauric's stated date or Marsad's estimate). */
+function EarningsCell({ row, today }: { row: TickerSummaryRow; today: string }) {
+  if (row.next_earnings_date === null || row.next_earnings_source === null)
+    return <span className="text-xs text-ink3">{vl.earningsNone}</span>;
+  const when = vl.earningsIn(daysBetween(today, row.next_earnings_date));
+  const src = vl.earningsSource[row.next_earnings_source] ?? row.next_earnings_source;
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <span className="text-[13px] font-semibold text-ink tabular-nums">{when}</span>
+      <span className="text-[11px] whitespace-nowrap text-ink3">
+        {dayMonth(row.next_earnings_date)} {'·'} {src}
+      </span>
     </span>
   );
 }
@@ -127,13 +169,15 @@ function PhoneRow({
   latest,
   open,
   onToggle,
+  today,
 }: {
   tk: string;
   name: string | undefined;
   held: boolean;
   bars: readonly { close: number }[];
-  s: TickerSummary | null;
+  s: RowFigures | null;
   stale: boolean;
+  today: string;
   /** Set only when the viewer chose Tauric as the quote source. */
   latest?: Latest | undefined;
   open: boolean;
@@ -214,8 +258,15 @@ function PhoneRow({
               </div>
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="text-ink3">{u.colVolume}</span>
-                <VolumeRatio ratio={s.volumeRatio20} />
+                <VolumeRatio ratio={s.row.volume_ratio_20} />
               </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink3">{vl.colEarnings}</span>
+                <EarningsCell row={s.row} today={today} />
+              </div>
+              <p className="text-xs text-ink3">
+                {s.from.kind === 'summary' ? vl.rowSummary(dayMonth(s.from.date)) : vl.rowBars}
+              </p>
             </>
           ) : (
             <p className="text-sm text-ink3">{v.noData}</p>
@@ -277,20 +328,31 @@ export function WatchlistCard({
   const today = etDate(now);
   const rows = data.tickers.map((tk) => {
     const est = cal.data?.earnings?.estimates.find((e) => e.ticker === tk);
+    const bars = data.bars[tk] ?? [];
+    const b = tickerSummary(bars);
+    const f = figuresOf(tk, data.summary[tk], bars, spyBars, est ? { date: est.date } : null);
+    // The viewer's own sector fund wins over the summary's GICS mapping (ADR 0050).
+    const mine = data.sectorOf[tk] ?? null;
+    const sector = mine ?? f.row.sector_etf;
+    const s: RowFigures | null =
+      b && f.row.close !== null
+        ? { date: b.date, close: f.row.close, change1d: b.change1d, row: f.row, from: f.from }
+        : null;
     return {
       tk,
-      bars: data.bars[tk] ?? [],
-      s: tickerSummary(data.bars[tk] ?? []),
-      m: traderMetrics(
-        data.bars[tk] ?? [],
-        spyBars,
-        data.sectorOf[tk] ? (data.bars[data.sectorOf[tk] ?? ''] ?? null) : null,
-      ),
-      sector: data.sectorOf[tk] ?? null,
+      bars,
+      s,
+      // Only the strength against the sector fund is not in the summary; it reads the bars of both.
+      rsSector: sector
+        ? (traderMetrics(bars, spyBars, data.bars[sector] ?? null)?.rsSector ?? null)
+        : null,
+      sector,
+      sectorMine: mine !== null,
       rank: data.strength[tk] ?? null,
-      days: est ? daysBetween(today, est.date) : null,
     };
   });
+  const fromSummary = rows.flatMap((r) => (r.s?.from.kind === 'summary' ? [r.s.from] : []));
+  const fromBars = rows.filter((r) => r.s && r.s.from.kind === 'bars').map((r) => r.tk);
   const newest = rows.reduce((d, r) => (r.s && r.s.date > d ? r.s.date : d), '');
   if (sorted)
     rows.sort(
@@ -328,6 +390,7 @@ export function WatchlistCard({
       <ul className="-mx-[18px] -mb-1 tablet:hidden">
         {rows.map(({ tk, bars, s }) => (
           <PhoneRow
+            today={today}
             key={tk}
             tk={tk}
             name={names[tk]}
@@ -354,6 +417,7 @@ export function WatchlistCard({
               <th className={`${thNum} w-[104px]`}>{u.periodLong[period] ?? period}</th>
               <th className={`${th} w-[140px]`}>{vl.colRange}</th>
               <th className={`${thNum} w-[76px]`}>{vl.colVolume}</th>
+              <th className={`${thNum} w-[112px]`}>{vl.colEarnings}</th>
               {on && (
                 <>
                   <th className={thNum}>{tr.atrPct}</th>
@@ -362,13 +426,13 @@ export function WatchlistCard({
                   <th className={thNum}>{tr.rsSector}</th>
                   <th className={thNum}>{tr.rank}</th>
                   <th className={thNum}>{tr.fromHigh}</th>
-                  <th className={thNum}>{tr.earnings}</th>
                 </>
               )}
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ tk, bars, s, m, days, sector, rank }) => {
+            {rows.map(({ tk, bars, s, rsSector, sector, sectorMine, rank }) => {
+              const m = s?.row;
               const line = bars.slice(-30).map((b) => b.close);
               return (
                 <tr
@@ -422,32 +486,38 @@ export function WatchlistCard({
                         <RangePosition s={s} />
                       </td>
                       <td className={`${cell} ${num}`}>
-                        <VolumeRatio ratio={s.volumeRatio20} />
+                        <VolumeRatio ratio={s.row.volume_ratio_20} />
+                      </td>
+                      <td className={`${cell} ${num}`}>
+                        <EarningsCell row={s.row} today={today} />
                       </td>
                     </>
                   ) : (
-                    <td className={`${cell} text-ink3`} colSpan={4}>
+                    <td className={`${cell} text-ink3`} colSpan={5}>
                       {v.noData}
                     </td>
                   )}
                   {on && (
                     <>
                       <td className={`${cell} ${num} text-[13px]`}>
-                        {m?.atrPct == null ? '–' : pct1(m.atrPct)}
+                        {m?.atr_14_pct == null ? '–' : pct1(m.atr_14_pct)}
                       </td>
                       <td className={`${cell} ${num} text-[13px]`}>
-                        {m?.stretch50 == null ? '–' : tr.atrs(signed1(m.stretch50))}
+                        {m?.stretch_50_atr == null ? '–' : tr.atrs(signed1(m.stretch_50_atr))}
                       </td>
                       <td className={`${cell} ${num} text-[13px]`}>
-                        {m?.rsSpy == null ? '–' : <Change v={m.rsSpy} />}
+                        {m?.rs_spy_63 == null ? '–' : <Change v={m.rs_spy_63} />}
                       </td>
                       <td className={`${cell} ${num} text-[13px]`}>
-                        {m?.rsSector == null ? (
+                        {rsSector === null ? (
                           <span className="text-ink3">{sector ? '–' : tr.noSector}</span>
                         ) : (
                           <>
-                            <Change v={m.rsSector} />
-                            <span className="block text-[11px] text-ink3">{sector}</span>
+                            <Change v={rsSector} />
+                            <span className="block text-[11px] text-ink3">
+                              {sector &&
+                                (sectorMine ? vl.sectorMine(sector) : vl.sectorGics(sector))}
+                            </span>
                           </>
                         )}
                       </td>
@@ -459,10 +529,7 @@ export function WatchlistCard({
                         )}
                       </td>
                       <td className={`${cell} ${num} text-[13px]`}>
-                        {m?.fromHigh == null ? '–' : <Change v={m.fromHigh} />}
-                      </td>
-                      <td className={`${cell} ${num} text-[13px]`}>
-                        {days === null ? '–' : tr.inDays(days)}
+                        {!m || fromHighOf(m) === null ? '–' : <Change v={fromHighOf(m)} />}
                       </td>
                     </>
                   )}
@@ -484,6 +551,17 @@ export function WatchlistCard({
         </button>
       )}
       <p className="text-xs text-ink3">{newest ? u.footer(newest) : l.source}</p>
+      {fromSummary[0] && (
+        <p className="text-xs text-ink3">
+          {vl.fromSummary(
+            dayMonth(fromSummary[0].date),
+            new Date(fromSummary[0].computedAt).toISOString().slice(11, 16),
+          )}
+        </p>
+      )}
+      {fromBars.length > 0 && (
+        <p className="text-xs text-ink3">{vl.fromBars(fromBars.join(', '))}</p>
+      )}
       {tauric && <p className="text-xs text-ink3">{u.latestFooter}</p>}
     </Card>
   );

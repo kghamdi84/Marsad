@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { etDate } from '@marsad/core';
 import { Segmented, SkeletonCards } from '../components/Card';
 import { Info } from '../components/Info';
@@ -88,7 +89,21 @@ export function Markets() {
   };
   return (
     <div className="flex flex-col gap-5">
-      <PageTitle page="markets" aside={<Info>{mk.intro}</Info>} />
+      <PageTitle
+        page="markets"
+        aside={
+          <span className="flex items-center gap-2">
+            {/* Desktop and iPad reach the Screener from here; phones from the More sheet (ADR 0048). */}
+            <Link
+              to="/screener"
+              className="hidden min-h-11 items-center rounded-lg border border-line-strong px-3 text-[13px] font-semibold text-ink tablet:inline-flex"
+            >
+              {mk.screenerLink}
+            </Link>
+            <Info>{mk.intro}</Info>
+          </span>
+        }
+      />
       <MarketsSummary go={go} now={now} />
       <div id="markets-area" className="flex scroll-mt-20 flex-col gap-3">
         <Segmented

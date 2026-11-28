@@ -15,6 +15,7 @@ import { quickLook } from './strings/quickLook';
 import { study } from './strings/study';
 import { regime } from './strings/regime';
 import { markets } from './strings/markets';
+import { screener } from './strings/screener';
 import { status } from './strings/status';
 import { settings } from './strings/settings';
 
@@ -43,6 +44,7 @@ export const t = {
   study,
   regime,
   markets,
+  screener,
   status,
   settings,
   errors,
