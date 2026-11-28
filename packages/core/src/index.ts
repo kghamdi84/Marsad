@@ -80,3 +80,5 @@ export * from './dividend-figures.js';
 export * from './financials-overview.js';
 export * from './news-sentiment.js';
 export * from './company-research.js';
+export * from './dividend-calc.js';
+export * from './levels.js';

@@ -11,9 +11,25 @@ import {
   type SeriesMarker,
   type Time,
 } from 'lightweight-charts';
-import { ema, rsi, sma, toFixedHalfUp, type ChartMarker, type DailyBar } from '@marsad/core';
+import {
+  bollinger as bands,
+  ema,
+  rsi,
+  sma,
+  toFixedHalfUp,
+  type ChartMarker,
+  type DailyBar,
+} from '@marsad/core';
 import { t } from '../strings';
 import { markerLetter } from './study/markers';
+
+/** A horizontal line across the price pane: an analyst target or a support or resistance level. */
+export interface PriceLine {
+  price: number;
+  title: string;
+  tone: 'up' | 'down' | 'ink' | 'muted';
+  style: 'dashed' | 'dotted';
+}
 
 export interface ChartToggles {
   sma50: boolean;
@@ -48,6 +64,8 @@ export default function PriceChart({
   height = 420,
   visibleSessions,
   onPick,
+  bollinger = false,
+  priceLines,
 }: {
   bars: readonly DailyBar[];
   markers: readonly ChartMarker[];
@@ -57,6 +75,9 @@ export default function PriceChart({
   visibleSessions?: number;
   /** Called with a bar date when a click or tap lands on a session that carries a marker. */
   onPick?: (date: string) => void;
+  /** Bollinger Bands (20, 2) over the closes. */
+  bollinger?: boolean;
+  priceLines?: readonly PriceLine[];
 }) {
   const host = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLDivElement>(null);
@@ -158,6 +179,32 @@ export default function PriceChart({
           lastValueVisible: false,
         })
         .setData(line(dates, ema(closes, 20)));
+    if (bollinger) {
+      const bb = bands(closes, 20, 2);
+      for (const [k, v] of [
+        ['BB upper', bb.upper],
+        ['BB 20', bb.middle],
+        ['BB lower', bb.lower],
+      ] as const)
+        chart
+          .addSeries(LineSeries, {
+            color: k === 'BB 20' ? text : fg,
+            lineWidth: 1,
+            lineStyle: k === 'BB 20' ? 2 : 0,
+            title: k,
+            lastValueVisible: false,
+            priceLineVisible: false,
+          })
+          .setData(line(dates, v));
+    }
+    for (const pl of priceLines ?? [])
+      candles.createPriceLine({
+        price: pl.price,
+        color: pl.tone === 'up' ? up : pl.tone === 'down' ? down : pl.tone === 'ink' ? fg : text,
+        lineStyle: pl.style === 'dashed' ? 2 : 1,
+        lineWidth: 1,
+        title: pl.title,
+      });
     if (toggles.rsi) {
       const r = chart.addSeries(LineSeries, { color: fg, lineWidth: 1, title: 'RSI 14' }, 1);
       r.setData(line(dates, rsi(closes, 14)));
@@ -223,7 +270,7 @@ export default function PriceChart({
       });
     return () => chart.remove();
     // The theme is a dependency: the colours are read from the theme tokens when the chart is drawn.
-  }, [bars, markers, toggles, height, visibleSessions, theme]);
+  }, [bars, markers, toggles, height, visibleSessions, theme, bollinger, priceLines]);
 
   return (
     <div className="relative">

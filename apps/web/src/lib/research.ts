@@ -1,10 +1,21 @@
 /**
- * Readers for the Study research tab. `company_research` holds the Tauric analyst, profile and thesis payloads as
- * the research job received them (ADR 0047); this module reads them through row-level security and checks each
- * field again on the way in: a number must be finite, a count non-negative, and the price targets in order. A
- * field that fails is left out (null), never shown as a guess.
+ * Readers for the Study research tab. `company_research` holds the Tauric analyst, profile, thesis and calendar
+ * payloads as the research job stored them (ADR 0047); each part read here goes through the same core validator
+ * again, and a part that fails is shown as unavailable with its reason.
  */
-import type { DailyBar, StoredDividend } from '@marsad/core';
+import {
+  researchPartAsOf,
+  validateProfile,
+  validateResearchPart,
+  type DailyBar,
+  type ResearchPart,
+  type ResearchValue,
+  type StoredDividend,
+  type TauricAnalyst,
+  type TauricCalendar,
+  type TauricProfile,
+  type TauricThesis,
+} from '@marsad/core';
 import { supabase } from './supabase';
 import { loadRecentDailyBars } from './studyPanels';
 
@@ -31,254 +42,47 @@ const count = (v: unknown): number | null => {
   return n !== null && n >= 0 && Number.isInteger(n) ? n : null;
 };
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null);
-const refreshed = (o: Obj | null): string | null =>
-  str(obj(o?.['dataset_status'])?.['refreshed_at']);
 
-export interface Analyst {
-  recommendation: string | null;
-  targetMean: number | null;
-  targetMedian: number | null;
-  targetHigh: number | null;
-  targetLow: number | null;
-  /** False when the targets are out of order (low, median, high); the page then shows none of them. */
-  targetsOrdered: boolean;
-  analysts: number | null;
-  ratingsTotal: number | null;
-  strongBuy: number | null;
-  buy: number | null;
-  hold: number | null;
-  sell: number | null;
-  strongSell: number | null;
-  trailingEps: number | null;
-  forwardEps: number | null;
-  refreshedAt: string | null;
-}
-
-export const PROFILE_NUMBERS = [
-  'market_cap',
-  'enterprise_value',
-  'pe_ratio',
-  'forward_pe',
-  'peg_ratio',
-  'price_to_book',
-  'price_to_sales',
-  'profit_margin',
-  'operating_margin',
-  'return_on_assets',
-  'return_on_equity',
-  'revenue_growth',
-  'earnings_growth',
-  'total_cash',
-  'total_debt',
-  'debt_to_equity',
-  'current_ratio',
-  'quick_ratio',
-  'dividend_rate',
-  'dividend_yield',
-  'payout_ratio',
-  'beta',
-  'shares_outstanding',
-  'float_shares',
-  'employees',
-  'shares_short',
-  'days_to_cover',
-  'short_interest_of_float',
-  'institutional_ownership',
-  'insider_ownership',
-] as const;
-export type ProfileNumber = (typeof PROFILE_NUMBERS)[number];
-
-export interface Profile {
-  numbers: Record<ProfileNumber, number | null>;
-  sector: string | null;
-  industryGroup: string | null;
-  industry: string | null;
-  subIndustry: string | null;
-  country: string | null;
-  website: string | null;
-  description: string | null;
-  marketCapPriceDate: string | null;
-  refreshedAt: string | null;
-}
-
-export interface Catalyst {
-  date: string | null;
-  text: string;
-  status: string | null;
-}
-
-export interface Thesis {
-  narrative: string | null;
-  drivers: string[];
-  risks: string[];
-  catalysts: Catalyst[];
-  openQuestions: string[];
-  generatedAt: string | null;
-  cutoff: string | null;
-  revision: string | null;
-}
-
-/** Optional: a Tauric calendar part, when the research job stores one. */
-export interface ResearchCalendar {
-  earnings: {
-    date: string | null;
-    periodEnd: string | null;
-    epsEstimate: number | null;
-    epsLow: number | null;
-    epsHigh: number | null;
-  } | null;
-  dividends: { exDate: string; amount: number | null }[];
-  refreshedAt: string | null;
-}
+/** One part of the research row: validated in core, or the reason it cannot be shown. */
+export type Part<T> = { ok: true; value: T; asOf: string | null } | { ok: false; reason: string };
 
 export interface CompanyResearch {
   ticker: string;
-  source: string;
-  analyst: Analyst | null;
-  profile: Profile | null;
-  thesis: Thesis | null;
-  calendar: ResearchCalendar | null;
   fetchedAt: string | null;
-  /** Why a part is missing, per part, as the job recorded it. */
-  errors: Record<string, string>;
+  analyst: Part<TauricAnalyst>;
+  profile: Part<TauricProfile>;
+  thesis: Part<TauricThesis>;
+  calendar: Part<TauricCalendar>;
 }
 
-function parseAnalyst(v: unknown, at: unknown): Analyst | null {
-  const o = obj(v);
-  if (!o) return null;
-  const low = num(o['target_low_price']);
-  const med = num(o['target_median_price']);
-  const high = num(o['target_high_price']);
-  const mean = num(o['target_mean_price']);
-  const present = [low, med, high, mean].filter((x): x is number => x !== null);
-  const ordered =
-    present.every((x) => x > 0) &&
-    (low === null || med === null || low <= med) &&
-    (med === null || high === null || med <= high) &&
-    (low === null || high === null || low <= high) &&
-    (mean === null || ((low === null || low <= mean) && (high === null || mean <= high)));
-  return {
-    recommendation: str(o['recommendation']),
-    targetMean: ordered ? mean : null,
-    targetMedian: ordered ? med : null,
-    targetHigh: ordered ? high : null,
-    targetLow: ordered ? low : null,
-    targetsOrdered: ordered,
-    analysts: count(o['number_of_analysts']),
-    ratingsTotal: count(o['ratings_total']),
-    strongBuy: count(o['strong_buy']),
-    buy: count(o['buy']),
-    hold: count(o['hold']),
-    sell: count(o['sell']),
-    strongSell: count(o['strong_sell']),
-    trailingEps: num(o['trailing_eps']),
-    forwardEps: num(o['forward_eps']),
-    refreshedAt: str(at) ?? refreshed(o),
-  };
-}
-
-function parseProfile(v: unknown, at: unknown): Profile | null {
-  const o = obj(v);
-  if (!o) return null;
-  const numbers = {} as Record<ProfileNumber, number | null>;
-  for (const k of PROFILE_NUMBERS) numbers[k] = num(o[k]);
-  for (const k of ['market_cap', 'shares_outstanding', 'float_shares', 'employees'] as const)
-    if (numbers[k] !== null && (numbers[k] as number) < 0) numbers[k] = null;
-  const site = str(o['website']);
-  return {
-    numbers,
-    sector: str(o['sector']),
-    industryGroup: str(o['industry_group']),
-    industry: str(o['industry']),
-    subIndustry: str(o['sub_industry']),
-    country: str(o['country']),
-    // A link only when it is https (a vendor string is never trusted as a URL otherwise).
-    website: site && /^https:\/\//.test(site) ? site : null,
-    description: str(o['description']),
-    marketCapPriceDate: str(o['market_cap_price_date']),
-    refreshedAt: str(at) ?? refreshed(o),
-  };
-}
-
-const texts = (v: unknown): string[] =>
-  Array.isArray(v)
-    ? v.flatMap((x) => {
-        const s = typeof x === 'string' ? x : str(obj(x)?.['text']);
-        return s ? [s] : [];
-      })
-    : [];
-
-function parseThesis(v: unknown, at: unknown): Thesis | null {
-  const o = obj(v);
-  if (!o) return null;
-  // The job stores the content flat; a payload kept whole has it under "content".
-  const c = obj(o['content']) ?? o;
-  return {
-    narrative: str(c['narrative']),
-    drivers: texts(c['drivers']),
-    risks: texts(c['risks']),
-    catalysts: Array.isArray(c['catalysts'])
-      ? c['catalysts'].flatMap((x) => {
-          const k = obj(x);
-          const text = str(k?.['text']);
-          if (!k || !text) return [];
-          const date = str(k['date']);
-          return [
-            {
-              date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
-              text,
-              status: str(k['timing_status']),
-            },
-          ];
-        })
-      : [],
-    openQuestions: texts(c['open_questions']),
-    generatedAt: str(at) ?? str(o['generated_at']),
-    cutoff: str(o['cutoff']) ?? str(obj(o['evidence'])?.['cutoff']),
-    revision: str(o['revision']),
-  };
-}
-
-function parseCalendar(v: unknown): ResearchCalendar | null {
-  const o = obj(v);
-  if (!o) return null;
-  const e = obj(o['earnings']);
-  return {
-    earnings: e
-      ? {
-          date: str(e['date']) ?? str(e['report_date']),
-          periodEnd: str(e['period_end']) ?? str(e['fiscal_period_end']),
-          epsEstimate: num(e['eps_estimate']) ?? num(e['eps_average']) ?? num(e['eps_avg']),
-          epsLow: num(e['eps_low']),
-          epsHigh: num(e['eps_high']),
-        }
-      : null,
-    dividends: Array.isArray(o['dividends'])
-      ? o['dividends'].flatMap((x) => {
-          const d = obj(x);
-          const ex = str(d?.['ex_date']);
-          return ex ? [{ exDate: ex, amount: num(d?.['amount']) }] : [];
-        })
-      : [],
-    refreshedAt: refreshed(obj(o['earnings_status']) ? { dataset_status: o['earnings_status'] } : o),
-  };
+/**
+ * A stored part through its core validator (the same one the job ran). A null part says why from the row's
+ * errors; a part that fails the check is shown as unavailable with the reason, never in part.
+ */
+function part<T extends ResearchValue>(
+  name: ResearchPart,
+  json: unknown,
+  ticker: string,
+  errors: Obj | null,
+): Part<T> {
+  if (json === null || json === undefined)
+    return { ok: false, reason: str(errors?.[name]) ?? 'not_stored' };
+  const r = validateResearchPart(name, json, ticker);
+  return r.ok
+    ? { ok: true, value: r.value as T, asOf: researchPartAsOf(name, r.value) }
+    : { ok: false, reason: r.reason };
 }
 
 export function parseResearchRow(r: Obj): CompanyResearch {
-  const errors: Record<string, string> = {};
-  const e = obj(r['errors']);
-  if (e) for (const [k, v] of Object.entries(e)) if (typeof v === 'string') errors[k] = v;
-  const analyst = parseAnalyst(r['analyst'], r['analyst_refreshed_at']);
-  if (analyst && !analyst.targetsOrdered) errors['targets'] = 'malformed';
+  const ticker = String(r['ticker']);
+  const errors = obj(r['errors']);
   return {
-    ticker: String(r['ticker']),
-    source: str(r['source']) ?? 'tauric',
-    analyst,
-    profile: parseProfile(r['profile'], r['profile_refreshed_at']),
-    thesis: parseThesis(r['thesis'], r['thesis_generated_at']),
-    calendar: parseCalendar(r['calendar']),
+    ticker,
     fetchedAt: str(r['fetched_at']),
-    errors,
+    analyst: part<TauricAnalyst>('analyst', r['analyst'], ticker, errors),
+    profile: part<TauricProfile>('profile', r['profile'], ticker, errors),
+    thesis: part<TauricThesis>('thesis', r['thesis'], ticker, errors),
+    calendar: part<TauricCalendar>('calendar', r['calendar'], ticker, errors),
   };
 }
 
@@ -293,7 +97,7 @@ export async function loadCompanyResearch(ticker: string): Promise<CompanyResear
 
 export interface PeerRow {
   ticker: string;
-  profile: Profile | null;
+  profile: TauricProfile | null;
   bars: DailyBar[];
 }
 
@@ -311,7 +115,7 @@ export async function loadPeers(
       check(
         await client()
           .from('company_research')
-          .select('ticker, profile, profile_refreshed_at')
+          .select('ticker, profile')
           .eq(`profile->>${field}`, value)
           .neq('ticker', ticker)
           .order('ticker', { ascending: true })
@@ -320,10 +124,13 @@ export async function loadPeers(
       ) as Obj[]
     ).map((r) => ({
       ticker: String(r['ticker']),
-      profile: parseProfile(r['profile'], r['profile_refreshed_at']),
+      profile: (() => {
+        const v = validateProfile(r['profile'], String(r['ticker']));
+        return v.ok ? v.value : null;
+      })(),
     }));
   let basis: 'sub_industry' | 'industry' | null = null;
-  let list: { ticker: string; profile: Profile | null }[] = [];
+  let list: { ticker: string; profile: TauricProfile | null }[] = [];
   if (subIndustry) {
     list = await ask('sub_industry', subIndustry);
     if (list.length) basis = 'sub_industry';
