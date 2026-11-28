@@ -148,7 +148,7 @@
         "Status page shows each source with last update, latency and plan tier",
         "A simulated stale feed raises a system alert"
       ],
-      "status": "in_progress",
+      "status": "done",
       "items": [
         {
           "id": "1.1",
@@ -237,8 +237,8 @@
         {
           "id": "1.15",
           "title": "Reliable scheduling for the polling jobs (ADR 0008): GitHub's scheduler has fired 1 scheduled run in a day",
-          "status": "todo",
-          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Accepted by Khaled 2026-11-26 (option 2). Built: migration 20261229000000_scheduler.sql (Supabase Cron calls workflow_dispatch through pg_net; 26 schedules copied from the workflows and checked by a database test; scheduler-check writes a job_runs row every 15 minutes). Done once the first scheduler run reads ok on the Status page, after Khaled enables pg_cron and pg_net and stores the token (SETUP step 11)."
+          "status": "done",
+          "evidence": "Found 2026-11-24 when the heartbeat raised two real stale alerts. Accepted by Khaled 2026-11-26 (option 2). Built: migration 20261229000000_scheduler.sql (Supabase Cron calls workflow_dispatch through pg_net; 26 schedules copied from the workflows and checked by a database test; scheduler-check writes a job_runs row every 15 minutes). Done once the first scheduler run reads ok on the Status page, after Khaled enables pg_cron and pg_net and stores the token (SETUP step 11). Live 2026-11-28: Khaled stored the token (Vault github_actions_token, 11:05 UTC); Supabase Cron dispatched ticker-summary.yml at 11:25:01 UTC and GitHub accepted it (run 46139781179, success), the first scheduler-started run since 2026-11-27."
         }
       ]
     },
@@ -355,7 +355,7 @@
           "id": "3.3",
           "title": "Breadth",
           "status": "in_progress",
-          "evidence": "breadth-1 (ADR 0010): above the 50- and 200-day averages, 252-session highs and lows, advancers and decliners with volume, bad-print guard after split adjustment, 10-day advancing share, Zweig breadth thrust, McClellan-style volume oscillator and summation; breadth_daily table; Regime page panel labelled 'Marsad universe breadth', each measure with how many members it rests on, the month-ago value, source and as-of date. Breadth job (massive-breadth.yml, weekday mornings) resumable, one call a day after the backfill; job tests cover resume, the cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor. Still to do: the live backfill and a check of the real numbers against known market episodes. Live 2026-11-25: 476 breadth days stored; 2026-11-24: 419 of 976 members above the 200-day average, 442 of 994 above the 50-day. Still to do: a spot check of past episodes against an outside source."
+          "evidence": "breadth-1 (ADR 0010): above the 50- and 200-day averages, 252-session highs and lows, advancers and decliners with volume, bad-print guard after split adjustment, 10-day advancing share, Zweig breadth thrust, McClellan-style volume oscillator and summation; breadth_daily table; Regime page panel labelled 'Marsad universe breadth', each measure with how many members it rests on, the month-ago value, source and as-of date. Breadth job (massive-breadth.yml, weekday mornings) resumable, one call a day after the backfill; job tests cover resume, the cap, a 3-for-1 split, a holiday, eligibility and the USD 1 million floor. Still to do: the live backfill and a check of the real numbers against known market episodes. Live 2026-11-25: 476 breadth days stored; 2026-11-24: 419 of 976 members above the 200-day average, 442 of 994 above the 50-day. Still to do: a spot check of past episodes against an outside source. Live 2026-11-28 (run 46139935449): breadth through 2026-11-27, 461 of 976 above the 200-day, 518 of 994 above the 50-day."
         },
         {
           "id": "3.4",
@@ -390,8 +390,8 @@
         {
           "id": "3.9",
           "title": "Regime classifier with event-study statistics",
-          "status": "in_progress",
-          "evidence": "Regime label regime-1 and event studies event-study-1 (ADR 0009): stress, bear, recovery, bull calm, bull correction from the S&P 500 trend, drawdown, VIX and VIX3M. The first draft's recovery rule labelled 30% of all days and was tightened (documented). Day-by-day match with an independent Python implementation over 2,512 sessions (2016 to 2026); known days labelled as history remembers them. New tables regime_daily (each day with its inputs and rule versions, so the label is reproducible from stored data, tested) and regime_event_stats; regime job runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old. Event study: non-overlapping episodes, n, median, quartiles and an all-days benchmark; fewer than 30 episodes shows 'insufficient history', which is most labels with 10 years of free S&P 500 data. Zweig breadth thrust computed with breadth (3.3) and shown on the Regime page. Capitulation context done (ADR 0011 addendum: proxy study, newest complete day, alert within 4 days). Still to do: Khaled's look at the signed-in Regime page. Live 2026-11-25: regime-daily stored 2,512 days on main (latest 2026-11-23: stress; recession filter elevated)."
+          "status": "done",
+          "evidence": "Regime label regime-1 and event studies event-study-1 (ADR 0009): stress, bear, recovery, bull calm, bull correction from the S&P 500 trend, drawdown, VIX and VIX3M. The first draft's recovery rule labelled 30% of all days and was tightened (documented). Day-by-day match with an independent Python implementation over 2,512 sessions (2016 to 2026); known days labelled as history remembers them. New tables regime_daily (each day with its inputs and rule versions, so the label is reproducible from stored data, tested) and regime_event_stats; regime job runs after the FRED job and fails loudly when the S&P 500 is more than 5 days old. Event study: non-overlapping episodes, n, median, quartiles and an all-days benchmark; fewer than 30 episodes shows 'insufficient history', which is most labels with 10 years of free S&P 500 data. Zweig breadth thrust computed with breadth (3.3) and shown on the Regime page. Capitulation context done (ADR 0011 addendum: proxy study, newest complete day, alert within 4 days). Still to do: Khaled's look at the signed-in Regime page. Live 2026-11-25: regime-daily stored 2,512 days on main (latest 2026-11-23: stress; recession filter elevated). Khaled's look 2026-11-28: Regime view shows Stress since 17 Nov (regime-1), as of the close of 25 Nov; the date is FRED's newest SP500 value (27 Nov not yet published), recomputed live in run 46140219170."
         },
         {
           "id": "3.10",
@@ -538,20 +538,20 @@
         {
           "id": "5.6",
           "title": "Web Push through the PWA",
-          "status": "in_progress",
-          "evidence": "push-1 (ADR 0031): VAPID keys created on the Status page with WebCrypto (public key in user_settings, private key only in the GitHub secret VAPID_PRIVATE_KEY; the job refuses a mismatched key); personal push_subscriptions limited to the app owner and known push services (app and database); a dispatcher step at the end of the halts, health, bars, brief and weekly-review workflows claims each pending item once, drops items past their limit (2 h alerts, 6 h normal, 3 h briefs) and labels late ones; service worker shows title, body and tag and opens same-origin paths only; manual Web Push workflow with a test message. Verified: 33 core, 12 job, RLS and 3 browser tests (no request carries the private key), offline web-push request check. Still to do: Khaled completes SETUP step 10 and the live test notification."
+          "status": "done",
+          "evidence": "push-1 (ADR 0031): VAPID keys created on the Status page with WebCrypto (public key in user_settings, private key only in the GitHub secret VAPID_PRIVATE_KEY; the job refuses a mismatched key); personal push_subscriptions limited to the app owner and known push services (app and database); a dispatcher step at the end of the halts, health, bars, brief and weekly-review workflows claims each pending item once, drops items past their limit (2 h alerts, 6 h normal, 3 h briefs) and labels late ones; service worker shows title, body and tag and opens same-origin paths only; manual Web Push workflow with a test message. Verified: 33 core, 12 job, RLS and 3 browser tests (no request carries the private key), offline web-push request check. Still to do: Khaled completes SETUP step 10 and the live test notification. Live 2026-11-28: VAPID_PRIVATE_KEY set, two devices on (iPhone, Mac); test run 46140233953: push-test sent 2 of 2, no errors."
         },
         {
           "id": "5.7",
           "title": "Telegram bot (optional)",
-          "status": "in_progress",
-          "evidence": "telegram-1 (ADR 0033): optional second channel carrying exactly what push carries (push-decision alerts, system alerts, briefs) with the same freshness limits and late labels, on its own delivery field and once-only claim, run in the dispatcher step after Web Push; test message through the Web Push workflow; send-only bot. Verified: 6 job tests (send once, expiry, not configured, failed send, test mode, token never in an error) and writer tests. Still to do: Khaled creates the bot and adds TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (SETUP step 7), then the live test."
+          "status": "done",
+          "evidence": "telegram-1 (ADR 0033): optional second channel carrying exactly what push carries (push-decision alerts, system alerts, briefs) with the same freshness limits and late labels, on its own delivery field and once-only claim, run in the dispatcher step after Web Push; test message through the Web Push workflow; send-only bot. Verified: 6 job tests (send once, expiry, not configured, failed send, test mode, token never in an error) and writer tests. Still to do: Khaled creates the bot and adds TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (SETUP step 7), then the live test. Live 2026-11-28: bot @marsad_k84_alerts_bot, TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID set; test run 46140233953: telegram-test ok."
         },
         {
           "id": "5.8",
           "title": "Email digests and custom SMTP",
           "status": "in_progress",
-          "evidence": "digest-1 (ADR 0032): critical push alerts and every system alert are queued for an email copy (full stored card, ET and UTC, card link; up to 24 h late, labeled) sent right after the Web Push dispatcher; alerts held by quiet hours, the cap, digest priority or event risk are queued for one digest email after the pre-market brief and the close recap (oldest first, why each was held, 20 in full and the rest named; older than 48 h expired; a failed send keeps them pending). Same once-only claim as push. Verified: 6 core tests (hand-checked ET in winter and summer), 8 job tests, writer tests for critical and quiet-hours alerts. Still to do: Khaled adds the Resend secrets (SETUP step 9) and the first live email. Custom SMTP for Supabase Auth is optional and documented in SETUP step 9."
+          "evidence": "digest-1 (ADR 0032): critical push alerts and every system alert are queued for an email copy (full stored card, ET and UTC, card link; up to 24 h late, labeled) sent right after the Web Push dispatcher; alerts held by quiet hours, the cap, digest priority or event risk are queued for one digest email after the pre-market brief and the close recap (oldest first, why each was held, 20 in full and the rest named; older than 48 h expired; a failed send keeps them pending). Same once-only claim as push. Verified: 6 core tests (hand-checked ET in winter and summer), 8 job tests, writer tests for critical and quiet-hours alerts. Still to do: Khaled adds the Resend secrets (SETUP step 9) and the first live email. Custom SMTP for Supabase Auth is optional and documented in SETUP step 9. 2026-11-28: RESEND_API_KEY and BRIEF_EMAIL_TO set; the first live email is the Monday 1 Dec pre-market brief (no brief on weekends)."
         },
         {
           "id": "5.9",

@@ -2,7 +2,8 @@
 
 ## Current state (2026-11-28): every item that can be built on the current free plans is built and live. What is open waits on Khaled.
 
-- **Free setup steps (SETUP.md):** step 7 Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`), step 9 email (`RESEND_API_KEY`, `BRIEF_EMAIL_TO`), step 10 Web Push (VAPID keys), step 11 scheduler (pg_cron, pg_net and the dispatch token; item 1.15), the `TAURIC_API_KEY` GitHub secret, a look at the signed-in Markets regime view (3.9), a breadth spot check against an outside source (3.3).
+- **Setup done 2026-11-28 (verified live):** the scheduler (Supabase Cron started ticker-summary at 11:25 UTC, GitHub accepted; 1.15), Web Push (test sent to 2 of 2 devices; 5.6), Telegram (test delivered; 5.7), Khaled's look at Regime (3.9). Run by hand the same day after the missed schedules: breadth through 27 Nov, Tauric research (11 of 15 tickers; MARA, HIMS, RGTI, BBAI not covered by Tauric), the nightly summary, FRED, regime and calendars.
+- **Still open, free:** the first live email (Monday's pre-market brief, 5.8 and 3.13), a breadth spot check against an outside source (3.3), and Khaled's holdings: none are entered in Marsad yet, so Portfolio, the earnings guard and exit alerts have nothing to watch (Portfolio, Holdings, or the Sahm CSV import).
 - **Paid, declined for now:** Massive Stocks plan with Supabase Pro (5.1 to 5.3, then 5.4, 5.10, 5.13 live), Massive options (6.x, 7.1 marks), Anthropic key with cost caps (2.9, 2.10, 7.8, 8.1), real-time (9.1).
 
 Last updated 2026-11-28 (pages on the nightly summary, Screener, dividend comparison, actual portfolio result, lazy Study views and a bundle budget; before that the Markets and Portfolio pages and the earnings guard).
