@@ -212,9 +212,9 @@ describe('Ask tools and prompt (ask-1)', () => {
     expect(ASK_SYSTEM_PROMPT).toMatch(/It never advises/);
     expect(ASK_SYSTEM_PROMPT).toMatch(/Never calculate anything/);
     expect(ASK_SYSTEM_PROMPT).toMatch(/untrusted/);
-    expect(ASK_SYSTEM_PROMPT.includes('—')).toBe(false);
+    expect(ASK_SYSTEM_PROMPT.includes('\u2014')).toBe(false);
     expect(ASK_SYSTEM_PROMPT).not.toMatch(/doc_[0-9a-f]{16}/);
-    for (const t of ASK_TOOLS) expect(t.description.includes('—')).toBe(false);
+    for (const t of ASK_TOOLS) expect(t.description.includes('\u2014')).toBe(false);
   });
 
   it('checks tool input: upper-cases a ticker, refuses a bad one, an unknown tool and extra fields', () => {

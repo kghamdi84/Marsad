@@ -1,10 +1,16 @@
 name: Deploy Edge Functions
 
-# Manual only, until the first Edge Function exists. Migrations are deployed by the Supabase GitHub
-# integration, not by this workflow (docs/adr/0004-deployment.md). Needs one repository secret,
-# SUPABASE_ACCESS_TOKEN (Supabase: Account, Access Tokens). The project reference is public.
+# Manual. Deploys the Edge Functions in supabase/functions (today: `ask`, ADR 0054). Migrations are deployed by the
+# Supabase GitHub integration, not by this workflow (docs/adr/0004-deployment.md). Needs one repository secret,
+# SUPABASE_ACCESS_TOKEN (Supabase: Account, Access Tokens). The project reference is public. The functions' own
+# secrets (ANTHROPIC_API_KEY) live in Supabase (Edge Functions, Secrets), never here.
 on:
   workflow_dispatch:
+    inputs:
+      function:
+        description: 'Function to deploy (a folder name in supabase/functions)'
+        required: true
+        default: ask
 
 permissions:
   contents: read
@@ -25,21 +31,31 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
-      - name: Find functions
-        id: find
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: 2.9.6
+      - name: Check the token and the function name
+        env:
+          FUNCTION: ${{ inputs.function }}
+          HAS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
         run: |
-          count=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name '_*' | wc -l)
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -eq 0 ]; then echo "::notice::No Edge Functions exist yet, nothing to deploy."; fi
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::Add the SUPABASE_ACCESS_TOKEN repository secret first (docs/SETUP.md, step 6)."
+            exit 1
+          fi
+          case "$FUNCTION" in _*|*/*|'') echo "::error::Not a function folder: $FUNCTION"; exit 1 ;; esac
+          test -f "supabase/functions/$FUNCTION/index.ts" || { echo "::error::No supabase/functions/$FUNCTION/index.ts"; exit 1; }
       - name: Copy the shared core into the functions folder
-        if: steps.find.outputs.count != '0'
         run: node scripts/prepare-edge-core.mjs
+      - name: Type-check the function under Deno
+        env:
+          FUNCTION: ${{ inputs.function }}
+        run: deno check --config "supabase/functions/$FUNCTION/deno.json" "supabase/functions/$FUNCTION/index.ts"
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
-        if: steps.find.outputs.count != '0'
         with:
           version: latest
       - name: Deploy
-        if: steps.find.outputs.count != '0'
-        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api
         env:
+          FUNCTION: ${{ inputs.function }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy "$FUNCTION" --project-ref "$PROJECT_REF" --use-api
