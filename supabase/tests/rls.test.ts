@@ -422,7 +422,15 @@ describe('system tables', () => {
   });
 
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {
-    const ownerOnly = new Set(['briefs', 'alerts', 'alert_outcomes', 'ai_usage']);
+    const ownerOnly = new Set([
+      'briefs',
+      'alerts',
+      'alert_outcomes',
+      'ai_usage',
+      // Whole-market data is owner-only (ADR 0048): Massive's plans are for individual use.
+      'market_snapshots',
+      'ticker_type_snapshots',
+    ]);
     for (const table of [
       'financial_facts',
       'insider_filings',
@@ -497,6 +505,39 @@ describe('system tables', () => {
         `insert into public.universe_members (version, month_start, ticker, rank, dollar_volume) values ('universe-1', date '2026-11-02', 'bad ticker', 2, 1)`,
       ),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it('whole-market movers (movers-1, ADR 0048) are owner-only; members read only the version marker', async () => {
+    await db.query(
+      `insert into public.market_movers_market (date, version, session) values (date '2026-11-24', 'movers-1', '{}'::jsonb)`,
+    );
+    await db.query(
+      `update public.market_movers_daily set market_version = 'movers-1' where date = date '2026-11-24'`,
+    );
+    try {
+      await as(owner2, async (tx) =>
+        expect(await count(tx, 'public.market_movers_market')).toBe(1),
+      );
+      await as(other2, async (tx) => {
+        expect(await count(tx, 'public.market_movers_market')).toBe(0);
+        const r = await tx.query<{ market_version: string }>(
+          `select market_version from public.market_movers_daily where date = date '2026-11-24'`,
+        );
+        expect(r.rows).toEqual([{ market_version: 'movers-1' }]);
+      });
+      await as(owner1, async (tx) =>
+        expect(await count(tx, 'public.market_movers_market')).toBe(0),
+      );
+      await expect(as(anon, (tx) => count(tx, 'public.market_movers_market'))).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(
+        as(owner2, (tx) => tx.query(`delete from public.market_movers_market`)),
+      ).rejects.toThrow(/permission denied/);
+    } finally {
+      await db.query(`delete from public.market_movers_market`);
+      await db.query(`update public.market_movers_daily set market_version = null`);
+    }
   });
 
   it('the composite and capitulation tables reject out-of-range values and unknown states', async () => {

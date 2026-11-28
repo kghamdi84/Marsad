@@ -36,6 +36,7 @@ import type {
   EconEvent,
   FearGreedDay,
   MarketMovers,
+  MoversSession,
   StagedPlan,
   TopicDay,
   MarketRow,
@@ -140,7 +141,7 @@ export interface Store {
     version: string,
     rows: readonly EarningsEstimateRow[],
   ): Promise<void>;
-  upsertMovers(rows: readonly MarketMovers[]): Promise<number>;
+  upsertMovers(rows: readonly StoredMovers[]): Promise<number>;
   /** The universe strength ranks of one session (strength-1). */
   upsertStrengthRanks(date: string, rows: readonly StrengthRank[]): Promise<number>;
   /** Halts whose halt time is on or after `since`. */
@@ -230,6 +231,9 @@ export interface Store {
     snapshots: readonly Record<string, unknown>[],
   ): Promise<number>;
 }
+
+/** One session's universe movers (watch-1) with the whole-market movers (movers-1, ADR 0049). */
+export type StoredMovers = MarketMovers & { market: MoversSession | null };
 
 export interface UniverseRow {
   monthStart: string;
@@ -1637,8 +1641,26 @@ export function supabaseStore(url: string, secretKey: string): Store {
         gainers: r.gainers,
         losers: r.losers,
         sectors: r.sectors,
+        market_version: r.market?.version ?? null,
         computed_at: new Date().toISOString(),
       }));
+      // The owner-only whole-market row first, so the shared marker never points at a row that is not there.
+      const market = rows.flatMap((r) =>
+        r.market
+          ? [
+              {
+                date: r.date,
+                version: r.market.version,
+                session: r.market,
+                computed_at: new Date().toISOString(),
+              },
+            ]
+          : [],
+      );
+      if (market.length > 0) {
+        const m = await db.from('market_movers_market').upsert(market, { onConflict: 'date' });
+        if (m.error) throw new Error(`market_movers_market upsert failed: ${m.error.message}`);
+      }
       const { error } = await db.from('market_movers_daily').upsert(out, { onConflict: 'date' });
       if (error) throw new Error(`market_movers_daily upsert failed: ${error.message}`);
       return out.length;

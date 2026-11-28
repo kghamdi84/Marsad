@@ -132,6 +132,23 @@ describe('runBreadthJob', () => {
       for (const x of [...m.gainers, ...m.losers]) expect(nov.has(x.ticker), x.ticker).toBe(true);
     expect(movers.at(-1)?.n).toBe(5);
     expect(movers.at(-1)?.sectors.every((x) => x.change === null)).toBe(true);
+    // Whole-market movers (movers-1) for the same sessions, over common stocks and ETFs only: never the warrant W1.
+    // PEN trades about USD 1.2 million a day: stored here, but under the USD 2 million liquidity floor.
+    const market = movers.at(-1)?.market;
+    expect(market).toMatchObject({
+      version: 'movers-1',
+      date: sessions.at(-1),
+      eligibleAsOf: '2026-10-02',
+      traded: 10,
+      withChange: 9,
+      belowLiquidity: { price: 0, dollarVolume: 1 },
+    });
+    const active = market?.floors[0]?.views.active;
+    expect(active?.available && active.rows.map((r) => r.ticker).sort()).toEqual(
+      ['E1', 'E2', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'SPL'].sort(),
+    );
+    expect(market?.floors[0]?.views.highs.available).toBe(false); // about 140 sessions stored, 252 needed
+    expect(movers.every((m) => m.market?.date === m.date)).toBe(true);
     // Strength ranks (strength-1) for the newest session, among November's members only, best first.
     const strength = log.strength[0];
     expect(strength?.date).toBe(sessions.at(-1));

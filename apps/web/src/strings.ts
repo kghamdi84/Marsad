@@ -220,6 +220,99 @@ export const t = {
       gainers: 'Biggest gainers',
       losers: 'Biggest losers',
       dollarVolume: (v: string) => `USD ${v} traded`,
+      marketTitle: 'Whole-market movers',
+      scopeLabel: 'Movers scope',
+      scope: { market: 'Whole market', universe: 'Marsad universe' },
+      viewLabel: 'Movers list',
+      views: {
+        gainers: 'Gainers',
+        losers: 'Losers',
+        active: 'Active',
+        unusual: 'Unusual volume',
+        highs: '52-week high',
+        lows: '52-week low',
+      },
+      header: (day: string, source: string) =>
+        `Last completed session (end of day): ${day}, from ${source}. Not live.`,
+      sourceMarket: 'Massive grouped daily',
+      sourceMine: 'Massive daily bars for your watchlist and holdings',
+      floorLabel: 'Minimum traded',
+      floor: (v: string) => `USD ${v}`,
+      mineLabel: 'On my list',
+      mineNote: (n: number) =>
+        `Your watchlist and holdings (${n.toLocaleString('en-US')} ${n === 1 ? 'ticker' : 'tickers'}), by the same rules, from their stored daily bars.`,
+      noBars: (list: string) => `No stored daily bars: ${list}.`,
+      afterHours: 'After hours: Not available: Marsad stores end-of-day prices only.',
+      unusualRule: (ratio: string, usd: string, sessions: number, long: number) =>
+        `Rule: volume at least ${ratio} its average of the previous ${sessions} sessions, and at least USD ${usd} traded. The ${long}-session ratio is shown beside it for context.`,
+      highLowRule: (n: number) =>
+        `By close: the session closed at or beyond the highest (or lowest) close of the last ${n} stored sessions, the session included.`,
+      count: (shown: number, of: number) =>
+        `Top ${shown.toLocaleString('en-US')} of ${of.toLocaleString('en-US')}.`,
+      empty: 'No ticker qualifies at this minimum.',
+      unavailable: (have: number, need: number) =>
+        `Unavailable: ${need.toLocaleString('en-US')} stored sessions are needed and ${have.toLocaleString('en-US')} are stored.`,
+      notComputed:
+        'Whole-market movers are not computed yet. They come from the breadth job (movers-1), on its next run after the close.',
+      ownerOnly:
+        'Whole market: Available to the owner only. Massive’s data plans are for individual use, so whole-market lists are not shared. Marsad universe movers stay available.',
+      cols: {
+        ticker: 'Ticker',
+        change: '1-session change',
+        close: 'Close',
+        volume: 'Volume',
+        ratio: 'Against 20-session average (50-session)',
+        prior: { highs: 'Prior 52-week high close', lows: 'Prior 52-week low close' },
+        traded: 'Traded',
+        catalyst: 'Latest stored headline, not a verified cause',
+      },
+      ratio: (r20: string, r50: string | null) => (r50 === null ? r20 : `${r20} (${r50})`),
+      times: (v: string) => `${v}\u00D7`,
+      volumeShort: (v: string) => `${v} shares`,
+      noCatalyst: 'No stored news or filing for this ticker',
+      catalystAt: (title: string, source: string, when: string) => `${title} (${source}, ${when})`,
+      filedOn: (day: string) => `filed ${day}`,
+      checks: (n: number) => `Check corporate action (${n.toLocaleString('en-US')})`,
+      checksIntro:
+        'Not ranked as plain movers: each needs a check against splits, ticker changes and other corporate actions first.',
+      checkPill: 'Check corporate action',
+      reasons: {
+        'move-over-25': 'Moved more than 25% in one session',
+        'split-on-session': 'A split takes effect on this session',
+        'split-in-volume-window':
+          'A split took effect inside the 20 sessions behind the volume average',
+        'ticker-change-on-session': 'A ticker change takes effect on this session',
+        'ticker-change-in-volume-window':
+          'A ticker change took effect inside the 20 sessions behind the volume average',
+      } as Record<string, string>,
+      /** Massive's split_from and split_to: 1 and 2 is a 2-for-1 split. */
+      split: (from: number, to: number, day: string) => `Split ${to}-for-${from} on ${day}`,
+      about: {
+        what: 'Gainers and losers by change from the previous session’s close; most active by dollar volume (close times volume); unusual volume, and new 52-week highs and lows by close. End-of-day data, never live.',
+        eligible: (asOf: string | null) =>
+          asOf
+            ? `Common stocks and ETFs only, from Marsad’s quarterly Massive ticker lists (latest as of ${asOf}); a ticker listed since then is left out until the next list.`
+            : 'Common stocks and ETFs only, from Marsad’s quarterly Massive ticker lists.',
+        liquidity: (price: string, usd: string) =>
+          `Liquidity floor: a close of at least USD ${price} and at least USD ${usd} traded. Marsad does not store market capitalisation for the whole market, so the filter is by dollar volume instead.`,
+        guard:
+          'Prices are put on the current share basis from the stored splits. A move over 25%, or a move or volume jump that lines up with a stored split or ticker change, is listed under Check corporate action, never ranked. Marsad stores no whole-market ticker-change feed, so a renamed ticker has no previous close under its new symbol and is left out.',
+        counts: (s: {
+          traded: number;
+          withChange: number;
+          zero: number;
+          noPrev: number;
+          price: number;
+          dv: number;
+        }) =>
+          `This session: ${s.traded.toLocaleString('en-US')} eligible tickers stored; ${s.withChange.toLocaleString('en-US')} ranked. Left out: ${s.zero.toLocaleString('en-US')} bad prints (zero price), ${s.noPrev.toLocaleString('en-US')} with no previous close stored, ${s.price.toLocaleString('en-US')} under the minimum price, ${s.dv.toLocaleString('en-US')} under the minimum dollar volume.`,
+        history: (vol: number, year: number) =>
+          `${vol.toLocaleString('en-US')} tickers have all 20 previous sessions stored (unusual volume) and ${year.toLocaleString('en-US')} have all 252 (52-week views). Sessions under USD 1 million traded are not stored, so a ticker with such a session is left out of those two views.`,
+        catalyst:
+          'Latest stored headline: the newest stored news article or SEC filing for the ticker since the start of the previous session, with its source and time, matched by code. It is not a verified cause, and Marsad never writes why a stock moved. Marsad stores news and filings mainly for the watchlist and holdings, so most tickers show none.',
+        noAlerts: 'Movers never send a push alert and never feed an alert rule.',
+        formula: (version: string, at: string) => `Formula ${version}, computed ${at}.`,
+      },
     },
     gaps: {
       title: 'Gap scanner',

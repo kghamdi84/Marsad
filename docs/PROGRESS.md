@@ -742,3 +742,10 @@ Matched since the last note: Alerts (header tabs, list cards, numbered detail se
 ### Design match, second pass
 
 Merged in #68. This pass: Regime hero shows the four design tiles. Known limits: the Regime event study has no 90% interval bars because the stored statistics do not hold them (needs a job and migration change), watchlist and Study cards have no company names, and the Shariah tab lacks the filing reference. Still to compare: Journal ticket and tabs, and 390 px views for every page.
+
+### Whole-market movers (movers-1, ADR 0049)
+
+- Core `moversSession` (`packages/core/src/movers.ts`, 12 known-answer tests): gainers, losers, most active, unusual volume (3x the 20-session average and USD 5 million, 50-session ratio shown), new 52-week highs and lows by close (252 sessions), liquidity floor (USD 1 close, USD 2 million traded), bad prints and the 25% and split corporate-action checks.
+- The breadth job stores it per session in the new owner-only `market_movers_market` (migration `20270105120000`); `market_snapshots` and `ticker_type_snapshots` go back to owner-only (ADR 0048).
+- Watch: Movers is now a self-contained view (`components/watch/Movers.tsx`, `lib/movers.ts`) with Whole market and Marsad universe, six lists, a minimum dollar-volume filter, "On my list", and the latest stored headline per row. Ready to move to Markets.
+- Shows after the next breadth job run once the migration is applied.
