@@ -2,7 +2,21 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (company research data layer).
+Last updated 2026-11-28 (portfolio views and dividend calendar).
+
+### Portfolio views and the ex-dividend calendar (2026-11-28, ADR 0048)
+
+- Journal has a new **Portfolio** tab with six views behind one remembered switch, in the order ADR 0048 gives the future `/portfolio` page. Each view is its own component with its own data hook (`components/portfolio/`), so the navigation batch moves them by rendering `PortfolioView` from the route.
+  - **Review** (first): total open risk to the stops as a share of equity, with "risk unknown" counted beside it for holdings without a stop (never zero); the council's limits against the book with each breach written out with its figures; then every holding, those without exit rules first, with the condition met or missing, distance to stop in % and ATRs, dollars at risk, size against the sizer cap, sessions held, next earnings and "The sizer allows N shares; you hold M". Coming up (8 weeks of earnings, ex-dates and dated Tauric catalysts) and Weekly moves (above 5% over five sessions, plus stored alerts) sit one tap away. No alert is computed in the browser.
+  - **Holdings**: summary row (value, day change, unrealized result, cash "Not tracked", top movers), "Portfolio vs SPY" labelled "Current holdings at today's weights, not your actual result", and one table with five column sets (Holdings, Performance, Dividends, Earnings, Technicals). The Analyst column set and the target card were cut (ADR 0048).
+  - **Analysis**: the check (`portfolio-check-1`): limits first, then Marsad's check rules, sectors, performers, options exposure, the 60-day chart and a paragraph written by code; Needs attention (fact, rule and each position's exit condition only); Groups; Distribution (asset split, sector, market cap, dividend, beta and P/E buckets, portfolio beta and P/E with "n of N holdings" coverage).
+  - **Performance**: closed trades in R; under 30 closed trades only counts ("4 of 16 closed trades were profitable"). Current holdings over 1M, 6M, 12M, YTD and monthly bars against SPY, and recent activity (Opened, Added, Closed).
+  - **Income**: forward 12-month dividends by holding, yield on cost and on price, net of 30% withholding (US non-treaty rate, IRS Publication 515; Khaled to confirm).
+  - **News**: stored articles for holdings with a ticker filter, search and a reading pane (description only, link out, no images).
+- Limits: largest position 20%, top 5 60%, minimum cash 10%, beta 1.5, open risk 6% of equity, labelled "Set by the council at your request on 28 Nov 2026; change any time". A member sees "No limit set". `resolveLimits` already takes stored per-user limits for the later batch.
+- Watch: the news and calendar switch gains **Dividends**, a day strip from 7 days back to 14 ahead with ex-dates of watchlist and holdings tickers (stored Massive dividends and Tauric's calendar), pay date, amount, frequency and yield at the last close. Marsad's tickers only; the market-wide list works on the plan and is in IDEAS.md.
+- Not available, said on screen: cash (not stored), crowd insights (no other-investor data), geographic allocation (no source), current option values (options plan).
+- Deferred by ADR 0048: the dividend returns comparison.
 
 ### Company research data from Tauric (2026-11-28, ADR 0047)
 

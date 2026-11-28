@@ -12,6 +12,7 @@ import { Positions } from '../components/journal/Positions';
 import { Sizer } from '../components/journal/Sizer';
 import { Trades } from '../components/journal/Trades';
 import { WeeklyReview } from '../components/journal/WeeklyReview';
+import { PortfolioViews } from '../components/portfolio/PortfolioViews';
 import {
   StatTile,
   newestClose,
@@ -85,7 +86,7 @@ function Kpis() {
   );
 }
 
-const TABS = ['positions', 'sizer', 'options', 'exposure', 'trades'] as const;
+const TABS = ['positions', 'portfolio', 'sizer', 'options', 'exposure', 'trades'] as const;
 type JournalTab = (typeof TABS)[number];
 
 /**
@@ -162,6 +163,7 @@ function ExposurePanel() {
 
 function Section({ tab, onTrade }: { tab: JournalTab; onTrade: () => void }) {
   if (tab === 'positions') return <Positions onTrade={onTrade} />;
+  if (tab === 'portfolio') return <PortfolioViews />;
   if (tab === 'sizer') return <Sizer />;
   if (tab === 'options') return <OptionPositions />;
   if (tab === 'exposure') return <ExposurePanel />;

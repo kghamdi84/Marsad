@@ -33,3 +33,6 @@ Captured during work so they are not built early.
 
 - Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.
 - AI topic tagging for the geopolitical panel (topics-2) once the Anthropic key and caps exist; the keyword rules stay as the fallback.
+
+- Market-wide ex-dividend list: Massive `/stocks/v1/dividends` filtered by `ex_dividend_date` alone (no ticker) works on the current plan (checked 2026-11-28 through the Massive MCP: 5 rows for 2026-11-27 with a next-page cursor). Needs a job to store the 21-day window and closes for yields; no fixture recorded yet.
+- Portfolio owner check: the limits label tells owner from member by whether `briefs` (owner-only) returns a row. Replace with the stored per-user limits (ADR 0048 batch 5).

@@ -781,9 +781,10 @@ test.describe('on a phone', () => {
     ).toBeVisible();
     // Bars on 2, 3, 4 and 5 October follow the 1 October open: 4 of 10 sessions used.
     await expect(card).toContainText('time stop 4 of 10 sessions');
-    // Design: the five section buttons wrap onto two rows; the KPI tiles sit two by two.
+    // Design: the section buttons wrap onto two rows; the KPI tiles sit two by two. Portfolio is the added tab.
     await expect(page.getByRole('tab')).toHaveText([
       'Positions',
+      'Portfolio',
       'Sizer and Sahm ticket',
       'Options',
       'Exposure and look-through',
