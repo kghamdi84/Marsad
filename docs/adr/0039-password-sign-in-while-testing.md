@@ -23,3 +23,10 @@ In Supabase, set **Authentication**, **Multi-Factor**, **TOTP (App Authenticator
 
 - Anyone who learns the password can read Marsad's data (Khaled's holdings, trades and journal). Use a password used nowhere else, saved in iCloud Keychain.
 - Integrity rule 17 (aal2 on every policy) is suspended until the switch is turned back on.
+
+## Addendum 2026-11-28: Khaled keeps password-only sign-in
+
+Asked whether to restore the second factor before the platform is final, Khaled chose to keep password-only
+sign-in. The switch (`private.auth_policy` and `REQUIRE_MFA`) stays off; turning it on is still one migration and
+one constant, and the RLS tests cover both modes. Integrity rule 17's aal2 requirement stays suspended by his
+decision, not pending work. The consequences above still apply: use a password used nowhere else.

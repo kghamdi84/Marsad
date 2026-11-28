@@ -672,8 +672,8 @@
         {
           "id": "7.1",
           "title": "Holdings and options positions (manual and CSV)",
-          "status": "in_progress",
-          "evidence": "portfolio-1 (ADR 0020): personal holdings table (MFA; RLS test), entered from the Journal page or by CSV (every faulty line named; nothing added while any line is faulty), closed rather than deleted. Options positions (options-pos-1, ADR 0034): personal option_positions table (MFA; at least one exit rule and a bear case enforced by the database), entered on the Journal page with 1 to 4 legs; undefined-risk structures refused; debit or credit, maximum loss and gain, breakevens, days to expiry, the expiry result at the last close, time exit and assignment risk judged by code; value today shown as unavailable without option quotes. Verified: 10 hand-checked core tests, RLS test, browser test on desktop and iPad. Still to do: marks and Greeks once options data exists (Phase 6)."
+          "status": "done",
+          "evidence": "portfolio-1 (ADR 0020): personal holdings table (MFA; RLS test), entered from the Journal page or by CSV (every faulty line named; nothing added while any line is faulty), closed rather than deleted. Options positions (options-pos-1, ADR 0034): personal option_positions table (MFA; at least one exit rule and a bear case enforced by the database), entered on the Journal page with 1 to 4 legs; undefined-risk structures refused; debit or credit, maximum loss and gain, breakevens, days to expiry, the expiry result at the last close, time exit and assignment risk judged by code; value today shown as unavailable without option quotes. Verified: 10 hand-checked core tests, RLS test, browser test on desktop and iPad. Still to do: marks and Greeks once options data exists (Phase 6). 2026-11-28: done for entry (Khaled's 9 holdings imported live by CSV); option marks and Greeks are tracked under Phase 6 (6.1 to 6.9), which needs the options data plan."
         },
         {
           "id": "7.2",
