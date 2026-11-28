@@ -85,3 +85,6 @@ export * from './company-research.js';
 export * from './ticker-summary.js';
 export * from './dividend-calc.js';
 export * from './levels.js';
+export * from './dividend-compare.js';
+export * from './portfolio-return.js';
+export * from './screener.js';
