@@ -421,6 +421,78 @@ describe('system tables', () => {
     await db.query(`delete from public.company_research where ticker = 'AMD'`);
   });
 
+  it('AI outputs (ADR 0007): members read filing summaries only, the owner reads all, nobody signed in writes', async () => {
+    const row = (kind: string, ticker: string | null, forDate: string | null, extra = '') =>
+      `insert into public.ai_outputs (kind, ticker, for_date, source_key, prompt_id, prompt_version, model, text, verified, source, attempts, input_snapshot${extra ? `, ${extra.split('=')[0]}` : ''})
+       values ('${kind}', ${ticker ? `'${ticker}'` : 'null'}, ${forDate ? `date '${forDate}'` : 'null'}, 'abcdef0123456789', '${kind}', 1, 'claude-sonnet-5-5', 'Revenue was $4.18B [F1].', true, 'model', 1, '{}'::jsonb${extra ? `, ${extra.split('=')[1]}` : ''})`;
+    await db.exec(`
+      ${row('filing-summary', 'NVDA', null)};
+      ${row('thesis-draft', 'NVDA', null)};
+      ${row('weekly-review', null, '2026-11-29')};
+    `);
+    try {
+      await as(owner2, async (tx) => expect(await count(tx, 'public.ai_outputs')).toBe(3));
+      await as(other2, async (tx) => {
+        const r = await tx.query<{ kind: string }>('select kind from public.ai_outputs');
+        expect(r.rows).toEqual([{ kind: 'filing-summary' }]);
+      });
+      await as(owner1, async (tx) => expect(await count(tx, 'public.ai_outputs')).toBe(0));
+      await expect(as(anon, (tx) => count(tx, 'public.ai_outputs'))).rejects.toThrow(
+        /permission denied/,
+      );
+      for (const sql of [
+        row('filing-summary', 'AMD', null),
+        `update public.ai_outputs set text = 'x' where ticker = 'NVDA'`,
+        `delete from public.ai_outputs`,
+      ]) {
+        await expect(as(owner2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+        await expect(as(other2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+      }
+      // Model text must be verified, a template must say why, and the kind decides ticker and week.
+      for (const sql of [
+        row('filing-summary', 'AMD', null).replace("true, 'model'", "false, 'model'"),
+        row('filing-summary', 'AMD', null).replace("'model', 1", "'template', 1"),
+        row('filing-summary', 'AMD', null, "fallback_reason='cost-cap'"),
+        row('weekly-review', 'AMD', '2026-11-29'),
+        row('weekly-review', null, null),
+        row('filing-summary', 'AMD', '2026-11-29'),
+        row('filing-summary', 'amd', null),
+        row('news-digest', 'AMD', null),
+        row('filing-summary', 'AMD', null).replace("'claude-sonnet-5-5'", "'gpt-5'"),
+        row('filing-summary', 'AMD', null, "fallback_reason='bored'"),
+        row('filing-summary', 'AMD', null).replace("'abcdef0123456789'", "'abc'"),
+      ])
+        await expect(db.query(sql), sql).rejects.toThrow(/check constraint/);
+      // A template row that states its reason is accepted.
+      await db.query(
+        row('filing-summary', 'AMD', null, "fallback_reason='cost-cap'").replace(
+          "true, 'model', 1",
+          "true, 'template', 0",
+        ),
+      );
+    } finally {
+      await db.query('delete from public.ai_outputs');
+    }
+  });
+
+  it('the usage log records the prompt and how each call ended, and refuses an unknown outcome', async () => {
+    await db.query(
+      `insert into public.ai_usage (job, purpose, model, served_model, prompt_id, prompt_version, input_tokens, output_tokens, usd, outcome)
+       values ('ai-summaries', 'filing summary NVDA', 'claude-sonnet-5-5', 'claude-sonnet-5', 'filing-summary', 1, 10, 5, 0.0001, 'refusal')`,
+    );
+    try {
+      await as(other2, async (tx) => expect(await count(tx, 'public.ai_usage')).toBe(0));
+      await as(owner2, async (tx) => expect(await count(tx, 'public.ai_usage')).toBe(2));
+      await expect(
+        db.query(
+          `insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd, outcome) values ('j', 'p', 'claude-sonnet-5-5', 1, 1, 0, 'great')`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+    } finally {
+      await db.query(`delete from public.ai_usage where job = 'ai-summaries'`);
+    }
+  });
+
   it("ticker summary (ADR 0050): members read 'tracked' rows, only the owner reads 'market' rows, nobody signed in writes", async () => {
     await db.exec(`
       insert into public.ticker_daily_summary (version, date, ticker, coverage, close, close_date, range_position_52w, formula_versions)
