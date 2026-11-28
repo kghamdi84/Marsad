@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { validateAnalyst, validateCalendar, validateProfile } from '@marsad/core';
 import aapl from '../../../fixtures/tauric/research-AAPL-2026-11-28.json' with { type: 'json' };
-import { openTab, scanAfterEach, seedSession } from './helpers';
+import { scanAfterEach, seedSession } from './helpers';
 
 scanAfterEach();
 
@@ -177,9 +177,9 @@ async function stub(page: Page) {
   );
 }
 
+/** Opens the Portfolio page (ADR 0048: its own page now) and taps one view on its switch. */
 async function openPortfolio(page: Page, view: string) {
-  await page.goto('/journal');
-  await openTab(page, 'Portfolio');
+  await page.goto('/portfolio');
   await page
     .getByRole('group', { name: 'Portfolio view' })
     .getByRole('button', { name: view })

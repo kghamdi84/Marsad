@@ -38,10 +38,15 @@ export const pages = {
     subtitle:
       'Every alert carries its trigger, plan, risk history, checklist, bear case and sources. No buy or sell advice.',
   },
+  portfolio: {
+    title: 'Portfolio',
+    subtitle:
+      'Review first: exit conditions and open risk against your limits, then holdings, analysis, performance, income and news. End of day.',
+  },
   journal: {
     title: 'Journal',
     subtitle:
-      'Positions by horizon, the position sizer and the manual Sahm ticket, options, exposure and trades.',
+      'What you did: trades and their adherence, the position sizer with the manual Sahm ticket, and the weekly review.',
   },
   lab: {
     title: 'Lab',
@@ -149,9 +154,15 @@ export const ar: {
       title: 'التنبيهات',
       subtitle: 'كل تنبيه مع المحفز والخطة وسجل المخاطر وقائمة التحقق وحالة الهبوط والمصادر.',
     },
+    portfolio: {
+      title: 'المحفظة',
+      subtitle:
+        'المراجعة أولاً: شروط الخروج والمخاطر المفتوحة مقابل حدودك، ثم المراكز والتحليل والأداء والدخل والأخبار.',
+    },
     journal: {
       title: 'السجل',
-      subtitle: 'المراكز وحاسبة الحجم وتذكرة سهم اليدوية والخيارات والتعرض.',
+      subtitle:
+        'ما فعلته: الصفقات والالتزام بالخطة، وحاسبة الحجم مع تذكرة سهم اليدوية، والمراجعة الأسبوعية.',
     },
     lab: {
       title: 'المختبر',

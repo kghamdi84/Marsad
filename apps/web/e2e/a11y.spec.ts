@@ -16,6 +16,7 @@ for (const path of [
   '/study/NVDA',
   '/regime',
   '/alerts',
+  '/portfolio',
   '/journal',
   '/lab',
   '/status',

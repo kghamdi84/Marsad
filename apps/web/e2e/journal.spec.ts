@@ -1,7 +1,14 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { seedSession, scanAfterEach, openTab } from './helpers';
 
 scanAfterEach();
+
+/** Portfolio's view switch (the holdings, options and exposure moved there from Journal, ADR 0048). */
+const portfolioView = (page: Page, name: string) =>
+  page
+    .getByRole('group', { name: 'Portfolio view' })
+    .getByRole('button', { name, exact: true })
+    .click();
 
 const json = (body: unknown) => ({
   status: 200,
@@ -64,7 +71,7 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
 });
 
-test('journal: holdings show the result and triggered exits; a CSV with mistakes names them', async ({
+test('portfolio holdings: the result and triggered exits; a CSV with mistakes names them', async ({
   page,
 }) => {
   await seedSession(page, 'aal2');
@@ -121,7 +128,7 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
       ),
     );
   });
-  await page.goto('/journal');
+  await page.goto('/portfolio?view=holdings');
   const holdings = page.getByRole('region', { name: 'Holdings and exit conditions' });
   const rklb = holdings.getByRole('listitem').filter({ hasText: 'RKLB' });
   // 21.50 against a 24.00 cost: ▼ −$250 and −10.4% (design format); the stop and the trend break both triggered.
@@ -174,7 +181,7 @@ test('journal: holdings show the result and triggered exits; a CSV with mistakes
   await expect(page.getByText('1 to add, 1 skipped as already stored.')).toBeVisible();
 });
 
-test('journal: exposure, stress and rotation from stored bars; sector and thesis are saved', async ({
+test('portfolio: exposure, stress and rotation from stored bars; sector and thesis are saved', async ({
   page,
 }) => {
   await seedSession(page, 'aal2');
@@ -247,8 +254,7 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
   await page.route('**/rest/v1/fred_observations**', (rt) =>
     rt.fulfill(json([...vixRows].reverse())),
   );
-  await page.goto('/journal');
-  await openTab(page, 'Exposure and look-through');
+  await page.goto('/portfolio?view=analysis');
   const exposure = page.getByRole('region', { name: 'Exposure', exact: true });
   await expect(exposure).toContainText('Beta to SPY 2.00');
   // One holding, so every scenario is -20% of its value: 100 shares at the last RKLB close.
@@ -266,7 +272,7 @@ test('journal: exposure, stress and rotation from stored bars; sector and thesis
     'Beta to SPY2.00100% more than the market',
   );
 
-  await openTab(page, 'Positions');
+  await portfolioView(page, 'Holdings');
   // RKLB lags XLI and SPY with a weakening thesis: the card flags a rotation, the edit sheet says why.
   await expect(page.getByText('Rotate to XLI?')).toBeVisible();
   // The horizon is the owner's choice, shown as a pill and changed under Edit holding.
@@ -372,7 +378,7 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
     });
   });
   await page.goto('/journal');
-  await openTab(page, 'Trades and review');
+  await openTab(page, 'Trades');
   const section = page.getByRole('region', { name: 'Trades and adherence' });
   // RKLB: (28 - 24) / (24 - 22) = 2R, USD 400; 10 items, noEmotion not honored: 9 of 10 = 90.
   // The design's rows: result in R and whether the plan was followed (80 or more); a tap opens the full card.
@@ -484,7 +490,7 @@ test('journal: the latest weekly review, or when the first one is due', async ({
     ),
   );
   await page.goto('/journal');
-  await openTab(page, 'Trades and review');
+  await openTab(page, 'Weekly review');
   await expect(page.getByText('The first weekly review is written on Sunday')).toBeVisible();
   rows = [
     {
@@ -571,8 +577,7 @@ test('options positions: the stored spread with its risk, exit rules and bear ca
   await page.route('**/rest/v1/daily_bars**', (r) =>
     r.fulfill(json([{ date: '2026-11-24', close: 105 }])),
   );
-  await page.goto('/journal');
-  await openTab(page, 'Options');
+  await page.goto('/portfolio?view=holdings');
   const s = page.getByRole('region', { name: 'Options positions' });
   const card = s.getByRole('listitem').filter({ hasText: 'Bull call spread' });
   // Debit 300, maximum gain 700, breakeven 103; at 105 the spread is worth +200 at expiry.
@@ -701,8 +706,7 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
     const etf = new URL(r.request().url()).searchParams.get('etf')?.replace(/^eq\./, '') ?? '';
     return r.fulfill(json(funds[etf] ?? []));
   });
-  await page.goto('/journal');
-  await openTab(page, 'Exposure and look-through');
+  await page.goto('/portfolio?view=analysis');
   const etf = page.getByRole('region', { name: 'ETF look-through (SEC N-PORT)' });
   // Portfolio 15,000: NVDA 1,000 direct (6.7%), 750 via SPY (5.0%), 320 via QQQ (2.1%), 2,070 in all (13.8%).
   await expect(etf).toContainText('Direct plus via SPY and QQQ, % of portfolio');
@@ -716,7 +720,7 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
   );
   await expect(etf).toContainText('published up to 60 days after the month they describe');
   // The position card's rules line: (750 + 320) / 15,000 = 7.1% more NVDA through the funds.
-  await openTab(page, 'Positions');
+  await portfolioView(page, 'Holdings');
   await expect(
     page
       .getByRole('region', { name: 'Holdings and exit conditions' })
@@ -729,7 +733,7 @@ test('ETF look-through: stocks held directly and through SPY and QQQ, and the ov
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test('journal: holdings as cards with the stop-to-target bar, nothing wider than the screen', async ({
+  test('portfolio: holdings as cards with the stop-to-target bar, nothing wider than the screen', async ({
     page,
   }, info) => {
     test.skip(
@@ -772,7 +776,7 @@ test.describe('on a phone', () => {
         ),
       ),
     );
-    await page.goto('/journal');
+    await page.goto('/portfolio?view=holdings');
     const holdings = page.getByRole('region', { name: 'Holdings and exit conditions' });
     const card = holdings.getByRole('listitem').filter({ hasText: 'RKLB' });
     await expect(card).toContainText('\u25BC \u2212$250');
@@ -781,21 +785,26 @@ test.describe('on a phone', () => {
     ).toBeVisible();
     // Bars on 2, 3, 4 and 5 October follow the 1 October open: 4 of 10 sessions used.
     await expect(card).toContainText('time stop 4 of 10 sessions');
-    // Design: the section buttons wrap onto two rows; the KPI tiles sit two by two. Portfolio is the added tab.
+    // Portfolio's six views behind one switch, Review first (ADR 0048).
+    await expect(
+      page.getByRole('group', { name: 'Portfolio view' }).getByRole('button'),
+    ).toHaveText(['Review', 'Holdings', 'Analysis', 'Performance', 'Income', 'News']);
+    // The page never scrolls sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+    // Journal keeps what Khaled did: three tabs that wrap on a phone.
+    await page.goto('/journal');
     await expect(page.getByRole('tab')).toHaveText([
-      'Positions',
-      'Portfolio',
+      'Trades',
       'Sizer and Sahm ticket',
-      'Options',
-      'Exposure and look-through',
-      'Trades and review',
+      'Weekly review',
     ]);
-    await page.getByRole('tab', { name: 'Options' }).click();
-    await expect(page.getByRole('tab', { name: 'Options' })).toHaveAttribute(
+    await openTab(page, 'Weekly review');
+    await expect(page.getByRole('tab', { name: 'Weekly review' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    await openTab(page, 'Positions');
     // The page never scrolls sideways on a phone.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,

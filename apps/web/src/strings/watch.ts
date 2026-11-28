@@ -216,7 +216,7 @@ export const watch = {
           : `${n} Tier 1 filing${n === 1 ? '' : 's'}: ${first}`,
       filingsUnavailable: 'Filings unavailable',
       exitsNone: 'No holdings recorded',
-      exitsNoneSub: 'Add holdings in the Journal to check their exit rules.',
+      exitsNoneSub: 'Add holdings on Portfolio to check their exit rules.',
       allInside: 'Every holding inside its plan',
       checked: (n: number, day: string) =>
         `${n} holding${n === 1 ? '' : 's'} checked at the close of ${day}`,

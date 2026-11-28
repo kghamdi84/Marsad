@@ -509,7 +509,8 @@ for (const theme of ['dark', 'light'] as const)
     const exits = cockpit.getByRole('link', { name: /^Exit rules/ });
     await expect(exits).toContainText('TSLA closed under its stop');
     await expect(exits).toContainText('1 other holding inside plan');
-    await expect(exits).toHaveAttribute('href', '/journal');
+    // Exit rules are about what is held, so the row opens Portfolio (ADR 0048).
+    await expect(exits).toHaveAttribute('href', '/portfolio');
 
     const list = page.getByRole('region', { name: 'Watchlist', exact: true });
     const nvda = list.getByRole('row', { name: /^NVDA/ });

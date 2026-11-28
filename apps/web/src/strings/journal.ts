@@ -6,7 +6,7 @@
 export const journal = {
   title: 'Journal',
   intro:
-    'Size a trade before you place it in Sahm, and keep every holding\u2019s exit conditions in view. Marsad never places orders; holding is never the default.',
+    'Size a trade before you place it in Sahm, log what you did and review how closely you followed the plan. Holdings and their exit conditions are on Portfolio. Marsad never places orders; holding is never the default.',
   ui: {
     kpis: 'Portfolio at a glance',
     value: 'Portfolio value',
@@ -55,12 +55,9 @@ export const journal = {
     unpriced: (n: number) => `${n} without a stored price, left out`,
     tabsLabel: 'Journal sections',
     tabs: {
-      positions: 'Positions',
-      portfolio: 'Portfolio',
+      trades: 'Trades',
       sizer: 'Sizer and Sahm ticket',
-      options: 'Options',
-      exposure: 'Exposure and look-through',
-      trades: 'Trades and review',
+      review: 'Weekly review',
     } as Record<string, string>,
     barAria: (stop: string, now: string, targets: string) =>
       `Stop ${stop}, now ${now}, targets ${targets}.`,

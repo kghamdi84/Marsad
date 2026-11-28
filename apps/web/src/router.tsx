@@ -3,6 +3,7 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  redirect,
 } from '@tanstack/react-router';
 import { Shell } from './components/Shell';
 import { Watch } from './routes/Watch';
@@ -10,6 +11,17 @@ import { stringSearch } from './lib/view';
 
 /** `?view=` on pages with switchable areas (ADR 0048); the page checks the value against its own views. */
 const viewSearch = stringSearch('view');
+
+/**
+ * Journal tabs that moved to Portfolio (ADR 0048), mapped to the Portfolio view that now holds them, so an old link
+ * or bookmark still lands on the right content.
+ */
+const MOVED_FROM_JOURNAL: Record<string, string> = {
+  positions: 'holdings',
+  portfolio: 'review',
+  options: 'holdings',
+  exposure: 'analysis',
+};
 
 const root = createRootRoute({ component: Shell });
 
@@ -40,8 +52,18 @@ const routeTree = root.addChildren([
   }),
   createRoute({
     getParentRoute: () => root,
+    path: '/portfolio',
+    validateSearch: viewSearch,
+    component: lazyRouteComponent(() => import('./routes/Portfolio'), 'Portfolio'),
+  }),
+  createRoute({
+    getParentRoute: () => root,
     path: '/journal',
     validateSearch: stringSearch('view', 'ticker'),
+    beforeLoad: ({ search }) => {
+      const moved = search.view ? MOVED_FROM_JOURNAL[search.view] : undefined;
+      if (moved) throw redirect({ to: '/portfolio', search: { view: moved }, replace: true });
+    },
     component: lazyRouteComponent(() => import('./routes/Journal'), 'Journal'),
   }),
   createRoute({

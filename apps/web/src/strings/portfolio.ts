@@ -8,7 +8,9 @@ export const portfolio = {
   na: 'Data unavailable',
   loading: 'Loading…',
   notTracked: 'Not tracked',
-  noHoldings: 'No open holdings. Add them under Positions (Import Sahm CSV).',
+  noHoldings: 'No open holdings. Add them under Holdings (Import Sahm CSV).',
+  pageIntro:
+    'What you hold, read against your own exit conditions and limits. Holding is never the default: every position shows how it ends. Prices are end of day; Marsad never places orders.',
   unclassified: 'Unclassified',
   above: 'Above your limit',
   within: 'Within your limits',
@@ -145,7 +147,7 @@ export const portfolio = {
     rsi: 'RSI 14',
     sources: {
       holdings:
-        'Shares, cost and dates from your Journal holdings; closes from stored Massive daily bars (end of day). Day change: the newest close against the one before.',
+        'Shares, cost and dates from your holdings; closes from stored Massive daily bars (end of day). Day change: the newest close against the one before.',
       performance:
         'Returns from stored daily bars (company-brief-1 periodReturn): 1W 5, 1M 21, 3M 63, 1Y 252 sessions; YTD from the last close of the previous year.',
       dividends:
@@ -158,7 +160,7 @@ export const portfolio = {
   },
   review: {
     title: 'Review',
-    info: 'Each holding against its own exit plan, from stored closes and your Journal rules. Equity here is the priced holdings value, because Marsad does not track cash. Marsad states the facts and the rules; you decide.',
+    info: 'Each holding against its own exit plan, from stored closes and your exit rules. Equity here is the priced holdings value, because Marsad does not track cash. Marsad states the facts and the rules; you decide.',
     subLabel: 'Review section',
     sub: { exits: 'Exit plan', coming: 'Coming up', moves: 'Weekly moves' },
     openRisk: 'Total open risk to the stops',
@@ -265,11 +267,11 @@ export const portfolio = {
       performers: 'Performers since cost',
       belowCost: (n: number, of: number) => `${n} of ${of} positions are below cost.`,
       options: 'Options exposure',
-      noOptions: 'No open option positions in the Journal.',
+      noOptions: 'No open option positions. Add them under Holdings.',
       optionLine: (premium: string, maxLoss: string, dte: number) =>
         `premium at entry ${premium} · max loss ${maxLoss} · ${dte} days to expiry`,
       optionsSource:
-        'From Journal option positions (options-pos-1). Current option values need the options data plan, so only entry premium and the defined maximum loss are shown.',
+        'From your option positions (options-pos-1). Current option values need the options data plan, so only entry premium and the defined maximum loss are shown.',
       written: 'Written by Marsad from the numbers above',
       source: (v: string) =>
         `${v}; closes from stored Massive daily bars. Volatility and largest fall use today’s shares at past closes, not your account history.`,

@@ -70,3 +70,29 @@ test('settings and status: ?view= picks the section, the switch writes it back',
     page.getByRole('group', { name: 'Status details' }).getByRole('button', { name: 'Costs' }),
   ).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('journal: ?view= picks trades, sizer or review; the tabs that moved open their Portfolio view', async ({
+  page,
+}) => {
+  await empty(page);
+  await page.goto('/journal?view=sizer');
+  await expect(page.getByRole('tab', { name: 'Sizer and Sahm ticket' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('tab', { name: 'Weekly review' }).click();
+  await expect(page).toHaveURL(/\/journal\?view=review$/);
+  // Old Journal links (ADR 0048 moved these tabs to Portfolio) land on the view that holds them now.
+  for (const [old, now, label] of [
+    ['positions', 'holdings', 'Holdings'],
+    ['portfolio', 'review', 'Review'],
+    ['options', 'holdings', 'Holdings'],
+    ['exposure', 'analysis', 'Analysis'],
+  ] as const) {
+    await page.goto(`/journal?view=${old}`);
+    await expect(page).toHaveURL(new RegExp(`/portfolio\\?view=${now}$`));
+    await expect(
+      page.getByRole('group', { name: 'Portfolio view' }).getByRole('button', { name: label }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  }
+});

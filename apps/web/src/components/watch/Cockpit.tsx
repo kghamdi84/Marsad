@@ -46,7 +46,7 @@ function Tile({
   sub2Class = 'text-ink3',
 }: {
   /** Where the tile leads; without it the tile is plain text (nothing to open yet). */
-  to?: '/regime' | '/study/$ticker' | '/alerts' | '/journal';
+  to?: '/regime' | '/study/$ticker' | '/alerts' | '/journal' | '/portfolio';
   params?: { ticker: string };
   label: string;
   value: ReactNode;
@@ -251,7 +251,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (!q.data)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={q.error ? k.holdingsUnavailable : v.news.loading}
         valueClass="text-ink3"
@@ -262,7 +262,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (holdings.length === 0)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={k.exitsNone}
         valueClass="text-ink3"
@@ -285,7 +285,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   if (!first)
     return (
       <Tile
-        to="/journal"
+        to="/portfolio"
         label={k.exits}
         value={k.allInside}
         valueClass="text-up"
@@ -296,7 +296,7 @@ function ExitsTile({ q }: { q: Loaded<{ holdings: StoredHolding[]; bars: BarsByT
   const second = flagged[1];
   return (
     <Tile
-      to="/journal"
+      to="/portfolio"
       label={k.exits}
       value={signalText(first.h, top)}
       valueClass={

@@ -248,7 +248,7 @@ async function stub(page: Page) {
 const section = (scope: Locator, name: string) => scope.getByRole('region', { name, exact: true });
 
 async function openRklb(page: Page) {
-  await page.goto('/journal');
+  await page.goto('/portfolio?view=holdings');
   await page.getByRole('button', { name: 'RKLB, quick look' }).first().click();
   const panel = page.getByRole('dialog', { name: 'RKLB' });
   await expect(panel).toBeVisible();
@@ -424,7 +424,7 @@ test.describe('on a phone', () => {
       'One phone run is enough; the viewport is set here.',
     );
     await stub(page);
-    await page.goto('/journal');
+    await page.goto('/portfolio?view=holdings');
     await page.getByRole('button', { name: 'RKLB, quick look' }).first().tap();
     const sheet = page.getByRole('dialog', { name: 'RKLB' });
     await expect(sheet).toBeVisible();
