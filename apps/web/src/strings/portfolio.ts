@@ -438,6 +438,44 @@ export const portfolio = {
     activitySource:
       'From Journal trades (entries and exits) and open holdings lots. Return: unrealized on cost while held, else the last closed trade on entry.',
   },
+  actual: {
+    title: 'Your actual result',
+    noTrades: 'No Journal trades yet, so there is no actual result to show.',
+    noPeriod: 'No stored SPY session falls in the trades’ period yet.',
+    period: (from: string, to: string, sessions: number, days: number) =>
+      `${from} to ${to}: ${sessions} sessions, ${days} calendar days.`,
+    twr: 'Time-weighted return',
+    annualized: 'Annualized',
+    notAnnualized: 'Not annualized: under 365 days',
+    mwr: 'Money-weighted return (XIRR), a year',
+    mwrNote: (method: string) =>
+      `Solved by ${method === 'bisection' ? 'bisection' : 'Newton’s method'}`,
+    spyTwr: 'SPY with the same cash flows, time-weighted',
+    spySame: 'Each buy buys SPY and each sell sells SPY, same dollars, same day’s close',
+    spyNegative:
+      'A sell was larger than the SPY balance at the time, so the SPY balance went below zero',
+    spyMwr: 'SPY with the same cash flows, money-weighted',
+    flows: 'Money in and out',
+    flowsValue: (dep: string, wd: string) => `${dep} in, ${wd} out`,
+    endValue: (mine: string, spy: string) => `End value ${mine}; SPY ${spy}`,
+    counts: 'Trades counted',
+    countsValue: (n: number, closed: number, flows: number) =>
+      `${n} trades, ${closed} closed, ${flows} cash flows`,
+    fees: (v: string) => `Fees ${v}`,
+    missing: 'Sessions with a missing close',
+    missingNote: (n: number) =>
+      n === 0
+        ? 'Every holding had a stored close'
+        : `${n} closes carried from the last known price`,
+    missingTitle: 'Closes carried from the last known price',
+    excluded: (list: string) => `Not counted: ${list}.`,
+    offSession: (n: number) =>
+      `${n} ${n === 1 ? 'trade date falls' : 'trade dates fall'} on a weekend or holiday and count on the next session.`,
+    method: 'What the result leaves out',
+    feesStored: 'Fees as stored: Journal trades have no fee field yet, so fees count as zero.',
+    source: (v: string) =>
+      `Formula ${v}, from Journal trades and stored Massive daily closes. Not the Sahm account statement.`,
+  },
   compare: {
     title: 'Compare dividend returns',
     info: 'The same amount in each ticker for the years you choose, with dividends reinvested (DRIP) or kept as cash, at today’s price and trailing yield held fixed (dividend-compare-1). A fixed price says nothing about what the price did, so each row also shows the trailing 1-year price change and the historical 1-year and 3-year total returns from stored closes plus the dividends paid. Not advice.',
