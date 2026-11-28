@@ -21,7 +21,21 @@ export interface GroundedFailure {
   rejectedText: string | null;
 }
 
-export type GroundedReason = 'verified' | 'verification-failed' | 'generation-failed' | 'cost-cap';
+export type GroundedReason =
+  'verified' | 'verification-failed' | 'generation-failed' | 'cost-cap' | 'refusal';
+
+/**
+ * Thrown by `generate` to end the attempts at once and use the template: a refusal (never retried), the cost cap
+ * reached before a call, or an error a second attempt cannot fix (a rejected key, a malformed request).
+ */
+export class StopGeneration extends Error {
+  readonly reason: 'refusal' | 'cost-cap' | 'generation-failed';
+  constructor(reason: 'refusal' | 'cost-cap' | 'generation-failed', message: string) {
+    super(message);
+    this.name = 'StopGeneration';
+    this.reason = reason;
+  }
+}
 
 export interface GroundedResult {
   text: string;
@@ -45,6 +59,11 @@ export interface GroundedOptions {
   /** False when the cost cap is reached: the template is used and the model is not called. */
   allowModel?: boolean;
   verify?: VerifyOptions;
+  /**
+   * Prompt-specific checks run after the verifier (a required section, no advice). Problems count as a failed
+   * verification: they are passed back for the one regeneration, then the template is used.
+   */
+  check?: (text: string) => string[];
   onFailure?: (failure: GroundedFailure) => void;
 }
 
@@ -79,6 +98,16 @@ export async function groundedGenerate(options: GroundedOptions): Promise<Ground
     try {
       text = await options.generate({ attempt, feedback });
     } catch (e) {
+      if (e instanceof StopGeneration) {
+        record({
+          attempt,
+          kind: 'generation-error',
+          details: [e.message.slice(0, 300)],
+          rejectedText: null,
+        });
+        // The cap stops before a call is made, so this attempt is not counted as one.
+        return useTemplate(e.reason, e.reason === 'cost-cap' ? attempts - 1 : attempts);
+      }
       lastWasError = true;
       record({
         attempt,
@@ -91,7 +120,8 @@ export async function groundedGenerate(options: GroundedOptions): Promise<Ground
     }
     lastWasError = false;
     const v = verifyText(text, options.payload, options.verify);
-    if (v.ok) {
+    const problems = options.check?.(text) ?? [];
+    if (v.ok && problems.length === 0) {
       return {
         text,
         source: 'model',
@@ -102,7 +132,7 @@ export async function groundedGenerate(options: GroundedOptions): Promise<Ground
         templateVerified: true,
       };
     }
-    feedback = describeIssues(v.issues);
+    feedback = [...describeIssues(v.issues), ...problems];
     record({ attempt, kind: 'verification', details: feedback, rejectedText: text });
   }
   return useTemplate(lastWasError ? 'generation-failed' : 'verification-failed', attempts);

@@ -1,6 +1,6 @@
 # ADR 0007: Where AI text is generated, and how it is kept honest
 
-- Status: accepted (cost caps need Khaled's approval before the first paid call)
+- Status: accepted; caps approved by Khaled on 2026-11-28 (addendum below)
 - Date: 2026-11-24
 
 ## Context
@@ -24,3 +24,13 @@ The browser holds only the publishable Supabase key, so it cannot hold an Anthro
 - A wrong figure never reaches the user: it is regenerated once, then replaced by code-built text. Failures are logged with the rejected text for audit.
 - The verifier does not catch figures spelled as words, a sentence mixing rising and falling words, or a coincidence between two cited facts of the same unit and value. Prompts forbid spelled figures; the tests record these limits.
 - AI text is not available on demand until an Edge Function path exists; it refreshes on the schedule or by manual dispatch.
+
+## Addendum, 2026-11-28: caps approved, client wired
+
+Khaled approved the proposed caps on 2026-11-28: **USD 1 a day and USD 10 a month** (UTC days and months), a warning at 80% of either, and the template at the cap. He adds the `ANTHROPIC_API_KEY` GitHub Actions secret himself.
+
+- **One constant.** The caps live only in `AI_CAPS` in `packages/core/src/ai/cost.ts`, with the approval date in `AI_CAPS_APPROVED_ON`. A cap saved in Preferences can lower them, never raise them (`effectiveCaps`); a blank saved cap means the approved one. This replaces ADR 0028's rule that blank caps keep AI off: the switch is now the key.
+- **Before every call** the job reads spend today and this month from `ai_usage`, adds the call's worst case (the prompt at three characters a token plus every output token `max_tokens` allows, `estimateCallUsd`) and calls only if that stays within both caps. At the cap the template is used and the run's details say why. At 80% the call is made and the warning goes in the run's details (`job_runs.details.budget`); the Status page shows the same spend from `ai_usage` against the same caps.
+- **Every call is logged** in `ai_usage`: requested and served model, input, output, cache read and cache write tokens, USD (core's price table; a server-side fallback is priced per iteration at the model that ran it, and an unknown model at the dearest known price), prompt id and version, purpose and outcome (`text`, `max_tokens`, `refusal`, `invalid-json`, `unexpected-stop`, `api-error`).
+- **Client.** `jobs/src/anthropic.ts` is the only file that imports `@anthropic-ai/sdk`. Each request sets the exact model id, `thinking: {type: "adaptive"}`, an explicit `output_config.effort`, `output_config.format` (one `text` field, so the versioned prompts are unchanged), the static system prompt with `cache_control`, and the server-side refusal fallback (`betas: ["server-side-fallback-2026-07-01"]`, `fallbacks: "default"`). No sampling parameters, no tools, no forced `tool_choice`. The SDK's typed errors decide what is retried: a rejected key or malformed request ends the attempts; rate limits and connection errors get the grounded flow's one extra attempt.
+- **Without the key** every AI job records `skipped` with `not configured (ANTHROPIC_API_KEY secret missing)`, never `ok`, and spends nothing; the weekly review keeps its template and says the same in its run details.

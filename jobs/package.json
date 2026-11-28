@@ -34,6 +34,7 @@
     "set-password": "tsx src/set-password-main.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@marsad/core": "workspace:*",
     "@supabase/supabase-js": "^2.119.2",
     "web-push": "3.6.7"

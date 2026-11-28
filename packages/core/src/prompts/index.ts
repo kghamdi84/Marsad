@@ -8,6 +8,7 @@ import { wrapUntrusted } from '../ai/untrusted.js';
 import { promptKey, type PromptDef } from './types.js';
 
 export * from './types.js';
+export * from './formats.js';
 export {
   PROMPTS,
   filingSummaryPrompt,
