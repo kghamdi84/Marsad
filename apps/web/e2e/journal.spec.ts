@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { seedSession, scanAfterEach, openTab } from './helpers';
 
 scanAfterEach();
@@ -46,28 +46,81 @@ test('journal: the sizer gives shares and the Sahm ticket, copy only after the c
     'BUY 125 RKLB LIMIT 24.15 STOP 22.15 GTC',
   );
   const copy = sizer.getByRole('button', { name: /^Copy Sahm order ticket/ });
-  await expect(copy).toHaveText('Copy Sahm order ticket (0 of 5 checks)');
+  await expect(copy).toHaveText('Copy Sahm order ticket (0 of 7 checks)');
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
-  // Four of five is still not enough: the copy stays disabled (hard rule).
+  // Six of seven is still not enough: the copy stays disabled (hard rule).
   const boxes = await sizer.getByRole('checkbox').all();
-  expect(boxes).toHaveLength(5);
-  // The ticket uses checklist-2, the design's five checks.
-  for (const label of [
+  expect(boxes).toHaveLength(7);
+  // The ticket uses checklist-3: checklist-2's five checks, then risk defined and the profit plan in checklist-1's
+  // words (ADR 0048 round 2).
+  for (const [i, label] of [
     'Fits the current regime',
     'Stop set from structure, not hope',
     'Bear case and earnings date read',
     'Shariah aid checked',
     'Order will be entered by hand in Sahm',
-  ])
-    await expect(sizer.getByRole('checkbox', { name: label })).toBeVisible();
-  for (const box of boxes.slice(0, 4)) await box.click();
-  await expect(copy).toHaveText('Copy Sahm order ticket (4 of 5 checks)');
+    'Risk is defined: the stop is set and the size comes from it.',
+    'There is a profit plan: targets and when to take them.',
+  ].entries())
+    await expect(boxes[i] as Locator).toHaveAccessibleName(label);
+  for (const box of boxes.slice(0, 6)) await box.click();
+  await expect(copy).toHaveText('Copy Sahm order ticket (6 of 7 checks)');
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
-  await boxes[4]?.click();
+  await boxes[6]?.click();
   await expect(copy).toHaveText('Copy Sahm order ticket');
   await expect(copy).toHaveAttribute('aria-disabled', 'false');
   // Unticking one disables it again.
   await boxes[0]?.click();
+  await expect(copy).toHaveAttribute('aria-disabled', 'true');
+});
+
+test('journal: "Risk defined" needs a stop and a ticket no bigger than the sizer allows; copy stays blocked until then', async ({
+  page,
+}) => {
+  await seedSession(page, 'aal2');
+  await page.route('**/rest/v1/**', (r) => r.fulfill(json([])));
+  await page.goto('/journal?view=sizer&ticker=RKLB');
+  const sizer = page.getByRole('region', { name: 'Pre-trade checklist and position sizer' });
+  await expect(sizer.getByLabel('Ticker')).toHaveValue('RKLB');
+  const risk = sizer.getByRole('checkbox', { name: /^Risk is defined/ });
+  const copy = sizer.getByRole('button', { name: /^Copy Sahm order ticket/ });
+  // No stop yet: the item cannot be ticked, and says why.
+  await expect(risk).toHaveAttribute('aria-disabled', 'true');
+  await expect(risk).toHaveAccessibleDescription(
+    'Enter a stop first: risk is defined only by a stop.',
+  );
+  // A tap does nothing (force: Playwright itself waits for an enabled control).
+  await risk.click({ force: true });
+  await expect(risk).toHaveAttribute('aria-checked', 'false');
+  // Every other item ticked: still blocked (6 of 7).
+  for (const box of await sizer.getByRole('checkbox').all())
+    if ((await box.getAttribute('aria-disabled')) !== 'true') await box.click();
+  await expect(copy).toHaveText('Copy Sahm order ticket (6 of 7 checks)');
+  await expect(copy).toHaveAttribute('aria-disabled', 'true');
+  // 1% of 50,000 over a 2.00 stop distance: the sizer allows 250 shares (the 25% cap allows 517).
+  await sizer.getByLabel('Limit entry').fill('24.15');
+  await sizer.getByLabel('Stop', { exact: true }).fill('22.15');
+  await expect(sizer.getByText('Shares', { exact: true }).locator('..')).toContainText('250');
+  // A ticket bigger than the sizer's result: still locked, with both numbers.
+  await sizer.getByLabel('Shares on the ticket').fill('300');
+  await expect(sizer.getByTestId('sahm-ticket')).toHaveText(
+    'BUY 300 RKLB LIMIT 24.15 STOP 22.15 GTC',
+  );
+  await expect(risk).toHaveAttribute('aria-disabled', 'true');
+  await expect(risk).toHaveAccessibleDescription(
+    'The ticket buys 300 shares; the sizer allows 250 for this stop.',
+  );
+  await expect(copy).toHaveAttribute('aria-disabled', 'true');
+  // Fewer shares than the sizer allows: it can be ticked, and the copy opens.
+  await sizer.getByLabel('Shares on the ticket').fill('200');
+  await expect(risk).not.toHaveAttribute('aria-disabled', 'true');
+  await risk.click();
+  await expect(risk).toHaveAttribute('aria-checked', 'true');
+  await expect(copy).toHaveText('Copy Sahm order ticket');
+  await expect(copy).toHaveAttribute('aria-disabled', 'false');
+  // Changing the stop clears it: the size must be confirmed again.
+  await sizer.getByLabel('Stop', { exact: true }).fill('23.15');
+  await expect(risk).toHaveAttribute('aria-checked', 'false');
   await expect(copy).toHaveAttribute('aria-disabled', 'true');
 });
 
@@ -434,7 +487,7 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
   await form.getByLabel('Shares', { exact: true }).fill('10');
   await form.getByLabel('Setup (playbook or your own name)').fill('trend-template-breakout');
   await form.getByLabel('The stop was placed in Sahm when the order filled.').check();
-  // New trades answer checklist-2 (the v2 design's checks) and say so.
+  // New trades answer checklist-3 (ADR 0048 round 2) and say so.
   await form.getByLabel('Fits the current regime').check();
   await form.getByLabel('Order will be entered by hand in Sahm').check();
   await expect(form.getByLabel(/The setup is clean/)).toHaveCount(0);
@@ -447,7 +500,7 @@ test('journal: trades with adherence, statistics by setup, logging, exits and pr
       shares: 10,
       setup: 'trend-template-breakout',
       checklist: { regimeFit: true, manualInSahm: true },
-      checklist_version: 'checklist-2',
+      checklist_version: 'checklist-3',
       followed: { stopPlaced: true },
     });
 });

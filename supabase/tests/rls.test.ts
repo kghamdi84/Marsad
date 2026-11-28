@@ -735,6 +735,35 @@ describe('system tables', () => {
     await expect(as(anon, (tx) => count(tx, 'public.trades'))).rejects.toThrow(/permission denied/);
   });
 
+  it('trades take checklist-3 (ADR 0048 round 2), keep checklist-1 as the default and refuse an unknown version', async () => {
+    await as(owner2, async (tx) => {
+      for (const v of ['checklist-1', 'checklist-2', 'checklist-3'])
+        await tx.query(
+          `insert into public.trades (ticker, entry_date, entry_price, shares, checklist_version) values ('RKLB', '2026-11-02', 24, 1, $1)`,
+          [v],
+        );
+      await tx.query(
+        `insert into public.trades (ticker, entry_date, entry_price, shares) values ('SOFI', '2026-11-02', 18, 1)`,
+      );
+      const r = await tx.query<{ ticker: string; checklist_version: string }>(
+        `select ticker, checklist_version from public.trades order by id`,
+      );
+      expect(r.rows.map((x) => x.checklist_version)).toEqual([
+        'checklist-1',
+        'checklist-2',
+        'checklist-3',
+        'checklist-1',
+      ]);
+    });
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into public.trades (ticker, entry_date, entry_price, shares, checklist_version) values ('RKLB', '2026-11-02', 24, 1, 'checklist-4')`,
+        ),
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it('journal screenshots: only the owner with MFA, only in their own folder, only in the private bucket', async () => {
     const bucket = await db.query<{ public: boolean; file_size_limit: string }>(
       `select public, file_size_limit::text from storage.buckets where id = 'journal'`,
