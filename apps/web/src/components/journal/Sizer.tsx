@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
-  CHECKLIST_V2,
+  CURRENT_CHECKLIST,
   checklistComplete,
+  checklistItems,
   positionSize,
   rewardRisk,
+  riskDefinedBlock,
   sahmTicket,
   toFixedHalfUp,
   type ChecklistKey,
@@ -20,12 +22,14 @@ function Input({
   value,
   onChange,
   decimal = true,
+  hint,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
   decimal?: boolean;
+  hint?: string | undefined;
 }) {
   return (
     <label htmlFor={id} className="flex min-w-0 flex-col gap-1 text-xs text-ink3">
@@ -35,28 +39,40 @@ function Input({
         inputMode={decimal ? 'decimal' : 'text'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-describedby={hint ? `${id}-hint` : undefined}
         className="min-h-11 w-full min-w-0 rounded-lg border border-line-strong bg-canvas px-3 text-[15px] text-ink tabular-nums"
       />
+      {hint && <span id={`${id}-hint`}>{hint}</span>}
     </label>
   );
 }
 
+const ITEMS = checklistItems(CURRENT_CHECKLIST);
+
 /**
- * The position sizer, the five-item checklist and the manual Sahm ticket. The copy button stays disabled until all
- * five items are ticked and the ticket is complete (hard rule). Marsad never places the order.
+ * The position sizer, the checklist (checklist-3, ADR 0048 round 2) and the manual Sahm ticket. The copy button
+ * stays disabled until every item is ticked and the ticket is complete (hard rule). "Risk defined" can be ticked
+ * only with a stop entered and the ticket's shares at or below the sizer's result for that stop; any change to the
+ * sizing clears it, so it is confirmed again. Marsad never places the order.
  */
-export function Sizer() {
-  const [ticker, setTicker] = useState('');
+export function Sizer({ initialTicker = '' }: { initialTicker?: string }) {
+  const [ticker, setTicker] = useState(initialTicker);
   const [account, setAccount] = useState('50000');
   const [risk, setRisk] = useState('1');
   const [entry, setEntry] = useState('');
   const [stop, setStop] = useState('');
   const [targets, setTargets] = useState('');
+  const [sharesIn, setSharesIn] = useState('');
   const [ticked, setTicked] = useState<Partial<Record<ChecklistKey, boolean>>>({});
   const [copied, setCopied] = useState(false);
   const edit = (set: (v: string) => void) => (v: string) => {
     setCopied(false);
     set(v);
+  };
+  /** A change to anything the size depends on: "Risk defined" must be confirmed again. */
+  const editSize = (set: (v: string) => void) => (v: string) => {
+    edit(set)(v);
+    setTicked((x) => ({ ...x, riskDefined: false }));
   };
   const size =
     entry && stop
@@ -73,11 +89,22 @@ export function Sizer() {
     .map(Number)
     .filter((x) => x > 0);
   const ok = size !== null && !('error' in size);
+  // The ticket buys the sizer's result unless fewer whole shares are entered.
+  const sharesTyped = sharesIn.trim();
+  const sharesValid = sharesTyped === '' || /^[1-9]\d*$/.test(sharesTyped);
+  const ticketShares =
+    !ok || !sharesValid ? null : sharesTyped === '' ? size.shares : Number(sharesTyped);
+  const block = riskDefinedBlock({
+    stop: stop.trim() === '' ? null : Number(stop),
+    sizerShares: ok ? size.shares : null,
+    ticketShares,
+  });
+  const effective = block ? { ...ticked, riskDefined: false } : ticked;
   const ticket =
-    ok && /^[A-Za-z][A-Za-z0-9.-]{0,9}$/.test(ticker)
+    ticketShares !== null && /^[A-Za-z][A-Za-z0-9.-]{0,9}$/.test(ticker)
       ? sahmTicket({
           side: 'BUY',
-          shares: size.shares,
+          shares: ticketShares,
           ticker: ticker.toUpperCase(),
           type: 'LIMIT',
           limit: Number(entry),
@@ -85,8 +112,14 @@ export function Sizer() {
           tif: 'GTC',
         })
       : null;
-  const n = Object.values(ticked).filter(Boolean).length;
-  const ready = checklistComplete(ticked) && ticket !== null;
+  const n = ITEMS.filter((c) => effective[c.key] === true).length;
+  const ready = checklistComplete(effective) && ticket !== null;
+  const blockText =
+    block === 'over-size' && ok && ticketShares !== null
+      ? s.riskBlocked['over-size'](ticketShares, size.shares)
+      : block === 'no-stop' || block === 'no-size'
+        ? s.riskBlocked[block]
+        : null;
   const rr = ok && tgts.length > 0 ? rewardRisk(Number(entry), Number(stop), tgts) : [];
   const chips = rr.map((r, i) => s.rrChip(level(tgts[i] ?? 0), toFixedHalfUp(r, 1)));
   return (
@@ -107,16 +140,28 @@ export function Sizer() {
             onChange={edit(setTicker)}
             decimal={false}
           />
-          <Input id="sz-account" label={s.fAccount} value={account} onChange={edit(setAccount)} />
-          <Input id="sz-risk" label={s.fRisk} value={risk} onChange={edit(setRisk)} />
-          <Input id="sz-entry" label={s.fEntry} value={entry} onChange={edit(setEntry)} />
-          <Input id="sz-stop" label={s.stop} value={stop} onChange={edit(setStop)} />
+          <Input
+            id="sz-account"
+            label={s.fAccount}
+            value={account}
+            onChange={editSize(setAccount)}
+          />
+          <Input id="sz-risk" label={s.fRisk} value={risk} onChange={editSize(setRisk)} />
+          <Input id="sz-entry" label={s.fEntry} value={entry} onChange={editSize(setEntry)} />
+          <Input id="sz-stop" label={s.stop} value={stop} onChange={editSize(setStop)} />
           <Input
             id="sz-targets"
             label={s.fTargets}
             value={targets}
             onChange={edit(setTargets)}
             decimal={false}
+          />
+          <Input
+            id="sz-shares"
+            label={s.fShares}
+            value={sharesIn}
+            onChange={editSize(setSharesIn)}
+            hint={!sharesValid ? s.sharesBad : ok ? s.sharesHint(String(size.shares)) : undefined}
           />
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] gap-2.5">
@@ -139,23 +184,28 @@ export function Sizer() {
       <div className="flex min-w-0 flex-col gap-2.5">
         <h3 className="text-base font-semibold text-ink">{s.checklistTitle}</h3>
         <div role="group" aria-label={s.checksLabel} className="flex flex-col gap-2.5">
-          {CHECKLIST_V2.map((c) => {
-            const on = ticked[c.key] === true;
-            const [label, sub] = s.checks[c.key] ?? [c.label, ''];
+          {ITEMS.map((c) => {
+            const on = effective[c.key] === true;
+            // checklist-3 carries checklist-1's wording for its two added items, so the label is the core's.
+            const label = c.label;
+            const locked = c.key === 'riskDefined' && block !== null;
             return (
               <button
                 key={c.key}
                 type="button"
                 role="checkbox"
                 aria-checked={on}
+                aria-disabled={locked || undefined}
+                aria-describedby={locked ? 'sz-risk-why' : undefined}
                 title={c.label}
                 onClick={() => {
+                  if (locked) return;
                   setCopied(false);
                   setTicked({ ...ticked, [c.key]: !on });
                 }}
-                className={`flex min-h-11 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-start text-[13px] text-ink ${
-                  on ? 'border-ink3 bg-elev' : 'border-line'
-                }`}
+                className={`flex min-h-11 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-start text-[13px] ${
+                  locked ? 'cursor-not-allowed border-line text-ink3' : 'text-ink'
+                } ${on ? 'border-ink3 bg-elev' : 'border-line'}`}
               >
                 <span
                   aria-hidden="true"
@@ -179,7 +229,11 @@ export function Sizer() {
                 </span>
                 <span className="flex flex-col">
                   <span>{label}</span>
-                  {sub && <span className="hidden text-xs text-ink3 tablet:inline">{sub}</span>}
+                  {locked && blockText && (
+                    <span id="sz-risk-why" className="text-xs text-warn">
+                      {blockText}
+                    </span>
+                  )}
                 </span>
               </button>
             );
@@ -204,7 +258,7 @@ export function Sizer() {
             ready ? 'bg-accent text-accent-ink' : 'cursor-not-allowed bg-sub text-ink3'
           }`}
         >
-          {copied ? s.copiedShort : ready ? s.copy : s.copyCount(n)}
+          {copied ? s.copiedShort : ready ? s.copy : s.copyCount(n, ITEMS.length)}
         </button>
         <p className="text-xs text-ink3">{s.manual}</p>
         <p role="status" className="sr-only">

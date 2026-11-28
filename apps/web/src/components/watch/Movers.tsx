@@ -69,6 +69,22 @@ export function MarketMovers() {
   );
 }
 
+/**
+ * Watch's movers card (ADR 0048): the Marsad universe movers only, from the Watch read, which members see too.
+ * The whole market, its filters and checks are on Markets.
+ */
+export function UniverseMoversCard({ movers }: { movers: UniverseMovers | null }) {
+  return (
+    <Card
+      id="movers-h"
+      title={m.title}
+      subtitle={movers ? m.asOf(movers.date, movers.n) : undefined}
+    >
+      <Universe m={movers} />
+    </Card>
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Marsad universe (watch-1): unchanged from the earlier Movers card.
 

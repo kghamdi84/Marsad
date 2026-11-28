@@ -286,7 +286,7 @@ test('the sign-in copy and errors match the design (Sign in, Create an account, 
   await expect(page.getByRole('heading', { name: 'Create an account', level: 1 })).toBeVisible();
   await expect(
     page.getByText(
-      'Members see Watch, Study and Regime. Alerts, briefs and the journal stay with the owner.',
+      'Members see Watch, Study and Markets. Alerts, briefs, the portfolio and the journal stay with the owner.',
     ),
   ).toBeVisible();
   await page.getByLabel('Password, at least 10 characters').fill('abcdef');

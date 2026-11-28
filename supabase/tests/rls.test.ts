@@ -735,6 +735,35 @@ describe('system tables', () => {
     await expect(as(anon, (tx) => count(tx, 'public.trades'))).rejects.toThrow(/permission denied/);
   });
 
+  it('trades take checklist-3 (ADR 0048 round 2), keep checklist-1 as the default and refuse an unknown version', async () => {
+    await as(owner2, async (tx) => {
+      for (const v of ['checklist-1', 'checklist-2', 'checklist-3'])
+        await tx.query(
+          `insert into public.trades (ticker, entry_date, entry_price, shares, checklist_version) values ('RKLB', '2026-11-02', 24, 1, $1)`,
+          [v],
+        );
+      await tx.query(
+        `insert into public.trades (ticker, entry_date, entry_price, shares) values ('SOFI', '2026-11-02', 18, 1)`,
+      );
+      const r = await tx.query<{ ticker: string; checklist_version: string }>(
+        `select ticker, checklist_version from public.trades order by id`,
+      );
+      expect(r.rows.map((x) => x.checklist_version)).toEqual([
+        'checklist-1',
+        'checklist-2',
+        'checklist-3',
+        'checklist-1',
+      ]);
+    });
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(
+          `insert into public.trades (ticker, entry_date, entry_price, shares, checklist_version) values ('RKLB', '2026-11-02', 24, 1, 'checklist-4')`,
+        ),
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it('journal screenshots: only the owner with MFA, only in their own folder, only in the private bucket', async () => {
     const bucket = await db.query<{ public: boolean; file_size_limit: string }>(
       `select public, file_size_limit::text from storage.buckets where id = 'journal'`,
@@ -806,6 +835,24 @@ describe('system tables', () => {
     await db.query(`delete from public.briefs where kind = 'weekly-review'`);
   });
 
+  it('alerts accept the earnings guard kind (ADR 0052), still refuse unknown kinds, and stay owner-only', async () => {
+    const ins = (kind: string, id: string) =>
+      `insert into public.alerts (id, version, kind, priority, ticker, rule_id, rule_version, rule_status, dedupe_key, decision, headline, push, card, input)
+        values ('${id}', 'alerts-1', '${kind}', 'normal', 'NVDA', 'earnings-guard', 1, 'live',
+                'earnings|NVDA|earnings-guard|earnings:1:2026-12-03', 'push', 'NVDA reports in 4 sessions', '{}'::jsonb, '[]'::jsonb, '{}'::jsonb)`;
+    await db.query(ins('earnings', '22222222-2222-4222-8222-222222222222'));
+    await expect(
+      db.query(ins('earnings-ish', '33333333-3333-4333-8333-333333333333')),
+    ).rejects.toThrow(/alerts_kind_check/);
+    await as(owner2, async (tx) => {
+      expect(await count(tx, `public.alerts where kind = 'earnings'`)).toBe(1);
+    });
+    await as(other2, async (tx) => {
+      expect(await count(tx, `public.alerts where kind = 'earnings'`)).toBe(0);
+    });
+    await db.query(`delete from public.alerts where kind = 'earnings'`);
+  });
+
   it('catalyst scenarios are personal and need at least one trigger and a plan', async () => {
     const ins = (triggers: string) =>
       `insert into public.catalyst_scenarios (name, tickers, ${triggers ? 'eight_k_items, ' : ''}plan_entry, chase_guard_pct, plan_invalidation, expires_on) values ('NVDA CEO returns', '{NVDA}', ${triggers ? `'${triggers}', ` : ''}'Wait for VWAP.', 0.1, 'Below the low.', '2026-12-31')`;
@@ -835,6 +882,99 @@ describe('system tables', () => {
     await expect(as(owner2, (tx) => tx.query(ins('22:00', 0)))).rejects.toThrow(/check constraint/);
     await expect(as(owner1, (tx) => tx.query(ins()))).rejects.toThrow();
     await expect(as(anon, (tx) => count(tx, 'public.alert_preferences'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('portfolio limits (ADR 0048): personal, seeded with the council values for the owner only, versioned, checked', async () => {
+    const seed = readFileSync(
+      join(here, '..', 'migrations', '20270108000200_portfolio_limits_seed.sql'),
+      'utf8',
+    );
+    // The seed runs as the database owner after the app owner exists (in this harness the owner is added after
+    // the migrations); it is idempotent, and it all rolls back.
+    let ran = false;
+    await db.transaction(async (tx) => {
+      await tx.exec(seed);
+      await tx.exec(seed);
+      const all = await tx.query<{ owner_id: string }>(
+        'select owner_id from public.portfolio_limits',
+      );
+      expect(all.rows.map((r) => r.owner_id)).toEqual([OWNER]);
+      const set = async (s: Session) => {
+        await tx.exec('reset role');
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [
+          JSON.stringify({ sub: s.sub, aal: s.aal, role: s.role }),
+        ]);
+        await tx.exec(`set local role ${s.role}`);
+      };
+      await set(owner2);
+      const mine = await tx.query<Record<string, unknown>>(
+        'select largest_position::text, top5::text, min_cash::text, portfolio_beta::text, open_risk::text, set_by, set_on::text, version from public.portfolio_limits',
+      );
+      expect(mine.rows).toEqual([
+        {
+          largest_position: '0.2',
+          top5: '0.6',
+          min_cash: '0.1',
+          portfolio_beta: '1.5',
+          open_risk: '0.06',
+          set_by: 'council',
+          set_on: '2026-11-28',
+          version: 1,
+        },
+      ]);
+      // Saving bumps the version; clearing a limit stores null.
+      await tx.query(
+        `update public.portfolio_limits set largest_position = 0.25, min_cash = null, set_by = 'user', set_on = date '2026-11-29'`,
+      );
+      const saved = await tx.query<{ version: number; min_cash: string | null }>(
+        'select version, min_cash::text from public.portfolio_limits',
+      );
+      expect(saved.rows).toEqual([{ version: 2, min_cash: null }]);
+      // A member sees none of it and starts with no row ("No limit set").
+      await set(other2);
+      expect(await count(tx, 'public.portfolio_limits')).toBe(0);
+      ran = true;
+      await tx.rollback();
+    });
+    expect(ran).toBe(true);
+    // A member may store their own limits; nobody can write another person's row or delete one.
+    await as(other2, async (tx) => {
+      await tx.query(`insert into public.portfolio_limits (largest_position) values (0.3)`);
+      expect(await count(tx, 'public.portfolio_limits')).toBe(1);
+    });
+    await expect(
+      as(other2, (tx) =>
+        tx.query(`insert into public.portfolio_limits (owner_id, top5) values ('${OWNER}', 0.5)`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(owner2, async (tx) => {
+        await tx.query(`insert into public.portfolio_limits (top5) values (0.5)`);
+        await tx.query('delete from public.portfolio_limits');
+      }),
+    ).rejects.toThrow(/permission denied/);
+    for (const bad of [
+      'largest_position) values (0',
+      'largest_position) values (1.2',
+      'min_cash) values (1',
+      'portfolio_beta) values (0',
+      'portfolio_beta) values (11',
+      'open_risk) values (-0.01',
+    ])
+      await expect(
+        as(owner2, (tx) => tx.query(`insert into public.portfolio_limits (${bad})`)),
+      ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(`insert into public.portfolio_limits (set_by) values ('marsad')`),
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner1, (tx) => tx.query(`insert into public.portfolio_limits (top5) values (0.5)`)),
+    ).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.portfolio_limits'))).rejects.toThrow(
       /permission denied/,
     );
   });

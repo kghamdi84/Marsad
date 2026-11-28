@@ -655,7 +655,8 @@ export function CompanyBrief({
           title={b.sections.context}
           action={
             <Link
-              to="/regime"
+              to="/markets"
+              search={{ view: 'regime' }}
               className="inline-flex min-h-11 items-center text-[13px] font-medium text-link underline-offset-4 hover:underline"
             >
               {b.regimePage}

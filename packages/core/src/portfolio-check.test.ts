@@ -7,6 +7,7 @@ import {
   LIMITS_SET_ON,
   limitBreaches,
   resolveLimits,
+  parseLimitInput,
   DISTRIBUTION_BUCKETS,
   exitReview,
   forwardIncome,
@@ -472,6 +473,83 @@ describe('portfolioCheck', () => {
     });
   });
 
+  it('stored limits (Settings) win over the role, keep who set them, and a member never gets the council values', () => {
+    const council = resolveLimits({ role: 'owner' });
+    expect(council).toMatchObject({ source: 'council', setOn: LIMITS_SET_ON });
+    // The owner's seeded row: the council's values, labelled as theirs.
+    const seeded = resolveLimits({
+      role: 'owner',
+      stored: {
+        limits: { ...PORTFOLIO_LIMITS },
+        setBy: 'council',
+        setOn: '2026-11-28',
+        version: 1,
+      },
+    });
+    expect(seeded).toEqual({ limits: council.limits, source: 'council', setOn: '2026-11-28' });
+    // Khaled's own edit: one changed, one cleared.
+    const edited = resolveLimits({
+      role: 'owner',
+      stored: {
+        limits: {
+          largestPosition: 0.25,
+          top5: 0.6,
+          minCash: null,
+          portfolioBeta: 1.5,
+          openRisk: 0.06,
+        },
+        setBy: 'user',
+        setOn: '2026-11-29',
+        version: 2,
+      },
+    });
+    expect(edited.source).toBe('user');
+    expect(edited.setOn).toBe('2026-11-29');
+    expect(edited.limits).toEqual({
+      largestPosition: 0.25,
+      top5: 0.6,
+      minCash: null,
+      portfolioBeta: 1.5,
+      openRisk: 0.06,
+    });
+    // A member's own stored limits apply to their book; without a row they have none.
+    expect(resolveLimits({ role: 'member' })).toMatchObject({ source: 'none', setOn: null });
+    const mine = resolveLimits({
+      role: 'member',
+      stored: {
+        limits: {
+          largestPosition: 0.3,
+          top5: null,
+          minCash: null,
+          portfolioBeta: null,
+          openRisk: null,
+        },
+        setBy: 'user',
+        setOn: '2026-12-01',
+        version: 1,
+      },
+    });
+    expect(mine.limits.largestPosition).toBe(0.3);
+    expect(mine.limits.top5).toBeNull();
+  });
+
+  it('reads a typed limit: percents as fractions, beta as a number, blank clears, out of range refused', () => {
+    expect(parseLimitInput('largestPosition', '20')).toEqual({ value: 0.2 });
+    expect(parseLimitInput('top5', ' 60% ')).toEqual({ value: 0.6 });
+    expect(parseLimitInput('openRisk', '6')).toEqual({ value: 0.06 });
+    expect(parseLimitInput('portfolioBeta', '1.5')).toEqual({ value: 1.5 });
+    expect(parseLimitInput('minCash', '0')).toEqual({ value: 0 });
+    expect(parseLimitInput('minCash', '')).toEqual({ value: null });
+    expect(parseLimitInput('largestPosition', '0')).toEqual({ error: 'range' });
+    expect(parseLimitInput('largestPosition', '100')).toEqual({ value: 1 });
+    expect(parseLimitInput('largestPosition', '101')).toEqual({ error: 'range' });
+    expect(parseLimitInput('minCash', '100')).toEqual({ error: 'range' });
+    expect(parseLimitInput('portfolioBeta', '0')).toEqual({ error: 'range' });
+    expect(parseLimitInput('portfolioBeta', '10.5')).toEqual({ error: 'range' });
+    expect(parseLimitInput('top5', 'abc')).toEqual({ error: 'number' });
+    expect(parseLimitInput('top5', '-5')).toEqual({ error: 'number' });
+  });
+
   it('writes the narrative from the numbers, with no instruction words', () => {
     const text = checkNarrative(c);
     expect(text).toBe(
@@ -785,6 +863,8 @@ describe('exitReview', () => {
     // Equity 200 + 200 + 200 = 600 (cash not tracked).
     expect(r.equity).toBe(600);
     expect(a.stopGap).toBeCloseTo(20 / 18 - 1, 9);
+    // Fall to stop: (20 - 18) / 20 = 10.0%, the figure the Review shows.
+    expect(a.stopFall).toBeCloseTo(0.1, 9);
     expect(a.atr).toBeCloseTo(2, 9);
     expect(a.stopAtrs).toBeCloseTo(1, 9);
     expect(a.riskUsd).toBe(20);
@@ -799,6 +879,8 @@ describe('exitReview', () => {
     // Closed under the stop: nothing left to lose to it, and the sizer cannot size a stop above the close.
     expect(c.riskUsd).toBe(0);
     expect(c.stopGap).toBeCloseTo(20 / 25 - 1, 9);
+    // Under the stop: (20 - 25) / 20 = -25.0%.
+    expect(c.stopFall).toBeCloseTo(-0.25, 9);
     expect(c.sizer).toEqual({ error: 'For a long trade the stop must be below the entry.' });
     expect(r.rows.find((x) => x.ticker === 'B')?.riskUsd).toBeNull();
   });

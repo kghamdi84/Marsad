@@ -69,6 +69,17 @@ export function gapToStop(price: number, stop: number): number | null {
   return price / stop - 1;
 }
 
+/**
+ * How far the price must fall to reach the stop, as a fraction of the price: (price - stop) / price. This is the
+ * loss per share at the stop relative to today's value, so it is the figure for "x% below the close". Positive when
+ * the stop is below the price, negative when the price is already through it. `gapToStop` is the same gap measured
+ * from the stop (price / stop - 1) and reads higher; label each for what it measures.
+ */
+export function fallToStop(price: number, stop: number): number | null {
+  if (!(price > 0) || !(stop > 0) || !Number.isFinite(price) || !Number.isFinite(stop)) return null;
+  return (price - stop) / price;
+}
+
 export interface TicketInput {
   side: 'BUY' | 'SELL';
   shares: number;
@@ -114,9 +125,20 @@ export const CHECKLIST_V2 = [
   { key: 'manualInSahm', label: 'Order will be entered by hand in Sahm' },
 ] as const;
 
-export type ChecklistVersion = 'checklist-1' | 'checklist-2';
+/**
+ * checklist-3 (ADR 0048 round 2, decided by the council at Khaled's request on 2026-11-28): checklist-2's five
+ * checks plus checklist-1's `riskDefined` and `profitPlan`, worded exactly as in checklist-1. For new trades and the
+ * Sahm ticket; trades already logged keep the version they answered.
+ */
+export const CHECKLIST_V3 = [
+  ...CHECKLIST_V2,
+  CHECKLIST[2], // riskDefined
+  CHECKLIST[3], // profitPlan
+] as const;
+
+export type ChecklistVersion = 'checklist-1' | 'checklist-2' | 'checklist-3';
 /** The version new trades and the ticket use. */
-export const CURRENT_CHECKLIST: ChecklistVersion = 'checklist-2';
+export const CURRENT_CHECKLIST: ChecklistVersion = 'checklist-3';
 
 export type ChecklistKey = (typeof CHECKLIST)[number]['key'] | (typeof CHECKLIST_V2)[number]['key'];
 
@@ -124,9 +146,34 @@ export type ChecklistKey = (typeof CHECKLIST)[number]['key'] | (typeof CHECKLIST
 export function checklistItems(
   version: ChecklistVersion | undefined,
 ): readonly { key: ChecklistKey; label: string }[] {
-  // Anything but an explicit checklist-2 is checklist-1: rows and stored review inputs from before the version
-  // existed carry no version and answered checklist-1.
-  return version === 'checklist-2' ? CHECKLIST_V2 : CHECKLIST;
+  // Anything but an explicit checklist-2 or checklist-3 is checklist-1: rows and stored review inputs from before
+  // the version existed carry no version and answered checklist-1.
+  if (version === 'checklist-3') return CHECKLIST_V3;
+  if (version === 'checklist-2') return CHECKLIST_V2;
+  return CHECKLIST;
+}
+
+/** A stored `checklist_version` read back; anything unknown or missing answered checklist-1. */
+export function checklistVersionOf(raw: unknown): ChecklistVersion {
+  return raw === 'checklist-2' || raw === 'checklist-3' ? raw : 'checklist-1';
+}
+
+/** Why "Risk defined" cannot be ticked yet, or null when it can. */
+export type RiskDefinedBlock = 'no-stop' | 'no-size' | 'over-size';
+
+/**
+ * checklist-3's rule for the Sahm ticket: "Risk defined" can be ticked only when a stop is entered and the
+ * ticket's shares are at or below what the sizer allows for that stop. `sizerShares` is the sizer's result (null
+ * when it could not size the trade); `ticketShares` is what the ticket would buy.
+ */
+export function riskDefinedBlock(x: {
+  stop: number | null;
+  sizerShares: number | null;
+  ticketShares: number | null;
+}): RiskDefinedBlock | null {
+  if (x.stop === null || !(x.stop > 0)) return 'no-stop';
+  if (x.sizerShares === null || x.ticketShares === null || !(x.ticketShares > 0)) return 'no-size';
+  return x.ticketShares <= x.sizerShares ? null : 'over-size';
 }
 
 /** Every item of the version must be ticked before the ticket can be copied. */
@@ -150,6 +197,10 @@ export interface Holding {
   /** Sell after this many sessions without reaching a target. */
   timeStopSessions: number | null;
 }
+
+/** Whether a holding has any exit rule: a stop, a target, a trend break or a time stop. */
+export const hasExitRules = (h: Holding): boolean =>
+  h.stop !== null || h.targets.length > 0 || h.trendBreak !== null || !!h.timeStopSessions;
 
 /** Sessions traded since the position was opened (bars after the opening date), as the time stop counts them. */
 export function sessionsHeld(bars: readonly { date: string }[], openedOn: string): number {

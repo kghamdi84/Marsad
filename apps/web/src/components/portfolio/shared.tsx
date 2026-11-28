@@ -6,6 +6,7 @@
  */
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
   SECTOR_ETFS,
   beta,
@@ -26,6 +27,7 @@ import {
 import { Pill } from '../ui/kit';
 import { loadHoldings, type BarsByTicker, type StoredHolding } from '../../lib/journal';
 import { loadLimitsRole, loadPortfolioData, type PortfolioData } from '../../lib/portfolio';
+import { loadPortfolioLimits } from '../../lib/settings';
 import { loadCalendar } from '../../lib/watch';
 import { dayMonth, dayMonthYear } from '../../lib/dates';
 import { t } from '../../strings';
@@ -98,14 +100,16 @@ export function lotsOf(
 export const bookOf = (x: Portfolio) => bookPositions(lotsOf(x.holdings, x.bars, x.data));
 
 /**
- * The limits that apply to the signed-in person (council values for the owner, none for a member). When the role
- * check fails, it falls back to "No limit set" rather than waiting forever: the facts still show, and no limit is
+ * The limits that apply to the signed-in person: their stored row from Settings (`portfolio_limits`; the owner's
+ * is seeded with the council's values), else the council's values for the owner and none for a member. When a
+ * read fails it falls back to "No limit set" rather than waiting forever: the facts still show, and no limit is
  * assumed.
  */
 export function useLimits() {
   const q = useQuery({ queryKey: ['limits-role'], queryFn: loadLimitsRole });
-  if (q.data) return resolveLimits({ role: q.data });
-  if (q.isError) return resolveLimits({ role: 'member' });
+  const stored = useQuery({ queryKey: ['portfolio-limits'], queryFn: loadPortfolioLimits });
+  if (q.isError || stored.isError) return resolveLimits({ role: 'member' });
+  if (q.data && stored.isSuccess) return resolveLimits({ role: q.data, stored: stored.data });
   return null;
 }
 export type Limits = NonNullable<ReturnType<typeof useLimits>>;
@@ -200,7 +204,18 @@ export function LimitsList({ check, limits }: { check: PortfolioCheck; limits: L
           )}
         </p>
       )}
-      <p className="text-xs text-ink3">{p.limits.source[limits.source]}</p>
+      <p className="text-xs text-ink3">
+        {limits.source === 'user' && limits.setOn
+          ? p.limits.setByYou(dayMonthYear(limits.setOn))
+          : p.limits.source[limits.source]}{' '}
+        <Link
+          to="/settings"
+          search={{ view: 'prefs' }}
+          className="inline-flex min-h-11 items-center text-link underline-offset-4 hover:underline"
+        >
+          {p.limits.edit}
+        </Link>
+      </p>
     </div>
   );
 }

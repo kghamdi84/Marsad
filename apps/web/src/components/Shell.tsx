@@ -6,6 +6,7 @@ import {
   Activity,
   Bell,
   BookOpen,
+  BriefcaseBusiness,
   ChartCandlestick,
   ChevronRight,
   Ellipsis,
@@ -34,28 +35,59 @@ import { Sheet } from './Sheet';
 
 const s = t.shell;
 
-type NavKey = 'watch' | 'study' | 'regime' | 'alerts' | 'journal' | 'lab' | 'status' | 'settings';
+type NavKey =
+  | 'watch'
+  | 'study'
+  | 'markets'
+  | 'portfolio'
+  | 'alerts'
+  | 'journal'
+  | 'lab'
+  | 'status'
+  | 'settings';
 
 interface Tab {
-  to: '/' | '/study' | '/regime' | '/alerts' | '/journal' | '/lab' | '/status' | '/settings';
+  to:
+    | '/'
+    | '/study'
+    | '/markets'
+    | '/portfolio'
+    | '/alerts'
+    | '/journal'
+    | '/lab'
+    | '/status'
+    | '/settings';
   nav: NavKey;
   icon: LucideIcon;
   key: string;
 }
 
-/** The five tabs of the phone tab bar, in order; the top bar adds Lab and Status. */
-const tabs: Tab[] = [
-  { to: '/', nav: 'watch', icon: Eye, key: '1' },
-  { to: '/study', nav: 'study', icon: ChartCandlestick, key: '2' },
-  { to: '/regime', nav: 'regime', icon: Gauge, key: '3' },
-  { to: '/alerts', nav: 'alerts', icon: Bell, key: '4' },
-  { to: '/journal', nav: 'journal', icon: BookOpen, key: '5' },
-];
-const moreTabs: Tab[] = [
-  { to: '/lab', nav: 'lab', icon: FlaskConical, key: '6' },
-  { to: '/status', nav: 'status', icon: Activity, key: 's' },
-  { to: '/settings', nav: 'settings', icon: SettingsIcon, key: '' },
-];
+const TAB: Record<NavKey, Tab> = {
+  watch: { to: '/', nav: 'watch', icon: Eye, key: '1' },
+  markets: { to: '/markets', nav: 'markets', icon: Gauge, key: '2' },
+  study: { to: '/study', nav: 'study', icon: ChartCandlestick, key: '3' },
+  portfolio: { to: '/portfolio', nav: 'portfolio', icon: BriefcaseBusiness, key: '4' },
+  journal: { to: '/journal', nav: 'journal', icon: BookOpen, key: '5' },
+  alerts: { to: '/alerts', nav: 'alerts', icon: Bell, key: '6' },
+  lab: { to: '/lab', nav: 'lab', icon: FlaskConical, key: '7' },
+  status: { to: '/status', nav: 'status', icon: Activity, key: '8' },
+  settings: { to: '/settings', nav: 'settings', icon: SettingsIcon, key: '9' },
+};
+
+/**
+ * ADR 0048 navigation. Desktop and iPad: every page in this order, with Settings as a gear at the end; the number
+ * keys follow it (1 Watch to 9 Settings, and S still opens Status). Phone: five tabs, with the rest under More.
+ */
+const topTabs: Tab[] = (
+  ['watch', 'markets', 'study', 'portfolio', 'journal', 'alerts', 'lab', 'status'] as const
+).map((k) => TAB[k]);
+const tabs: Tab[] = (['watch', 'study', 'portfolio', 'markets', 'alerts'] as const).map(
+  (k) => TAB[k],
+);
+const moreTabs: Tab[] = (['journal', 'lab', 'status', 'settings'] as const).map((k) => TAB[k]);
+const allTabs = Object.values(TAB);
+/** Letter shortcuts kept from before the reorder. */
+const ALIASES: Record<string, Tab['to']> = { s: '/status' };
 
 function useNumberShortcuts() {
   const navigate = useNavigate();
@@ -65,8 +97,8 @@ function useNumberShortcuts() {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)))
         return;
-      const tab = [...tabs, ...moreTabs].find((x) => x.key && x.key === e.key);
-      if (tab) void navigate({ to: tab.to });
+      const to = allTabs.find((x) => x.key === e.key)?.to ?? ALIASES[e.key];
+      if (to) void navigate({ to });
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -217,18 +249,23 @@ function usePullToRefresh(onRefresh: () => Promise<unknown>) {
   return { phase, text };
 }
 
-function TopTab({ tab, label }: { tab: Tab; label: string }) {
+function TopTab({ tab, label, icon = false }: { tab: Tab; label: string; icon?: boolean }) {
+  const Icon = tab.icon;
   return (
     <Link
       to={tab.to}
       activeOptions={{ exact: tab.to === '/' }}
-      className="flex min-h-10 items-center rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap text-ink3 hover:text-ink"
+      aria-label={icon ? label : undefined}
+      title={icon ? label : undefined}
+      className={`flex min-h-10 items-center justify-center rounded-lg text-[13px] font-semibold whitespace-nowrap text-ink3 hover:text-ink pointer-coarse:min-h-11 ${
+        icon ? 'min-w-10 pointer-coarse:min-w-11' : 'px-3'
+      }`}
       activeProps={{
         className: 'bg-accent text-accent-ink! hover:text-accent-ink!',
         'aria-current': 'page',
       }}
     >
-      {label}
+      {icon ? <Icon aria-hidden="true" size={18} /> : label}
     </Link>
   );
 }
@@ -384,7 +421,7 @@ export function Shell() {
   const pull = usePullToRefresh(() => qc.refetchQueries({ type: 'active' }));
   const [sheet, setSheet] = useState<'none' | 'more' | 'market'>('none');
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const current = [...tabs, ...moreTabs].find((x) =>
+  const current = allTabs.find((x) =>
     x.to === '/' ? pathname === '/' : pathname.startsWith(x.to),
   );
   const moreActive = moreTabs.some((x) => pathname.startsWith(x.to));
@@ -403,9 +440,10 @@ export function Shell() {
             aria-label={text.nav.primary}
             className="flex max-w-full gap-0.5 overflow-x-auto [scrollbar-width:none]"
           >
-            {[...tabs, ...moreTabs].map((tab) => (
+            {topTabs.map((tab) => (
               <TopTab key={tab.to} tab={tab} label={text.nav[tab.nav]} />
             ))}
+            <TopTab tab={TAB.settings} label={text.nav.settings} icon />
           </nav>
           <button
             type="button"
@@ -490,7 +528,7 @@ export function Shell() {
         </span>
       </footer>
 
-      {/* Phone: the bottom tab bar, with Lab, Status and Sign out under More. */}
+      {/* Phone: the bottom tab bar, with Journal, Lab, Status, Settings and Sign out under More. */}
       <nav
         aria-label={text.nav.primary}
         className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 border-t border-faint/30 bg-surface pb-[env(safe-area-inset-bottom)] tablet:hidden"
@@ -502,7 +540,7 @@ export function Shell() {
               key={tab.to}
               to={tab.to}
               activeOptions={{ exact: tab.to === '/' }}
-              className="group flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] text-muted"
+              className="group flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 text-[0.6875rem] text-muted"
               activeProps={{ className: 'text-up! font-semibold', 'aria-current': 'page' }}
             >
               <Icon aria-hidden="true" size={24} strokeWidth={1.75} />
@@ -515,7 +553,7 @@ export function Shell() {
           aria-haspopup="dialog"
           aria-expanded={sheet === 'more'}
           onClick={() => setSheet('more')}
-          className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] ${
+          className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 text-[0.6875rem] ${
             moreActive ? 'font-semibold text-up' : 'text-muted'
           }`}
         >
@@ -546,7 +584,7 @@ export function Shell() {
           now={now}
           health={health}
         />
-        <SheetLink tab={moreTabs[1] as Tab} label={s.openStatus} onClick={() => setSheet('none')} />
+        <SheetLink tab={TAB.status} label={s.openStatus} onClick={() => setSheet('none')} />
       </Sheet>
     </div>
   );

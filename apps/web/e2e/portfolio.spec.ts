@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { validateAnalyst, validateCalendar, validateProfile } from '@marsad/core';
 import aapl from '../../../fixtures/tauric/research-AAPL-2026-11-28.json' with { type: 'json' };
-import { openTab, scanAfterEach, seedSession } from './helpers';
+import { scanAfterEach, seedSession } from './helpers';
 
 scanAfterEach();
 
@@ -177,9 +177,9 @@ async function stub(page: Page) {
   );
 }
 
+/** Opens the Portfolio page (ADR 0048: its own page now) and taps one view on its switch. */
 async function openPortfolio(page: Page, view: string) {
-  await page.goto('/journal');
-  await openTab(page, 'Portfolio');
+  await page.goto('/portfolio');
   await page
     .getByRole('group', { name: 'Portfolio view' })
     .getByRole('button', { name: view })
@@ -225,6 +225,16 @@ test('portfolio review: open risk with risk unknown, the council limits, holding
     'The sizer allows 9 shares at today’s close and stop; you hold 100.',
   );
   await expect(rklb).toContainText('$700');
+  // Fall to stop, (close - stop) / close as the earnings-guard alert states it: (29 - 22) / 29 = 24.1%.
+  await expect(rklb.getByText('Fall to stop', { exact: true }).locator('..')).toContainText(
+    '24.1% to 22.00',
+  );
+  await expect(card).toContainText('Fall to stop: How far the close must fall to reach the stop.');
+  // "Size a trade" opens Journal's sizer with the ticker filled in (ADR 0048).
+  await expect(rklb.getByRole('link', { name: 'Size a trade in RKLB' })).toHaveAttribute(
+    'href',
+    '/journal?view=sizer&ticker=RKLB',
+  );
   // Weekly moves: RKLB 26.40 to 29.00 over five sessions.
   await card
     .getByRole('group', { name: 'Review section' })
@@ -238,6 +248,48 @@ test('portfolio review: open risk with risk unknown, the council limits, holding
     .click();
   await expect(card).toContainText('Ex-dividend');
   await expect(card).toContainText('0.52 a share');
+});
+
+test('portfolio review: limits saved in Settings replace the council values and say who set them', async ({
+  page,
+}) => {
+  await stub(page);
+  // Khaled's own row (Settings): largest position raised to 50%, the top-5 limit cleared.
+  await page.route('**/rest/v1/portfolio_limits**', (r) =>
+    r.fulfill(
+      json([
+        {
+          largest_position: 0.5,
+          top5: null,
+          min_cash: '0.1',
+          portfolio_beta: '1.5',
+          open_risk: 0.06,
+          set_by: 'user',
+          set_on: '2026-11-29',
+          version: 2,
+        },
+      ]),
+    ),
+  );
+  await openPortfolio(page, 'Review');
+  const card = page.getByRole('region', { name: 'Review', exact: true });
+  const limits = card.getByRole('list', { name: 'Your limits against the book' });
+  // KO at 46.7% of equity is inside a 50% limit; the cleared top-5 limit reads "No limit set".
+  await expect(limits.getByRole('listitem').filter({ hasText: 'Largest position' })).toContainText(
+    'limit 50.0%',
+  );
+  await expect(limits.getByRole('listitem').filter({ hasText: 'Top 5 positions' })).toContainText(
+    'No limit set',
+  );
+  const breaches = card.getByRole('list', { name: 'Breaches' });
+  await expect(breaches).not.toContainText('Largest position');
+  await expect(breaches).not.toContainText('Top 5 positions');
+  await expect(card).toContainText('Set by you on 29 Nov 2026; change any time');
+  await expect(card).not.toContainText('Set by the council');
+  await expect(card.getByRole('link', { name: 'Change them in Settings' })).toHaveAttribute(
+    'href',
+    '/settings?view=prefs',
+  );
 });
 
 test('portfolio holdings: summary, the chart label, five column sets and no analyst column', async ({

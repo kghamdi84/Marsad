@@ -1,29 +1,22 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { seriesDifference } from '@marsad/core';
-import { Info } from '../components/Info';
-import { Segmented, SkeletonCards, cardClass, useRemembered } from '../components/Card';
-import { AutoGrid, PageTitle } from '../components/ui/kit';
-import { Breadth } from '../components/regime/Breadth';
-import { Capitulation } from '../components/regime/Capitulation';
-import { EventStudy } from '../components/regime/EventStudy';
-import { FearGreed } from '../components/regime/FearGreed';
-import { Geopolitics } from '../components/regime/Geopolitics';
-import { Hero } from '../components/regime/Hero';
-import { MeasuresCard } from '../components/regime/Measures';
-import { QualityScreen } from '../components/regime/QualityScreen';
-import { Recession } from '../components/regime/Recession';
-import { Rotation } from '../components/regime/Rotation';
-import {
-  AREA_ID,
-  CONTEXT_VIEWS,
-  HEADING_ID,
-  RISK_VIEWS,
-  WHY_ID,
-  type Target,
-} from '../components/regime/areas';
-import { loadRegime, type RegimeData } from '../lib/regime';
-import { t } from '../strings';
+import { Info } from '../Info';
+import { Segmented, SkeletonCards, cardClass, useRemembered } from '../Card';
+import { AutoGrid } from '../ui/kit';
+import { Breadth } from './Breadth';
+import { Capitulation } from './Capitulation';
+import { EventStudy } from './EventStudy';
+import { FearGreed } from './FearGreed';
+import { Geopolitics } from './Geopolitics';
+import { Hero } from './Hero';
+import { MeasuresCard } from './Measures';
+import { QualityScreen } from './QualityScreen';
+import { Recession } from './Recession';
+import { Rotation } from './Rotation';
+import { AREA_ID, CONTEXT_VIEWS, HEADING_ID, RISK_VIEWS, WHY_ID, type Target } from './areas';
+import { loadRegime, type RegimeData } from '../../lib/regime';
+import { t } from '../../strings';
 
 const r = t.regime;
 const sw = r.ui.switch;
@@ -118,13 +111,13 @@ function Area<K extends string>({
 }
 
 /**
- * Market regime (Marsad v2, squeezed): one summary card first (the label and its run, the recession filter, Fear
+ * The Markets page's regime view (ADR 0048; it was the Regime page). Market regime (Marsad v2, squeezed): one summary card first (the label and its run, the recession filter, Fear
  * and Greed, the capitulation watch, the leading and lagging sector, GPR and EPU), with the past-year ribbon and
  * "Why this label"; then two switchable areas. Risk gauges: the recession filter, Fear and Greed, the capitulation
  * watch with its plan, and breadth. Context: what the S&P did next, sector rotation, geopolitics, the quality
  * screen and the measures behind them. Nothing is dropped; each view is one tap away and the choice is remembered.
  */
-export function Regime() {
+export function RegimeView() {
   const q = useQuery({ queryKey: ['regime'], queryFn: loadRegime });
   const [risk, setRisk] = useRemembered('marsad.regime.risk', RISK_VIEWS, 'recession');
   const [context, setContext] = useRemembered('marsad.regime.context', CONTEXT_VIEWS, 'study');
@@ -148,10 +141,7 @@ export function Regime() {
   const d = q.data;
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <PageTitle page="regime" />
-        <Info>{r.intro}</Info>
-      </div>
+      <Info>{r.intro}</Info>
       {q.isPending && <SkeletonCards />}
       {q.isError && (
         <p role="alert" className="text-down">

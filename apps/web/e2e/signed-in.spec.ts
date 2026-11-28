@@ -87,9 +87,9 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await expect(page.getByText(/ET/).first()).toBeVisible();
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/status.png` });
 
-  await page.getByRole('link', { name: 'Regime' }).click();
-  await expect(page.getByRole('heading', { name: 'Regime' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Regime' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('link', { name: 'Markets' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Markets' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Markets' })).toHaveAttribute('aria-current', 'page');
 });
 
 test('status: a summary first; healthy sources are one short row, stale ones show their note in full', async ({
@@ -346,7 +346,7 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
     .click();
   await page
     .getByRole('group', { name: 'Settings sections' })
-    .getByRole('button', { name: 'Shariah and AI caps' })
+    .getByRole('button', { name: 'Limits, Shariah and AI caps' })
     .click();
   const form = page.getByRole('form', { name: 'Shariah screening aid' });
   const toggle = form.getByRole('switch', { name: 'Shariah screening aid' });
@@ -362,7 +362,7 @@ test('preferences: the Shariah aid is off until switched on; limits are saved as
   await expect(form).toBeHidden();
   await page
     .getByRole('group', { name: 'Settings sections' })
-    .getByRole('button', { name: 'Shariah and AI caps' })
+    .getByRole('button', { name: 'Limits, Shariah and AI caps' })
     .click();
   await expect(form.getByLabel('Debt limit (%)')).toHaveValue('30');
   await form.getByRole('button', { name: 'Save preferences' }).click();
@@ -441,7 +441,7 @@ test('costs: every plan at USD 0, AI off until caps are set, then spend against 
     .click();
   await page
     .getByRole('group', { name: 'Settings sections' })
-    .getByRole('button', { name: 'Shariah and AI caps' })
+    .getByRole('button', { name: 'Limits, Shariah and AI caps' })
     .click();
   // A settings row without stored limits falls back to the defaults, never "NaN".
   const prefs = page.getByRole('form', { name: 'Shariah screening aid' });

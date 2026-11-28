@@ -10,7 +10,8 @@ import { NewsCard } from '../components/watch/NewsCard';
 import { CalendarCard } from '../components/watch/CalendarCard';
 import { DividendCalendar } from '../components/watch/DividendCalendar';
 import { GapsCard, SectorsCard } from '../components/watch/Market';
-import { MarketMovers } from '../components/watch/Movers';
+import { UniverseMoversCard } from '../components/watch/Movers';
+import { SeeAll } from '../components/markets/SeeAll';
 import { Failure, useNow, v } from '../components/watch/shared';
 import { loadHoldings } from '../lib/journal';
 import { weekdayDayMonth } from '../lib/dates';
@@ -27,6 +28,8 @@ const MARKET_TABS = ['sectors', 'movers', 'gaps'] as const;
  * Watch (Marsad v2, squeezed): one Today card (regime, movers, today's events, exit rules, the brief one tap away),
  * the market strip, the watchlist, then two switchable cards: news or calendar, and sectors, movers or gaps. Nothing
  * is dropped; each view is one tap away and the choice is remembered. End-of-day data, each number with its date.
+ * The calendar, sectors and movers cards end in a "See all" link into Markets (ADR 0048); Watch's movers are the
+ * Marsad universe's, and the whole market is on Markets.
  */
 export function Watch() {
   const now = useNow();
@@ -105,17 +108,21 @@ export function Watch() {
             />
           )
         ) : feed === 'dividends' ? (
-          <DividendCalendar
-            tickers={companyTickers}
-            bars={{ ...(wq.data?.bars ?? {}), ...(hq.data?.bars ?? {}) }}
-            names={co.data?.names ?? {}}
-            now={now}
-          />
+          <>
+            <DividendCalendar
+              tickers={companyTickers}
+              bars={{ ...(wq.data?.bars ?? {}), ...(hq.data?.bars ?? {}) }}
+              names={co.data?.names ?? {}}
+              now={now}
+            />
+            <SeeAll view="calendar" />
+          </>
         ) : (
           <>
             {cal.isPending && <SkeletonCards heights={['14rem']} />}
             {cal.isError && <Failure message={cal.error.message} />}
             {cal.data && <CalendarCard data={cal.data} now={now} />}
+            <SeeAll view="calendar" />
           </>
         )}
       </div>
@@ -127,8 +134,18 @@ export function Watch() {
             value={market}
             onChange={setMarket}
           />
-          {market === 'sectors' && <SectorsCard data={wq.data} />}
-          {market === 'movers' && <MarketMovers />}
+          {market === 'sectors' && (
+            <>
+              <SectorsCard data={wq.data} />
+              <SeeAll view="sectors" />
+            </>
+          )}
+          {market === 'movers' && (
+            <>
+              <UniverseMoversCard movers={wq.data.movers} />
+              <SeeAll view="movers" />
+            </>
+          )}
           {market === 'gaps' && <GapsCard data={wq.data} />}
         </div>
       )}

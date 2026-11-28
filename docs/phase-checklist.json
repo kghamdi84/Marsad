@@ -83,7 +83,7 @@
           "id": "0.12",
           "title": "Authenticated app shell with bottom tab bar, ET and local clock, keyboard shortcuts",
           "status": "done",
-          "evidence": "apps/web/src/components/Shell.tsx; e2e signed-in.spec.ts"
+          "evidence": "apps/web/src/components/Shell.tsx; e2e signed-in.spec.ts. ADR 0048 navigation (2026-11-28): desktop and iPad Watch, Markets, Study, Portfolio, Journal, Alerts, Lab, Status with a Settings gear, number keys 1 to 9 in that order (S still opens Status); phone bar Watch, Study, Portfolio, Markets, Alerts with Journal, Lab, Status, Settings and Sign out under More; every switchable view has a ?view= URL. e2e nav.spec.ts (order, shortcuts, 390 and 320 points, 44-point targets, Arabic labels) and views.spec.ts (every page and view URL on desktop and iPad)."
         },
         {
           "id": "0.13",
@@ -691,7 +691,7 @@
           "id": "7.4",
           "title": "Pre-trade checklist, position sizer and Sahm order ticket",
           "status": "done",
-          "evidence": "Pre-trade checklist (five Jimmy D items) and position sizer (risk budget over stop distance, 25% position cap, reward-to-risk per target) with the Sahm ticket in the brief's exact format; the copy button stays disabled until the checklist is complete (browser test)."
+          "evidence": "Pre-trade checklist (five Jimmy D items) and position sizer (risk budget over stop distance, 25% position cap, reward-to-risk per target) with the Sahm ticket in the brief's exact format; the copy button stays disabled until the checklist is complete (browser test). checklist-3 (ADR 0048 round 2, 2026-11-28): checklist-2 plus checklist-1's riskDefined and profitPlan for new trades; riskDefined can be ticked only with a stop and ticket shares at or below the sizer's result (core riskDefinedBlock known-answer tests; older versions pinned unchanged; e2e blocked then enabled); trades.checklist_version allows checklist-3 (migration 20270108000000, RLS test)."
         },
         {
           "id": "7.5",
