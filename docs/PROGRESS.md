@@ -15,8 +15,8 @@ Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs,
 - **Study**: "Recently viewed" (last 8 tickers, this device only, storage guarded) above the search; "Size a trade" on Study's header and each Portfolio review row opens `/journal?view=sizer&ticker=XYZ` with the ticker filled in.
 - **checklist-3** (ADR 0048 round 2): checklist-2's five checks plus checklist-1's "Risk is defined" and "There is a profit plan", for new trades; old trades keep their version. "Risk defined" can be ticked only with a stop and the ticket's shares (new optional field) at or below the sizer's result; it says why when locked and clears when the sizing changes. Migration `20270108000000` widens the version check (the column default stays `checklist-1`).
 - **Portfolio limits in Settings** (Settings, "Limits, Shariah and AI caps"): table `portfolio_limits` (`20270108000100`, personal, MFA rule, no anon, no delete, versioned) seeded for the app owner with the council's values (`20270108000200`: 20%, 60%, 10%, beta 1.5, 6%, "Set by the council at your request on 28 Nov 2026"); members start with "No limit set". Portfolio reads the stored row and says who set it, with a link to change it.
-- Bundle: main `index` chunk 349.6 KB before, see the commit report for after; Portfolio and Markets are their own lazy chunks.
-- Checks: tsc (web, core, jobs), ESLint, Prettier, unit and database tests and the full Playwright suite on desktop and iPad (counts in the report). Not run live: needs the three migrations applied.
+- Bundle: main `index` chunk 349.6 KB before, 329.1 KB after (98.4 KB gzip; the whole-market movers moved into the Markets chunk). Portfolio (79.6 KB) and Markets (51.7 KB) are lazy chunks; Journal fell from 99.3 KB to 20.3 KB.
+- Checks: tsc (web, core, jobs), ESLint, Prettier, 1,360 unit tests, 61 database tests, Playwright 297 passed and 15 skipped (desktop and iPad). Not run live: needs the three migrations (`20270108000000` to `20270108000200`) applied.
 
 ### Earnings guard, job side (2026-11-28, ADR 0052, batch 5 of ADR 0048)
 

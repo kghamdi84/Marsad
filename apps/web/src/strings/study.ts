@@ -353,7 +353,7 @@ export const study = {
       earnings: 'results filings',
     } as Record<string, string>,
     open: (where: string) => `Open ${where}`,
-    regimePage: 'Open the Regime page',
+    regimePage: 'Open the regime on Markets',
     sections: {
       company: 'Company',
       performance: 'Performance',
