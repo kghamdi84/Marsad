@@ -712,6 +712,9 @@ test('quarterly risk factors: two real Rocket Lab 10-Qs, the newest as filed and
     return json(r, rows);
   });
   await page.goto('/study/NVDA');
+  // The brief mounts on Overview only once the study data loads, and reads the flag then. Leaving Overview
+  // earlier would unmount it before the read, so wait for that read before switching tabs.
+  await expect.poll(() => flagReads).toBe(1);
   await page.getByRole('tab', { name: 'Filings', exact: true }).click();
   // Year on year shows first; quarter on quarter is the other half of the toggle (v2).
   await page.getByRole('button', { name: 'Quarter on quarter (10-Q)' }).click();
