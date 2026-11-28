@@ -34,6 +34,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          # Massive Stocks Starter has no call limit (2026-11-28); the job default is the free 5 a minute.
+          MASSIVE_CALLS_PER_MINUTE: 60
       - name: Recompute the Fear and Greed composite and the capitulation watch
         if: ${{ !cancelled() }}
         run: pnpm --filter @marsad/jobs sentiment
