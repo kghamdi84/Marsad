@@ -4,6 +4,13 @@
 
 Last updated 2026-11-28 (company research data layer).
 
+### Council verdict on the TipRanks features (2026-11-28, ADR 0048)
+
+- Six-member council (trader, investor, information architect, integrity and cost auditor, architect, risk coach). Khaled adopted the verdict as the plan.
+- New pages: Portfolio (`/portfolio`, opens on a Review of exits, stops and open risk) and Markets (`/markets`, replaces Regime and adds whole-market movers and the calendar). Study regroups into ten views. Every view gets a `?view=` URL.
+- Cut: health score, crowd insights, buy/sell gauges, headline upside, analyst column on holdings, FAQ, call summaries, after-hours. Paid add-ons: none.
+- Build order: in-flight work into PR #83, strings split, `ticker_daily_summary`, navigation, consumers, portfolio limits and earnings guard, then later items in IDEAS.md.
+
 ### Company research data from Tauric (2026-11-28, ADR 0047)
 
 - New table `company_research`: per ticker, Tauric's analyst consensus (rating counts, 12-month targets, EPS), company profile (classification, valuation, margins, ownership, description), the Tauric AI thesis (narrative, drivers, risks, catalysts, open questions) and the earnings and dividend calendar (next earnings date with one EPS and revenue estimate, latest ex-date). Members read it; nobody writes it from the app.

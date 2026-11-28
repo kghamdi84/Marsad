@@ -33,3 +33,11 @@ Captured during work so they are not built early.
 
 - Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.
 - AI topic tagging for the geopolitical panel (topics-2) once the Anthropic key and caps exist; the keyword rules stay as the fallback.
+
+## From the council verdict (ADR 0048, 2026-11-28)
+
+- Compare page (`/compare?t=SCHD,NVDA`): side-by-side fundamentals, dividend history, dilution and valuation bands.
+- Screener on `ticker_daily_summary` (needs batch 2 of ADR 0048), with movers rows linking into it.
+- Valuation against the company's own 5-year history (P/E, EV/FCF, FCF yield bands) from SEC facts and stored closes.
+- Time-weighted portfolio result from trades and cash flows (replaces "current holdings at today's weights").
+- Chart patterns, only with a reference implementation to test against.
