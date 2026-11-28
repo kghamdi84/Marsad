@@ -93,7 +93,14 @@ export async function runPushJob(deps: PushJobDeps): Promise<JobRunRecord> {
     async () => {
       const at = now();
       const pending = deps.test ? [] : await store.getPendingPush();
-      if (!deps.test && pending.length === 0) return { rows: 0, details: { pending: 0 } };
+      if (!deps.test && pending.length === 0)
+        return sender === null || secretPublicKey === null
+          ? {
+              rows: 0,
+              skipped: 'not-configured (VAPID_PRIVATE_KEY secret missing)',
+              details: { pending: 0 },
+            }
+          : { rows: 0, details: { pending: 0 } };
 
       const settle = async (p: PendingPush, push: string) =>
         store.setPushDelivery(p.table, p.item.id, 'pending', {
@@ -110,12 +117,20 @@ export async function runPushJob(deps: PushJobDeps): Promise<JobRunRecord> {
       if (sender === null || secretPublicKey === null) {
         await holdAll('not-configured (VAPID_PRIVATE_KEY secret missing)');
         if (deps.test) throw new Error('VAPID_PRIVATE_KEY secret missing');
-        return { rows: 0, details: { pending: pending.length, notConfigured: 'secret' } };
+        return {
+          rows: 0,
+          skipped: 'not-configured (VAPID_PRIVATE_KEY secret missing)',
+          details: { pending: pending.length, notConfigured: 'secret' },
+        };
       }
       if (publicKey === null) {
         await holdAll('not-configured (no keys created on the Status page)');
         if (deps.test) throw new Error('No keys created on the Status page');
-        return { rows: 0, details: { pending: pending.length, notConfigured: 'keys' } };
+        return {
+          rows: 0,
+          skipped: 'not-configured (no keys created on the Status page)',
+          details: { pending: pending.length, notConfigured: 'keys' },
+        };
       }
       if (publicKey !== secretPublicKey) {
         await holdAll('failed (VAPID_PRIVATE_KEY does not match the keys on the Status page)');

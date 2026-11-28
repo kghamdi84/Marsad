@@ -37,7 +37,11 @@ export async function runTelegramJob(deps: TelegramJobDeps): Promise<JobRunRecor
         return { rows: 1, details: { test: true } };
       }
       const pending = await store.getPendingPush();
-      if (pending.length === 0) return { rows: 0, details: { pending: 0 } };
+      // A channel without its secrets is "skipped" with the reason, never "ok", so Status cannot look healthy.
+      if (pending.length === 0)
+        return send === undefined
+          ? { rows: 0, skipped: NOT_CONFIGURED, details: { pending: 0, configured: false } }
+          : { rows: 0, details: { pending: 0 } };
       const settle = (p: PendingPush, from: string, telegram: string) =>
         store.setPushDelivery(p.table, p.item.id, from, {
           ...p.delivery,
@@ -82,6 +86,7 @@ export async function runTelegramJob(deps: TelegramJobDeps): Promise<JobRunRecor
         throw new Error(`No Telegram message delivered: ${failures.slice(0, 3).join(' | ')}`);
       return {
         rows: sent,
+        ...(send === undefined ? { skipped: NOT_CONFIGURED } : {}),
         details: {
           pending: pending.length,
           sent,

@@ -86,6 +86,17 @@ describe('runTelegramJob', () => {
     expect(f.logs.get('alerts:a1')?.['telegram']).toBe(
       'not-configured (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing)',
     );
+    // Status must not read "ok" for a channel without its secrets, with or without items waiting.
+    expect(f.runs.at(-1)?.status).toBe('skipped');
+    const empty = await runTelegramJob({
+      store: fakeStore([]).store,
+      send: undefined,
+      now: () => NOW,
+    });
+    expect(empty.status).toBe('skipped');
+    expect(empty.details?.['skipped']).toBe(
+      'not-configured (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing)',
+    );
     const g = fakeStore([halt('a2')]);
     const run = await runTelegramJob({
       store: g.store,
