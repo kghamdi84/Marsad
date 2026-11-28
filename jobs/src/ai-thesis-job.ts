@@ -30,7 +30,7 @@ export function parseRequested(raw: string | undefined): string[] {
 
 /**
  * Thesis card drafts (checklist 2.10, ADR 0007): for each open holding without a saved thesis, and for any ticker
- * asked for, a draft by `thesis-draft@1` on Claude Sonnet 5.5 from the same cited filings as the summary. The bull
+ * asked for, a draft by `thesis-draft@2` on Claude Sonnet 5.5 from the same cited filings as the summary. The bull
  * case, a bear case as specific as the bull case, key risks and what would change the view are required; the
  * verifier checks every figure. A draft is never saved as Khaled's thesis: the card offers it as a starting point
  * for the form he edits and saves himself.

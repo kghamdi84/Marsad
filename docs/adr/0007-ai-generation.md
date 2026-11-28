@@ -43,3 +43,12 @@ Khaled approved the proposed caps on 2026-11-28: **USD 1 a day and USD 10 a mont
 - **Models and effort.** Summaries `claude-sonnet-5-5` at effort `low`, thesis drafts `claude-sonnet-5-5` at `medium`, the weekly review `claude-opus-5-5` at `medium`; `max_tokens` 8,000 each.
 - **Pages.** Study's Filings view shows the summary labelled "AI summary (Claude), checked against the filing figures" with as-of date, model and linked sources, or the figures with the reason, or "No filing summary yet". The thesis card shows a verified draft labelled "AI draft, check before saving"; "Start from this draft" fills the form Khaled edits and saves himself (never saved automatically). The Journal's weekly review shows verified prose labelled "AI-written from the figures above" under the template figures.
 - **Known limits.** The static system prompts are shorter than the smallest cacheable prefix, so `cache_control` is set but caching will rarely apply until a prompt grows; cache tokens are logged either way. Prices for the server-side fallback models come from the published table with assumed cache-read ratios.
+
+## Addendum 2026-11-28: figure form in the prompt (prompts at version 2)
+
+The first live run (AI daily, run 46160645123) wrote 13 outputs and the verifier rejected every one, so each fell back to its template (0 verified, USD 0.67 spent). Reading the stored issues (`pnpm --filter @marsad/jobs ai-diagnose`) showed two causes, both ours:
+
+- The prompt showed facts as raw values (`72.70698994067578 (pct)`, `267834000 (usd)`). The model copied them, and the verifier reads only `%` and `$` as units, so 28 of 59 issues were unit mismatches. The prompt now writes each fact in the form the verifier accepts (`72.7%`, `$267.8M`, from `formatFactValue`); counts and shares keep their unit word.
+- The model quoted figures that appear only inside filing text (a revenue history, a customer share, a year). A new grounding rule says to copy figures exactly as the Facts line writes them and to describe figures found only in a document in words.
+
+The grounded prompts (`filing-summary`, `thesis-draft`, `weekly-review`) move to version 2; the source key includes the version, so every company is generated again. The verifier is unchanged. Not fixed on purpose: a sentence that mixes a loss word with a positive figure can raise a direction mismatch, which the one regeneration handled in the sample.

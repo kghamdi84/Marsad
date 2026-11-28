@@ -55,7 +55,7 @@ describe('ai-summaries job (offline, fake client)', () => {
       ticker: 'NVDA',
       for_date: null,
       prompt_id: 'filing-summary',
-      prompt_version: 1,
+      prompt_version: 2,
       model: 'claude-sonnet-5-5',
       served_model: 'claude-sonnet-5-5',
       text: GOOD,
@@ -77,7 +77,7 @@ describe('ai-summaries job (offline, fake client)', () => {
     ]);
     expect(o.input_snapshot).toMatchObject({
       payloadVersion: 'ai-payload-1',
-      prompt: 'filing-summary@1',
+      prompt: 'filing-summary@2',
     });
     expect(usage).toHaveLength(1);
     expect(run.details).toMatchObject({
