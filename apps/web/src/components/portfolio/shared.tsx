@@ -29,6 +29,7 @@ import { loadHoldings, type BarsByTicker, type StoredHolding } from '../../lib/j
 import { loadLimitsRole, loadPortfolioData, type PortfolioData } from '../../lib/portfolio';
 import { loadPortfolioLimits } from '../../lib/settings';
 import { loadCalendar } from '../../lib/watch';
+import { figuresOf, isCurrent, loadSummaries, type Figures } from '../../lib/summary';
 import { dayMonth, dayMonthYear } from '../../lib/dates';
 import { t } from '../../strings';
 
@@ -44,22 +45,55 @@ export function usePortfolio() {
     queryFn: () => loadPortfolioData(tickers, today),
     enabled: hq.isSuccess,
   });
-  const cq = useQuery({ queryKey: ['calendar'], queryFn: loadCalendar, enabled: hq.isSuccess });
+  // The nightly summary (ADR 0050) for the column sets and the next results date, in one read.
+  const sq = useQuery({
+    queryKey: ['summary', tickers],
+    queryFn: () => loadSummaries(tickers),
+    enabled: hq.isSuccess && tickers.length > 0,
+  });
+  const bars = hq.data?.bars ?? ({} as BarsByTicker);
+  // Marsad's earnings estimates are read only for a holding the summary does not cover with a current row.
+  const needCalendar =
+    sq.isError || (sq.isSuccess && tickers.some((tk) => !isCurrent(sq.data[tk], bars[tk] ?? [])));
+  const cq = useQuery({
+    queryKey: ['calendar'],
+    queryFn: loadCalendar,
+    enabled: hq.isSuccess && needCalendar,
+  });
   return {
     today,
     holdings: hq.data?.holdings ?? [],
-    bars: hq.data?.bars ?? ({} as BarsByTicker),
+    bars,
     vix: hq.data?.vix ?? [],
     tickers,
     data: dq.data,
     calendar: cq.data,
+    summary: sq.data,
     error: hq.error ?? dq.error ?? null,
-    pending: hq.isPending || (hq.isSuccess && tickers.length > 0 && dq.isPending),
+    pending:
+      hq.isPending ||
+      (hq.isSuccess && tickers.length > 0 && (dq.isPending || sq.isPending)) ||
+      (needCalendar && cq.isPending),
     empty: hq.isSuccess && hq.data.holdings.length === 0,
   };
 }
 
 export type Portfolio = ReturnType<typeof usePortfolio>;
+
+/** One holding's summary figures: the nightly row when it is current, else the same row from its bars. */
+export function figuresFor(x: Pick<Portfolio, 'summary' | 'bars'>, ticker: string): Figures {
+  return figuresOf(ticker, x.summary?.[ticker], x.bars[ticker] ?? [], x.bars['SPY'] ?? null);
+}
+
+/** Which tickers' figures came from the nightly summary (and its session) and which from bars. */
+export function figuresSources(x: Pick<Portfolio, 'summary' | 'bars'>, tickers: readonly string[]) {
+  const all = tickers.map((tk) => ({ tk, f: figuresFor(x, tk) }));
+  const summary = all.find((a) => a.f.from.kind === 'summary')?.f.from;
+  return {
+    summaryDate: summary?.kind === 'summary' ? summary.date : null,
+    fromBars: all.filter((a) => a.f.from.kind === 'bars').map((a) => a.tk),
+  };
+}
 
 const sectorOfEtf = (etf: string | null) =>
   etf === null ? null : (SECTOR_ETFS.find((s) => s.ticker === etf)?.sector ?? null);
@@ -221,11 +255,12 @@ export function LimitsList({ check, limits }: { check: PortfolioCheck; limits: L
 }
 
 /**
- * The next earnings date of a ticker: Tauric's stated date when it is today or later, else Marsad's estimate from
- * results filings (never a confirmed date), else null.
+ * The next earnings date of a ticker. From the nightly summary when its row is current (Tauric's stated date
+ * after the session, else Marsad's estimate, ADR 0050); otherwise Tauric's stated date when it is today or later,
+ * else Marsad's estimate from results filings (never a confirmed date), else null.
  */
 export function nextEarnings(
-  x: Pick<Portfolio, 'data' | 'calendar' | 'today'>,
+  x: Pick<Portfolio, 'data' | 'calendar' | 'today'> & Partial<Pick<Portfolio, 'summary' | 'bars'>>,
   ticker: string,
 ): {
   date: string;
@@ -234,6 +269,17 @@ export function nextEarnings(
   estimated: boolean;
 } | null {
   const cal = x.data?.research[ticker]?.calendar?.earnings;
+  const row = x.summary?.[ticker];
+  if (row && isCurrent(row, x.bars?.[ticker] ?? [])) {
+    if (row.next_earnings_date === null) return null;
+    const tauric = row.next_earnings_source === 'tauric';
+    return {
+      date: row.next_earnings_date,
+      eps: tauric && cal?.earnings_date === row.next_earnings_date ? cal.eps_estimate : null,
+      source: tauric ? 'tauric-calendar' : 'marsad-estimate',
+      estimated: !tauric,
+    };
+  }
   if (cal?.earnings_date && cal.earnings_date >= x.today)
     return {
       date: cal.earnings_date,

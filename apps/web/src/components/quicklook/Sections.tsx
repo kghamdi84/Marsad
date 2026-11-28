@@ -1,21 +1,21 @@
 import { useId, type ReactNode } from 'react';
 import { AnalystLine } from '../study/research/AnalystLine';
 import {
+  daysBetween,
   describeEightK,
   exitSignals,
   formLabel,
   portfolioTotals,
   toFixedHalfUp,
   unrealized,
-  type BarSummary,
   type CompanyBrief,
   type PeriodReturn,
-  type TraderMetrics,
 } from '@marsad/core';
 import { ChangeBadge, Num, StopBar } from '../ui/kit';
 import { checkText } from '../study/CompanyBrief';
 import { formatUsd } from '../../lib/study';
 import type { BarsByTicker, StoredHolding } from '../../lib/journal';
+import type { Figures } from '../../lib/summary';
 import { dayMonth, dayMonthYear, weekdayDayMonth } from '../../lib/dates';
 import { busy, type Q } from './useQuickBrief';
 import { t } from '../../strings';
@@ -276,23 +276,38 @@ function Returns({
  * sits in its 52-week range, ATR %, the strength rank and volume against its 20-day average (trader-1, strength-1,
  * indicators-1), and revenue over four quarters with its year-on-year change and the net margin (snapshot-1).
  */
+/** Where the summary figures came from: the nightly row (its session and when it was written) or the bars. */
+export function FiguresSource({ fig }: { fig: Figures }) {
+  return (
+    <p className="text-xs text-ink3">
+      {fig.from.kind === 'summary'
+        ? x.perf.fromSummary(
+            dayMonth(fig.from.date),
+            new Date(fig.from.computedAt).toISOString().slice(11, 16),
+          )
+        : x.perf.fromBars}
+    </p>
+  );
+}
+
 export function PerformanceSection({
   ticker,
   brief,
-  summary,
-  trader,
+  fig,
   q,
 }: {
   ticker: string;
   brief: CompanyBrief;
-  summary: BarSummary;
-  trader: TraderMetrics | null;
+  /** The nightly summary row when current, else the same row from the bars (ADR 0050). */
+  fig: Figures;
   q: { spy: Q; sector: Q; strength: Q; facts: Q };
 }) {
   const p = brief.performance;
-  const s = summary;
+  const r = fig.row;
   const tr = t.trader;
-  const fromHigh = s.high52w > 0 ? s.lastClose / s.high52w - 1 : null;
+  // The 52-week range is on closing prices, as the summary and Watch compute it.
+  const fromHigh =
+    r.close !== null && r.high_52w !== null && r.high_52w > 0 ? r.close / r.high_52w - 1 : null;
   return (
     <Section title={x.perf.title}>
       {busy(q.spy, q.sector) ? (
@@ -301,17 +316,17 @@ export function PerformanceSection({
         <Returns ticker={ticker} returns={p.returns} sector={p.sectorTicker} />
       )}
       <dl className="flex flex-col">
-        <Row k={s.rangeSessions >= 252 ? x.perf.range52 : x.perf.rangeShort(s.rangeSessions)}>
-          {fromHigh === null ? (
-            <NA />
+        <Row k={x.perf.range52Close}>
+          {fromHigh === null || r.low_52w === null || r.high_52w === null ? (
+            <Muted>{r.unavailable['high_52w'] ? x.perf.rangeShortClose : b.na}</Muted>
           ) : (
             <span className={fromHigh < 0 ? 'text-down' : ''}>
-              {x.perf.rangeLine(arrowPct(fromHigh), money(s.low52w), money(s.high52w))}
+              {x.perf.rangeLine(arrowPct(fromHigh), money(r.low_52w), money(r.high_52w))}
             </span>
           )}
         </Row>
         <Row k={tr.atrPct}>
-          {trader?.atrPct == null ? <NA /> : `${toFixedHalfUp(trader.atrPct * 100, 1)}%`}
+          {r.atr_14_pct === null ? <NA /> : `${toFixedHalfUp(r.atr_14_pct * 100, 1)}%`}
         </Row>
         <Row k={tr.rankFact}>
           {busy(q.strength) ? (
@@ -324,7 +339,9 @@ export function PerformanceSection({
             <NA />
           )}
         </Row>
-        <Row k={x.volume}>{s.rvol20 === null ? <NA /> : x.times(toFixedHalfUp(s.rvol20, 1))}</Row>
+        <Row k={x.volume}>
+          {r.volume_ratio_20 === null ? <NA /> : x.times(toFixedHalfUp(r.volume_ratio_20, 1))}
+        </Row>
         <Row k={x.perf.revenue}>
           {busy(q.facts) ? (
             <Loading />
@@ -351,6 +368,7 @@ export function PerformanceSection({
           )}
         </Row>
       </dl>
+      <FiguresSource fig={fig} />
     </Section>
   );
 }
@@ -386,10 +404,15 @@ function TopChecks({ title, items }: { title: string; items: CompanyBrief['check
 export function BriefSection({
   brief,
   cik,
+  fig,
+  today,
   q,
 }: {
   brief: CompanyBrief;
   cik: string | undefined;
+  /** The summary's next results date is preferred: Tauric's stated date, else Marsad's estimate (ADR 0050). */
+  fig: Figures | null;
+  today: string;
   q: {
     business: Q;
     facts: Q;
@@ -410,6 +433,10 @@ export function BriefSection({
   const latest = brief.next.latestReport;
   const eightK = latest && latest.form.startsWith('8-K') ? describeEightK(latest.items) : null;
   const n = brief.next.earnings;
+  const stated =
+    fig?.from.kind === 'summary' && fig.row.next_earnings_date && fig.row.next_earnings_source
+      ? { date: fig.row.next_earnings_date, source: fig.row.next_earnings_source }
+      : null;
   return (
     <Section title={x.brief.title}>
       <div className="flex flex-col gap-0.5 py-1 text-sm">
@@ -476,7 +503,17 @@ export function BriefSection({
           )}
         </Row>
         <Row k={x.brief.earnings}>
-          {busy(q.results) ? (
+          {stated ? (
+            <span className="flex flex-col gap-0.5">
+              <span>
+                {x.brief.earningsStated(
+                  `${weekdayDayMonth(stated.date)} ${stated.date.slice(0, 4)}`,
+                  b.earningsAway(b.days(daysBetween(today, stated.date))),
+                )}
+              </span>
+              <span className="text-xs text-ink3">{x.brief.earningsSource[stated.source]}</span>
+            </span>
+          ) : busy(q.results) ? (
             <Loading />
           ) : n ? (
             <span className="flex flex-col gap-0.5">

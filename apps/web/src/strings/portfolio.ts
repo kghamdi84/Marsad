@@ -165,6 +165,10 @@ export const portfolio = {
       'marsad-estimate': 'Marsad estimate from SEC filings',
     },
     readings: 'Readings',
+    fromSummary: (date: string, extra: string) =>
+      `From the nightly summary (ticker-summary-1), session ${date}.${extra ? ` ${extra}` : ''}`,
+    readingsBars: 'Readings are counted from the stored bars.',
+    fromBars: (tks: string) => `Computed from bars, no current nightly summary row: ${tks}.`,
     nOfM: (bull: number, n: number) => `${bull} of ${n} bullish`,
     vs50: 'vs SMA 50',
     vs200: 'vs SMA 200',
