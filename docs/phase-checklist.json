@@ -251,7 +251,7 @@
         "NVDA page works on the free plan with clear \"requires plan\" placeholders",
         "A planted wrong number is rejected by the verifier and the template is used"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "2.1",
@@ -337,7 +337,7 @@
         "Every panel shows source and as-of time",
         "Brief arrives on the iPad"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "3.1",
@@ -429,7 +429,7 @@
         "Changing future data never changes past signals",
         "Same seed gives identical output"
       ],
-      "status": "not_started",
+      "status": "done",
       "items": [
         {
           "id": "4.1",
@@ -497,7 +497,7 @@
         "End-to-end latency on the status page",
         "Test push reaches the iPad Home Screen app"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "5.1",
@@ -600,7 +600,7 @@
         "Computed greeks and IV match vendor values within tolerance",
         "Expected-move and payoff functions pass known-answer tests"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "6.1",
@@ -667,7 +667,7 @@
         "Every scorecard figure recomputes from raw alert outcomes in a test",
         "CSV import round-trips"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "7.1",
@@ -728,7 +728,7 @@
         "Supabase security advisors report no open issues",
         "Export restores into a fresh project"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "items": [
         {
           "id": "8.1",
