@@ -9,15 +9,15 @@ import {
   fetchSplitsSince,
   fetchTickersOfType,
   marketMovers,
+  moversSession,
   runJob,
   type HttpClient,
   type JobRunRecord,
-  type MarketMovers,
   type MassiveConfig,
   type TickerSeries,
   strengthRanks,
 } from '@marsad/core';
-import type { BreadthRow, Store, UniverseRow } from './store.js';
+import type { BreadthRow, Store, StoredMovers, UniverseRow } from './store.js';
 
 export interface BreadthJobDeps {
   http: HttpClient;
@@ -148,18 +148,15 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
           t.volume[i] = r.volume;
         }
       });
-      const series = adjustForSplits(
-        dates,
-        raw as Map<string, TickerSeries>,
-        await store.getShareChanges(start),
-      );
+      const shareChanges = await store.getShareChanges(start);
+      const series = adjustForSplits(dates, raw as Map<string, TickerSeries>, shareChanges);
       const types = await store.getTickerTypeSnapshots();
       const sets = types.map((t) => ({ asOf: t.asOf, set: new Set([...t.cs, ...t.etf]) }));
-      const eligibleAt = (i: number): ReadonlySet<string> => {
+      const listAt = (i: number) => {
         const d = dates[i] as string;
-        const at = [...sets].reverse().find((s) => s.asOf <= d) ?? sets[0];
-        return at?.set ?? new Set<string>();
+        return [...sets].reverse().find((s) => s.asOf <= d) ?? sets[0];
       };
+      const eligibleAt = (i: number): ReadonlySet<string> => listAt(i)?.set ?? new Set<string>();
       if (sets.length === 0 && dates.length > 0) {
         if (failed.length > 0)
           throw new Error(
@@ -194,13 +191,24 @@ export async function runBreadthJob(deps: BreadthJobDeps): Promise<JobRunRecord>
       await store.upsertUniverse(UNIVERSE_VERSION, universe);
       const written = await store.upsertBreadthDays(rows);
 
-      // Movers and the sector heatmap for the last 5 sessions (ADR 0014), from the month's universe.
-      const movers: MarketMovers[] = [];
+      // Movers and the sector heatmap for the last 5 sessions (ADR 0014), from the month's universe, and the
+      // whole-market movers (movers-1, ADR 0049) over every common stock and ETF stored that session.
+      const movers: StoredMovers[] = [];
       for (let i = Math.max(1, dates.length - 5); i < dates.length; i++) {
         const d = dates[i] as string;
         const u = [...h.universes].reverse().find((x) => x.date <= d);
         if (!u) continue;
-        movers.push(marketMovers(dates, series, new Set(u.members.map((m) => m.ticker)), i));
+        movers.push({
+          ...marketMovers(dates, series, new Set(u.members.map((m) => m.ticker)), i),
+          market: moversSession({
+            dates,
+            series,
+            eligible: eligibleAt(i),
+            eligibleAsOf: listAt(i)?.asOf ?? null,
+            splits: shareChanges,
+            i,
+          }),
+        });
       }
       await store.upsertMovers(movers);
 
