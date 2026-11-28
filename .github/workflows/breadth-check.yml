@@ -1,0 +1,34 @@
+name: Breadth spot check
+
+# One-off check for checklist 3.3: the breadth-1 share above the 200- and 50-day averages over SPY's N-PORT holdings
+# (the S&P 500), from the stored daily snapshots, to compare with published S&P 500 breadth. Read only; writes
+# nothing. Run by hand only (no schedule).
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: Dates to check, comma separated (YYYY-MM-DD)
+        type: string
+        default: 2026-11-24,2026-11-25,2026-11-27
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the check
+        run: pnpm --filter @marsad/jobs breadth-check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          CHECK_DATES: ${{ inputs.dates }}
