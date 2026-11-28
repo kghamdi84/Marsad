@@ -1,6 +1,9 @@
 # Progress
 
-## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
+## Current state (2026-11-28): every item that can be built on the current free plans is built and live. What is open waits on Khaled.
+
+- **Free setup steps (SETUP.md):** step 7 Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`), step 9 email (`RESEND_API_KEY`, `BRIEF_EMAIL_TO`), step 10 Web Push (VAPID keys), step 11 scheduler (pg_cron, pg_net and the dispatch token; item 1.15), the `TAURIC_API_KEY` GitHub secret, a look at the signed-in Markets regime view (3.9), a breadth spot check against an outside source (3.3).
+- **Paid, declined for now:** Massive Stocks plan with Supabase Pro (5.1 to 5.3, then 5.4, 5.10, 5.13 live), Massive options (6.x, 7.1 marks), Anthropic key with cost caps (2.9, 2.10, 7.8, 8.1), real-time (9.1).
 
 Last updated 2026-11-28 (pages on the nightly summary, Screener, dividend comparison, actual portfolio result, lazy Study views and a bundle budget; before that the Markets and Portfolio pages and the earnings guard).
 
