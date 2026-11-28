@@ -9,7 +9,9 @@
  * 3. that fact is one of the facts cited in the same sentence, so a true number cannot sit under a wrong source;
  * 4. percent figures match only percent facts, dollar figures only dollar facts, multiples only ratio facts;
  * 5. a stated direction (rose, fell, a minus sign) agrees with the sign of the fact;
- * 6. no em dash, and no derived-comparison words (doubled, halved) that need arithmetic the payload lacks.
+ * 6. no em dash, and no derived-comparison words (doubled, halved) that need arithmetic the payload lacks;
+ * 7. an ISO date (2026-11-19) appears in a fact the sentence cites (its label or value), and is not read as
+ *    three figures.
  *
  * What it cannot catch, stated plainly: numbers spelled as words ("three"), a figure that coincides with a
  * different cited fact of the same unit and value, and a sentence that mixes rising and falling words (the
@@ -91,6 +93,21 @@ function labelNumerals(facts: readonly Fact[]): Set<string> {
   return out;
 }
 
+const ISO_DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
+
+/** Facts by every ISO date written in their label or string value. */
+function datesByFact(facts: readonly Fact[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const f of facts)
+    for (const s of [f.label, typeof f.value === 'string' ? f.value : ''])
+      for (const m of s.matchAll(ISO_DATE)) {
+        const ids = out.get(m[0]) ?? [];
+        if (!ids.includes(f.id)) ids.push(f.id);
+        out.set(m[0], ids);
+      }
+  return out;
+}
+
 function unitAllows(token: NumberToken, fact: Fact): boolean {
   if (typeof fact.value !== 'number') return false;
   if (token.pct) return fact.unit === 'pct';
@@ -132,6 +149,7 @@ export function verifyText(
   const issues: Issue[] = [];
   const ids = citableIds(payload);
   const numerals = labelNumerals(payload.facts);
+  const dates = datesByFact(payload.facts);
   const used: string[] = [];
   let numbersChecked = 0;
 
@@ -178,7 +196,26 @@ export function verifyText(
         detail: 'A derived comparison must come from a fact, not from the model',
       });
     }
-    const bare = sentence.replace(CITATION, ' ');
+    let bare = sentence.replace(CITATION, ' ');
+    for (const m of bare.matchAll(ISO_DATE)) {
+      numbersChecked += 1;
+      const ids = dates.get(m[0]) ?? [];
+      if (ids.length === 0)
+        issues.push({
+          kind: 'number-not-in-payload',
+          sentence,
+          token: m[0],
+          detail: `The date ${m[0]} is in no fact of the payload`,
+        });
+      else if (!ids.some((id) => cited.includes(id)))
+        issues.push({
+          kind: 'number-not-cited',
+          sentence,
+          token: m[0],
+          detail: `The date ${m[0]} is in ${ids.join(', ')} but the sentence does not cite it`,
+        });
+    }
+    bare = bare.replace(ISO_DATE, ' ');
     for (const token of extractNumbers(stripNonFigures(bare))) {
       numbersChecked += 1;
       const rawDigits = token.digits;

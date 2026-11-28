@@ -158,6 +158,8 @@ export interface AiSessionDeps {
  */
 export class AiSession {
   readonly stats: AiSessionStats = { calls: 0, usd: 0, budget: null, warnings: [] };
+  /** The model that answered the newest call (a server-side fallback can differ from the one asked). */
+  lastServedModel: string | null = null;
   private caps: Caps | null = null;
   constructor(private readonly deps: AiSessionDeps) {}
 
@@ -178,6 +180,13 @@ export class AiSession {
     if (status.state === 'warn' && !this.stats.warnings.includes(status.message))
       this.stats.warnings.push(status.message);
     return status;
+  }
+
+  /** True when a call for this prompt and payload would cross a cap (its worst case added to today's spend). */
+  async wouldCap(def: PromptDef, payload: Payload): Promise<boolean> {
+    const maxTokens = CALL_SETTINGS[def.id]?.maxTokens ?? 8_000;
+    const chars = def.system.length + JSON.stringify(payload).length;
+    return (await this.budget(estimateCallUsd(def.model, chars, maxTokens))).state === 'capped';
   }
 
   /** A `generate` function for groundedGenerate, for one prompt and payload. */
@@ -245,6 +254,7 @@ export class AiSession {
 
       const { usage, iterations } = usageOf(message);
       const served = message.model;
+      this.lastServedModel = served;
       const usd = costOfResponse(served, usage, iterations);
       const text = message.content
         .map((b) => (b.type === 'text' ? b.text : ''))

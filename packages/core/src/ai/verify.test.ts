@@ -150,3 +150,21 @@ describe('figure extraction and sentence splitting', () => {
     ).toEqual(['TestCo Inc. earned $4.18B in the U.S. market [F1].', 'Margin was 61% [F3].']);
   });
 });
+
+describe('ISO dates are checked as dates, not as three figures', () => {
+  const dated: Payload = {
+    facts: [
+      { id: 'F1', label: '8-K filed on 2026-11-19: item 2.02', value: '2026-11-19', unit: 'date' },
+      { id: 'F2', label: 'Diluted earnings per share', value: 1.08, unit: 'usd' },
+    ],
+    documents: [],
+  };
+  const k = (text: string) => verifyText(text, dated).issues.map((i) => i.kind);
+  it('accepts a date that a cited fact carries, even when its parts look like another fact', () => {
+    expect(k('An 8-K was filed on 2026-11-19 [F1].')).toEqual([]);
+  });
+  it('rejects a date in no fact, and a date whose fact is not cited', () => {
+    expect(k('An 8-K was filed on 2026-11-18 [F1].')).toEqual(['number-not-in-payload']);
+    expect(k('Earnings were $1.08 a share on 2026-11-19 [F2].')).toEqual(['number-not-cited']);
+  });
+});

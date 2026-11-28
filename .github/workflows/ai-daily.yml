@@ -1,0 +1,38 @@
+name: AI daily
+
+# Claude summaries of each holding's and watchlist company's newest stored filings (checklist 2.9, ADR 0007). Reads
+# only the database (filings, 10-K and 10-Q risk factor sections and XBRL facts the SEC and sections jobs stored);
+# writes public.ai_outputs and logs every call in public.ai_usage. Runs at 00:50 UTC Tuesday to Saturday, after the
+# SEC filings job's last weekday run (23:37 UTC) and its 10-Q step. A company is summarized again only when its
+# sources change, so most runs make no call. Caps: USD 1 a day and USD 10 a month (ADR 0007 addendum); without the
+# ANTHROPIC_API_KEY secret the run records skipped and spends nothing. Supabase Cron starts it on time (ADR 0008).
+on:
+  schedule:
+    - cron: '50 0 * * 2-6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-daily
+  cancel-in-progress: false
+
+jobs:
+  ai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Summarize new filings
+        run: pnpm --filter @marsad/jobs ai-summaries
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
