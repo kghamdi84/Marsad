@@ -38,12 +38,17 @@ export function LineChart({
   lo -= pad;
   hi += pad;
   const left = 8;
-  const right = W - 64;
+  const right = W - 120;
   const n = Math.max(...series.map((s) => s.values.length));
   const x = (i: number) => left + (n <= 1 ? 0 : (i / (n - 1)) * (right - left));
   const y = scale(lo, hi, 10, height - 10);
   return (
-    <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${height}`} className="h-auto w-full">
+    <svg
+      role="img"
+      aria-label={label}
+      viewBox={`0 0 ${W} ${height}`}
+      className="h-auto w-full max-w-[720px]"
+    >
       {zero && (
         <line
           x1={left}
@@ -112,7 +117,12 @@ export function TargetChart({
   const last = closes.at(-1) as number;
   const d = closes.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(c).toFixed(1)}`).join(' ');
   return (
-    <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
+    <svg
+      role="img"
+      aria-label={label}
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-auto w-full max-w-[720px]"
+    >
       <line
         x1={histEnd}
         x2={histEnd}
@@ -189,7 +199,12 @@ export function BarChart({
   const every = Math.ceil(groups.length / 8);
   return (
     <figure className="flex flex-col gap-1">
-      <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${height}`} className="h-auto w-full">
+      <svg
+        role="img"
+        aria-label={label}
+        viewBox={`0 0 ${W} ${height}`}
+        className="h-auto w-full max-w-[720px]"
+      >
         <line
           x1={left}
           x2={right}

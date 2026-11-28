@@ -21,7 +21,7 @@ import {
   type TauricProfile,
 } from '@marsad/core';
 import { Segmented } from '../../Card';
-import { AutoGrid, Num, RowList } from '../../ui/kit';
+import { AutoGrid, Num } from '../../ui/kit';
 import { dayMonthYear } from '../../../lib/dates';
 import type { Part } from '../../../lib/research';
 import { BarChart } from './charts';
@@ -40,6 +40,7 @@ import {
   tdEnd,
   th,
   thEnd,
+  Rows,
 } from './shared';
 
 const freqName = (n: number | null) =>
@@ -109,7 +110,7 @@ export function DividendsView({
         {(dividends ?? []).length === 0 ? (
           <p className="text-sm text-ink3">{x.none(ticker)}</p>
         ) : (
-          <RowList
+          <Rows
             rows={[
               {
                 k: x.next,
@@ -363,7 +364,7 @@ function PlanCard({
       <h3 id={id} className="text-sm font-semibold text-ink">
         {title}
       </h3>
-      <RowList
+      <Rows
         rows={[
           { k: c.monthly, v: <Num>{money(p.monthlyIncome)}</Num> },
           {

@@ -20,7 +20,7 @@ import {
   BETA_VERSION,
   DIVIDEND_YIELD_VERSION,
 } from '@marsad/core';
-import { RowList, Num, AutoGrid, type Row } from '../../ui/kit';
+import { Num, AutoGrid } from '../../ui/kit';
 import { formatUsd } from '../../../lib/study';
 import { dayMonthYear } from '../../../lib/dates';
 import type { Part } from '../../../lib/research';
@@ -35,6 +35,7 @@ import {
   pctText,
   plain,
   signedPctText,
+  Rows,
 } from './shared';
 
 type Fmt = 'usd' | 'ratio' | 'frac' | 'count' | 'days' | 'price';
@@ -227,8 +228,8 @@ export function KeyStats({
             <p className="text-xs text-ink3">
               <Num>{x.refreshed(asOf)}</Num>
             </p>
-            <RowList
-              rows={g.rows.map(([k, f]): Row => {
+            <Rows
+              rows={g.rows.map(([k, f]) => {
                 const c =
                   k === 'market_cap' || k === 'beta' || k === 'dividend_yield' ? compare(k) : null;
                 return {
@@ -245,7 +246,7 @@ export function KeyStats({
           <p className="text-xs text-ink3">
             <Num>{x.marsadAsOf(dayMonthYear(today), INVESTOR_VERSION)}</Num>
           </p>
-          <RowList
+          <Rows
             rows={[
               {
                 k: x.dilution,

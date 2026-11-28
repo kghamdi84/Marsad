@@ -33,3 +33,4 @@ Captured during work so they are not built early.
 
 - Fuller Shariah screen: revenue by business activity and interest income from filing text or a data provider; short-term borrowings in the debt ratio.
 - AI topic tagging for the geopolitical panel (topics-2) once the Anthropic key and caps exist; the keyword rules stay as the fallback.
+- Study research (ADR 0048): chart-pattern detection once a reference implementation exists to test against; beat or miss against past EPS estimates once estimate history is stored; `?view=` links for the ten Study views in the navigation batch.

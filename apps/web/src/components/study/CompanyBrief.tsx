@@ -445,9 +445,6 @@ export function CompanyBrief({
                 <NA />
               )}
             </Line>
-            <Line label={b.analysts}>
-              <AnalystLine ticker={ticker} close={p.close} />
-            </Line>
           </dl>
         </Block>
 
@@ -722,6 +719,9 @@ export function CompanyBrief({
               ) : (
                 <NA />
               )}
+            </Line>
+            <Line label={b.analysts}>
+              <AnalystLine ticker={ticker} close={p.close} />
             </Line>
           </dl>
           <p className="text-xs text-ink3">{b.noForecast}</p>

@@ -2142,6 +2142,7 @@ export const t = {
       },
       news: {
         title: 'News',
+        listTitle: 'Articles with sentiment',
         vendorNote:
           "Sentiment is the news vendor's (Massive) label for each article, not Marsad's view.",
         buzz: 'Media buzz',
@@ -2308,9 +2309,8 @@ export const t = {
         advanced: 'Advanced',
         contrib: 'Yearly contribution ($)',
         contribFreq: 'Contributions a year',
-        tax: 'Dividend tax withheld (%)',
-        taxNote:
-          'US withholding for non-treaty residents (IRS Publication 515); change it if your broker withholds differently.',
+        tax: 'US withholding, 30% (no US and Saudi treaty), editable; check your Sahm statement',
+        taxNote: 'Percent withheld from each dividend (IRS Publication 515).',
         priceChange: (v: string, d: string) =>
           `This ticker moved ${v} over the year to ${d} (252 sessions).`,
         priceChangeNone: 'Trailing 1-year price change: not enough stored bars.',
@@ -2583,7 +2583,7 @@ export const t = {
         pivotsTitle: (d: string) => `Pivot points from the session of ${d}`,
         methods: { classic: 'Classic', fibonacci: 'Fibonacci' },
         method:
-          'Moving averages: close above bullish, below bearish. A gauge reads bullish or bearish when more than half of its counted readings are; otherwise neutral. Readings that need more bars are not counted. Bullish and bearish describe the chart, not advice.',
+          'Moving averages: close above bullish, below bearish. The summary counts the bullish readings among those that could be computed; readings that need more bars are not counted. Bullish and bearish describe the chart, not advice.',
         source: (v: string, d: string, ind: string) =>
           `Formula ${v} on Massive daily bars to ${d}. Indicators: ${ind}.`,
       },

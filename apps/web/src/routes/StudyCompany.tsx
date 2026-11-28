@@ -58,13 +58,7 @@ import {
 import { StudyChart } from '../components/study/StudyChart';
 import { HeldPosition } from '../components/study/HeldPosition';
 import { Lock } from 'lucide-react';
-import {
-  Segmented,
-  SkeletonCards,
-  Tabs,
-  cardClass,
-  useRemembered,
-} from '../components/Card';
+import { Segmented, SkeletonCards, Tabs, cardClass, useRemembered } from '../components/Card';
 import { AutoGrid, Num, Pill, signedPct, type Tone } from '../components/ui/kit';
 import { panelTitle, tileClass } from '../components/study/Panel';
 import { t } from '../strings';

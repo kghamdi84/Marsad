@@ -170,7 +170,7 @@ export function NewsView({ ticker, bars }: { ticker: string; bars: readonly Dail
           />
         </Tile>
       )}
-      <Tile id="rs-news" title={x.title}>
+      <Tile id="rs-news" title={x.listTitle}>
         <p className="text-sm text-ink2">
           <Num>
             {x.publishers(

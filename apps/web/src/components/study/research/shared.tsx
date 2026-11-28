@@ -158,5 +158,27 @@ export function saveText(name: string, text: string, type = 'text/csv') {
 
 export const th = 'border-b border-line px-2 py-1.5 text-start text-xs font-medium text-ink3';
 export const thEnd = 'border-b border-line px-2 py-1.5 text-end text-xs font-medium text-ink3';
-export const td = 'border-b border-line px-2 py-1.5 align-top text-sm';
+export const td = 'border-b border-line px-2 py-1.5 text-start align-top text-sm';
 export const tdEnd = 'border-b border-line px-2 py-1.5 text-end align-top text-sm tabular-nums';
+
+/** Label and value rows (valid list markup: each pair in its own group, the note inside the group). */
+export function Rows({
+  rows,
+}: {
+  rows: readonly { k: ReactNode; v: ReactNode; note?: ReactNode; tone?: string }[];
+}) {
+  return (
+    <dl className="flex flex-col">
+      {rows.map((r, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-line py-2 text-sm first:pt-0 last:border-b-0"
+        >
+          <dt className="text-ink3">{r.k}</dt>
+          <dd className={`text-end font-semibold tabular-nums ${r.tone ?? 'text-ink'}`}>{r.v}</dd>
+          {r.note && <dd className="col-span-2 text-xs font-normal text-ink3">{r.note}</dd>}
+        </div>
+      ))}
+    </dl>
+  );
+}

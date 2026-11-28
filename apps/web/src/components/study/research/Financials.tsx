@@ -26,7 +26,11 @@ const testValue = (x: PiotroskiTest): string => {
       : x.id === 'cfo-positive'
         ? formatUsd(v)
         : x.id === 'no-dilution'
-          ? `${toFixedHalfUp(v / 1e6, 1)}M`
+          ? v >= 1e9
+            ? `${toFixedHalfUp(v / 1e9, 2)}B`
+            : v >= 1e6
+              ? `${toFixedHalfUp(v / 1e6, 1)}M`
+              : plain(v, 0)
           : x.id === 'current-ratio-up' || x.id === 'asset-turnover-up'
             ? plain(v, 3)
             : pctText(v * 100, 2);

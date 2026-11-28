@@ -231,9 +231,7 @@ export async function loadNewsWindow(
 }
 
 /** Every stored article since a time, for the comparison across Marsad's stored tickers (up to 1,000). */
-export async function loadAllNewsSince(
-  sinceIso: string,
-): Promise<{
+export async function loadAllNewsSince(sinceIso: string): Promise<{
   rows: { publishedAt: string; sentiment: { ticker: string; label: string }[] }[];
   capped: boolean;
 }> {

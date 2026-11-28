@@ -8,7 +8,7 @@ import {
   type TauricCalendar,
   type TauricThesis,
 } from '@marsad/core';
-import { Num, RowList } from '../../ui/kit';
+import { Num } from '../../ui/kit';
 import { formatUsd } from '../../../lib/study';
 import { dayMonthYear } from '../../../lib/dates';
 import { loadAnalystHistory, type AnalystDay, type Part } from '../../../lib/research';
@@ -25,6 +25,7 @@ import {
   thEnd,
   td,
   tdEnd,
+  Rows,
 } from './shared';
 
 const DIST = ['strong_buy', 'buy', 'hold', 'sell', 'strong_sell'] as const;
@@ -70,7 +71,7 @@ export function NextQuarterEstimate({ calendar }: { calendar: Part<TauricCalenda
   return (
     <Tile id="rs-estimate" title={x.estimateTitle}>
       {e && (e.eps_estimate !== null || e.revenue_estimate !== null) ? (
-        <RowList
+        <Rows
           rows={[
             {
               k: x.epsEstimate,
@@ -350,14 +351,14 @@ export function AiView({ thesis }: { thesis: Part<TauricThesis> }) {
       <p className="text-sm text-ink">{th0.narrative}</p>
       <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
         {list(
-          'rs-ai-pos',
-          x.positive,
-          th0.drivers.map((d) => d.text),
-        )}
-        {list(
           'rs-ai-neg',
           x.negative,
           th0.risks.map((d) => d.text),
+        )}
+        {list(
+          'rs-ai-pos',
+          x.positive,
+          th0.drivers.map((d) => d.text),
         )}
       </div>
       <section aria-labelledby="rs-ai-cat" className="flex flex-col gap-1">
