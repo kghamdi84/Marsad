@@ -115,7 +115,7 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 | `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)              | Macro series, VIX and yield cross-checks                                                                                    |
 | `SEC_USER_AGENT`        | Text you choose, like `Marsad research your-email@example.com`   | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in)                                 |
 | `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Only when the first Edge Function is deployed (Phase 5). Not needed now. The database is deployed by the GitHub integration |
-| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | Phase 2                                                                                                                     |
+| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | AI summaries, thesis drafts and weekly review prose (ADR 0007). GitHub repository secret; capped at USD 1 a day, 10 a month |
 | `TAURIC_API_KEY`        | tauric.ai, **Settings**, **API keys** (choose an expiry)         | Optional second quote source (ADR 0041). GitHub repository secret only; the Tauric workflows wait for it                    |
 | `OPENFIGI_API_KEY`      | openfigi.com, sign in, **API Key**                               | Optional. ETF holdings match tickers by CUSIP (ADR 0038 addendum); faster with it, works without it. GitHub secret only     |
 
