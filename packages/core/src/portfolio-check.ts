@@ -754,6 +754,7 @@ export function portfolioCheck(x: {
   const has = ps.length > 0;
   const cashShare = x.cash !== null && equity > 0 ? x.cash / equity : null;
   const open = x.openRisk ?? null;
+  const beta = ex?.portfolioBeta ?? null;
   const row = (
     id: CheckRow['id'],
     kind: CheckRow['kind'],
@@ -774,7 +775,8 @@ export function portfolioCheck(x: {
   const rows: CheckRow[] = [
     row('largest', 'limit', largest?.weight ?? null, L.largestPosition, largest?.ticker ?? null),
     row('top5', 'limit', has ? top5 : null, L.top5),
-    row('beta', 'limit', ex?.portfolioBeta ?? null, L.portfolioBeta),
+    // Beta is held to its limit by size: a beta of -2 swings the book as much as +2, only the other way.
+    row('beta', 'limit', beta, L.portfolioBeta, null, false, beta === null ? null : Math.abs(beta)),
     row('cash', 'limit', cashShare, L.minCash, null, true),
     row('open-risk', 'limit', open?.pct ?? null, L.openRisk),
     row('sector', 'rule', topSector?.weight ?? null, R.sector, topSector?.sector ?? null),

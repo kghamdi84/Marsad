@@ -4,7 +4,7 @@
  * scored cases (rule 10). Rates, the rule table and the calibration appear only from 30 cases up.
  */
 import { useQuery } from '@tanstack/react-query';
-import { calibration, etDate, summarize, toFixedHalfUp } from '@marsad/core';
+import { calibration, directionOf, etDate, summarize, toFixedHalfUp } from '@marsad/core';
 import { ScrollX, cardClass } from '../Card';
 import { Num, Pill, signedPct } from '../ui/kit';
 import { loadScorecard } from '../../lib/alerts';
@@ -30,7 +30,9 @@ export function Scorecard() {
   const rows = summarize(q.data.alerts, q.data.outcomes);
   const pending = q.data.outcomes.filter((o) => o.status === 'pending').length;
   const cal = calibration(q.data.alerts, q.data.outcomes, '5d');
-  const perAlert = [...q.data.alerts]
+  // Only alerts that make a directional call are scored (halts, regime, system and earnings notices are not).
+  const perAlert = q.data.alerts
+    .filter((al) => directionOf(al.kind) !== null)
     .sort((x, y) => y.createdAt.localeCompare(x.createdAt))
     .slice(0, 8)
     .map((al) => ({

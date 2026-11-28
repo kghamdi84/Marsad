@@ -193,7 +193,7 @@ export const portfolio = {
     sub: { exits: 'Exit plan', coming: 'Coming up', moves: 'Weekly moves' },
     openRisk: 'Total open risk to the stops',
     openRiskSub: (risk: string, equity: string) =>
-      `${risk} lost if every stop fills exactly, of ${equity} equity`,
+      `${risk} lost if every stop fills exactly, of ${equity} equity.`,
     openRiskNoStop: (list: string) => `Risk unknown, not counted as zero (no stop): ${list}.`,
     riskUnknown: (n: number) => `+ risk unknown on ${n}`,
     rowsLabel: 'Holdings by exit plan',

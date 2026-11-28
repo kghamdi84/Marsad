@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-25
-- Version: `etf-1`
+- Version: `etf-1`, then `etf-2` and `etf-3` (2026-11-28, addenda below)
 
 ## Context
 
@@ -26,3 +26,29 @@ The reports recorded on 2026-11-25: SPY and QQQ as of 2026-06-30, DIA as of 2026
 
 - Weights are up to about five months old (quarter end plus 60 days, plus up to a quarter before the next one); every figure carries its report date.
 - Funds other than SPY, QQQ and DIA contribute nothing to look-through. Adding a single-fund trust is one line in `ETF_TRUSTS`.
+
+## Addendum 2026-11-28: CUSIP matching through OpenFIGI (`etf-2`, `openfigi-1`)
+
+Name matching left 128 of SPY's 504 holding lines without a ticker, so a breadth check over the S&P 500 (checklist
+3.3) covered only 376 members. `etf-2` maps each common-stock CUSIP to its US composite ticker through OpenFIGI's
+free mapping API (`POST https://api.openfigi.com/v3/mapping`, no key: 10 jobs a request, 25 requests a minute,
+checked 2026-11-28; real reply in `fixtures/openfigi/mapping-cusip-us.json`). Share classes come back with a slash
+(BRK/B) and are stored with a dot (BRK.B), as Marsad's bars write them. A CUSIP with no US equity listing, or with two
+different US tickers, stays unmatched; the company-name match is used only for those. If OpenFIGI fails, the job
+falls back to names and records why in the run details. Reports matched under `etf-1` are downloaded and matched
+again on the next run. No cost. With the `OPENFIGI_API_KEY` GitHub secret (added by Khaled 2026-11-28, sent as
+`X-OPENFIGI-APIKEY`, never logged) the job sends 100 CUSIPs a request, one request every 0.3 seconds (limit 250 a
+minute); without it, 10 CUSIPs every 2.6 seconds.
+
+## Addendum 2026-11-28 (later): ISIN fallback, FIGIs and retries (`etf-3`, `openfigi-2`)
+
+From OpenFIGI's API documentation, at Khaled's request:
+
+- Each match keeps its composite FIGI in the new `etf_holdings.figi` column (migration `20270109000000`), so holdings
+  are identified by FIGI, not ticker (standing rule 8). A FIGI is stored only when every US listing names the same
+  one; a name match stores none.
+- A holding without a CUSIP is looked up by ISIN (`ID_ISIN`).
+- Requests ask for equity only (`marketSecDes: Equity`), so OpenFIGI filters before it answers.
+- A 429 waits for the `retry-after` seconds once; 500 and 503 back off 2, 4 and 8 seconds, as the documentation
+  advises; 401 and 413 stop at once and the job falls back to names.
+- Run details count matches by CUSIP, by ISIN and by name, and holdings with a FIGI.
