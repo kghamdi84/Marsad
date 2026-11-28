@@ -305,13 +305,13 @@
           "id": "2.9",
           "title": "Claude summaries with citations, number verifier and injection-safe wrapping",
           "status": "in_progress",
-          "evidence": "Core done (packages/core/src/ai/): verifier, generate-verify-retry-template orchestration, untrusted wrapper, template builder, cost and budget math. 43 tests including the finish criterion (planted wrong number rejected twice leads to the template); three verifier mutations and the gate bypass are caught. Known limits recorded in tests. Still to do: Anthropic client job, ai_outputs table, UI. Blocked on Khaled: ANTHROPIC_API_KEY and cost caps (ADR 0007)."
+          "evidence": "Built, waiting for ANTHROPIC_API_KEY. Caps approved 2026-11-28 (USD 1 a day, 10 a month; AI_CAPS in core, ADR 0007 addendum). jobs/src/anthropic.ts (official SDK): budget check before each call, adaptive thinking, explicit effort, output_config.format, cached system prompt, server-side fallback, every call logged in ai_usage. ai-summaries job (Sonnet 5.5, filing-summary@1) over stored XBRL figures, 10-Q and 10-K risk factor sections and recent 8-Ks (ai-payload-1), per-call random-ID tags, verifier (now also ISO dates), one regeneration then the template; ai_outputs (20270110000000) with citations and input snapshot; ai-daily.yml 00:50 UTC Tue to Sat mirrored in Supabase Cron (20270110000100). Study Filings view: 'AI summary (Claude), checked against the filing figures' with sources, as-of and model. Offline known-answer tests with a fake client (verified, wrong number then regenerate, refusal, max_tokens retry, cap, 80% warning, missing key skipped), RLS tests, e2e. Done once the first live call is verified."
         },
         {
           "id": "2.10",
           "title": "Thesis card with required bear case",
           "status": "in_progress",
-          "evidence": "thesis-1 (ADR 0025): append-only personal thesis cards on each company page; bear case and what would change the view required by app and database; saving sets the open holding's thesis status. Unit, RLS and browser tests. Still to do: the AI draft from cited sources (needs an Anthropic key and caps)."
+          "evidence": "thesis-1 (ADR 0025): append-only personal thesis cards; bear case and what would change the view required by app and database. AI draft built, waiting for ANTHROPIC_API_KEY: ai-thesis-drafts job (Sonnet 5.5, thesis-draft@1) for open holdings without a thesis or tickers asked for (workflow input thesis_for), from the same cited filings; the prompt check requires all four sections and a real bear case, the verifier every figure. The card shows a verified draft as 'AI draft, check before saving' with sources; 'Start from this draft' only fills the human-edited form. Unit and e2e tests offline."
         },
         {
           "id": "2.11",
@@ -715,7 +715,7 @@
           "id": "7.8",
           "title": "Weekly AI review",
           "status": "in_progress",
-          "evidence": "weekly-review-1 (ADR 0029): Sunday job writes the review from templates (results, behavior with broken rules named, alerts and feedback, 5-session scorecard, regime), stored with inputs as a weekly-review brief, emailed when configured, shown on the Journal page. Still to do: the Opus prose (needs an Anthropic key and caps)."
+          "evidence": "weekly-review-1 (ADR 0029): Sunday job writes the review from templates, stored with inputs, emailed, shown on the Journal page. Opus prose built, waiting for ANTHROPIC_API_KEY: weekly-review@1 on Claude Opus 5.5 over weeklyReviewFacts (the template's own figures), every number verified, one regeneration, then the template alone; stored in ai_outputs and added to the email; the Journal shows it as 'AI-written from the figures above' under the figures. Without the key the run details say skipped (not configured). Offline tests with a fake client and e2e."
         }
       ]
     },
@@ -733,8 +733,8 @@
         {
           "id": "8.1",
           "title": "Ask (read-only tools with citations)",
-          "status": "todo",
-          "evidence": ""
+          "status": "in_progress",
+          "evidence": "Built, waiting for the two secrets and the first deploy (ADR 0054). Edge Function supabase/functions/ask: caller JWT, owner only (public.ask_is_owner), 503 'not configured' without ANTHROPIC_API_KEY, caps from ai_usage before every call (AI_CAPS USD 1 a day, USD 10 a month), manual tool loop on claude-sonnet-5-5 (fallbacks default, effort medium, cached system prompt and tools) over 7 read-only strict tools querying Supabase as the caller; figure verifier plus advice check, one regeneration, then facts only; ai_usage and ask_log written. Page /ask with numbered citations into Study, Markets, Portfolio, Alerts and SEC.gov, spend left, history. Migration 20270111000000_ask_log.sql. Tests offline: 21 core (ask-1), 24 handler with a fake model and store, 5 RLS, 12 Playwright (function stubbed); deno check of the function passes. Live check pending: Khaled adds ANTHROPIC_API_KEY (Supabase Edge Function secret) and SUPABASE_ACCESS_TOKEN (GitHub secret), then runs Deploy Edge Functions (also 5.2b)."
         },
         {
           "id": "8.2",

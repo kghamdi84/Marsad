@@ -6,6 +6,7 @@ import {
   actionsMinutes,
   aiSpend,
   describeSourceHealth,
+  effectiveCaps,
   formatAge,
   toFixedHalfUp,
 } from '@marsad/core';
@@ -119,15 +120,13 @@ function schedulerText(data: StatusData): { text: string; warn: boolean } {
   return { text: late ? `${text} ${sc.late}` : text, warn: x.status !== 'ok' || late };
 }
 
-/** Plan costs and AI spend against the saved caps; shared by the summary row and the costs card. */
+/** Plan costs and AI spend (from ai_usage) against the caps in force; shared by the summary row and the costs card. */
 function useCosts() {
   const q = useQuery({ queryKey: ['costs'], queryFn: loadCosts });
   const prefs = useQuery({ queryKey: ['preferences'], queryFn: loadPreferences });
   const now = new Date();
-  const caps =
-    prefs.data?.ai.dailyUsd != null && prefs.data.ai.monthlyUsd != null
-      ? { dailyUsd: prefs.data.ai.dailyUsd, monthlyUsd: prefs.data.ai.monthlyUsd }
-      : null;
+  // The approved caps (ADR 0007 addendum), lowered by any saved in Settings: the same caps the jobs enforce.
+  const caps = effectiveCaps(prefs.data?.ai ?? null);
   return {
     q,
     ai: q.data ? aiSpend(q.data.usage, now, caps) : null,

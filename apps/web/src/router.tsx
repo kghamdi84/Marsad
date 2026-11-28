@@ -93,6 +93,12 @@ const routeTree = root.addChildren([
     validateSearch: viewSearch,
     component: lazyRouteComponent(() => import('./routes/Status'), 'Status'),
   }),
+  // Ask (checklist 8.1, ADR 0054): questions answered by Claude through read-only tools.
+  createRoute({
+    getParentRoute: () => root,
+    path: '/ask',
+    component: lazyRouteComponent(() => import('./routes/Ask'), 'Ask'),
+  }),
   createRoute({
     getParentRoute: () => root,
     path: '/lab',

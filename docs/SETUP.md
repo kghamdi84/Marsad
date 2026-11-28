@@ -115,13 +115,30 @@ The first scheduled job (the Geopolitical Risk Index, which uses only public dat
 | `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)              | Macro series, VIX and yield cross-checks                                                                                    |
 | `SEC_USER_AGENT`        | Text you choose, like `Marsad research your-email@example.com`   | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in)                                 |
 | `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Only when the first Edge Function is deployed (Phase 5). Not needed now. The database is deployed by the GitHub integration |
-| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | Phase 2                                                                                                                     |
+| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | AI summaries, thesis drafts and weekly review prose (ADR 0007). GitHub repository secret; capped at USD 1 a day, 10 a month |
+| `TAURIC_API_KEY`        | tauric.ai, **Settings**, **API keys** (choose an expiry)         | Optional second quote source (ADR 0041). GitHub repository secret only; the Tauric workflows wait for it                    |
+| `OPENFIGI_API_KEY`      | openfigi.com, sign in, **API Key**                               | Optional. ETF holdings match tickers by CUSIP (ADR 0038 addendum); faster with it, works without it. GitHub secret only     |
+| Secret                  | Where to find it                                                 | Used for                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------- | -----------------------------------------------------------------------------------------------------------------------     |
+| `MASSIVE_API_KEY`       | massive.com dashboard, **API Keys**                              | Market data adapters, holiday calendar                                                                                      |
+| `FRED_API_KEY`          | `https://fredaccount.stlouisfed.org/apikeys` (free)              | Macro series, VIX and yield cross-checks                                                                                    |
+| `SEC_USER_AGENT`        | Text you choose, like `Marsad research your-email@example.com`   | SEC EDGAR fair-access contact (the SEC requires a real contact; Claude never fills this in)                                 |
+| `SUPABASE_ACCESS_TOKEN` | Supabase: **Account**, **Access Tokens**, **Generate new token** | Deploys the Ask Edge Function (step 6). The database is deployed by the GitHub integration                                  |
+| `ANTHROPIC_API_KEY`     | console.anthropic.com, **API Keys**                              | AI text in jobs (briefs, reviews). For Ask, the same key goes into Supabase instead (step 6)                                |
 | `TAURIC_API_KEY`        | tauric.ai, **Settings**, **API keys** (choose an expiry)         | Optional second quote source (ADR 0041). GitHub repository secret only; the Tauric workflows wait for it                    |
 | `OPENFIGI_API_KEY`      | openfigi.com, sign in, **API Key**                               | Optional. ETF holdings match tickers by CUSIP (ADR 0038 addendum); faster with it, works without it. GitHub secret only     |
 
-## Step 6. Supabase Edge Function secrets (Phase 1, not needed yet)
+## Step 6. Turn on Ask (two secrets, then one deploy)
 
-In Supabase: **Edge Functions**, then **Secrets**, then **Add new secret**. Same names as the data keys above (`MASSIVE_API_KEY`, `FRED_API_KEY`, `SEC_USER_AGENT`, later `ANTHROPIC_API_KEY`). Claude can also add these through the connector if you paste them into the secure form it shows, never into chat.
+Ask (the **Ask** page, ADR 0054) answers your questions with Claude through read-only tools over your Marsad data. Until both secrets exist it says "Ask is not configured yet" and spends nothing. Every Ask counts against the same AI caps as the jobs: USD 1 a day and USD 10 a month (you approved these on 28 Nov 2026; a lower cap in **Settings**, **Limits, Shariah and AI caps** wins).
+
+1. **`ANTHROPIC_API_KEY` as a Supabase Edge Function secret.** In console.anthropic.com, tap **API Keys**, then **Create Key**, and copy it. In Supabase, open the project, tap **Edge Functions**, then **Secrets**, then **Add new secret**. Name: `ANTHROPIC_API_KEY`. Value: the key. Tap **Save**. Paste it only there, never into chat. (Optional but wise: in the Anthropic console, set a monthly spend limit on the key's workspace as a second guard.)
+2. **`SUPABASE_ACCESS_TOKEN` as a GitHub secret.** In Supabase, tap your account picture, then **Account preferences**, then **Access Tokens**, then **Generate new token**; name it `marsad-deploy` and copy it. In GitHub, open the repository, tap **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Name: `SUPABASE_ACCESS_TOKEN`. Value: the token. Tap **Add secret**.
+3. **Deploy.** In GitHub, tap **Actions**, then **Deploy Edge Functions**, then **Run workflow**, keep the function `ask`, and tap **Run workflow**. It takes about two minutes.
+4. **Test.** In Marsad, tap **Ask** (on iPad and desktop, after Status; on a phone, under **More**). The page shows the AI spend left. Type "How is NVDA doing?" and tap **Ask**. The answer shows "AI answer (Claude), figures checked against Marsad data" with numbered sources, or "Facts only" with the reason.
+5. **Tell Claude:** "Ask deployed", so the first deploy (checklist 5.2b) is recorded.
+
+Other functions would read their secrets from the same place (**Edge Functions**, **Secrets**). Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to every function; do not add those.
 
 ## Step 7. Optional: Telegram as a second alert channel (free)
 

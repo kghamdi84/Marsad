@@ -5,6 +5,7 @@
 import { Segmented, useRemembered } from '../../Card';
 import type { StudyData } from '../../../lib/study';
 import { t } from '../../../strings';
+import { AiFilingSummary } from '../AiSummary';
 import { FilingsCard } from '../FilingsCard';
 import { QuarterlyRiskFactors } from '../QuarterlyRiskFactors';
 import { RiskFactors } from '../RiskFactors';
@@ -12,12 +13,13 @@ import { RiskFactors } from '../RiskFactors';
 const ui = t.study.ui;
 const RISK_MODES = ['yoy', 'qoq'] as const;
 
-/** Filings with the risk factors, year over year (10-K) or quarter over quarter (10-Q). */
+/** The AI filing summary, then the filings with the risk factors, year over year (10-K) or quarter over quarter (10-Q). */
 export function StudyFilings({ data }: { data: StudyData }) {
   const [riskMode, setRiskMode] = useRemembered('marsad.study.risk', RISK_MODES, 'yoy');
   const cik = data.company?.cik;
   return (
     <>
+      <AiFilingSummary ticker={data.ticker} />
       <FilingsCard data={data} />
       <Segmented
         label={ui.riskToggle}

@@ -1085,6 +1085,198 @@ test('thesis card: a new version needs a real bear case, is saved append-only an
   });
 });
 
+/** A stored AI output row (ai_outputs) as the job writes it; the text and figures are made up for the test. */
+function aiRow(kind: string, over: Json = {}): Json {
+  return {
+    id: 7,
+    kind,
+    ticker: 'NVDA',
+    for_date: null,
+    text: '',
+    citations: [],
+    verified: true,
+    source: 'model',
+    fallback_reason: null,
+    model: 'claude-sonnet-5-5',
+    served_model: 'claude-sonnet-5-5',
+    prompt_id: kind,
+    prompt_version: 1,
+    created_at: '2026-11-25T00:52:00Z',
+    ...over,
+  };
+}
+
+const XBRL_URL =
+  'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000101/0001045810-26-000101-index.htm';
+const TENQ_URL =
+  'https://www.sec.gov/Archives/edgar/data/1045810/000104581026000101/nvda-20260726.htm';
+const CITES = [
+  {
+    id: 'F3',
+    kind: 'fact',
+    label: 'Revenue, quarter ended 2026-07-26',
+    url: XBRL_URL,
+    source: 'SEC XBRL company facts, accession 0001045810-26-000101',
+    asOf: '2026-08-27',
+  },
+  {
+    id: 'D1',
+    kind: 'document',
+    label: '10-Q risk factors (Part II, Item 1A)',
+    url: TENQ_URL,
+    source: 'SEC 10-Q 0001045810-26-000101, Part II Item 1A',
+    asOf: '2026-08-27',
+  },
+];
+
+test('thesis card: the AI draft is labelled, cited, and only fills the form; saving stays a human edit', async ({
+  page,
+}) => {
+  await setup(page);
+  const saved: unknown[] = [];
+  await page.route('**/rest/v1/theses**', (r) => {
+    if (r.request().method() === 'GET') return json(r, []);
+    saved.push(r.request().postDataJSON());
+    return r.fulfill({ status: 201, body: '' });
+  });
+  const draft =
+    'Bull case: revenue was $46.74B in the quarter ended 2026-07-26 [F3]. Bear case: the 10-Q repeats the annual risk factors, so concentration in a few large customers remains a real threat to growth [D1]. Key risks: customer concentration [D1]. What would change the view: a new 10-Q that reports material changes to the risk factors [D1].';
+  const asked: string[] = [];
+  await page.route('**/rest/v1/ai_outputs**', (r) => {
+    asked.push(r.request().url());
+    return json(
+      r,
+      r.request().url().includes('kind=eq.thesis-draft')
+        ? [aiRow('thesis-draft', { text: draft, citations: CITES })]
+        : [],
+    );
+  });
+  await page.goto('/study/NVDA');
+  const card = page.getByRole('region', { name: 'Thesis card' });
+  const ai = card.getByRole('region', { name: 'AI draft, check before saving' });
+  await expect(ai).toContainText('Bear case: the 10-Q repeats the annual risk factors');
+  await expect(ai).toContainText('As of 2026-11-25 · Claude Sonnet 5.5');
+  await expect(ai).toContainText('It is not your thesis until you edit it and save it yourself.');
+  await ai.getByText('Sources cited (2)').click();
+  await expect(ai.getByRole('link', { name: 'Filing on SEC' }).nth(1)).toHaveAttribute(
+    'href',
+    TENQ_URL,
+  );
+  // Nothing is saved by showing the draft.
+  expect(saved).toEqual([]);
+  await ai.getByRole('button', { name: 'Start from this draft' }).click();
+  const form = card.getByRole('form', { name: 'Write a new version' });
+  // Citations are removed in the form; the cited filings become the sources.
+  await expect(form.getByLabel('Bear case (required)')).toHaveValue(
+    'the 10-Q repeats the annual risk factors, so concentration in a few large customers remains a real threat to growth.',
+  );
+  await expect(form.getByLabel('Key risks (one a line)')).toHaveValue('customer concentration');
+  await expect(form.getByLabel('Sources (https links, one a line)')).toHaveValue(
+    `${XBRL_URL}\n${TENQ_URL}`,
+  );
+  expect(saved).toEqual([]);
+  await form
+    .getByLabel('What would change my view (required)')
+    .fill('A new 10-Q that reports material changes to the risk factors, or a revenue decline.');
+  await form.getByRole('button', { name: 'Save new version' }).click();
+  await expect.poll(() => saved.length).toBe(1);
+  expect(saved[0]).toMatchObject({ ticker: 'NVDA', risks: ['customer concentration'] });
+  expect(asked.some((u) => u.includes('ticker=eq.NVDA'))).toBe(true);
+});
+
+test('thesis card: a draft that fell back to the template is not offered, and says why', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/theses**', (r) => json(r, []));
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, [
+      aiRow('thesis-draft', {
+        source: 'template',
+        fallback_reason: 'cost-cap',
+        served_model: null,
+        text: 'Revenue, quarter ended 2026-07-26: $46.74B [F3].',
+      }),
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  const card = page.getByRole('region', { name: 'Thesis card' });
+  await expect(card).toContainText(
+    'No AI draft for the newest filings: the daily or monthly AI spending cap was reached.',
+  );
+  await expect(card.getByRole('button', { name: 'Start from this draft' })).toHaveCount(0);
+});
+
+test('filing summary: the verified AI summary with its label, model, date and linked sources (2.9)', async ({
+  page,
+}) => {
+  await setup(page);
+  const summary =
+    'Revenue was $46.74B in the quarter ended 2026-07-26 [F3]. The 10-Q reports no material change to the risk factors [D1].';
+  let rows: Json[] = [];
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, r.request().url().includes('kind=eq.filing-summary') ? rows : []),
+  );
+  await page.goto('/study/NVDA');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Filing summary' });
+  // Before the first run: unavailable, said plainly.
+  await expect(panel).toContainText(
+    'No filing summary yet. Summaries are written each weekday night once the Anthropic key is added.',
+  );
+  rows = [aiRow('filing-summary', { text: summary, citations: CITES })];
+  await page.reload();
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  await expect(panel).toContainText('AI summary (Claude), checked against the filing figures');
+  await expect(panel).toContainText(summary);
+  await expect(panel).toContainText(
+    'As of 2026-11-25 · Claude Sonnet 5.5 Newest filing cited: 2026-08-27.',
+  );
+  await panel.getByText('Sources cited (2)').click();
+  const sources = panel.getByRole('list', { name: 'Filing summary' });
+  await expect(sources).toContainText('[F3] Revenue, quarter ended 2026-07-26');
+  await expect(sources).toContainText(
+    'SEC 10-Q 0001045810-26-000101, Part II Item 1A, filed 2026-08-27',
+  );
+  await expect(sources.getByRole('link', { name: 'Filing on SEC' })).toHaveCount(2);
+  await expect(sources.getByRole('link', { name: 'Filing on SEC' }).first()).toHaveAttribute(
+    'href',
+    XBRL_URL,
+  );
+  await openInfo(panel);
+  await expect(panel.getByText(/Code checked every figure against those filings/)).toBeVisible();
+});
+
+test('filing summary: when the model could not be used, the figures themselves with the reason', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route('**/rest/v1/ai_outputs**', (r) =>
+    json(r, [
+      aiRow('filing-summary', {
+        source: 'template',
+        fallback_reason: 'verification-failed',
+        served_model: null,
+        attempts: 2,
+        text: 'Revenue, quarter ended 2026-07-26: $46.74B [F3].\n10-Q (quarterly report) filed on: 2026-08-27 [D1].',
+        citations: CITES,
+      }),
+    ]),
+  );
+  await page.goto('/study/NVDA');
+  await page.getByRole('tab', { name: 'Filings', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Figures from the filings' });
+  await expect(panel).toContainText(
+    'No AI summary for these filings: its figures did not match the filings, twice. The figures below come straight from the filings.',
+  );
+  await expect(panel.getByRole('listitem').first()).toHaveText(
+    'Revenue, quarter ended 2026-07-26: $46.74B [F3].',
+  );
+  await expect(
+    panel.getByText('AI summary (Claude), checked against the filing figures'),
+  ).toHaveCount(0);
+});
+
 test('Shariah screening aid: off by default; when on, ratios from the filings with every caveat', async ({
   page,
 }) => {

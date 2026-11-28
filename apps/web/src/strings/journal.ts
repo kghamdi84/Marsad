@@ -256,6 +256,10 @@ export const journal = {
     spyNote: (from: string, to: string) => `Close ${from} to ${to}`,
     spyNa: 'Data unavailable',
     spyNaNote: 'No stored SPY closes for the week',
+    aiTitle: 'The week in words',
+    aiLabel: 'AI-written from the figures above',
+    aiNote:
+      'Claude wrote this from the same figures as the review above; code checked every number against them. The figures above are the record.',
   },
   trades: {
     title: 'Trades and adherence',

@@ -61,10 +61,11 @@ export const settings = {
     daily: 'Daily cap',
     monthly: 'Monthly cap',
     spend: 'Spend this month',
-    blank: 'Blank',
+    blank: 'Approved cap',
     save: 'Save AI caps',
     saved: 'AI caps saved.',
-    note: 'Leave either cap blank to keep AI off. Topics and briefs use keyword rules and templates meanwhile. Warning at 80%, templates at the cap.',
+    note: 'You approved USD 1 a day and USD 10 a month on 2026-11-28. Blank keeps the approved cap; a lower cap saved here lowers it, a higher one is ignored. AI runs only once the Anthropic key is added. Warning at 80%, templates at the cap.',
+    inForce: (day: string, month: string) => `In force: $${day} a day, $${month} a month`,
   },
   security: 'Security',
   securityRows: [

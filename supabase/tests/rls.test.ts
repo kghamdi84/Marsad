@@ -421,6 +421,78 @@ describe('system tables', () => {
     await db.query(`delete from public.company_research where ticker = 'AMD'`);
   });
 
+  it('AI outputs (ADR 0007): members read filing summaries only, the owner reads all, nobody signed in writes', async () => {
+    const row = (kind: string, ticker: string | null, forDate: string | null, extra = '') =>
+      `insert into public.ai_outputs (kind, ticker, for_date, source_key, prompt_id, prompt_version, model, text, verified, source, attempts, input_snapshot${extra ? `, ${extra.split('=')[0]}` : ''})
+       values ('${kind}', ${ticker ? `'${ticker}'` : 'null'}, ${forDate ? `date '${forDate}'` : 'null'}, 'abcdef0123456789', '${kind}', 1, 'claude-sonnet-5-5', 'Revenue was $4.18B [F1].', true, 'model', 1, '{}'::jsonb${extra ? `, ${extra.split('=')[1]}` : ''})`;
+    await db.exec(`
+      ${row('filing-summary', 'NVDA', null)};
+      ${row('thesis-draft', 'NVDA', null)};
+      ${row('weekly-review', null, '2026-11-29')};
+    `);
+    try {
+      await as(owner2, async (tx) => expect(await count(tx, 'public.ai_outputs')).toBe(3));
+      await as(other2, async (tx) => {
+        const r = await tx.query<{ kind: string }>('select kind from public.ai_outputs');
+        expect(r.rows).toEqual([{ kind: 'filing-summary' }]);
+      });
+      await as(owner1, async (tx) => expect(await count(tx, 'public.ai_outputs')).toBe(0));
+      await expect(as(anon, (tx) => count(tx, 'public.ai_outputs'))).rejects.toThrow(
+        /permission denied/,
+      );
+      for (const sql of [
+        row('filing-summary', 'AMD', null),
+        `update public.ai_outputs set text = 'x' where ticker = 'NVDA'`,
+        `delete from public.ai_outputs`,
+      ]) {
+        await expect(as(owner2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+        await expect(as(other2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+      }
+      // Model text must be verified, a template must say why, and the kind decides ticker and week.
+      for (const sql of [
+        row('filing-summary', 'AMD', null).replace("true, 'model'", "false, 'model'"),
+        row('filing-summary', 'AMD', null).replace("'model', 1", "'template', 1"),
+        row('filing-summary', 'AMD', null, "fallback_reason='cost-cap'"),
+        row('weekly-review', 'AMD', '2026-11-29'),
+        row('weekly-review', null, null),
+        row('filing-summary', 'AMD', '2026-11-29'),
+        row('filing-summary', 'amd', null),
+        row('news-digest', 'AMD', null),
+        row('filing-summary', 'AMD', null).replace("'claude-sonnet-5-5'", "'gpt-5'"),
+        row('filing-summary', 'AMD', null, "fallback_reason='bored'"),
+        row('filing-summary', 'AMD', null).replace("'abcdef0123456789'", "'abc'"),
+      ])
+        await expect(db.query(sql), sql).rejects.toThrow(/check constraint/);
+      // A template row that states its reason is accepted.
+      await db.query(
+        row('filing-summary', 'AMD', null, "fallback_reason='cost-cap'").replace(
+          "true, 'model', 1",
+          "true, 'template', 0",
+        ),
+      );
+    } finally {
+      await db.query('delete from public.ai_outputs');
+    }
+  });
+
+  it('the usage log records the prompt and how each call ended, and refuses an unknown outcome', async () => {
+    await db.query(
+      `insert into public.ai_usage (job, purpose, model, served_model, prompt_id, prompt_version, input_tokens, output_tokens, usd, outcome)
+       values ('ai-summaries', 'filing summary NVDA', 'claude-sonnet-5-5', 'claude-sonnet-5', 'filing-summary', 1, 10, 5, 0.0001, 'refusal')`,
+    );
+    try {
+      await as(other2, async (tx) => expect(await count(tx, 'public.ai_usage')).toBe(0));
+      await as(owner2, async (tx) => expect(await count(tx, 'public.ai_usage')).toBe(2));
+      await expect(
+        db.query(
+          `insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd, outcome) values ('j', 'p', 'claude-sonnet-5-5', 1, 1, 0, 'great')`,
+        ),
+      ).rejects.toThrow(/check constraint/);
+    } finally {
+      await db.query(`delete from public.ai_usage where job = 'ai-summaries'`);
+    }
+  });
+
   it("ticker summary (ADR 0050): members read 'tracked' rows, only the owner reads 'market' rows, nobody signed in writes", async () => {
     await db.exec(`
       insert into public.ticker_daily_summary (version, date, ticker, coverage, close, close_date, range_position_52w, formula_versions)
@@ -1110,6 +1182,94 @@ describe('system tables', () => {
     await expect(as(owner2, (tx) => count(tx, 'private.app_owners'))).rejects.toThrow(
       /permission denied/,
     );
+  });
+});
+
+describe('Ask (ADR 0054)', () => {
+  const ins = (state = 'answered', verified = true, question = 'How is NVDA doing?') =>
+    `insert into public.ask_log (question, answer, citations, verified, model, usd, state)
+     values ('${question}', 'NVDA closed at $189.00 [F2].', '[{"id":"F2"}]'::jsonb, ${verified},
+             'claude-sonnet-5-5', 0.014, '${state}')`;
+
+  it('the owner with MFA writes and reads the log; it is append-only', async () => {
+    await as(owner2, async (tx) => {
+      await tx.query(ins());
+      await tx.query(ins('facts-only', false));
+      expect(await count(tx, 'public.ask_log')).toBe(2);
+      const r = await tx.query<{ owner_id: string }>('select owner_id from public.ask_log');
+      expect(r.rows.every((x) => x.owner_id === OWNER)).toBe(true);
+    });
+    await expect(
+      as(owner2, (tx) => tx.query(`update public.ask_log set answer = 'changed'`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(as(owner2, (tx) => tx.query('delete from public.ask_log'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('a member, the owner without MFA and anon get nothing; nobody writes in the owner name', async () => {
+    await expect(as(other2, (tx) => tx.query(ins()))).rejects.toThrow(/row-level security/);
+    await expect(
+      as(other2, (tx) =>
+        tx.query(
+          `insert into public.ask_log (owner_id, question, answer, verified, state)
+           values ('${OWNER}', 'q', 'a', false, 'capped')`,
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await db.exec(
+      `insert into public.ask_log (owner_id, question, answer, verified, state) values ('${OWNER}', 'q', '', false, 'capped')`,
+    );
+    try {
+      await as(owner2, async (tx) => expect(await count(tx, 'public.ask_log')).toBe(1));
+      await as(other2, async (tx) => expect(await count(tx, 'public.ask_log')).toBe(0));
+      await as(owner1, async (tx) => expect(await count(tx, 'public.ask_log')).toBe(0));
+      await expect(as(anon, (tx) => count(tx, 'public.ask_log'))).rejects.toThrow(
+        /permission denied/,
+      );
+    } finally {
+      await db.exec('delete from public.ask_log');
+    }
+  });
+
+  it('refuses a verified facts-only row, an unknown state and an over-long question', async () => {
+    await expect(as(owner2, (tx) => tx.query(ins('facts-only', true)))).rejects.toThrow(
+      /check constraint/,
+    );
+    await expect(as(owner2, (tx) => tx.query(ins('maybe', false)))).rejects.toThrow(
+      /check constraint/,
+    );
+    await expect(
+      as(owner2, (tx) => tx.query(ins('answered', true, 'x'.repeat(501)))),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it('ask_is_owner() is true only for the app owner with a session, and anon cannot call it', async () => {
+    const owner = (tx: Transaction) =>
+      tx.query<{ v: boolean }>('select public.ask_is_owner() as v').then((r) => r.rows[0]!.v);
+    expect(await as(owner2, owner)).toBe(true);
+    expect(await as(other2, owner)).toBe(false);
+    expect(await as(owner1, owner)).toBe(false);
+    await expect(as(anon, owner)).rejects.toThrow(/permission denied/);
+  });
+
+  it("ai_usage takes Sonnet 5's fallback rows from the service key and still refuses unknown models", async () => {
+    await db.exec(`
+      insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd)
+        values ('ask', 'question', 'claude-sonnet-5', 2000, 300, 0.007)`);
+    await expect(
+      db.query(`
+        insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd)
+          values ('ask', 'question', 'gpt-x', 1, 1, 0)`),
+    ).rejects.toThrow(/check constraint/);
+    await db.exec(`delete from public.ai_usage where job = 'ask'`);
+    // Signed-in users still cannot write spend, so only the function's service key records it.
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(`insert into public.ai_usage (job, purpose, model, input_tokens, output_tokens, usd)
+                  values ('ask', 'question', 'claude-sonnet-5-5', 1, 1, 0)`),
+      ),
+    ).rejects.toThrow(/permission denied/);
   });
 });
 

@@ -10,6 +10,14 @@ async function empty(page: Page) {
   await page.route('**/rest/v1/**', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
+  // The Ask function, before its key is added.
+  await page.route('**/functions/v1/**', (r) =>
+    r.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ state: 'not-configured', budget: null }),
+    }),
+  );
 }
 
 /** Each link's accessible name, in order: its aria-label when it has one (the gear), else its text. */
@@ -24,7 +32,8 @@ test('desktop and iPad: every page in order with Settings as a gear; number keys
   await empty(page);
   await page.goto('/');
   const nav = page.getByRole('banner').getByRole('navigation', { name: 'Main sections' });
-  await expect(nav.getByRole('link')).toHaveCount(9);
+  await expect(nav.getByRole('link')).toHaveCount(10);
+  // Ask (ADR 0054) sits after Status and has no number key; the others keep their order and keys.
   expect(await names(nav.getByRole('link'))).toEqual([
     'Watch',
     'Markets',
@@ -34,6 +43,7 @@ test('desktop and iPad: every page in order with Settings as a gear; number keys
     'Alerts',
     'Lab',
     'Status',
+    'Ask',
     'Settings',
   ]);
   // The gear shows an icon only; its name is in the label.
@@ -56,6 +66,10 @@ test('desktop and iPad: every page in order with Settings as a gear; number keys
     await page.keyboard.press(key);
     await expect(page).toHaveURL(path);
   }
+  await nav.getByRole('link', { name: 'Ask' }).click();
+  await expect(page).toHaveURL(/\/ask$/);
+  await expect(nav.getByRole('link', { name: 'Ask' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { level: 1, name: 'Ask' })).toBeVisible();
 });
 
 test.describe('on a phone', () => {
@@ -100,12 +114,13 @@ test.describe('on a phone', () => {
 
       await bar.getByRole('button', { name: 'More' }).click();
       const more = page.getByRole('dialog', { name: 'More' });
-      await expect(more.getByRole('link')).toHaveCount(5);
+      await expect(more.getByRole('link')).toHaveCount(6);
       expect(await names(more.getByRole('link'))).toEqual([
         'Screener',
         'Journal',
         'Lab',
         'Status',
+        'Ask',
         'Settings',
       ]);
       await expect(more.getByRole('button', { name: 'Sign out' })).toBeVisible();
@@ -113,6 +128,11 @@ test.describe('on a phone', () => {
       await expect(page).toHaveURL(/\/journal$/);
       await expect(more).toBeHidden();
       // Journal sits under More, so More shows as the current section.
+      await expect(bar.getByRole('button', { name: 'More' })).toHaveClass(/text-up/);
+      await bar.getByRole('button', { name: 'More' }).click();
+      await more.getByRole('link', { name: 'Ask' }).click();
+      await expect(page).toHaveURL(/\/ask$/);
+      await expect(page.getByRole('banner').getByText('Ask', { exact: true })).toBeVisible();
       await expect(bar.getByRole('button', { name: 'More' })).toHaveClass(/text-up/);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
         width,

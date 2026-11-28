@@ -5,6 +5,7 @@
  * this payload. Pure.
  */
 import { toFixedHalfUp } from './ai/template.js';
+import type { Fact } from './ai/facts.js';
 import type { Brief, BriefSection } from './briefs.js';
 import { adherence, pnl, rMultiple, type JournalTrade } from './journal.js';
 import type { RuleSummary } from './scorecard.js';
@@ -211,7 +212,7 @@ export function weeklyReview(x: WeeklyInputs): Brief {
     {
       heading: 'About this review',
       lines: [
-        'Written from templates; every number comes from your journal, alerts and scorecard. An AI review arrives once an Anthropic key and caps are set.',
+        'Written from templates; every number comes from your journal, alerts and scorecard. When the Anthropic key is set, Claude adds a short review in words from the same figures, checked against them.',
       ],
     },
   ];
@@ -225,4 +226,85 @@ export function weeklyReview(x: WeeklyInputs): Brief {
     pushBody: push.slice(0, 140),
     sections,
   };
+}
+
+/**
+ * The figures of the review as grounded facts (F1, F2, ...), for the AI prose (weekly-review@1): the same numbers
+ * the template writes, computed the same way, so prose verified against them cannot say anything the template
+ * does not. Facts that do not apply this week (no trades with a stop, no scored rules) are left out.
+ */
+export function weeklyReviewFacts(x: WeeklyInputs): Fact[] {
+  const start = addDays(x.weekEnding, -6);
+  const inWeek = (d: string | null) => d !== null && d >= start && d <= x.weekEnding;
+  const closed = x.trades.filter((t) => inWeek(t.exitDate));
+  const opened = x.trades.filter((t) => inWeek(t.entryDate));
+  const touched = x.trades.filter((t) => inWeek(t.entryDate) || inWeek(t.exitDate));
+  const rs = closed.map(rMultiple).filter((v): v is number => v !== null);
+  const adh = touched.map((t) => adherence(t));
+  const broken = new Map<string, number>();
+  for (const a of adh) for (const b of a.broken) broken.set(b, (broken.get(b) ?? 0) + 1);
+  const out: Omit<Fact, 'id'>[] = [
+    { label: `Week ending ${x.weekEnding}: trades closed`, value: closed.length, unit: 'count' },
+    { label: 'Trades opened this week', value: opened.length, unit: 'count' },
+    {
+      label: 'Closed trades that made money',
+      value: closed.filter((t) => (pnl(t) ?? 0) > 0).length,
+      unit: 'count',
+    },
+  ];
+  if (closed.length > 0)
+    out.push({
+      label: 'Realized result of the closed trades',
+      value: Math.round(closed.reduce((a, t) => a + (pnl(t) ?? 0), 0) * 100) / 100,
+      unit: 'usd',
+    });
+  if (rs.length > 0) {
+    out.push({
+      label: 'Mean result in R of the closed trades with a stop',
+      value: Math.round((rs.reduce((a, b) => a + b, 0) / rs.length) * 100) / 100,
+      unit: 'ratio',
+    });
+    out.push({ label: 'Closed trades with a stop', value: rs.length, unit: 'count' });
+  }
+  if (adh.length > 0) {
+    out.push({
+      label: 'Mean plan adherence score, out of a hundred',
+      value: Math.round(adh.reduce((a, b) => a + b.score, 0) / adh.length),
+      unit: 'count',
+    });
+    out.push({ label: 'Trades scored for adherence', value: adh.length, unit: 'count' });
+  }
+  for (const [rule, n] of [...broken.entries()].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  ))
+    out.push({ label: `Times this rule was broken: ${rule}`, value: n, unit: 'count' });
+  out.push({ label: 'Alerts this week', value: x.alerts.length, unit: 'count' });
+  out.push({
+    label: 'Feedback given on alerts this week',
+    value: x.feedback.length,
+    unit: 'count',
+  });
+  for (const r of x.scorecard) {
+    out.push({
+      label: `Rule ${r.ruleId} (${r.status}): alerts scored at 5 sessions`,
+      value: r.n,
+      unit: 'count',
+    });
+    if (!r.insufficient && r.winRate !== null)
+      out.push({
+        label: `Rule ${r.ruleId}: share of alerts that worked at 5 sessions`,
+        value: Math.round(r.winRate * 1000) / 10,
+        unit: 'pct',
+      });
+  }
+  out.push({
+    label: "Market regime at the week's end",
+    value: x.regime ?? 'not computed',
+    unit: 'text',
+  });
+  return out.map((f, i) => ({
+    id: `F${i + 1}`,
+    source: 'Marsad journal, alerts and scorecard',
+    ...f,
+  }));
 }

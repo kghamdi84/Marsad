@@ -18,6 +18,7 @@ import { markets } from './strings/markets';
 import { screener } from './strings/screener';
 import { status } from './strings/status';
 import { settings } from './strings/settings';
+import { ask } from './strings/ask';
 
 export const t = {
   appName,
@@ -47,6 +48,7 @@ export const t = {
   screener,
   status,
   settings,
+  ask,
   errors,
 } as const;
 

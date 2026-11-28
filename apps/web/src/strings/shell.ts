@@ -13,6 +13,7 @@ export const nav = {
   journal: 'Journal',
   status: 'Status',
   lab: 'Lab',
+  ask: 'Ask',
   settings: 'Settings',
   signOut: 'Sign out',
   primary: 'Main sections',
@@ -60,6 +61,11 @@ export const pages = {
     subtitle: 'Eleven playbooks. Each earns live status only through out-of-sample tests.',
   },
   status: { title: 'Status', subtitle: 'Every row of source_status, job runs and costs.' },
+  ask: {
+    title: 'Ask',
+    subtitle:
+      'A question about your Marsad data, answered by Claude from read-only tools. Every figure is checked and cited. Marsad never advises.',
+  },
   settings: {
     title: 'Settings',
     subtitle:
@@ -140,6 +146,7 @@ export const ar: {
     journal: 'السجل',
     lab: 'المختبر',
     status: 'الحالة',
+    ask: 'اسأل',
     settings: 'الإعدادات',
     signOut: 'تسجيل الخروج',
     primary: 'الأقسام الرئيسية',
@@ -184,6 +191,11 @@ export const ar: {
       subtitle: 'إحدى عشرة استراتيجية لا تصبح حية إلا بعد اختبار خارج العينة.',
     },
     status: { title: 'الحالة', subtitle: 'حالة مصادر البيانات والمهام والتكاليف.' },
+    ask: {
+      title: 'اسأل',
+      subtitle:
+        'سؤال عن بيانات مرصد يجيب عنه Claude بأدوات للقراءة فقط. كل رقم مُتحقق منه ومنسوب لمصدره. مرصد لا يقدم نصائح.',
+    },
     settings: {
       title: 'الإعدادات',
       subtitle:

@@ -31,6 +31,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # Template review always; Claude Opus 5.5 prose over the same figures when ANTHROPIC_API_KEY is set (ADR 0007).
       - name: Write the weekly review
         if: ${{ !cancelled() }}
         run: pnpm --filter @marsad/jobs weekly-review
@@ -39,6 +40,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           BRIEF_EMAIL_TO: ${{ secrets.BRIEF_EMAIL_TO }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       - name: Send push notifications
         if: ${{ !cancelled() }}
         run: pnpm --filter @marsad/jobs push

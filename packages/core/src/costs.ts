@@ -35,9 +35,9 @@ export const PLAN_COSTS: readonly {
   },
   {
     service: 'Anthropic API',
-    plan: 'Not set up',
+    plan: 'Pay as you go',
     usdPerMonth: 0,
-    note: 'Usage-based once a key and caps exist; tracked below.',
+    note: 'Capped at USD 1 a day and USD 10 a month (approved 2026-11-28); spends nothing until the key is added. Tracked below.',
   },
   {
     service: 'GitHub Actions',

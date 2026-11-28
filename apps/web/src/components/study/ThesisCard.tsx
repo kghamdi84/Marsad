@@ -1,9 +1,17 @@
 import { useState, type FormEvent } from 'react';
 import { Info } from '../Info';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { lines, validateThesis, type ThesisDraft, type ThesisStatus } from '@marsad/core';
+import {
+  lines,
+  parseThesisDraft,
+  validateThesis,
+  type ThesisDraft,
+  type ThesisStatus,
+} from '@marsad/core';
 import { Button, ErrorText } from '../ui';
 import { Pill, type Tone } from '../ui/kit';
+import { AiSources, modelName, reasonText } from '../AiSources';
+import { isVerifiedModelText, loadLatestAiOutput, type AiOutput } from '../../lib/ai';
 import { loadTheses, saveThesis, type ThesisVersion } from '../../lib/thesis';
 import { t } from '../../strings';
 import { panelTitle, tileClass } from './Panel';
@@ -64,13 +72,77 @@ function Version({ v }: { v: ThesisVersion }) {
   );
 }
 
+/** What the editor can start from: the newest saved version, or an AI draft. */
+type EditorSeed = Pick<
+  ThesisDraft,
+  'status' | 'bull' | 'bear' | 'risks' | 'changeView' | 'sources'
+>;
+
+/** The AI draft as editor text: citations removed, the cited filings' links as sources (at most 10). */
+export function draftSeed(o: AiOutput, status: ThesisStatus): EditorSeed | null {
+  const parts = parseThesisDraft(o.text);
+  if (!parts) return null;
+  const urls = [
+    ...new Set(o.citations.map((c) => c.url).filter((u): u is string => u !== null)),
+  ].slice(0, 10);
+  return {
+    status,
+    bull: parts.bull,
+    bear: parts.bear,
+    risks: parts.risks,
+    changeView: parts.changeView,
+    sources: urls,
+  };
+}
+
+/**
+ * The AI draft (checklist 2.10): shown only when the model wrote it and the verifier passed it, labelled as a draft
+ * to check, with its sources. Starting from it fills the form; nothing is saved until Khaled saves.
+ */
+function AiDraft({
+  draft,
+  onUse,
+}: {
+  draft: AiOutput | null | undefined;
+  onUse: (o: AiOutput) => void;
+}) {
+  if (draft === undefined) return null;
+  if (draft === null) return <p className="text-xs text-ink3">{x.ai}</p>;
+  if (!isVerifiedModelText(draft) || !parseThesisDraft(draft.text))
+    return (
+      <p className="text-xs text-ink3">{x.aiDraft.unavailable(reasonText(draft.fallbackReason))}</p>
+    );
+  return (
+    <section
+      aria-labelledby="thesis-ai-draft"
+      className="flex flex-col gap-2 rounded-lg border border-dashed border-line-strong p-3"
+    >
+      <h3 id="thesis-ai-draft" className="text-sm font-semibold text-ink">
+        <Pill tone="warn">{x.aiDraft.title}</Pill>
+      </h3>
+      <p className="text-xs text-ink3">{x.aiDraft.note}</p>
+      <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-ink2">{draft.text}</p>
+      <p className="text-xs text-ink3">
+        {t.common.ai.asOf(
+          draft.createdAt.slice(0, 10),
+          modelName(draft.servedModel ?? draft.model),
+        )}
+      </p>
+      <AiSources citations={draft.citations} label={x.aiDraft.title} />
+      <Button type="button" onClick={() => onUse(draft)}>
+        {x.aiDraft.use}
+      </Button>
+    </section>
+  );
+}
+
 function Editor({
   ticker,
   from,
   onDone,
 }: {
   ticker: string;
-  from?: ThesisVersion;
+  from?: EditorSeed;
   onDone: () => void;
 }) {
   const qc = useQueryClient();
@@ -152,7 +224,12 @@ function Editor({
 
 export function ThesisCard({ ticker }: { ticker: string }) {
   const q = useQuery({ queryKey: ['theses', ticker], queryFn: () => loadTheses(ticker) });
+  const ai = useQuery({
+    queryKey: ['ai-output', 'thesis-draft', ticker],
+    queryFn: () => loadLatestAiOutput('thesis-draft', ticker),
+  });
   const [editing, setEditing] = useState(false);
+  const [seed, setSeed] = useState<EditorSeed | null>(null);
   const [saved, setSaved] = useState(false);
   const [latest, ...older] = q.data ?? [];
   return (
@@ -173,17 +250,36 @@ export function ThesisCard({ ticker }: { ticker: string }) {
         (editing ? (
           <Editor
             ticker={ticker}
-            {...(latest ? { from: latest } : {})}
+            {...(seed ? { from: seed } : latest ? { from: latest } : {})}
             onDone={() => {
               setEditing(false);
+              setSeed(null);
               setSaved(true);
             }}
           />
         ) : (
-          <Button type="button" onClick={() => setEditing(true)}>
+          <Button
+            type="button"
+            onClick={() => {
+              setSeed(null);
+              setEditing(true);
+            }}
+          >
             {x.edit}
           </Button>
         ))}
+      {!editing && (
+        <AiDraft
+          draft={ai.isError ? null : ai.data}
+          onUse={(o) => {
+            const s0 = draftSeed(o, latest?.status ?? 'intact');
+            if (!s0) return;
+            setSeed(s0);
+            setSaved(false);
+            setEditing(true);
+          }}
+        />
+      )}
       {older.length > 0 && (
         <details className="text-sm">
           <summary className="min-h-11 cursor-pointer py-2 text-ink3">
@@ -196,7 +292,6 @@ export function ThesisCard({ ticker }: { ticker: string }) {
           </div>
         </details>
       )}
-      <p className="text-xs text-ink3">{x.ai}</p>
     </section>
   );
 }

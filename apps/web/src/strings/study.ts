@@ -708,7 +708,23 @@ export const study = {
     saved: 'Saved. Open holdings of this ticker now carry this status.',
     savedAt: (when: string) => `Saved ${when}.`,
     history: (n: number) => `Earlier versions (${n})`,
-    ai: 'An AI draft from cited filings and news arrives once an Anthropic key and cost caps are set.',
+    ai: 'No AI draft yet. Claude drafts a card for each holding without a thesis once the Anthropic key is added.',
+    aiDraft: {
+      title: 'AI draft, check before saving',
+      note: 'Drafted by Claude from the filings cited below; code checked every figure against them. It is not your thesis until you edit it and save it yourself.',
+      use: 'Start from this draft',
+      unavailable: (reason: string) => `No AI draft for the newest filings: ${reason}.`,
+    },
+  },
+  aiSummary: {
+    title: 'Filing summary',
+    label: 'AI summary (Claude), checked against the filing figures',
+    intro:
+      'Written by Claude from the newest filings Marsad has stored for this company: the latest quarterly figures, the 10-Q and 10-K risk factor sections and recent 8-K items. Code checked every figure against those filings before it was shown, and each sentence names its sources. A summary that fails the check twice is replaced by the figures themselves. It describes; it is not advice.',
+    none: 'No filing summary yet. Summaries are written each weekday night once the Anthropic key is added.',
+    templateTitle: 'Figures from the filings',
+    templateNote: (reason: string) =>
+      `No AI summary for these filings: ${reason}. The figures below come straight from the filings.`,
   },
   research,
   placeholdersTitle: 'More on this company',
