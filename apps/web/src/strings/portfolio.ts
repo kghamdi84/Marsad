@@ -460,7 +460,7 @@ export const portfolio = {
     endValue: (mine: string, spy: string) => `End value ${mine}; SPY ${spy}`,
     counts: 'Trades counted',
     countsValue: (n: number, closed: number, flows: number) =>
-      `${n} trades, ${closed} closed, ${flows} cash flows`,
+      `${n} ${n === 1 ? 'trade' : 'trades'}, ${closed} closed, ${flows} ${flows === 1 ? 'cash flow' : 'cash flows'}`,
     fees: (v: string) => `Fees ${v}`,
     missing: 'Sessions with a missing close',
     missingNote: (n: number) =>

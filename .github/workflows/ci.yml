@@ -30,6 +30,9 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      # The main entry chunk must stay within apps/web/bundle-budget.mjs (ADR 0053).
+      - name: Bundle budget
+        run: node apps/web/scripts/check-bundle.mjs
       - run: pnpm --filter @marsad/web exec playwright install --with-deps chromium
       - run: pnpm e2e
 
