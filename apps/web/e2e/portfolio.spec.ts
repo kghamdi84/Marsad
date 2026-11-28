@@ -260,6 +260,12 @@ test('portfolio holdings: summary, the chart label, five column sets and no anal
   await expect(ko).toContainText('3.3%');
   await expect(ko).toContainText('$102');
   await expect(table.getByRole('row').filter({ hasText: 'SOFI' })).toContainText('None stored');
+  // Technicals come from the one technical engine (technical-1), named under the table.
+  await sets.getByRole('button', { name: 'Technicals' }).click();
+  const tech = page.getByRole('region', { name: 'Holdings table, Technicals columns' });
+  for (const head of ['Readings', 'vs SMA 50', 'vs SMA 200', 'RSI 14'])
+    await expect(tech.getByRole('columnheader', { name: head })).toBeVisible();
+  await expect(page.getByText(/From the one technical engine \(technical-1\)/)).toBeVisible();
 });
 
 test('portfolio analysis: rules beside each card, P/E coverage, unavailable sources named', async ({
@@ -311,14 +317,26 @@ test('portfolio income and news: net of withholding; a reading pane with a link 
   await stub(page);
   await openPortfolio(page, 'Income');
   const income = page.getByRole('region', { name: 'Income', exact: true });
-  // KO: 0.52 x 4 = 2.08 a share on 50 shares, $104 gross, $72.80 net; 2.08 / 60.00 = 3.5% on cost.
+  // KO: 0.52 x 4 = 2.08 a share on 50 shares, $104 gross, $72.80 net; 2.08 / 60.00 = 3.5% on cost gross,
+  // 2.08 x 0.7 / 60.00 = 2.4% net.
   const ko = income.getByRole('row').filter({ hasText: 'KO' });
   await expect(ko).toContainText('$104');
   await expect(ko).toContainText('$73');
-  await expect(ko).toContainText('3.5%');
-  await expect(income).toContainText(
-    'US withholding for non-treaty residents (IRS Publication 515)',
+  await expect(ko).toContainText('2.4% (3.5%)');
+  const rate = income.getByLabel(
+    'US withholding, 30% (no US and Saudi treaty), editable; check your Sahm statement',
   );
+  await expect(rate).toHaveValue('30');
+  // 15% withheld: 104 x 0.85 = $88.40; 2.08 x 0.85 / 60.00 = 2.9% on cost.
+  await rate.fill('15');
+  await expect(ko).toContainText('$88');
+  await expect(ko).toContainText('2.9% (3.5%)');
+  // Not a rate: net figures are withheld rather than guessed.
+  await rate.fill('150');
+  await expect(income).toContainText('Enter a percent from 0 to 100');
+  await expect(ko).not.toContainText('$88');
+  await rate.fill('30');
+  await expect(income).toContainText('the US has no income tax treaty with Saudi Arabia');
   await page
     .getByRole('group', { name: 'Portfolio view' })
     .getByRole('button', { name: 'News' })

@@ -979,6 +979,8 @@ export const t = {
         'tauric-calendar': 'Tauric calendar',
         'marsad-estimate': 'Marsad estimate from SEC filings',
       },
+      readings: 'Readings',
+      nOfM: (bull: number, n: number) => `${bull} of ${n} bullish`,
       vs50: 'vs SMA 50',
       vs200: 'vs SMA 200',
       rsi: 'RSI 14',
@@ -992,7 +994,7 @@ export const t = {
         earnings:
           'Tauric’s calendar (one consensus EPS) when it states a date; otherwise Marsad’s estimate from SEC results filings, never a confirmed date.',
         technicals:
-          'Last close against its 50- and 200-day simple averages, and the 14-day RSI, from stored daily bars (indicators.ts).',
+          'From the one technical engine (technical-1) on stored daily bars: the count of bullish readings among its moving averages and indicators, the last close against its 50- and 200-session simple averages, and the 14-session RSI. A description of the chart, not advice.',
       },
     },
     review: {
@@ -1254,9 +1256,13 @@ export const t = {
       forwardGross: 'Forward 12 months, gross',
       perYear: 'Stored payments, annualized',
       forwardNet: (w: string) => `Net of ${w} withholding`,
-      withholdingShort: 'US withholding, non-treaty default',
-      yieldOnCost: 'Yield on cost',
-      onCost: (cost: string) => `On ${cost} cost`,
+      withholdingShort: 'US withholding, the rate entered below',
+      withholdingLabel: (w: string) =>
+        `US withholding, ${w} (no US and Saudi treaty), editable; check your Sahm statement`,
+      withholdingUnit: 'Percent of each gross dividend.',
+      withholdingInvalid: 'Enter a percent from 0 to 100. Net figures are not shown until then.',
+      yieldOnCost: 'Yield on cost, net',
+      onCost: (gross: string, cost: string) => `Gross ${gross}, on ${cost} cost`,
       yieldOnValue: 'Yield on value',
       ttmLine: (v: string) => `Trailing 12 months: ${v}`,
       noPayers: 'No stored dividends for your holdings.',
@@ -1265,7 +1271,8 @@ export const t = {
       basis: 'Basis',
       gross: 'Gross',
       net: 'Net',
-      yoc: 'Yield on cost',
+      yoc: 'Yield on cost, net (gross)',
+      yocCell: (net: string, gross: string) => `${net} (${gross})`,
       yop: 'Yield on price',
       basisText: {
         'stated-frequency': (amount: string, date: string) =>
@@ -1282,7 +1289,7 @@ export const t = {
       exLine: (ex: string, pay: string | null, src: string) =>
         `ex ${ex}${pay ? ` · paid ${pay}` : ''} · ${src}`,
       withholding: (w: string) =>
-        `Withholding ${w}: US withholding for non-treaty residents (IRS Publication 515). Confirm your broker’s W-8BEN rate.`,
+        `Withholding ${w}: the US rate for a nonresident with no treaty is 30% (IRS Publication 515); the US has no income tax treaty with Saudi Arabia. Not verified: how Sahm applies it.`,
       source: (date: string) =>
         `Sources: Massive /stocks/v1/dividends (newest fetch ${date}) and Tauric’s calendar; portfolio-check-1 forwardIncome.`,
     },

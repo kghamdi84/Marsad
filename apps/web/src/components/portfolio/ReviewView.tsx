@@ -269,9 +269,9 @@ function Moves({ x }: { x: Portfolio }) {
 }
 
 /**
- * Review (ADR 0048, the Portfolio page's first view): total open risk to the stops, the book against Marsad's
- * default limits, then each lot against its own exit plan, lots without exit rules first. Coming up (next 8 weeks)
- * and Weekly moves sit one tap away. Facts and rules only: Marsad never says what to do with a position.
+ * Review (ADR 0048, the Portfolio page's first view): total open risk to the stops, the book against your own
+ * limits (or "No limit set"), then each holding against its own exit plan, those without exit rules first. Coming
+ * up (next 8 weeks) and Weekly moves sit one tap away. Facts and rules only: Marsad never says what to do.
  */
 export function ReviewView() {
   const x = usePortfolio();

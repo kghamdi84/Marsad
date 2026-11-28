@@ -35,7 +35,7 @@ import {
   portfolioCheck,
   portfolioDividends,
   portfolioPe,
-  priceVsAverages,
+  holdingTechnicals,
   recentActivity,
   trailingDividends,
   tradeReturn,
@@ -183,17 +183,26 @@ describe('holdings-table formulas', () => {
     expect(r.ytd).toBeNull();
   });
 
-  it('compares the close with its 50- and 200-day averages', () => {
+  it('compares the close with its 50- and 200-day averages through technical-1', () => {
+    const start = Date.parse('2026-01-01T00:00:00Z');
+    const days = Array.from({ length: 200 }, (_x, i) =>
+      new Date(start + i * 86_400_000).toISOString().slice(0, 10),
+    );
     const closes = Array.from({ length: 200 }, (_x, i) => i + 1);
-    const p = priceVsAverages(closes);
+    const p = holdingTechnicals(series(days, closes));
     // SMA 50 of 151..200 is 175.5; SMA 200 of 1..200 is 100.5; only gains, so RSI 14 is 100.
-    expect(p.sma50).toBeCloseTo(175.5, 9);
+    expect(p.formulaVersion).toBe('technical-1');
+    expect(p.asOf).toBe(days.at(-1));
+    expect(p.close).toBe(200);
     expect(p.vs50).toBeCloseTo(200 / 175.5 - 1, 9);
-    expect(p.sma200).toBeCloseTo(100.5, 9);
     expect(p.vs200).toBeCloseTo(200 / 100.5 - 1, 9);
     expect(p.rsi14).toBe(100);
-    const short = priceVsAverages([1, 2, 3]);
+    // A steady rise reads bullish on every counted reading, and the gauge says so.
+    expect(p.overall.bearish).toBe(0);
+    expect(p.overall.reading).toBe('bullish');
+    const short = holdingTechnicals(series(days.slice(0, 3), [1, 2, 3]));
     expect(short.vs50).toBeNull();
+    expect(short.vs200).toBeNull();
     expect(short.rsi14).toBeNull();
   });
 });
@@ -218,7 +227,11 @@ describe('dividends', () => {
 
   it('sums the 365 days ending on the last close; the day 365 days back is outside', () => {
     const t = trailingDividends(rows, '2026-11-27');
-    expect(t.from).toBe('2025-11-27');
+    // dividends-1 names the first day inside the window (inclusive): 364 days back. The 2025-11-27 payment is
+    // still outside, and a payment on 2025-11-28 is inside.
+    expect(t.from).toBe('2025-11-28');
+    expect(trailingDividends([pay('2025-11-28', 0.5)], '2026-11-27').payments).toBe(1);
+    expect(trailingDividends([pay('2025-11-27', 0.5)], '2026-11-27').payments).toBe(0);
     expect(t.payments).toBe(4);
     expect(t.perShare).toBeCloseTo(1.01, 9);
     expect(t.latest?.exDate).toBe('2026-11-10');
@@ -889,6 +902,8 @@ describe('forwardIncome', () => {
     expect(ko?.gross).toBeCloseTo(104, 9);
     expect(ko?.net).toBeCloseTo(72.8, 9);
     expect(ko?.yieldOnCost).toBeCloseTo(0.026, 9);
+    // Net of 30%: 1.04 x 0.7 / 40 = 1.82%.
+    expect(ko?.netYieldOnCost).toBeCloseTo(0.0182, 9);
     expect(ko?.from?.exDate).toBe('2026-12-10');
     // XYZ: no stated frequency on the newest row, so the trailing year: 1.00 a share, 10 gross.
     const xyz = r.rows.find((x) => x.ticker === 'XYZ');
@@ -899,6 +914,25 @@ describe('forwardIncome', () => {
     expect(r.gross).toBeCloseTo(114, 9);
     expect(r.net).toBeCloseTo(79.8, 9);
     expect(r.yieldOnCost).toBeCloseTo(114 / 4350, 9);
+    expect(r.netYieldOnCost).toBeCloseTo(79.8 / 4350, 9);
     expect(r.yieldOnValue).toBeCloseTo(114 / 5300, 9);
+  });
+
+  it('takes an edited withholding rate', () => {
+    const one = [
+      {
+        ticker: 'KO',
+        shares: 100,
+        price: 50,
+        costBasis: 40,
+        payouts: [pay('KO', '2026-12-10', 0.26, 4)],
+      },
+    ];
+    // 104 gross; 15% withheld leaves 88.40, 2.21% on 4,000 cost; 0% leaves the gross figure.
+    const r = forwardIncome(one, '2026-11-27', 0.15);
+    expect(r.withholding).toBe(0.15);
+    expect(r.net).toBeCloseTo(88.4, 9);
+    expect(r.netYieldOnCost).toBeCloseTo(0.0221, 9);
+    expect(forwardIncome(one, '2026-11-27', 0).net).toBeCloseTo(104, 9);
   });
 });

@@ -4,11 +4,13 @@ import {
   daysUntil,
   dividendYield,
   periodReturns,
-  priceVsAverages,
+  holdingTechnicals,
   toFixedHalfUp,
   trailingDividends,
   mergeDividends,
   type BookPosition,
+  type DailyBar,
+  type HoldingTechnicals,
   type PeriodKey,
 } from '@marsad/core';
 import { Card, Segmented, useRemembered } from '../Card';
@@ -273,8 +275,16 @@ function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode
     ];
   }
   {
-    const t = (c: RowCtx) => priceVsAverages((c.x.bars[c.pos.ticker] ?? []).map((b) => b.close));
+    const t = (c: RowCtx) => technicalsOf(c.x.bars[c.pos.ticker] ?? []);
     return [
+      {
+        head: h.readings,
+        cell: (c) => {
+          const o = t(c).overall;
+          const n = o.bullish + o.neutral + o.bearish;
+          return n === 0 ? <span className="text-ink3">{h.shortBars}</span> : h.nOfM(o.bullish, n);
+        },
+      },
       { head: h.vs50, cell: (c) => <Chg v={t(c).vs50} why={h.shortBars} /> },
       { head: h.vs200, cell: (c) => <Chg v={t(c).vs200} why={h.shortBars} /> },
       {
@@ -290,6 +300,17 @@ function columns(set: ColumnSet): { head: string; cell: (c: RowCtx) => ReactNode
       },
     ];
   }
+}
+
+/** technical-1 once per stored bar series (each row's cells read the same result). */
+const techCache = new WeakMap<readonly DailyBar[], HoldingTechnicals>();
+function technicalsOf(bars: readonly DailyBar[]): HoldingTechnicals {
+  let r = techCache.get(bars);
+  if (!r) {
+    r = holdingTechnicals(bars);
+    techCache.set(bars, r);
+  }
+  return r;
 }
 
 const SOURCES: Record<ColumnSet, string> = {

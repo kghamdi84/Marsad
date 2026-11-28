@@ -2,14 +2,14 @@
  * Portfolio check (`portfolio-check-1`): Marsad's code-built replacement for a portfolio "health score". Every part
  * is computed from stored data and compared with Khaled's limits (`PORTFOLIO_LIMITS`) or a stated check rule (`CHECK_RULES`); nothing is blended into one
  * opaque number, and nothing here says what to do. Also the holdings-table formulas (period returns, trailing
- * dividends, price against its averages), the "current holdings at today's weights" series against SPY, the
+ * dividends through dividends-1), the "current holdings at today's weights" series against SPY, the
  * distribution buckets, the portfolio P/E, the closed-trade summary, the activity list, weekly moves and the dated
  * list of coming events. Pure. Known answers are hand-checked in `portfolio-check.test.ts`.
  */
 import { toFixedHalfUp } from './ai/template.js';
 import { periodReturn, type PeriodReturn } from './company-brief.js';
 import { exposureReport } from './exposure.js';
-import { atr, rsi, sma } from './indicators.js';
+import { atr } from './indicators.js';
 import { adherenceVsResult, pnl, rMultiple, statsBySetup, type JournalTrade } from './journal.js';
 import {
   exitSignals,
@@ -19,6 +19,8 @@ import {
   type ExitSignal,
   type Holding,
 } from './portfolio.js';
+import { trailingDividendYield } from './research-figures.js';
+import { technicalAnalysis, type Gauge } from './technical-analysis.js';
 import { maxDrawdown, MIN_CASES, stdev } from './stats.js';
 import type { DailyBar } from './study.js';
 import { daysBetween } from './trader.js';
@@ -253,30 +255,35 @@ export function periodReturns(
   };
 }
 
-/** The last close against its 50- and 200-day simple averages (fractions) and the 14-day RSI; nulls when short. */
-export function priceVsAverages(closes: readonly number[]): {
+/** The Technicals column set of one holding, read from the one technical engine (technical-1, daily bars). */
+export interface HoldingTechnicals {
+  formulaVersion: string;
+  asOf: string | null;
   close: number | null;
-  sma50: number | null;
-  sma200: number | null;
+  /** The last close against its 50- and 200-session simple averages, as fractions; null when bars are short. */
   vs50: number | null;
   vs200: number | null;
   rsi14: number | null;
-} {
-  const close = closes.at(-1) ?? null;
-  const s50 = sma(closes, 50).at(-1) ?? null;
-  const s200 = sma(closes, 200).at(-1) ?? null;
-  const r = rsi(closes, 14).at(-1) ?? null;
+  /** technical-1's overall gauge: counts of bullish, neutral and bearish readings. */
+  overall: Gauge;
+}
+
+export function holdingTechnicals(bars: readonly DailyBar[]): HoldingTechnicals {
+  const a = technicalAnalysis(bars, 'daily');
+  const ma = (n: number) => a.movingAverages.find((m) => m.period === n)?.simple ?? null;
+  const vs = (m: number | null) => (a.close !== null && m ? a.close / m - 1 : null);
   return {
-    close,
-    sma50: s50,
-    sma200: s200,
-    vs50: close !== null && s50 ? close / s50 - 1 : null,
-    vs200: close !== null && s200 ? close / s200 - 1 : null,
-    rsi14: r,
+    formulaVersion: a.formulaVersion,
+    asOf: a.asOf,
+    close: a.close,
+    vs50: vs(ma(50)),
+    vs200: vs(ma(200)),
+    rsi14: a.indicators.find((i) => i.id === 'rsi14')?.value ?? null,
+    overall: a.gauges.overall,
   };
 }
 
-/** A stored cash dividend, as the dividend formulas take it. */
+/** A stored cash dividend, as the dividend formulas take it. Amounts on today's share basis (split-adjusted). */
 export interface PayoutRow {
   ticker: string;
   exDate: string;
@@ -288,7 +295,7 @@ export interface PayoutRow {
 }
 
 export interface TrailingDividends {
-  /** Sum of cash per share with ex-dates in the 365 days ending on `asOf`. */
+  /** Sum of cash per share with ex-dates in the trailing year ending on `asOf` (from and to inclusive). */
   perShare: number;
   payments: number;
   from: string;
@@ -302,15 +309,22 @@ const minusDays = (iso: string, days: number) =>
   new Date(Date.parse(`${iso}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
 const plusDays = (iso: string, days: number) => minusDays(iso, -days);
 
-/** Trailing-twelve-month dividends of one ticker as of a date (the last close). */
+/**
+ * Trailing-twelve-month dividends of one ticker as of a date (the last close). The window and the sum are the
+ * single dividend engine's (`trailingDividendYield`, dividends-1): ex-dates from 364 days before `asOf` through
+ * `asOf`. Called with a unit close, since only the total and count are used here.
+ */
 export function trailingDividends(rows: readonly PayoutRow[], asOf: string): TrailingDividends {
-  const from = minusDays(asOf, 365);
   const sorted = [...rows].sort((a, b) => a.exDate.localeCompare(b.exDate));
-  const window = sorted.filter((r) => r.exDate > from && r.exDate <= asOf);
+  const t = trailingDividendYield(
+    sorted.map((r) => ({ exDividendDate: r.exDate, cashAmount: r.amount, currency: 'USD' })),
+    1,
+    asOf,
+  );
   return {
-    perShare: window.reduce((a, r) => a + r.amount, 0),
-    payments: window.length,
-    from,
+    perShare: t?.total ?? 0,
+    payments: t?.count ?? 0,
+    from: t?.from ?? minusDays(asOf, 364),
     to: asOf,
     latest: [...sorted].reverse().find((r) => r.exDate <= asOf) ?? null,
     next: sorted.find((r) => r.exDate > asOf) ?? null,
@@ -1465,14 +1479,17 @@ export interface IncomeRow {
   from: PayoutRow | null;
   gross: number;
   net: number;
+  /** Gross forward cash per share over average cost. */
   yieldOnCost: number | null;
+  /** The same, net of withholding (ADR 0048: income is shown net). */
+  netYieldOnCost: number | null;
   yieldOnPrice: number | null;
 }
 
 /**
  * Forward 12-month dividend income by holding: the newest stored payment (announced or paid) times its stated
  * payments a year; without a stated frequency, the trailing 12 months; net of withholding. Yield on cost uses the
- * average cost per share. No growth and no price change are assumed.
+ * average cost per share, gross and net of withholding. No growth and no price change are assumed.
  */
 export function forwardIncome(
   rows: readonly {
@@ -1491,6 +1508,7 @@ export function forwardIncome(
   cost: number;
   value: number;
   yieldOnCost: number | null;
+  netYieldOnCost: number | null;
   yieldOnValue: number | null;
   withholding: number;
 } {
@@ -1512,6 +1530,7 @@ export function forwardIncome(
       gross,
       net: gross * (1 - withholding),
       yieldOnCost: r.costBasis > 0 ? perShare / r.costBasis : null,
+      netYieldOnCost: r.costBasis > 0 ? (perShare * (1 - withholding)) / r.costBasis : null,
       yieldOnPrice: r.price > 0 ? perShare / r.price : null,
     };
   });
@@ -1526,6 +1545,7 @@ export function forwardIncome(
     cost,
     value,
     yieldOnCost: cost > 0 ? gross / cost : null,
+    netYieldOnCost: cost > 0 ? (gross * (1 - withholding)) / cost : null,
     yieldOnValue: value > 0 ? gross / value : null,
     withholding,
   };

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   DIVIDEND_CALC_VERSION,
   DIVIDENDS_VERSION,
+  DIVIDEND_WITHHOLDING,
   PAYOUT_FREQUENCIES,
   adjustedAmount,
   dividendCalc,
@@ -444,7 +445,7 @@ function Calculator({
   const [freq, setFreq] = useState(pre.freq);
   const [contrib, setContrib] = useState('0');
   const [contribFreq, setContribFreq] = useState('12');
-  const [tax, setTax] = useState('30');
+  const [tax, setTax] = useState(String(DIVIDEND_WITHHOLDING * 100));
   const [divGrowth, setDivGrowth] = useState('0');
   const [priceGrowth, setPriceGrowth] = useState('0');
   const [mode, setMode] = useState<'cash' | 'drip'>('cash');
