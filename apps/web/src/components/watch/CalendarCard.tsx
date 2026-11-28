@@ -47,11 +47,20 @@ interface AgendaItem {
  * Economic events for the next 14 days and the watchlist's estimated earnings, by day, with ET and the second
  * time zone chosen in Settings.
  */
-export function CalendarCard({ data, now }: { data: CalendarData; now: Date }) {
+export function CalendarCard({
+  data,
+  now,
+  days: ahead = DAYS_AHEAD,
+}: {
+  data: CalendarData;
+  now: Date;
+  /** How many days ahead to list: 14 on Watch, 30 on the Markets calendar. */
+  days?: number;
+}) {
   const { zone } = useDisplay();
   const city = zoneName(zone);
   const today = etDate(now);
-  const last = new Date(Date.parse(`${today}T00:00:00Z`) + DAYS_AHEAD * 86_400_000)
+  const last = new Date(Date.parse(`${today}T00:00:00Z`) + ahead * 86_400_000)
     .toISOString()
     .slice(0, 10);
   const items: AgendaItem[] = [];

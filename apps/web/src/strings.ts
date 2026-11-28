@@ -14,6 +14,7 @@ import { lab } from './strings/lab';
 import { quickLook } from './strings/quickLook';
 import { study } from './strings/study';
 import { regime } from './strings/regime';
+import { markets } from './strings/markets';
 import { status } from './strings/status';
 import { settings } from './strings/settings';
 
@@ -41,6 +42,7 @@ export const t = {
   quickLook,
   study,
   regime,
+  markets,
   status,
   settings,
   errors,

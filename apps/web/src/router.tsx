@@ -42,8 +42,22 @@ const routeTree = root.addChildren([
   }),
   createRoute({
     getParentRoute: () => root,
+    path: '/markets',
+    validateSearch: viewSearch,
+    component: lazyRouteComponent(() => import('./routes/Markets'), 'Markets'),
+  }),
+  // The Regime page became the Markets regime view (ADR 0048); old links keep their hash (a card's anchor).
+  createRoute({
+    getParentRoute: () => root,
     path: '/regime',
-    component: lazyRouteComponent(() => import('./routes/Regime'), 'Regime'),
+    beforeLoad: ({ location }) => {
+      throw redirect({
+        to: '/markets',
+        search: { view: 'regime' },
+        hash: location.hash.replace(/^#/, ''),
+        replace: true,
+      });
+    },
   }),
   createRoute({
     getParentRoute: () => root,

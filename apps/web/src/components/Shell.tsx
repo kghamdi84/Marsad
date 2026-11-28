@@ -34,10 +34,28 @@ import { Sheet } from './Sheet';
 
 const s = t.shell;
 
-type NavKey = 'watch' | 'study' | 'regime' | 'alerts' | 'journal' | 'lab' | 'status' | 'settings';
+type NavKey =
+  | 'watch'
+  | 'study'
+  | 'markets'
+  | 'portfolio'
+  | 'alerts'
+  | 'journal'
+  | 'lab'
+  | 'status'
+  | 'settings';
 
 interface Tab {
-  to: '/' | '/study' | '/regime' | '/alerts' | '/journal' | '/lab' | '/status' | '/settings';
+  to:
+    | '/'
+    | '/study'
+    | '/markets'
+    | '/portfolio'
+    | '/alerts'
+    | '/journal'
+    | '/lab'
+    | '/status'
+    | '/settings';
   nav: NavKey;
   icon: LucideIcon;
   key: string;
@@ -47,7 +65,7 @@ interface Tab {
 const tabs: Tab[] = [
   { to: '/', nav: 'watch', icon: Eye, key: '1' },
   { to: '/study', nav: 'study', icon: ChartCandlestick, key: '2' },
-  { to: '/regime', nav: 'regime', icon: Gauge, key: '3' },
+  { to: '/markets', nav: 'markets', icon: Gauge, key: '3' },
   { to: '/alerts', nav: 'alerts', icon: Bell, key: '4' },
   { to: '/journal', nav: 'journal', icon: BookOpen, key: '5' },
 ];

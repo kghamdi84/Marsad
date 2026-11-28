@@ -78,7 +78,7 @@ test('every page renders in Daylight and Arabic, right to left, with no accessib
     '/',
     '/study',
     '/study/NVDA',
-    '/regime',
+    '/markets',
     '/alerts',
     '/portfolio',
     '/journal',

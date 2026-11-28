@@ -87,9 +87,9 @@ test('an aal2 session sees the shell and the status page', async ({ page }) => {
   await expect(page.getByText(/ET/).first()).toBeVisible();
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/status.png` });
 
-  await page.getByRole('link', { name: 'Regime' }).click();
-  await expect(page.getByRole('heading', { name: 'Regime' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Regime' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('link', { name: 'Markets' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Markets' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Markets' })).toHaveAttribute('aria-current', 'page');
 });
 
 test('status: a summary first; healthy sources are one short row, stale ones show their note in full', async ({

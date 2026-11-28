@@ -18,7 +18,7 @@ export const signIn = {
   noAccount: 'New here? Friends of the owner can join as members.',
   createAccount: 'Create an account',
   createIntro:
-    'Members see Watch, Study and Regime. Alerts, briefs and the journal stay with the owner.',
+    'Members see Watch, Study and Markets. Alerts, briefs, the portfolio and the journal stay with the owner.',
   newPasswordLabel: 'Password, at least 10 characters',
   confirmPasswordLabel: 'Password again',
   create: 'Create account',

@@ -291,11 +291,12 @@ test('regime: the label with its reason and inputs, the recession filter, the ev
 }) => {
   await mock(page);
   await page.setViewportSize({ width: 1100, height: 900 });
-  await page.goto('/regime');
+  await page.goto('/markets?view=regime');
   await openDetails(page);
 
   // The label on 2026-11-23: VIX 26.62 at or above VIX3M 25.50, with the S&P 500 below its 50-day average.
-  await expect(page.getByRole('heading', { level: 1, name: 'Market regime' })).toBeVisible();
+  // The regime is the Markets page's first view (ADR 0048).
+  await expect(page.getByRole('heading', { level: 1, name: 'Markets' })).toBeVisible();
   const label = page.getByRole('region', { name: 'Regime label' });
   await expect(label.getByText('Stress', { exact: true })).toBeVisible();
   await expect(label.getByText(/VIX is at or above VIX3M \(backwardation\)/)).toBeVisible();
@@ -559,7 +560,7 @@ test('regime: capitulation on, with its staged plan, exits and bear case', async
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   await page.route('**/rest/v1/capitulation_daily**', (r) => json(r, [day]));
   await page.route('**/rest/v1/capitulation_plans**', (r) => json(r, [{ plan }]));
-  await page.goto('/regime');
+  await page.goto('/markets?view=regime');
   const glance = page.getByRole('list', { name: 'Regime at a glance' });
   await expect(glance.getByRole('button', { name: /^Capitulation/ })).toContainText(
     'On4 of 4 conditions met · staged plan running',
@@ -585,7 +586,7 @@ test('regime: a summary row opens its detail, and the chosen view is remembered'
   page,
 }) => {
   await mock(page);
-  await page.goto('/regime');
+  await page.goto('/markets?view=regime');
   const glance = page.getByRole('list', { name: 'Regime at a glance' });
   const risk = page.getByRole('group', { name: 'Risk gauges' });
   const context = page.getByRole('group', { name: 'Context' });
@@ -631,7 +632,7 @@ test('regime: before the job has run, the page says so', async ({ page }) => {
   await page.route('**/rest/v1/**', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
-  await page.goto('/regime');
+  await page.goto('/markets?view=regime');
   await expect(page.getByText('No regime has been computed yet.', { exact: false })).toBeVisible();
 });
 
@@ -692,7 +693,7 @@ test('regime: the quality screen lists passing companies with its counts and cav
       ]),
     ),
   );
-  await page.goto('/regime');
+  await page.goto('/markets?view=regime');
   await page
     .getByRole('group', { name: 'Context' })
     .getByRole('button', { name: 'Quality screen' })
@@ -733,7 +734,7 @@ test.describe('on a phone', () => {
       'One phone run is enough; the viewport is set here.',
     );
     await mock(page);
-    await page.goto('/regime');
+    await page.goto('/markets?view=regime');
     const label = page.getByRole('region', { name: 'Regime label' });
     await expect(label.getByText('Stress', { exact: true })).toBeVisible();
     await expect(label.getByRole('heading', { name: 'Why this label' })).toBeVisible();

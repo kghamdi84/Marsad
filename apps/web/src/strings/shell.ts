@@ -6,7 +6,8 @@
 export const nav = {
   watch: 'Watch',
   study: 'Study',
-  regime: 'Regime',
+  markets: 'Markets',
+  portfolio: 'Portfolio',
   alerts: 'Alerts',
   journal: 'Journal',
   status: 'Status',
@@ -28,10 +29,10 @@ export const pages = {
     subtitle:
       'Search a company: chart, snapshot, news, filings, financials, holders and the thesis.',
   },
-  regime: {
-    title: 'Market regime',
+  markets: {
+    title: 'Markets',
     subtitle:
-      'The regime label and why, what the S&P did next, the recession filter, Fear and Greed, capitulation watch and sector rotation.',
+      'The regime label and why, the movers of the last completed session, the sector funds, and the earnings, ex-dividend and macro calendar.',
   },
   alerts: {
     title: 'Alerts',
@@ -125,7 +126,8 @@ export const ar: {
   nav: {
     watch: 'المراقبة',
     study: 'الدراسة',
-    regime: 'النظام السوقي',
+    markets: 'الأسواق',
+    portfolio: 'المحفظة',
     alerts: 'التنبيهات',
     journal: 'السجل',
     lab: 'المختبر',
@@ -145,10 +147,10 @@ export const ar: {
       subtitle:
         'ابحث عن شركة: الرسم البياني والملخص والأخبار والإفصاحات والقوائم المالية والملاك والأطروحة.',
     },
-    regime: {
-      title: 'النظام السوقي',
+    markets: {
+      title: 'الأسواق',
       subtitle:
-        'تسمية السوق وسببها، ودراسة الأحداث، وفلتر الركود، والخوف والطمع، ومراقبة الاستسلام.',
+        'تسمية النظام السوقي وسببها، وأكبر المتحركين في آخر جلسة مكتملة، وصناديق القطاعات، وتقويم الأرباح والتوزيعات والاقتصاد الكلي.',
     },
     alerts: {
       title: 'التنبيهات',

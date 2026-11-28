@@ -121,12 +121,9 @@ async function stub(page: Page, opts: { owner: boolean }) {
   );
 }
 
+/** The whole-market movers are a Markets view (ADR 0048); Watch keeps the Marsad universe card. */
 async function openMovers(page: Page) {
-  await page.goto('/');
-  await page
-    .getByRole('group', { name: 'Sectors, movers or gaps' })
-    .getByRole('button', { name: 'Movers' })
-    .click();
+  await page.goto('/markets?view=movers');
 }
 
 const views = (page: Page) => page.getByRole('group', { name: 'Movers list' });
