@@ -245,6 +245,48 @@ test('portfolio review: open risk with risk unknown, the council limits, holding
   await expect(card).toContainText('0.52 a share');
 });
 
+test('portfolio review: limits saved in Settings replace the council values and say who set them', async ({
+  page,
+}) => {
+  await stub(page);
+  // Khaled's own row (Settings): largest position raised to 50%, the top-5 limit cleared.
+  await page.route('**/rest/v1/portfolio_limits**', (r) =>
+    r.fulfill(
+      json([
+        {
+          largest_position: 0.5,
+          top5: null,
+          min_cash: '0.1',
+          portfolio_beta: '1.5',
+          open_risk: 0.06,
+          set_by: 'user',
+          set_on: '2026-11-29',
+          version: 2,
+        },
+      ]),
+    ),
+  );
+  await openPortfolio(page, 'Review');
+  const card = page.getByRole('region', { name: 'Review', exact: true });
+  const limits = card.getByRole('list', { name: 'Your limits against the book' });
+  // KO at 46.7% of equity is inside a 50% limit; the cleared top-5 limit reads "No limit set".
+  await expect(limits.getByRole('listitem').filter({ hasText: 'Largest position' })).toContainText(
+    'limit 50.0%',
+  );
+  await expect(limits.getByRole('listitem').filter({ hasText: 'Top 5 positions' })).toContainText(
+    'No limit set',
+  );
+  const breaches = card.getByRole('list', { name: 'Breaches' });
+  await expect(breaches).not.toContainText('Largest position');
+  await expect(breaches).not.toContainText('Top 5 positions');
+  await expect(card).toContainText('Set by you on 29 Nov 2026; change any time');
+  await expect(card).not.toContainText('Set by the council');
+  await expect(card.getByRole('link', { name: 'Change them in Settings' })).toHaveAttribute(
+    'href',
+    '/settings?view=prefs',
+  );
+});
+
 test('portfolio holdings: summary, the chart label, five column sets and no analyst column', async ({
   page,
 }) => {

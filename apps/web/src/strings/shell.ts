@@ -56,7 +56,8 @@ export const pages = {
   status: { title: 'Status', subtitle: 'Every row of source_status, job runs and costs.' },
   settings: {
     title: 'Settings',
-    subtitle: 'Language, theme, notifications, Shariah limits, AI caps and security.',
+    subtitle:
+      'Language, theme, notifications, portfolio limits, Shariah limits, AI caps and security.',
   },
 } as const;
 
@@ -173,7 +174,8 @@ export const ar: {
     status: { title: 'الحالة', subtitle: 'حالة مصادر البيانات والمهام والتكاليف.' },
     settings: {
       title: 'الإعدادات',
-      subtitle: 'اللغة والمظهر والتنبيهات والحدود الشرعية وحدود الذكاء الاصطناعي والأمان.',
+      subtitle:
+        'اللغة والمظهر والتنبيهات وحدود المحفظة والحدود الشرعية وحدود الذكاء الاصطناعي والأمان.',
     },
   },
   footer: 'مرصد للتنبيهات فقط. لا ينفذ أوامر ولا يقدم توصيات شراء أو بيع شخصية.',

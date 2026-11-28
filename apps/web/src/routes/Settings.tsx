@@ -12,6 +12,7 @@ import { Card, Segmented } from '../components/Card';
 import { PageTitle, Pill } from '../components/ui/kit';
 import { zoneName } from '../components/Clock';
 import { Info } from '../components/Info';
+import { LimitsCard } from '../components/portfolio/LimitsCard';
 import { useView } from '../lib/view';
 import { t } from '../strings';
 
@@ -23,7 +24,8 @@ const pair = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] item
 
 /**
  * Settings (Marsad v2, squeezed): four sections under one switch (display and security, notifications and push
- * setup, the Shariah aid and AI caps, the quote source and weekly exports), the choice remembered on this device.
+ * setup, portfolio limits with the Shariah aid and AI caps, the quote source and weekly exports), the choice in the
+ * URL (?view=) and remembered on this device.
  * Every section stays mounted and is only hidden, so an unsaved edit survives a switch. Display choices stay on
  * this device; everything else is saved to Supabase as before, with the same columns and values.
  */
@@ -47,6 +49,7 @@ export function Settings() {
         <PushSetup />
       </div>
       <div hidden={section !== 'prefs'} className={pair}>
+        <LimitsCard />
         <PreferenceCards />
       </div>
       <div hidden={section !== 'data'} className={pair}>

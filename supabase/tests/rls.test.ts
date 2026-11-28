@@ -868,6 +868,99 @@ describe('system tables', () => {
     );
   });
 
+  it('portfolio limits (ADR 0048): personal, seeded with the council values for the owner only, versioned, checked', async () => {
+    const seed = readFileSync(
+      join(here, '..', 'migrations', '20270107000200_portfolio_limits_seed.sql'),
+      'utf8',
+    );
+    // The seed runs as the database owner after the app owner exists (in this harness the owner is added after
+    // the migrations); it is idempotent, and it all rolls back.
+    let ran = false;
+    await db.transaction(async (tx) => {
+      await tx.exec(seed);
+      await tx.exec(seed);
+      const all = await tx.query<{ owner_id: string }>(
+        'select owner_id from public.portfolio_limits',
+      );
+      expect(all.rows.map((r) => r.owner_id)).toEqual([OWNER]);
+      const set = async (s: Session) => {
+        await tx.exec('reset role');
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [
+          JSON.stringify({ sub: s.sub, aal: s.aal, role: s.role }),
+        ]);
+        await tx.exec(`set local role ${s.role}`);
+      };
+      await set(owner2);
+      const mine = await tx.query<Record<string, unknown>>(
+        'select largest_position::text, top5::text, min_cash::text, portfolio_beta::text, open_risk::text, set_by, set_on::text, version from public.portfolio_limits',
+      );
+      expect(mine.rows).toEqual([
+        {
+          largest_position: '0.2',
+          top5: '0.6',
+          min_cash: '0.1',
+          portfolio_beta: '1.5',
+          open_risk: '0.06',
+          set_by: 'council',
+          set_on: '2026-11-28',
+          version: 1,
+        },
+      ]);
+      // Saving bumps the version; clearing a limit stores null.
+      await tx.query(
+        `update public.portfolio_limits set largest_position = 0.25, min_cash = null, set_by = 'user', set_on = date '2026-11-29'`,
+      );
+      const saved = await tx.query<{ version: number; min_cash: string | null }>(
+        'select version, min_cash::text from public.portfolio_limits',
+      );
+      expect(saved.rows).toEqual([{ version: 2, min_cash: null }]);
+      // A member sees none of it and starts with no row ("No limit set").
+      await set(other2);
+      expect(await count(tx, 'public.portfolio_limits')).toBe(0);
+      ran = true;
+      await tx.rollback();
+    });
+    expect(ran).toBe(true);
+    // A member may store their own limits; nobody can write another person's row or delete one.
+    await as(other2, async (tx) => {
+      await tx.query(`insert into public.portfolio_limits (largest_position) values (0.3)`);
+      expect(await count(tx, 'public.portfolio_limits')).toBe(1);
+    });
+    await expect(
+      as(other2, (tx) =>
+        tx.query(`insert into public.portfolio_limits (owner_id, top5) values ('${OWNER}', 0.5)`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(owner2, async (tx) => {
+        await tx.query(`insert into public.portfolio_limits (top5) values (0.5)`);
+        await tx.query('delete from public.portfolio_limits');
+      }),
+    ).rejects.toThrow(/permission denied/);
+    for (const bad of [
+      'largest_position) values (0',
+      'largest_position) values (1.2',
+      'min_cash) values (1',
+      'portfolio_beta) values (0',
+      'portfolio_beta) values (11',
+      'open_risk) values (-0.01',
+    ])
+      await expect(
+        as(owner2, (tx) => tx.query(`insert into public.portfolio_limits (${bad})`)),
+      ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner2, (tx) =>
+        tx.query(`insert into public.portfolio_limits (set_by) values ('marsad')`),
+      ),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(owner1, (tx) => tx.query(`insert into public.portfolio_limits (top5) values (0.5)`)),
+    ).rejects.toThrow();
+    await expect(as(anon, (tx) => count(tx, 'public.portfolio_limits'))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it('push subscriptions belong to the app owner and only point at known push services', async () => {
     const key = 'B'.padEnd(87, 'A');
     const ins = (endpoint: string, p256dh = key) =>

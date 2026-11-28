@@ -190,7 +190,7 @@ const PAGES: {
       list: [
         ['display', 'Display and security'],
         ['notifications', 'Notifications'],
-        ['prefs', 'Shariah and AI caps'],
+        ['prefs', 'Limits, Shariah and AI caps'],
         ['data', 'Quote source and exports'],
       ],
     },
