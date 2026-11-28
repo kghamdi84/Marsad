@@ -1,5 +1,5 @@
 /**
- * The prompt catalog (version 1 of each). Models by exact string, as ADR 0007 sets them: Sonnet for summaries and
+ * The prompt catalog (grounded prompts at version 2 since the figure-form rule, 2026-11-28; topic-tag at 1). Models by exact string, as ADR 0007 sets them: Sonnet for summaries and
  * thesis drafts, Haiku for high-volume classification, Opus for the weekly review.
  */
 import { TOPICS } from '../geopolitics.js';
@@ -15,7 +15,7 @@ const noAdvice = (output: string): string[] =>
 
 export const filingSummaryPrompt: PromptDef = {
   id: 'filing-summary',
-  version: 1,
+  version: 2,
   model: 'claude-sonnet-5-5',
   purpose: 'Three to five sentences on what a filing says and what changed, every figure verified.',
   system: [
@@ -68,7 +68,7 @@ const THESIS_SECTIONS = ['Bull case:', 'Bear case:', 'Key risks:', 'What would c
 
 export const thesisDraftPrompt: PromptDef = {
   id: 'thesis-draft',
-  version: 1,
+  version: 2,
   model: 'claude-sonnet-5-5',
   purpose:
     'A draft thesis card from cited sources; the bear case is required and as specific as the bull case.',
@@ -118,7 +118,7 @@ export const thesisDraftPrompt: PromptDef = {
 
 export const weeklyReviewPrompt: PromptDef = {
   id: 'weekly-review',
-  version: 1,
+  version: 2,
   model: 'claude-opus-5-5',
   purpose:
     "Prose around the week's computed review: behavior as well as results, naming broken rules plainly.",

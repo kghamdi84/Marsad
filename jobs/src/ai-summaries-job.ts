@@ -273,7 +273,7 @@ export async function generateForTickers(opts: {
 /**
  * The daily filing summaries (checklist 2.9, ADR 0007): for each holding and watchlist ticker, a summary of the
  * newest stored filings (quarterly figures, the 10-Q and 10-K risk factor sections, recent 8-K items) by
- * `filing-summary@1` on Claude Sonnet 5.5, every figure verified, one regeneration, then the template. A ticker is
+ * `filing-summary@2` on Claude Sonnet 5.5, every figure verified, one regeneration, then the template. A ticker is
  * summarized again only when its sources change. Without a key the run is `skipped` and nothing is spent.
  */
 export async function runAiSummariesJob(deps: AiJobDeps): Promise<JobRunRecord> {

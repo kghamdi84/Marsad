@@ -5,6 +5,7 @@
 import type { Payload } from '../ai/facts.js';
 import { verifyText, type IssueKind } from '../ai/verify.js';
 import { wrapUntrusted } from '../ai/untrusted.js';
+import { formatFactValue } from '../ai/template.js';
 import { promptKey, type PromptDef } from './types.js';
 
 export * from './types.js';
@@ -30,7 +31,10 @@ export function buildMessages(
   const facts = payload.facts
     .map(
       (f) =>
-        `[${f.id}] ${f.label}: ${f.value === null ? 'not available' : String(f.value)}${f.unit === 'text' || f.unit === 'date' ? '' : ` (${f.unit})`}`,
+        // Numbers are written the way the verifier accepts them (72.7%, $267.8M), so a model that copies a fact
+        // verbatim passes. Raw values such as 72.70698994067578 (pct) were rejected as a unit mismatch (live run
+        // 2026-11-28). Counts and shares keep their unit word, as their text carries no symbol.
+        `[${f.id}] ${f.label}: ${formatFactValue(f)}${f.unit === 'count' || f.unit === 'shares' ? ` (${f.unit})` : ''}`,
     )
     .join('\n');
   const user = [wrapped.block, facts ? `Facts:\n${facts}` : '', wrapped.notice, def.task]

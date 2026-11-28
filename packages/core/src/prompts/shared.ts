@@ -3,6 +3,7 @@ export const GROUNDING_RULES = [
   'Use only the facts and documents in this message. Do not add numbers, dates or names from memory.',
   'End every sentence with the ids it relies on in square brackets, for example [F2] or [F1, D3].',
   'Write every figure with digits exactly as a cited fact gives it, rounded no further than its precision. Never spell a number as a word, and never compute a new figure (no doubled, halved or derived values).',
+  'Copy each figure exactly as its Facts line writes it, with its symbol (72.7% stays 72.7%, $267.8M stays $267.8M). A figure that appears only inside a document, such as a year, a dollar amount or a percentage, is not a fact: describe that content in words without the figure.',
   'Describe; do not advise. No price targets, no instruction to buy or sell.',
   'Plain sentences. No em dashes, no lists unless asked, no headings unless asked.',
 ].join('\n');

@@ -34,7 +34,7 @@ export const AI_PROSE_LABEL =
   'AI-written from the figures above (Claude Opus 5.5, every number checked)';
 
 /**
- * Prose by `weekly-review@1` on Claude Opus 5.5 over the review's own figures (weeklyReviewFacts), verified
+ * Prose by `weekly-review@2` on Claude Opus 5.5 over the review's own figures (weeklyReviewFacts), verified
  * against them, one regeneration, then the template. Stored in ai_outputs either way; only verified model text is
  * shown. Returns the prose to add to the email, or null.
  */

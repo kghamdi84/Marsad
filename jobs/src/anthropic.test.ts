@@ -93,7 +93,7 @@ describe('known answers with a fake client (recorded-shaped responses, never the
         model: 'claude-sonnet-5-5',
         served_model: 'claude-sonnet-5-5',
         prompt_id: 'filing-summary',
-        prompt_version: 1,
+        prompt_version: 2,
         input_tokens: 3_000,
         output_tokens: 800,
         cache_read_tokens: 1_000,
