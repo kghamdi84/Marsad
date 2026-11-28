@@ -1,5 +1,5 @@
 /**
- * Read-only diagnosis of AI outputs that fell back to a template. Prints, for the newest rows of `ai_outputs`, the
+ * Read-only diagnosis of AI outputs that fell back to a template for a reason other than the cost cap. Prints, for the newest rows of `ai_outputs`, the
  * verifier's issue lines and the start of the rejected text, so a wrong prompt or verifier rule can be seen without
  * paying for another model call. Writes nothing. Reads SUPABASE_URL and SUPABASE_SECRET_KEY; never logs them.
  */
@@ -18,7 +18,7 @@ const limit = Math.min(Math.max(Number(process.env['DIAGNOSE_LIMIT'] ?? '6') || 
 const { data, error } = await db
   .from('ai_outputs')
   .select('kind, ticker, fallback_reason, attempts, failures, created_at')
-  .not('fallback_reason', 'is', null)
+  .in('fallback_reason', ['verification-failed', 'generation-failed', 'refusal'])
   .order('created_at', { ascending: false })
   .limit(limit);
 if (error) throw new Error(`ai_outputs read failed: ${error.message}`);
