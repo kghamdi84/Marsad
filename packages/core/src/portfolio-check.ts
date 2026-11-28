@@ -14,6 +14,7 @@ import { adherenceVsResult, pnl, rMultiple, statsBySetup, type JournalTrade } fr
 import {
   exitSignals,
   gapToStop,
+  hasExitRules,
   positionSize,
   sessionsHeld,
   type ExitSignal,
@@ -1380,9 +1381,6 @@ export interface ReviewRow {
   /** The sizer at today's close and stop: shares allowed, or why it cannot size. Null without a stop or price. */
   sizer: { shares: number; capped: boolean } | { error: string } | null;
 }
-
-const hasExitRules = (h: Holding) =>
-  h.stop !== null || h.targets.length > 0 || h.trendBreak !== null || !!h.timeStopSessions;
 
 /**
  * Each holding lot against its own exit plan: conditions met, distance to the stop (as a fraction and in ATRs),

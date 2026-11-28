@@ -2,7 +2,7 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs, checklist-3, portfolio limits in Settings).
+Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs, checklist-3, portfolio limits in Settings; earnings guard).
 
 ### Markets and Portfolio pages, navigation and view URLs (2026-11-28, ADR 0048 batches 1 and 3, ADR 0051)
 
@@ -13,10 +13,19 @@ Last updated 2026-11-28 (new Markets and Portfolio pages, navigation, view URLs,
 - **Markets** (`/markets?view=regime|movers|sectors|calendar`) replaces Regime; `/regime` redirects to `?view=regime` and keeps the hash. A "Markets today" card first (regime run, leading and lagging sector fund, the Marsad universe's top gainer and loser, the next high-impact release and the count of estimated earnings), each row from the same stored rows as its view. Movers: the whole-market list. Calendar: 30 days of macro releases and estimated earnings plus ex-dividend dates by day. Watch keeps the universe movers card; its calendar, dividends, sectors and movers cards end in a "See all" link into Markets. Watch's calendar stays at 14 days (the ADR's site map says 7; left unchanged so the existing view keeps its content).
 - **Navigation**: desktop and iPad Watch, Markets, Study, Portfolio, Journal, Alerts, Lab, Status, Settings gear; number keys 1 to 9 in that order, S still opens Status. Phone: Watch, Study, Portfolio, Markets, Alerts, More (Journal, Lab, Status, Settings, Sign out). Arabic: Markets "الأسواق", Portfolio "المحفظة".
 - **Study**: "Recently viewed" (last 8 tickers, this device only, storage guarded) above the search; "Size a trade" on Study's header and each Portfolio review row opens `/journal?view=sizer&ticker=XYZ` with the ticker filled in.
-- **checklist-3** (ADR 0048 round 2): checklist-2's five checks plus checklist-1's "Risk is defined" and "There is a profit plan", for new trades; old trades keep their version. "Risk defined" can be ticked only with a stop and the ticket's shares (new optional field) at or below the sizer's result; it says why when locked and clears when the sizing changes. Migration `20270107000000` widens the version check (the column default stays `checklist-1`).
-- **Portfolio limits in Settings** (Settings, "Limits, Shariah and AI caps"): table `portfolio_limits` (`20270107000100`, personal, MFA rule, no anon, no delete, versioned) seeded for the app owner with the council's values (`20270107000200`: 20%, 60%, 10%, beta 1.5, 6%, "Set by the council at your request on 28 Nov 2026"); members start with "No limit set". Portfolio reads the stored row and says who set it, with a link to change it.
+- **checklist-3** (ADR 0048 round 2): checklist-2's five checks plus checklist-1's "Risk is defined" and "There is a profit plan", for new trades; old trades keep their version. "Risk defined" can be ticked only with a stop and the ticket's shares (new optional field) at or below the sizer's result; it says why when locked and clears when the sizing changes. Migration `20270108000000` widens the version check (the column default stays `checklist-1`).
+- **Portfolio limits in Settings** (Settings, "Limits, Shariah and AI caps"): table `portfolio_limits` (`20270108000100`, personal, MFA rule, no anon, no delete, versioned) seeded for the app owner with the council's values (`20270108000200`: 20%, 60%, 10%, beta 1.5, 6%, "Set by the council at your request on 28 Nov 2026"); members start with "No limit set". Portfolio reads the stored row and says who set it, with a link to change it.
 - Bundle: main `index` chunk 349.6 KB before, see the commit report for after; Portfolio and Markets are their own lazy chunks.
 - Checks: tsc (web, core, jobs), ESLint, Prettier, unit and database tests and the full Playwright suite on desktop and iPad (counts in the report). Not run live: needs the three migrations applied.
+
+### Earnings guard, job side (2026-11-28, ADR 0052, batch 5 of ADR 0048)
+
+- New alert: a holding whose next results date is within 5 trading sessions of the last completed session gets one factual alert per date, for example "NVDA reports in 4 sessions (Tauric date 2026-12-03). You hold 13 shares; stop 160.00, 8.1% below the close; exit rules set." No advice wording.
+- Date: Tauric's stated date first, then Marsad's estimate (labelled as estimated, with its window), through the same `nextResultsDate` the summary row uses. Sessions skip weekends and market holidays (`tradingSessionsBetween`).
+- Rule `earnings-guard` v1, live, set in code like the exit rules (a calendar notice, nothing to backtest). New alert kind `earnings` (additive migration `20270107000000`), not scored by the scorecard. Each alert stores its `earnings-guard-1` snapshot; replay recomputes the stored input exactly.
+- A changed date creates a new alert that names the earlier one. A holding with no stored date is listed in the run, not alerted. A date source older than 7 days is named and the run fails after storing the rest.
+- Job `earnings-guard` runs as a step of the ticker summary workflow (11:25 UTC, Tuesday to Saturday, after the research job), then the push dispatcher. Quiet hours and the push cap from Settings apply.
+- Not done here: the Alerts page label for the new kind (`strings.ts`, the pages agent's file) and days to earnings on watchlist rows (batch 4).
 
 ### Portfolio views and the ex-dividend calendar (2026-11-28, ADR 0048)
 

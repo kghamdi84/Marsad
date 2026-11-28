@@ -19,6 +19,7 @@
     "backtest": "tsx src/backtest-main.ts",
     "alerts-halts": "tsx src/halt-alerts-main.ts",
     "alerts-exits": "tsx src/exit-alerts-main.ts",
+    "earnings-guard": "tsx src/earnings-guard-main.ts",
     "scorecard": "tsx src/scorecard-main.ts",
     "exports": "tsx src/exports-main.ts",
     "weekly-review": "tsx src/weekly-review-main.ts",

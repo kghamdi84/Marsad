@@ -49,6 +49,7 @@ export * from './halt-alerts.js';
 export * from './portfolio.js';
 export * from './options.js';
 export * from './exit-alerts.js';
+export * from './earnings-guard.js';
 export * from './exposure.js';
 export * from './rotation.js';
 export * from './sector-rotation.js';

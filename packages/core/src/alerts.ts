@@ -18,6 +18,7 @@ export type AlertKind =
   | 'exit'
   | 'rotation'
   | 'halt'
+  | 'earnings'
   | 'system';
 export type Priority = 'critical' | 'high' | 'normal' | 'digest';
 
@@ -87,6 +88,11 @@ export interface AlertInput {
    */
   maxAgeSeconds?: number;
   delayed: boolean;
+  /**
+   * The inputs a computed alert was built from, for replay (integrity rule 12), when the alert's own fields are not
+   * enough to recompute it. The earnings guard stores its `earnings-guard-1` snapshot here (ADR 0052).
+   */
+  snapshot?: unknown;
 }
 
 export interface AlertSettings {
@@ -120,6 +126,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
     'exit',
     'rotation',
     'halt',
+    'earnings',
     'system',
   ],
   quietStart: '23:00',

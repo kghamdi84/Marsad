@@ -9,6 +9,7 @@ import {
   lastRegularClose,
   nextRegularOpen,
   sessionInfo,
+  tradingSessionsBetween,
   type UpcomingRow,
 } from './calendar.js';
 
@@ -109,5 +110,25 @@ describe('lastRegularClose, lastCompletedTradingDay, nextRegularOpen', () => {
     expect(nextRegularOpen(at('2026-11-25T22:00:00Z'), cal)?.toISOString()).toBe(
       '2026-11-27T14:30:00.000Z',
     );
+  });
+});
+
+describe('tradingSessionsBetween (hand-checked against the NYSE fixture)', () => {
+  it('skips weekends and Thanksgiving and counts the early close', () => {
+    // After Friday 2026-11-20: Mon 23, Tue 24, Wed 25, (Thu 26 closed), Fri 27 early close, Mon 30.
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-25', cal)).toBe(3);
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-26', cal)).toBe(3);
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-27', cal)).toBe(4);
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-30', cal)).toBe(5);
+    expect(tradingSessionsBetween('2026-11-20', '2026-12-01', cal)).toBe(6);
+  });
+  it('is zero for a weekend right after the session and for dates not after it', () => {
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-22', cal)).toBe(0);
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-20', cal)).toBe(0);
+    expect(tradingSessionsBetween('2026-11-20', '2026-11-19', cal)).toBe(0);
+  });
+  it('skips Christmas Day', () => {
+    // After Tue 2026-12-22: Wed 23, Thu 24 early close, (Fri 25 closed), Mon 28, Tue 29.
+    expect(tradingSessionsBetween('2026-12-22', '2026-12-29', cal)).toBe(4);
   });
 });
