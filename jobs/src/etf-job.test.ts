@@ -43,12 +43,17 @@ const submissions = (f: (typeof fixtures)[number]) => ({
 });
 
 function memory(stored: string[] = [], version = ETF_VERSION) {
-  const saved: { etf: string; report: NportReport; tickers: (string | null)[] }[] = [];
+  const saved: {
+    etf: string;
+    report: NportReport;
+    tickers: (string | null)[];
+    figis: (string | null)[];
+  }[] = [];
   const runs: JobRunRecord[] = [];
   const store: EtfStore = {
     getStoredAccessions: () => Promise.resolve(new Map(stored.map((a) => [a, version]))),
-    saveEtfReport: (etf, _acc, report, t) => {
-      saved.push({ etf, report, tickers: [...t] });
+    saveEtfReport: (etf, _acc, report, t, f) => {
+      saved.push({ etf, report, tickers: [...t], figis: [...f] });
       return Promise.resolve(report.holdings.length);
     },
     recordRun: (r) => {
@@ -124,9 +129,19 @@ describe('runEtfJob on real N-PORT reports (SPY and QQQ for June 2026, DIA for J
       now: () => NOW,
     });
     const byName = named.saved.find((x) => x.etf === 'SPY');
-    // A lookup that knows every SPY common-stock CUSIP: each one gets a ticker of its own.
-    const figi = (cusips: readonly string[]) =>
-      Promise.resolve(new Map(cusips.map((c, i) => [c, `T${String(i).padStart(4, '0')}`])));
+    // A lookup that knows every common-stock CUSIP and ISIN asked for: each gets a ticker and a FIGI of its own.
+    const asked: { cusips: number; isins: number }[] = [];
+    const figi = (ids: { cusips: readonly string[]; isins: readonly string[] }) => {
+      asked.push({ cusips: ids.cusips.length, isins: ids.isins.length });
+      return Promise.resolve(
+        new Map(
+          [...ids.cusips, ...ids.isins].map((c, i) => [
+            c,
+            { ticker: `T${String(i).padStart(4, '0')}`, figi: `BBG${String(i).padStart(9, '0')}` },
+          ]),
+        ),
+      );
+    };
     const m = memory();
     const run = await runEtfJob({
       http: routedHttp(NOW, routes()).http,
@@ -141,8 +156,17 @@ describe('runEtfJob on real N-PORT reports (SPY and QQQ for June 2026, DIA for J
     const matched = s?.tickers.filter((t) => t !== null).length ?? 0;
     expect(matched).toBeGreaterThan(byName?.tickers.filter((t) => t !== null).length ?? 0);
     expect(matched).toBe(equity.length);
-    const funds = run.details?.['funds'] as Record<string, { byCusip: number; unmatched: number }>;
+    const funds = run.details?.['funds'] as Record<
+      string,
+      { byCusip: number; withFigi: number; unmatched: number }
+    >;
     expect(funds['SPY']?.byCusip).toBe(equity.length);
+    // Every OpenFIGI match carries its FIGI into storage, on the same holding as its ticker.
+    expect(s?.figis.filter((x) => x !== null).length).toBe(funds['SPY']?.withFigi);
+    s?.tickers.forEach((t, i) => {
+      if (s.figis[i] !== null) expect(t).not.toBeNull();
+    });
+    expect(asked.length).toBe(fixtures.length);
   });
 
   it('falls back to names and says why when OpenFIGI fails', async () => {

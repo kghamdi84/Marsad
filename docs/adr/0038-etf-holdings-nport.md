@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-25
-- Version: `etf-1`, then `etf-2` (2026-11-28, addendum below)
+- Version: `etf-1`, then `etf-2` and `etf-3` (2026-11-28, addenda below)
 
 ## Context
 
@@ -39,3 +39,16 @@ falls back to names and records why in the run details. Reports matched under `e
 again on the next run. No cost. With the `OPENFIGI_API_KEY` GitHub secret (added by Khaled 2026-11-28, sent as
 `X-OPENFIGI-APIKEY`, never logged) the job sends 100 CUSIPs a request, one request every 0.3 seconds (limit 250 a
 minute); without it, 10 CUSIPs every 2.6 seconds.
+
+## Addendum 2026-11-28 (later): ISIN fallback, FIGIs and retries (`etf-3`, `openfigi-2`)
+
+From OpenFIGI's API documentation, at Khaled's request:
+
+- Each match keeps its composite FIGI in the new `etf_holdings.figi` column (migration `20270109000000`), so holdings
+  are identified by FIGI, not ticker (standing rule 8). A FIGI is stored only when every US listing names the same
+  one; a name match stores none.
+- A holding without a CUSIP is looked up by ISIN (`ID_ISIN`).
+- Requests ask for equity only (`marketSecDes: Equity`), so OpenFIGI filters before it answers.
+- A 429 waits for the `retry-after` seconds once; 500 and 503 back off 2, 4 and 8 seconds, as the documentation
+  advises; 401 and 413 stop at once and the job falls back to names.
+- Run details count matches by CUSIP, by ISIN and by name, and holdings with a FIGI.

@@ -6,6 +6,7 @@ import {
   matchTickers,
   parseNport,
   runJob,
+  type FigiMatch,
   type HttpClient,
   type JobRunRecord,
   type NportReport,
@@ -27,6 +28,7 @@ export interface EtfStore {
     accession: string,
     report: NportReport,
     tickers: readonly (string | null)[],
+    figis: readonly (string | null)[],
   ): Promise<number>;
   recordRun(run: JobRunRecord): Promise<void>;
 }
@@ -36,14 +38,21 @@ export interface EtfJobDeps {
   sec: SecConfig;
   store: EtfStore;
   now: () => Date;
-  /** CUSIP to ticker (OpenFIGI, openfigi-1). Absent or failing: names only, and the run says why. */
-  figi?: (cusips: readonly string[]) => Promise<Map<string, string>>;
+  /**
+   * Identifier to ticker and composite FIGI (OpenFIGI, openfigi-2), keyed by the CUSIP or ISIN asked for. Absent or
+   * failing: names only, and the run says why.
+   */
+  figi?: (ids: {
+    cusips: readonly string[];
+    isins: readonly string[];
+  }) => Promise<Map<string, FigiMatch>>;
 }
 
 /**
  * The newest public N-PORT holdings of SPY, QQQ and DIA (ADR 0038), each report downloaded once per formula version.
- * etf-2 matches holdings to tickers by CUSIP through OpenFIGI first and by company name against the SEC ticker list
- * only where OpenFIGI has no single US ticker; names shared by share classes stay unmatched.
+ * etf-3 matches holdings to a ticker and composite FIGI through OpenFIGI, by CUSIP and, for holdings without one, by
+ * ISIN; by company name against the SEC ticker list only where OpenFIGI has no single US ticker (no FIGI then);
+ * names shared by share classes stay unmatched.
  */
 export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
   const { http, sec, store, now } = deps;
@@ -74,19 +83,32 @@ export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
         if (!res.ok) throw new Error(`${t.etf} N-PORT download: ${res.kind}`);
         const report = parseNport(res.body);
         const equity = report.holdings.filter((h) => h.assetCat === 'EC');
-        let byCusip = new Map<string, string>();
+        let byId = new Map<string, FigiMatch>();
         let figiNote: string | null = deps.figi ? null : 'OpenFIGI not configured';
         if (deps.figi)
           try {
-            byCusip = await deps.figi(equity.flatMap((h) => (h.cusip ? [h.cusip] : [])));
+            byId = await deps.figi({
+              cusips: equity.flatMap((h) => (h.cusip ? [h.cusip] : [])),
+              isins: equity.flatMap((h) => (!h.cusip && h.isin ? [h.isin] : [])),
+            });
           } catch (e) {
             figiNote = `OpenFIGI failed, names only: ${(e instanceof Error ? e.message : String(e)).slice(0, 160)}`;
           }
-        const tickers = matchTickers(report.holdings, companies, byCusip);
-        rows += await store.saveEtfReport(t.etf, nport.accession, report, tickers);
+        const viaFigi = report.holdings.map((h) =>
+          h.assetCat !== 'EC'
+            ? null
+            : ((h.cusip ? byId.get(h.cusip) : undefined) ??
+              (h.isin ? byId.get(h.isin) : undefined) ??
+              null),
+        );
+        const byName = matchTickers(report.holdings, companies);
+        const tickers = report.holdings.map((_, i) => viaFigi[i]?.ticker ?? byName[i] ?? null);
+        const figis = viaFigi.map((m) => m?.figi ?? null);
+        rows += await store.saveEtfReport(t.etf, nport.accession, report, tickers, figis);
         const viaCusip = report.holdings.filter(
-          (h, i) => tickers[i] !== null && h.cusip !== null && byCusip.has(h.cusip),
+          (h, i) => viaFigi[i] !== null && h.cusip !== null && byId.has(h.cusip),
         ).length;
+        const viaIsin = viaFigi.filter((m) => m !== null).length - viaCusip;
         const matched = tickers.filter((x) => x !== null).length;
         out[t.etf] = {
           reportDate: report.reportDate,
@@ -94,7 +116,9 @@ export async function runEtfJob(deps: EtfJobDeps): Promise<JobRunRecord> {
           equity: equity.length,
           matched,
           byCusip: viaCusip,
-          byName: matched - viaCusip,
+          byIsin: viaIsin,
+          byName: matched - viaCusip - viaIsin,
+          withFigi: figis.filter((x) => x !== null).length,
           unmatched: equity.length - matched,
           ...(figiNote ? { figi: figiNote } : {}),
         };

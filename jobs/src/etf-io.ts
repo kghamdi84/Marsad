@@ -13,7 +13,7 @@ export function supabaseEtfStore(url: string, secretKey: string): EtfStore {
       if (error) throw new Error(`etf_reports read failed: ${error.message}`);
       return new Map((data ?? []).map((r) => [String(r['accession']), String(r['version'])]));
     },
-    async saveEtfReport(etf, accession, report, tickers) {
+    async saveEtfReport(etf, accession, report, tickers, figis) {
       if (!report.reportDate) throw new Error(`${etf} N-PORT has no report date`);
       const head = await db.from('etf_reports').upsert(
         {
@@ -36,9 +36,9 @@ export function supabaseEtfStore(url: string, secretKey: string): EtfStore {
         .eq('report_date', report.reportDate);
       if (del.error) throw new Error(`etf_holdings delete failed: ${del.error.message}`);
       const rows = report.holdings
-        .map((h, i) => ({ h, ticker: tickers[i] ?? null }))
+        .map((h, i) => ({ h, ticker: tickers[i] ?? null, figi: figis[i] ?? null }))
         .sort((a, b) => b.h.weight - a.h.weight)
-        .map(({ h, ticker }, i) => ({
+        .map(({ h, ticker, figi }, i) => ({
           etf,
           report_date: report.reportDate,
           rank: i + 1,
@@ -46,6 +46,7 @@ export function supabaseEtfStore(url: string, secretKey: string): EtfStore {
           cusip: h.cusip,
           isin: h.isin,
           ticker,
+          figi,
           weight: h.weight,
           value_usd: h.valueUsd,
           asset_cat: h.assetCat,
