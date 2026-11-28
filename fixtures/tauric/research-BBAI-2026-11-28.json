@@ -1,0 +1,48 @@
+{
+  "recordedAt": "2026-11-28",
+  "source": "tauric",
+  "ticker": "BBAI",
+  "via": "Tauric MCP connector (get_security_analyst, get_security_profile, get_security_thesis: the same operations and schemas as the REST routes, checked against https://api.tauric.ai/openapi.json on 2026-11-28)",
+  "note": "Recorded on 2026-11-28. Tauric does not carry BBAI: the analyst, profile and thesis parts answer not_registered (the calendar was not called; it answers the same for an unregistered symbol per the OpenAPI document). The MCP connector returns only the error body; the HTTP status 404 is the one the OpenAPI document lists for not_registered. These errors cost no data credit (measured with get_account).",
+  "parts": {
+    "analyst": {
+      "endpoint": "GET /v1/securities/BBAI/analyst",
+      "status": 404,
+      "body": {
+        "error": {
+          "type": "invalid_request_error",
+          "code": "not_registered",
+          "message": "`BBAI` is not registered. Search with GET /v1/instruments?q=BBAI",
+          "param": "symbol",
+          "retry": "change_request"
+        }
+      }
+    },
+    "profile": {
+      "endpoint": "GET /v1/securities/BBAI/profile",
+      "status": 404,
+      "body": {
+        "error": {
+          "type": "invalid_request_error",
+          "code": "not_registered",
+          "message": "`BBAI` is not registered. Search with GET /v1/instruments?q=BBAI",
+          "param": "symbol",
+          "retry": "change_request"
+        }
+      }
+    },
+    "thesis": {
+      "endpoint": "GET /v1/securities/BBAI/thesis",
+      "status": 404,
+      "body": {
+        "error": {
+          "type": "invalid_request_error",
+          "code": "not_registered",
+          "message": "`BBAI` is not registered. Search with GET /v1/instruments?q=BBAI",
+          "param": "symbol",
+          "retry": "change_request"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,550 @@
+{
+  "recordedAt": "2026-11-28",
+  "source": "tauric",
+  "ticker": "AAPL",
+  "via": "Tauric MCP connector (get_security_analyst, get_security_profile, get_security_thesis: the same operations and schemas as the REST routes, checked against https://api.tauric.ai/openapi.json on 2026-11-28)",
+  "note": "Recorded on 2026-11-28 (Saturday). sub_industry and sub_industry_key are null for AAPL with no field_states entry: Tauric serves no value there. The calendar carries the next earnings date with one consensus EPS and revenue estimate; Tauric states reported actuals and surprises are unavailable.",
+  "parts": {
+    "analyst": {
+      "endpoint": "GET /v1/securities/AAPL/analyst",
+      "status": 200,
+      "body": {
+        "field_states": {},
+        "price_basis": null,
+        "instrument": {
+          "key": "security:AAPL",
+          "name": "Apple Inc.",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "dataset_status": {
+          "dataset": "analyst",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T00:31:21.418710Z",
+          "field_states": {}
+        },
+        "recommendation": "buy",
+        "target_mean_price": 345.6313,
+        "target_high_price": 425,
+        "target_low_price": 250,
+        "target_median_price": 355,
+        "number_of_analysts": 39,
+        "ratings_total": 45,
+        "strong_buy": 6,
+        "buy": 20,
+        "hold": 13,
+        "sell": 3,
+        "strong_sell": 3,
+        "trailing_eps": 8.98,
+        "forward_eps": 10.5727
+      }
+    },
+    "profile": {
+      "endpoint": "GET /v1/securities/AAPL/profile",
+      "status": 200,
+      "body": {
+        "field_states": {},
+        "price_basis": null,
+        "instrument": {
+          "key": "security:AAPL",
+          "name": "Apple Inc.",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "dataset_status": {
+          "dataset": "profile",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T00:31:21.418710Z",
+          "field_states": {}
+        },
+        "sector": "Information Technology",
+        "sector_key": "information_technology",
+        "industry_group": "Technology Hardware & Equipment",
+        "industry_group_key": "technology_hardware_equipment",
+        "industry": "Technology Hardware, Storage & Peripherals",
+        "industry_key": "technology_hardware_storage_peripherals",
+        "sub_industry": null,
+        "sub_industry_key": null,
+        "country": "United States",
+        "financial_currency": "USD",
+        "market_cap": 5210368901120,
+        "market_cap_basis": "last_close_x_shares_outstanding",
+        "market_cap_price_date": "2026-11-27",
+        "enterprise_value": 5248125898752,
+        "pe_ratio": 39.9265,
+        "forward_pe": 33.9118,
+        "peg_ratio": 3.94,
+        "price_to_book": 46.4852,
+        "price_to_sales": 10.8814,
+        "profit_margin": 0.276,
+        "operating_margin": 0.3301,
+        "return_on_assets": 0.2587,
+        "return_on_equity": 1.4226,
+        "revenue_growth": 0.117,
+        "earnings_growth": 0.141,
+        "total_cash": 56722001920,
+        "total_debt": 94478999552,
+        "debt_to_equity": 0.8429,
+        "current_ratio": 1.023,
+        "quick_ratio": 0.827,
+        "dividend_rate": 1.08,
+        "dividend_yield": 0.003,
+        "payout_ratio": 0.118,
+        "beta": 1.089,
+        "shares_outstanding": 14532182000,
+        "float_shares": 14507477291,
+        "employees": 167000,
+        "website": "https://www.apple.com",
+        "description": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories, including Apple Watch, AirPods, Beats products, Apple Vision Pro, Apple TV 4K, HomePod, and Apple HomeView, as well as Apple branded and third-party accessories. It also provides advertising services comprising third-party licensing arrangements and own advertising platforms; AppleCare and cloud services; and payment services, including Apple Card and Apple Pay. In addition, the company operates App Store that allow customers to discover and download applications and digital content, such as books, music, video, games, and podcasts. Further, it provides digital content through subscription-based services, including Apple Arcade, a game service; Apple Fitness+, a personalized fitness service; Apple Music, which offers users a curated listening experience; Apple News+, a news and magazine service; and Apple TV, which offers original content and live sports. The company sells its products and resells third-party products through its retail and online stores, and direct sales force; its services through its various service platforms; and third-party cellular network carriers and other resellers. It serves consumer, small and mid-sized business, education, enterprise, and government markets. The company operates in North and South America, European countries, India, the Middle East, Africa, China mainland, Hong Kong, Taiwan, Japan, Australia, New Zealand, and rest of Asia. The company was formerly known as Apple Computer, Inc. and changed its name to Apple Inc. in January 2007. Apple Inc. was founded in 1976 and is headquartered in Cupertino, California.",
+        "shares_short": 143471087,
+        "days_to_cover": 3.04,
+        "short_interest_of_float": 0.0099,
+        "institutional_ownership": 0.6649,
+        "insider_ownership": 0.01686,
+        "fund_yield": null,
+        "nav_price": null,
+        "five_year_avg_return": null,
+        "beta_3y": null
+      }
+    },
+    "thesis": {
+      "endpoint": "GET /v1/securities/AAPL/thesis",
+      "status": 200,
+      "body": {
+        "instrument": {
+          "key": "security:AAPL",
+          "name": "Apple Inc.",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "point_in_time": {
+          "known_at": null,
+          "basis": {
+            "content": "current"
+          }
+        },
+        "revision": "rv_dc572c7fc0689875",
+        "authorship": "tauric_ai",
+        "content": {
+          "risks": [
+            {
+              "text": "CEO John Ternus described the memory-pricing environment as 'unprecedented,' warning that costs will continue to rise beyond the December quarter due to AI data center demand, pressuring gross margins.",
+              "claim_id": "r1",
+              "article_ids": [
+                "art_1OQJ",
+                "art_1OtY"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_d6fdf0ff3deb4726",
+                  "item": 1
+                },
+                {
+                  "digest": "dg_d6fdf0ff3deb4726",
+                  "item": 2
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Apple guided for a lower gross margin of 45% to 46% in the December quarter, down from 47.9% in the reported quarter, citing higher memory costs and the ramp-up of AI-powered Siri.",
+              "claim_id": "r2",
+              "article_ids": [
+                "art_1OtY",
+                "art_1SRg"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_d6fdf0ff3deb4726",
+                  "item": 2
+                },
+                {
+                  "digest": "dg_6da3007ea3c2472a",
+                  "item": 1
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "The stock trades at a premium valuation of approximately 36x to 40x forward earnings, nearly 50% above its 10-year average, creating downside risk if the multiple contracts.",
+              "claim_id": "r3",
+              "article_ids": [
+                "art_1Uox",
+                "art_24Nf"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_5278320ddfd14933",
+                  "item": 3
+                },
+                {
+                  "digest": "dg_963a303b42fa4c2a",
+                  "item": 5
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Apple faces significant legal and regulatory challenges, including a Supreme Court appeal regarding App Store payment rules, a DOJ antitrust discovery fight, and new congressional oversight from the Democratic majority.",
+              "claim_id": "r4",
+              "article_ids": [
+                "art_2jPY",
+                "art_1UJm"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_1078179edef648a8",
+                  "item": 1
+                },
+                {
+                  "digest": "dg_80ebb5f96537407c",
+                  "item": 2
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Supply chain constraints are causing production delays that will likely continue into next year, with CEO John Ternus suggesting that price increases for customers are likely to offset rising component costs.",
+              "claim_id": "r5",
+              "article_ids": [
+                "art_1QqI",
+                "art_1SRg"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_ef7c52886cc9445f",
+                  "item": 6
+                },
+                {
+                  "digest": "dg_6da3007ea3c2472a",
+                  "item": 2
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Apple's revenue growth is expected to slow, with guidance for 9% to 11% growth in the September quarter following 16% growth in the prior quarter, and Services revenue growth guided to 8%-9%.",
+              "claim_id": "r6",
+              "article_ids": [
+                "art_1Nb1",
+                "art_1Uox"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_39047774613142da",
+                  "item": 5
+                },
+                {
+                  "digest": "dg_5278320ddfd14933",
+                  "item": 2
+                }
+              ],
+              "instruments": []
+            }
+          ],
+          "drivers": [
+            {
+              "text": "Apple reported record fiscal Q4 revenue of $114.5 billion, up 12% year-over-year, with iPhone sales rising 17% to $57.58 billion and Mac sales increasing 23% to $10.79 billion.",
+              "claim_id": "d1",
+              "article_ids": [
+                "art_1OtY",
+                "art_1OQJ",
+                "art_1OGu"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_d6fdf0ff3deb4726",
+                  "item": 0
+                },
+                {
+                  "digest": "dg_d6fdf0ff3deb4726",
+                  "item": 4
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "The company generated approximately $136 billion in free cash flow for fiscal 2026, up 38% from the prior year, while spending only $9 billion on capital expenditures, significantly less than peers investing in AI data centers.",
+              "claim_id": "d2",
+              "article_ids": [
+                "art_1RkD",
+                "art_1Uox"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_7da7f225cccc4a1a",
+                  "item": 2
+                },
+                {
+                  "digest": "dg_5278320ddfd14933",
+                  "item": 7
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Apple is the best-performing Magnificent Seven stock in 2026, up approximately 31% year-to-date, attributed to its limited spending on capital-intensive AI infrastructure compared to rivals.",
+              "claim_id": "d3",
+              "article_ids": [
+                "art_1Nkw",
+                "art_25C4"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_39047774613142da",
+                  "item": 3
+                },
+                {
+                  "digest": "dg_1bb5631a32db4677",
+                  "item": 0
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "New product launches, including the first touchscreen MacBook Pro and the iPhone Duo, have driven demand, with the iPhone Duo selling out immediately and pushing ship times into the next year.",
+              "claim_id": "d4",
+              "article_ids": [
+                "art_1K1L",
+                "art_1WK4"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_d6347410503a441b",
+                  "item": 0
+                },
+                {
+                  "digest": "dg_3dc80fd45b1a4502",
+                  "item": 3
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Apple is integrating AI capabilities through partnerships, including Alibaba's Qwen model for China and Google's Gemini for Siri, while developing an autonomous AI agent capable of writing code and controlling applications.",
+              "claim_id": "d5",
+              "article_ids": [
+                "art_1MoA",
+                "art_2dtO"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_9ca6502f3885441c",
+                  "item": 1
+                },
+                {
+                  "digest": "dg_f5814ed6e23447f9",
+                  "item": 0
+                }
+              ],
+              "instruments": []
+            },
+            {
+              "text": "Services revenue reached an all-time high of $31.57 billion in the September quarter, with the segment now driving over 40% of gross profit at mid-70s margins.",
+              "claim_id": "d6",
+              "article_ids": [
+                "art_1QS5",
+                "art_2dE8"
+              ],
+              "digest_refs": [
+                {
+                  "digest": "dg_ef7c52886cc9445f",
+                  "item": 3
+                },
+                {
+                  "digest": "dg_f5814ed6e23447f9",
+                  "item": 4
+                }
+              ],
+              "instruments": []
+            }
+          ],
+          "catalysts": [
+            {
+              "date": "2026-11-02",
+              "text": "Apple's fiscal fourth-quarter earnings report and CEO John Ternus's first earnings call.",
+              "timing_stated": "Monday, November 2",
+              "timing_status": "past"
+            },
+            {
+              "date": "2026-11-04",
+              "text": "The rollout of Qwen-powered Apple Intelligence features in the iOS developer beta.",
+              "timing_stated": "starting November 4",
+              "timing_status": "past"
+            },
+            {
+              "date": "2026-11-06",
+              "text": "The release of the October US employment report.",
+              "timing_stated": "Friday, November 6",
+              "timing_status": "past"
+            },
+            {
+              "date": "2026-11-12",
+              "text": "Apple's ex-dividend date for a 27-cent quarterly dividend.",
+              "timing_stated": "Thursday",
+              "timing_status": "past"
+            }
+          ],
+          "narrative": "Apple is the world's most valuable company, trading at a premium valuation supported by record revenue, strong free cash flow, and a strategic pivot toward AI features and new hardware like the touchscreen MacBook Pro and iPhone Duo. The stock has outperformed peers by avoiding massive AI infrastructure capital expenditures, though it faces margin pressure from rising memory costs and a slowing revenue growth outlook. Management has signaled that supply chain constraints and price increases will persist into next year, while the company navigates a complex legal landscape involving antitrust, App Store regulations, and new congressional oversight.",
+          "open_questions": [
+            "How will the 'unprecedented' rise in memory chip costs impact Apple's gross margins in the December quarter and beyond?",
+            "What will be the outcome of the Supreme Court oral arguments regarding Apple's civil contempt appeal in the Epic Games lawsuit?",
+            "Will the new Democratic congressional oversight agenda lead to regulatory restrictions on AI data center expansion that could ease Apple's component cost pressures?",
+            "How will the transition to new CEO John Ternus affect Apple's long-term AI strategy and capital allocation priorities?"
+          ],
+          "instruments": []
+        },
+        "superseded": false,
+        "evidence": {
+          "digests": [
+            "dg_d6347410503a441b",
+            "dg_312b53b3e52d4083",
+            "dg_2b68081d992d4cd4",
+            "dg_9ca6502f3885441c",
+            "dg_39047774613142da",
+            "dg_d6fdf0ff3deb4726",
+            "dg_ef7c52886cc9445f",
+            "dg_7da7f225cccc4a1a",
+            "dg_6da3007ea3c2472a",
+            "dg_5278320ddfd14933",
+            "dg_80ebb5f96537407c",
+            "dg_6c9b5e63c8bd4904",
+            "dg_3dc80fd45b1a4502",
+            "dg_b106cc1d2b724a9d",
+            "dg_30b42b436d4647d0",
+            "dg_82077d5cac594d23",
+            "dg_4caea0d0bb9e4ba5",
+            "dg_963a303b42fa4c2a",
+            "dg_1bb5631a32db4677",
+            "dg_9f2631dff0744321",
+            "dg_c9d7c655e0f34c90",
+            "dg_7ae8736e0b8f48ca",
+            "dg_f5814ed6e23447f9",
+            "dg_a953c1746aeb4474",
+            "dg_0e9d8456ef624344",
+            "dg_1078179edef648a8"
+          ],
+          "cutoff": "2026-11-27T08:20:15.100409Z"
+        },
+        "generated_at": "2026-11-27T08:20:44.179712Z",
+        "field_states": {}
+      }
+    },
+    "calendar": {
+      "endpoint": "GET /v1/securities/AAPL/calendar",
+      "status": 200,
+      "body": {
+        "instrument": {
+          "key": "security:AAPL",
+          "name": "Apple Inc.",
+          "currency": "USD",
+          "price_scale": 1,
+          "price_precision": 4,
+          "classification": {
+            "object_kind": "tradable",
+            "asset_class": "equity",
+            "instrument_type": "stock",
+            "underlying_asset_class": null,
+            "asset_subclass": null,
+            "taxonomy_version": 3,
+            "registered": true
+          },
+          "venue": "XNAS",
+          "continuous": null,
+          "listing": {
+            "state": "listed",
+            "delisted_at": null,
+            "delisting_reason": null
+          },
+          "field_states": {}
+        },
+        "earnings": {
+          "field_states": {},
+          "earnings_date": "2027-01-28",
+          "currency": "USD",
+          "eps_estimate": 2.9106,
+          "revenue_estimate": 156429989490
+        },
+        "earnings_status": {
+          "dataset": "earnings",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T00:31:21.418710Z",
+          "field_states": {}
+        },
+        "dividends": [
+          {
+            "field_states": {},
+            "ex_date": "2026-11-12",
+            "amount": 0.27,
+            "cash_basis": "split_adjusted"
+          }
+        ],
+        "dividends_status": {
+          "dataset": "dividends",
+          "complete": true,
+          "complete_reason": null,
+          "refreshed_at": "2026-11-28T00:31:21.418710Z",
+          "field_states": {}
+        },
+        "field_states": {}
+      }
+    }
+  }
+}

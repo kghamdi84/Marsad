@@ -79,3 +79,4 @@ export * from './technical-analysis.js';
 export * from './dividend-figures.js';
 export * from './financials-overview.js';
 export * from './news-sentiment.js';
+export * from './company-research.js';

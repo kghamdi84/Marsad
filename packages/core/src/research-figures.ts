@@ -6,7 +6,7 @@
  */
 import type { DailyBar, DividendEvent } from './study.js';
 
-export const RESEARCH_VERSION = 'research-1';
+export const RESEARCH_FIGURES_VERSION = 'research-1';
 export const BETA_VERSION = 'beta-daily-1y-1';
 export const DIVIDEND_YIELD_VERSION = 'dividend-yield-ttm-1';
 
