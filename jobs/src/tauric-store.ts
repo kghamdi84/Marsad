@@ -1,6 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import type { TauricStore } from './tauric-job.js';
+import type { TauricResearchStore } from './tauric-research-job.js';
 import { supabaseStore } from './store.js';
+
+/** The research job's reads and writes with the secret key (ADR 0047). */
+export function supabaseTauricResearchStore(url: string, secretKey: string): TauricResearchStore {
+  const db = createClient(url, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const main = supabaseStore(url, secretKey);
+  return {
+    getWatchlistTickers: () => main.getWatchlistTickers(),
+    async getHoldingTickers() {
+      return [...new Set((await main.getOpenHoldings()).map((h) => h.ticker))];
+    },
+    recordRun: (run) => main.recordRun(run),
+    async upsertResearch(row) {
+      // One row per call: PostgREST updates only the columns sent, so a part left out keeps its stored value.
+      const { error } = await db.from('company_research').upsert(row, { onConflict: 'ticker' });
+      if (error) throw new Error(`company_research upsert failed: ${error.message}`);
+    },
+  };
+}
 
 /** The Tauric jobs' reads and writes with the secret key (ADR 0041). */
 export function supabaseTauricStore(url: string, secretKey: string): TauricStore {

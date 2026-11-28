@@ -11,6 +11,7 @@ import {
   notCoveredTickers,
   parseTauricQuotes,
   quoteFreshness,
+  tauricErrorCode,
   type TauricQuote,
 } from './tauric.js';
 
@@ -113,6 +114,18 @@ describe('classifyTauricFailure', () => {
     const c = classifyTauricFailure(429, body('quota_exhausted'));
     expect(c.kind).toBe('client-error');
     expect(c.message).toBe('daily quota exhausted: m quota_exhausted');
+  });
+  it('keeps the vendor code on a 404 or 503, so "not carried" reads apart from "not published"', () => {
+    const recordedBody = JSON.stringify({
+      error: { code: 'not_registered', message: '`BBAI` is not registered.' },
+    });
+    const c = classifyTauricFailure(404, recordedBody);
+    expect(c.message).toBe('not_registered: `BBAI` is not registered.');
+    expect(tauricErrorCode(c.message)).toBe('not_registered');
+    expect(
+      tauricErrorCode(classifyTauricFailure(503, body('temporarily_unavailable')).message),
+    ).toBe('temporarily_unavailable');
+    expect(tauricErrorCode('not json')).toBeNull();
   });
 });
 

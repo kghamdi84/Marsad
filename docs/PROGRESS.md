@@ -2,7 +2,15 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-27 (Marsad v2 redesign).
+Last updated 2026-11-28 (company research data layer).
+
+### Company research data from Tauric (2026-11-28, ADR 0047)
+
+- New table `company_research`: per ticker, Tauric's analyst consensus (rating counts, 12-month targets, EPS), company profile (classification, valuation, margins, ownership, description), the Tauric AI thesis (narrative, drivers, risks, catalysts, open questions) and the earnings and dividend calendar (next earnings date with one EPS and revenue estimate, latest ex-date). Members read it; nobody writes it from the app.
+- Every part is checked in core (`tauric-research-1`) before it is stored or shown: finite numbers, whole counts that add up, targets ordered low to high, dates and times valid. A bad part is rejected with its reason and the last good value stays, with its own date.
+- Job `tauric-research` runs daily at 09:35 UTC (Tuesday to Saturday) for holdings and watchlists. It reads the day's credit use first (free), spends at most 300 of the 3,000 daily credits, keeps 300 for quotes, warns at 80%, and logs every ticker's outcome in the job log. A ticker Tauric does not carry (BBAI, for example) costs nothing and reads "not covered".
+- Waits for the `TAURIC_API_KEY` secret like the quotes job. Recorded fixtures for NVDA, AAPL and BBAI.
+- Not available from Tauric: per-analyst ratings, earnings-call transcripts, segment revenue, reported EPS and surprises.
 
 ### Quick look shows position, performance and a short company brief (2026-11-27)
 

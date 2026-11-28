@@ -12,7 +12,8 @@ import {
   type TauricConfig,
 } from '@marsad/core';
 import { runTauricQuotesJob, runTauricReconcileJob } from './tauric-job.js';
-import { supabaseTauricStore } from './tauric-store.js';
+import { runTauricResearchJob } from './tauric-research-job.js';
+import { supabaseTauricResearchStore, supabaseTauricStore } from './tauric-store.js';
 
 function need(name: string): string {
   const v = process.env[name]?.trim();
@@ -21,8 +22,8 @@ function need(name: string): string {
 }
 
 const which = process.argv[2];
-if (which !== 'quotes' && which !== 'reconcile')
-  throw new Error('usage: tauric-main.ts quotes|reconcile');
+if (which !== 'quotes' && which !== 'reconcile' && which !== 'research')
+  throw new Error('usage: tauric-main.ts quotes|reconcile|research');
 
 const clock: Clock = {
   now: () => Date.now(),
@@ -42,13 +43,30 @@ const http = new HttpClient({
   maxDelayMs: 20_000,
 });
 const cfg: TauricConfig = { apiKey: need('TAURIC_API_KEY'), now: () => new Date() };
-const store = supabaseTauricStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY'));
 const now = () => new Date();
 
+// The research job (ADR 0047) makes up to 300 single-ticker calls at one a second, inside the 60-a-minute limit.
 const run =
-  which === 'quotes'
-    ? await runTauricQuotesJob({ http, cfg, store, now })
-    : await runTauricReconcileJob({ http, cfg, store, now });
+  which === 'research'
+    ? await runTauricResearchJob({
+        http,
+        cfg,
+        store: supabaseTauricResearchStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY')),
+        now,
+      })
+    : which === 'quotes'
+      ? await runTauricQuotesJob({
+          http,
+          cfg,
+          store: supabaseTauricStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY')),
+          now,
+        })
+      : await runTauricReconcileJob({
+          http,
+          cfg,
+          store: supabaseTauricStore(need('SUPABASE_URL'), need('SUPABASE_SECRET_KEY')),
+          now,
+        });
 console.log(
   `${run.job}: ${run.status}, rows ${run.rows_written ?? 0}, ${run.latency_ms} ms${run.error ? `, error: ${run.error}` : ''} details: ${JSON.stringify(run.details)}`,
 );

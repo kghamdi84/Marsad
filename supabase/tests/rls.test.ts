@@ -80,6 +80,8 @@ beforeAll(async () => {
       values ('NVDA', date '2026-11-20', 188.0, 190.0, 186.0, 189.0, 1000000);
     insert into public.price_quotes (ticker, source, price, quote_kind, price_time, session_date, fetched_at)
       values ('NVDA', 'tauric', 149.3, 'snapshot', '2026-11-25T21:00:01Z', date '2026-11-25', now());
+    insert into public.company_research (ticker, analyst, analyst_refreshed_at, errors)
+      values ('NVDA', '{"recommendation": "buy", "target_mean_price": 242.4278}'::jsonb, '2026-11-28T01:46:14Z', '{"thesis": "temporarily_unavailable"}'::jsonb);
     insert into public.financial_facts (fact_key, cik, taxonomy, concept, unit, period_end, value, accession, form, filed)
       values ('k1', '0001045810', 'us-gaap', 'Revenues', 'USD', date '2026-07-26', 96221000000, '0001045810-26-000100', '10-Q', date '2026-08-26');
     insert into public.insider_filings (accession, issuer_cik, status) values ('0001696841-26-000016', '0001045810', 'ok');
@@ -303,6 +305,7 @@ describe('system tables', () => {
       ['system_alerts', 0],
       ['daily_bars', 1],
       ['price_quotes', 1],
+      ['company_research', 1],
     ] as const) {
       await as(owner2, async (tx) => expect(await count(tx, `public.${table}`)).toBe(1));
       await as(other2, async (tx) =>
@@ -346,6 +349,36 @@ describe('system tables', () => {
         `insert into public.price_quotes (ticker, source, price, quote_kind, fetched_at) values ('AAPL', 'yahoo', 1, 'snapshot', now())`,
       ),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it('company research (ADR 0047): members read, nobody signed in writes, only Tauric, parts are objects', async () => {
+    await as(other2, async (tx) => {
+      const r = await tx.query<{ analyst: { recommendation: string }; errors: object }>(
+        `select analyst, errors from public.company_research where ticker = 'NVDA'`,
+      );
+      expect(r.rows).toEqual([
+        {
+          analyst: { recommendation: 'buy', target_mean_price: 242.4278 },
+          errors: { thesis: 'temporarily_unavailable' },
+        },
+      ]);
+    });
+    for (const sql of [
+      `insert into public.company_research (ticker) values ('AAPL')`,
+      `update public.company_research set analyst = null where ticker = 'NVDA'`,
+      `delete from public.company_research`,
+    ]) {
+      await expect(as(owner2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+      await expect(as(other2, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
+    }
+    await as(owner1, async (tx) => expect(await count(tx, 'public.company_research')).toBe(0));
+    for (const sql of [
+      `insert into public.company_research (ticker, source) values ('AAPL', 'yahoo')`,
+      `insert into public.company_research (ticker, thesis) values ('AAPL', '[1]'::jsonb)`,
+      `insert into public.company_research (ticker, errors) values ('AAPL', '"x"'::jsonb)`,
+      `insert into public.company_research (ticker) values ('aapl')`,
+    ])
+      await expect(db.query(sql)).rejects.toThrow(/check constraint/);
   });
 
   it('every Study table: owner reads, members read all but the owner-only signals, nobody deletes', async () => {
