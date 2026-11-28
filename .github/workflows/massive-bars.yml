@@ -1,8 +1,8 @@
 name: Massive daily bars
 
 # Stores two years of daily bars for the tracked tickers after the US close (16:00 ET is 20:00 or 21:00 UTC;
-# 22:30 UTC is after the close in both daylight saving settings). The free Massive plan allows about 5 calls a
-# minute, so the job spreads its calls out and takes a few minutes. It shares the massive-api concurrency
+# 22:30 UTC is after the close in both daylight saving settings). The job spaces its calls evenly: 60 a minute on the
+# Stocks Starter plan (MASSIVE_CALLS_PER_MINUTE below), 5 a minute on the free plan. It shares the massive-api concurrency
 # group with every other Massive workflow so two runs never overlap.
 on:
   schedule:
@@ -34,6 +34,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          # Massive Stocks Starter has no call limit (2026-11-28); the job default is the free 5 a minute.
+          MASSIVE_CALLS_PER_MINUTE: 60
       # Exit rules (stop, targets, trend break, time stop) on the bars just stored, through the alert pipeline.
       # Runs even when the bars step failed, so a holding with stale bars is named instead of skipped silently.
       - name: Check exit rules on open holdings

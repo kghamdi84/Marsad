@@ -51,10 +51,20 @@ const fetchLike: FetchLike = (url, init) =>
 // sends about 9 calls in the first minute (the 5 at once, then one every 12 seconds), which the vendor refused with a
 // 429 on 2026-11-24 (OKLO, after earlier calls had used the retries). A bucket of 1 spaces every call 12 seconds apart,
 // so no minute ever holds more than 5.
+// Plans above Basic have no call limit (Massive plan table, checked 2026-11-28), so MASSIVE_CALLS_PER_MINUTE may
+// raise the pace; unset it stays at the free plan's 5. Still one token at a time, so calls stay evenly spaced.
+const callsPerMinute = (() => {
+  const raw = process.env['MASSIVE_CALLS_PER_MINUTE']?.trim();
+  if (!raw) return 5;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > 120)
+    throw new Error('MASSIVE_CALLS_PER_MINUTE must be a whole number from 1 to 120');
+  return n;
+})();
 const http = new HttpClient({
   fetch: fetchLike,
   clock,
-  bucket: new TokenBucket(1, 5 / 60, clock),
+  bucket: new TokenBucket(1, callsPerMinute / 60, clock),
   cache: new TtlCache<string>(),
   maxRetries: 3,
   baseDelayMs: 2000,
