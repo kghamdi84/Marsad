@@ -72,6 +72,24 @@ export function sectorFundOf(sector: string | null | undefined): string | null {
   return GICS_SECTOR_FUNDS[key] ?? null;
 }
 
+export type ResultsDateSource = 'tauric' | 'marsad-estimate';
+
+/**
+ * The next results date after `session`: Tauric's stated date (`calendar.earnings.earnings_date`) when it is after
+ * the session, else Marsad's `calendar-1` estimate when that is; null when neither is. The summary row and the
+ * earnings guard (ADR 0052) both choose through this, so they never disagree on the date or its source.
+ */
+export function nextResultsDate(
+  stated: string | null,
+  estimated: string | null,
+  session: string,
+): { date: string; source: ResultsDateSource } | null {
+  if (stated !== null && stated > session) return { date: stated, source: 'tauric' };
+  if (estimated !== null && estimated > session)
+    return { date: estimated, source: 'marsad-estimate' };
+  return null;
+}
+
 /** The stored company research of one ticker (ADR 0047), as validated by `tauric-research-1`. */
 export interface SummaryResearch {
   analyst: TauricAnalyst | null;
@@ -139,7 +157,7 @@ export interface TickerSummaryRow {
   dividends_ttm: number | null;
   dividend_yield_ttm: number | null;
   next_earnings_date: string | null;
-  next_earnings_source: 'tauric' | 'marsad-estimate' | null;
+  next_earnings_source: ResultsDateSource | null;
   analyst_count: number | null;
   analyst_target_mean: number | null;
   analyst_recommendation: AnalystRecommendation | null;
@@ -436,13 +454,11 @@ export function tickerDailySummary(x: TickerSummaryInput): TickerSummaryRow {
   }
   const stated = res?.calendar?.earnings?.earnings_date ?? null;
   const estimated = x.earningsEstimate?.date ?? null;
-  if (stated !== null && stated > x.date) {
-    row.next_earnings_date = stated;
-    row.next_earnings_source = 'tauric';
-  } else if (estimated !== null && estimated > x.date) {
-    row.next_earnings_date = estimated;
-    row.next_earnings_source = 'marsad-estimate';
-    row.formula_versions['earnings_estimate'] = 'calendar-1';
+  const next = nextResultsDate(stated, estimated, x.date);
+  if (next !== null) {
+    row.next_earnings_date = next.date;
+    row.next_earnings_source = next.source;
+    if (next.source === 'marsad-estimate') row.formula_versions['earnings_estimate'] = 'calendar-1';
   } else {
     const why =
       stated !== null || estimated !== null

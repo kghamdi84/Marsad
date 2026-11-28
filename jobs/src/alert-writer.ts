@@ -19,7 +19,9 @@ const localDate = (d: Date, zone: string) =>
   }).format(d);
 
 /** The context every alert card shows: the newest regime label and VIX close (FRED, delayed). */
-export async function alertContext(store: Store): Promise<{ vix?: Reading; regime?: string }> {
+export async function alertContext(
+  store: Pick<Store, 'latest'>,
+): Promise<{ vix?: Reading; regime?: string }> {
   const regime = (await store.latest('regime_daily', 'date, label', 'date', 1))[0];
   const vixRow = (
     await store.latest('fred_observations', 'date, value|series_id=VIXCLS', 'date', 5)
@@ -45,7 +47,7 @@ export async function alertContext(store: Store): Promise<{ vix?: Reading; regim
  * pipeline would decide now. Push decisions are stored as pending for the Web Push dispatcher.
  */
 export async function pipelineAndStore(
-  store: Store,
+  store: Pick<Store, 'getAlertPreferences' | 'getRecentAlerts' | 'insertAlerts'>,
   items: readonly { input: AlertInput; sourceAt: string | null }[],
   at: Date,
   given?: AlertSettings,

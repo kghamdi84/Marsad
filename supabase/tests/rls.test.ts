@@ -806,6 +806,24 @@ describe('system tables', () => {
     await db.query(`delete from public.briefs where kind = 'weekly-review'`);
   });
 
+  it('alerts accept the earnings guard kind (ADR 0052), still refuse unknown kinds, and stay owner-only', async () => {
+    const ins = (kind: string, id: string) =>
+      `insert into public.alerts (id, version, kind, priority, ticker, rule_id, rule_version, rule_status, dedupe_key, decision, headline, push, card, input)
+        values ('${id}', 'alerts-1', '${kind}', 'normal', 'NVDA', 'earnings-guard', 1, 'live',
+                'earnings|NVDA|earnings-guard|earnings:1:2026-12-03', 'push', 'NVDA reports in 4 sessions', '{}'::jsonb, '[]'::jsonb, '{}'::jsonb)`;
+    await db.query(ins('earnings', '22222222-2222-4222-8222-222222222222'));
+    await expect(
+      db.query(ins('earnings-ish', '33333333-3333-4333-8333-333333333333')),
+    ).rejects.toThrow(/alerts_kind_check/);
+    await as(owner2, async (tx) => {
+      expect(await count(tx, `public.alerts where kind = 'earnings'`)).toBe(1);
+    });
+    await as(other2, async (tx) => {
+      expect(await count(tx, `public.alerts where kind = 'earnings'`)).toBe(0);
+    });
+    await db.query(`delete from public.alerts where kind = 'earnings'`);
+  });
+
   it('catalyst scenarios are personal and need at least one trigger and a plan', async () => {
     const ins = (triggers: string) =>
       `insert into public.catalyst_scenarios (name, tickers, ${triggers ? 'eight_k_items, ' : ''}plan_entry, chase_guard_pct, plan_invalidation, expires_on) values ('NVDA CEO returns', '{NVDA}', ${triggers ? `'${triggers}', ` : ''}'Wait for VWAP.', 0.1, 'Below the low.', '2026-12-31')`;

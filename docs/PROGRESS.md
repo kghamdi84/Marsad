@@ -2,7 +2,16 @@
 
 ## Current phase: 3, Market overview and regime (in progress). Phase 2 built except the AI items (blocked on the API key).
 
-Last updated 2026-11-28 (portfolio views and dividend calendar; Study research views, nightly ticker summary).
+Last updated 2026-11-28 (earnings guard; portfolio views and dividend calendar; Study research views, nightly ticker summary).
+
+### Earnings guard, job side (2026-11-28, ADR 0052, batch 5 of ADR 0048)
+
+- New alert: a holding whose next results date is within 5 trading sessions of the last completed session gets one factual alert per date, for example "NVDA reports in 4 sessions (Tauric date 2026-12-03). You hold 13 shares; stop 160.00, 8.1% below the close; exit rules set." No advice wording.
+- Date: Tauric's stated date first, then Marsad's estimate (labelled as estimated, with its window), through the same `nextResultsDate` the summary row uses. Sessions skip weekends and market holidays (`tradingSessionsBetween`).
+- Rule `earnings-guard` v1, live, set in code like the exit rules (a calendar notice, nothing to backtest). New alert kind `earnings` (additive migration `20270107000000`), not scored by the scorecard. Each alert stores its `earnings-guard-1` snapshot; replay recomputes the stored input exactly.
+- A changed date creates a new alert that names the earlier one. A holding with no stored date is listed in the run, not alerted. A date source older than 7 days is named and the run fails after storing the rest.
+- Job `earnings-guard` runs as a step of the ticker summary workflow (11:25 UTC, Tuesday to Saturday, after the research job), then the push dispatcher. Quiet hours and the push cap from Settings apply.
+- Not done here: the Alerts page label for the new kind (`strings.ts`, the pages agent's file) and days to earnings on watchlist rows (batch 4).
 
 ### Portfolio views and the ex-dividend calendar (2026-11-28, ADR 0048)
 

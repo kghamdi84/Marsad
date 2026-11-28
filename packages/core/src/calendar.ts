@@ -249,3 +249,20 @@ export function nextRegularOpen(now: Date, cal: MarketCalendar): Date | null {
   }
   return null;
 }
+
+/**
+ * Trading sessions after `after` up to and including `through` (both ET dates): weekdays the calendar does not mark
+ * closed. Early-close days count as sessions. Zero when `through` is not after `after`. Dates past the vendor
+ * data's coverage are counted as regular days; callers check `coveredThrough` and say so.
+ */
+export function tradingSessionsBetween(
+  after: string,
+  through: string,
+  cal: MarketCalendar,
+): number {
+  let n = 0;
+  // Ten years of days at most, so a malformed date cannot loop forever.
+  for (let d = addDays(after, 1), i = 0; d <= through && i < 3660; d = addDays(d, 1), i += 1)
+    if (isTradingDay(d, cal)) n += 1;
+  return n;
+}

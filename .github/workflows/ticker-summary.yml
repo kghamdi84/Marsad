@@ -4,7 +4,8 @@ name: Ticker summary
 # sector fund in public.ticker_daily_summary, computed from stored data only (no vendor calls). Runs at 11:25 UTC
 # Tuesday to Saturday: after the bars job (22:30 UTC the evening before), the company research job (09:35 UTC) and
 # the breadth job (10:40 UTC), and before the 13:30 UTC open. GitHub's scheduler can run late; Supabase Cron starts it
-# on time (ADR 0008). Idempotent: a second run the same day rewrites the same rows.
+# on time (ADR 0008). Idempotent: a second run the same day rewrites the same rows. Then the earnings guard (ADR 0052)
+# and the Web Push dispatcher run, so its alerts go out in this run.
 on:
   schedule:
     - cron: '25 11 * * 2-6'
@@ -34,3 +35,24 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # The earnings guard (ADR 0052): one factual alert per holding whose next results date is within 5 trading
+      # sessions, through the alert pipeline. After the research job (09:35 UTC) and the summary step. Runs even when
+      # the summary step failed: it reads the research and estimate tables itself, and names a stale source instead
+      # of skipping it silently.
+      - name: Check holdings' next results dates
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs earnings-guard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Send push notifications
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @marsad/jobs push
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BRIEF_EMAIL_TO: ${{ secrets.BRIEF_EMAIL_TO }}

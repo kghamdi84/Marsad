@@ -151,6 +151,10 @@ export interface Holding {
   timeStopSessions: number | null;
 }
 
+/** Whether a holding has any exit rule: a stop, a target, a trend break or a time stop. */
+export const hasExitRules = (h: Holding): boolean =>
+  h.stop !== null || h.targets.length > 0 || h.trendBreak !== null || !!h.timeStopSessions;
+
 /** Sessions traded since the position was opened (bars after the opening date), as the time stop counts them. */
 export function sessionsHeld(bars: readonly { date: string }[], openedOn: string): number {
   return bars.filter((b) => b.date > openedOn).length;
